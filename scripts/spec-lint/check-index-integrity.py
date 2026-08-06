@@ -151,6 +151,12 @@ def get_hs_ec_mapping() -> dict[str, str]:
         m = re.match(r"^\|\s*~~(HS-\d+)~~\s*\|\s*~~(EC-\d+)~~\s*\|", line)
         if m:
             mapping[m.group(1)] = m.group(2)
+            continue
+        # Malformed row: has HS-NNN cell but EC cell is unrecognized (partial strikethrough,
+        # TBD placeholder, etc.). Mark with sentinel so main() can emit a violation.
+        m = re.match(r"^\|\s*(?:~~)?(HS-\d+)(?:~~)?\s*\|", line)
+        if m:
+            mapping[m.group(1)] = "MALFORMED"
     return mapping
 
 
@@ -345,7 +351,12 @@ def main() -> int:
         # Forward check: each authored HS entry's EC-NNN -> file exists in wave-scenarios
         checks += 1
         for hs_id, ec_id in sorted(hs_mapping.items()):
-            if ec_id not in wave_ec_ids:
+            if ec_id == "MALFORMED":
+                violations.append(
+                    f"{hs_index_path}: HS entry '{hs_id}' has a malformed or unrecognized EC cell "
+                    f"(expected 'EC-NNN' or '~~EC-NNN~~')"
+                )
+            elif ec_id not in wave_ec_ids:
                 violations.append(
                     f"{hs_index_path}: HS entry '{hs_id}' maps to '{ec_id}' — "
                     f"no wave-scenarios file found for this EC ID"
@@ -353,7 +364,7 @@ def main() -> int:
 
         # Reverse check: each wave-scenarios file -> has corresponding HS entry
         checks += 1
-        hs_ec_ids = set(hs_mapping.values())
+        hs_ec_ids = {v for v in hs_mapping.values() if v != "MALFORMED"}
         for ec_id in sorted(wave_ec_ids):
             if ec_id not in hs_ec_ids:
                 violations.append(
