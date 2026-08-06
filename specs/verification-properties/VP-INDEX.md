@@ -1,22 +1,28 @@
 ---
 document_type: vp-index
 level: L4
-version: "1.2"
+version: "1.4"
 status: draft
 producer: architect
-timestamp: 2026-08-05T21:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 phase: 1b
-total_vps: 24
+total_vps: 25
 kani_count: 7
-proptest_count: 7
+proptest_count: 8
 fuzz_count: 2
 integration_count: 7
 unit_count: 1
 p0_count: 7
-p1_count: 9
+p1_count: 10
 test_sufficient_count: 8
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 changelog:
+  - version: "1.4"
+    date: 2026-08-06
+    change: "DI-012/DI-013 coverage mapping: new domain invariants landed (invariants.md v1.5). VP-003 assigned to DI-013 (Kani injectivity; partial — proves distinct slugs, not suffix numbering). VP-018 assigned to DI-012 (partial — 16 worked examples; no formal proof for all inputs). DI Coverage Summary extended: DI-012 Partial, DI-013 Partial. Coverage line updated 11/11→13/13-partial. No new VPs added; gap analysis recorded: DI-012 needs a new VP for differential-testing correctness, DI-013 needs VP-018 duplicate-heading vectors to close suffix-numbering gap."
+  - version: "1.3"
+    date: 2026-08-06
+    change: "INC-MAP-001 closure: added VP-025 (anchor_resolver totality + correctness, proptest P1, BC-2.08.001/002/004); updated BC→VP rows for BC-2.08.001/002/004 to include VP-025; updated per-module VP count for anchor_resolver 0→1; updated arithmetic invariant for 25 VPs; INC-MAP-004 disposition recorded in bc-module-map.md"
   - version: "1.2"
     date: 2026-08-05
     change: "BC coverage gap closure: added VP-023 (url_classifier totality / empty-dest contract, proptest P1, BC-2.07.007) and VP-024 (path_resolver trailing-slash-on-file invariant, proptest P1, BC-2.07.008); added BC→VP rows for all 6 new BCs (BC-2.07.007, BC-2.07.008, BC-2.10.010, BC-2.11.004, BC-2.12.005, BC-2.14.004); updated SS section counts; updated coverage summary to 66 BCs; system-overview.md clarified startup config error vs no-fail-fast rule"
@@ -35,8 +41,8 @@ phase tier MUST propagate to:
 2. `architecture/verification-coverage-matrix.md` — VP-to-Module table + Totals row
 3. Any `architecture/*.md` file with a `VP-NNN` reference
 
-**Arithmetic invariant:** total_vps (24) = kani (7) + proptest (7) + fuzz (2) + integration (7) + unit (1) = 24.
-Phase check: p0 (7) + p1 (9) + test_sufficient (8) = 24. Check before editing.
+**Arithmetic invariant:** total_vps (25) = kani (7) + proptest (8) + fuzz (2) + integration (7) + unit (1) = 25.
+Phase check: p0 (7) + p1 (10) + test_sufficient (8) = 25. Check before editing.
 
 ## VP Catalog
 
@@ -44,7 +50,7 @@ Phase check: p0 (7) + p1 (9) + test_sufficient (8) = 24. Check before editing.
 |----|------|--------|-------------|-------|-----------|--------|
 | VP-001 | vp-001-slug-total.md | slug | kani | P0 | — (CAP-006 PC1) | draft |
 | VP-002 | vp-002-slug-deterministic.md | slug | kani | P0 | — (CAP-006, NFR-003) | draft |
-| VP-003 | vp-003-slug-duplicate-uniqueness.md | slug | kani | P0 | — (BC-2.06.002) | draft |
+| VP-003 | vp-003-slug-duplicate-uniqueness.md | slug | kani | P0 | DI-013 (BC-2.06.002) | draft |
 | VP-004 | vp-004-fragment-split.md | fragment | kani | P0 | DI-003 | draft |
 | VP-005 | vp-005-exit-code-io-error.md | verdict | kani | P0 | DI-011 | draft |
 | VP-006 | vp-006-exit-code-clean.md | verdict | kani | P0 | DI-010 | draft |
@@ -59,13 +65,14 @@ Phase check: p0 (7) + p1 (9) + test_sufficient (8) = 24. Check before editing.
 | VP-015 | vp-015-two-pass-anchor-complete.md | anchor_table | integration | test-sufficient | DI-008 | draft |
 | VP-016 | vp-016-ignored-files-anchor-targets.md | anchor_table | integration | test-sufficient | DI-006 | draft |
 | VP-017 | vp-017-scan-terminates.md | scanner | integration | test-sufficient | DI-009 | draft |
-| VP-018 | vp-018-slug-worked-examples.md | slug | unit | test-sufficient | — (NFR-006) | draft |
+| VP-018 | vp-018-slug-worked-examples.md | slug | unit | test-sufficient | DI-012 partial (NFR-006) | draft |
 | VP-019 | vp-019-one-verdict-per-link.md | link_extractor | proptest | P1 | DI-005 | draft |
 | VP-020 | vp-020-html-anchor-narrow-scope.md | anchor_table | integration | test-sufficient | DI-007 | draft |
 | VP-021 | vp-021-no-undefined-reason-codes.md | reporter | integration | test-sufficient | — (NFR-007) | draft |
 | VP-022 | vp-022-regression-gate.md | app | integration | test-sufficient | — (D-013/NFR-001) | draft |
 | VP-023 | vp-023-url-classifier-totality.md | url_classifier | proptest | P1 | — (BC-2.07.007 empty-dest) | draft |
 | VP-024 | vp-024-path-resolver-trailing-slash.md | path_resolver | proptest | P1 | — (BC-2.07.008 trailing-slash) | draft |
+| VP-025 | vp-025-anchor-resolver-totality.md | anchor_resolver | proptest | P1 | — (BC-2.08.001/002/004 totality+correctness) | draft |
 
 ## DI Coverage Summary
 
@@ -82,8 +89,10 @@ Phase check: p0 (7) + p1 (9) + test_sufficient (8) = 24. Check before editing.
 | DI-009 | Scan terminates for any input | VP-017 | integration | Yes |
 | DI-010 | Indeterminate does not cause exit 1 | VP-006 | kani | Yes |
 | DI-011 | Exit 2 takes precedence over exit 1 | VP-005 | kani | Yes |
+| DI-012 | Slug computation fidelity (github-slugger v2 algorithm) | VP-018 | unit | Partial — VP-018's 16 worked examples must include the 3 DI-012 falsifying cases (AI & Automation, my_heading, emoji); no formal property proves algorithm correctness for all inputs; new VP recommended (differential proptest against reference table) |
+| DI-013 | Anchor-key uniqueness / injectivity within a file | VP-003 | kani | Partial — VP-003 (Kani P0) proves injectivity (no two headings share a slug); 0-based suffix numbering correctness (second heading = `-1`, not `-2`) is not proved by VP-003; closing this gap requires VP-018 to include duplicate-heading golden vectors |
 
-All 11 domain invariants have at least one VP. Coverage: 11/11 (100%).
+All 13 domain invariants have at least partial VP coverage. Coverage: 11/13 fully proved, 2/13 partial (DI-012, DI-013 — gap analysis above).
 
 ## Per-Module VP Count
 
@@ -94,6 +103,7 @@ All 11 domain invariants have at least one VP. Coverage: 11/11 (100%).
 | verdict | 2 | 0 | 0 | 0 | 0 | 2 |
 | http_verdict | 1 | 0 | 0 | 0 | 0 | 1 |
 | anchor_table | 0 | 0 | 0 | 3 | 0 | 3 |
+| anchor_resolver | 0 | 1 | 0 | 0 | 0 | 1 |
 | path_resolver | 0 | 3 | 0 | 0 | 0 | 3 |
 | link_extractor | 0 | 1 | 0 | 1 | 0 | 2 |
 | filter | 0 | 1 | 0 | 0 | 0 | 1 |
@@ -101,7 +111,7 @@ All 11 domain invariants have at least one VP. Coverage: 11/11 (100%).
 | scanner | 0 | 0 | 0 | 1 | 0 | 1 |
 | app | 0 | 0 | 0 | 1 | 0 | 1 |
 | url_classifier | 0 | 1 | 0 | 0 | 0 | 1 |
-| **Totals** | **7** | **7** | **2** | **7** | **1** | **24** |
+| **Totals** | **7** | **8** | **2** | **7** | **1** | **25** |
 
 ## BC-to-VP Coverage Table
 
@@ -186,10 +196,10 @@ BCs with a real VP: **33**. BCs test-sufficient only: **33**.
 
 | BC | Title (abbreviated) | VP(s) | Notes |
 |----|---------------------|-------|-------|
-| BC-2.08.001 | Anchor-only link (#fragment) | VP-015 | two-pass completeness covers same-file forward refs |
-| BC-2.08.002 | Cross-file anchor resolution | VP-015, VP-016 | two-pass + out-of-scan anchor tables |
+| BC-2.08.001 | Anchor-only link (#fragment) | VP-015, VP-025 | two-pass completeness + resolver totality/correctness |
+| BC-2.08.002 | Cross-file anchor resolution | VP-015, VP-016, VP-025 | two-pass + out-of-scan anchor tables + resolver correctness |
 | BC-2.08.003 | Fragment split at first unescaped # | VP-004, VP-013 | Kani proof + fuzz |
-| BC-2.08.004 | Cross-file anchor into ignored file | VP-016 | DI-006 integration |
+| BC-2.08.004 | Cross-file anchor into ignored file | VP-016, VP-025 | DI-006 integration + resolver correctness |
 
 ### SS-09: URL Classifier (2 BCs)
 

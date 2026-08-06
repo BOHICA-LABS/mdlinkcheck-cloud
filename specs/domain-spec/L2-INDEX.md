@@ -1,7 +1,7 @@
 ---
 document_type: domain-spec-index
 level: L2
-version: "1.6"
+version: "1.8"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -13,6 +13,12 @@ inputs:
 input-hash: "20e96e1"
 traces_to: .factory/specs/product-brief.md
 changelog:
+  - version: "1.8"
+    date: 2026-08-06
+    change: "P3-010 governance gap closure (DD-027): ID Registry DI-NNN count 11→13 (added DI-012, DI-013), DD-NNN count 26→27 (added DD-027). Document Map invariants.md row updated to DI-001–DI-013. Domain Decisions row updated to DD-001–DD-027. Brief→Domain Coverage R2b row updated to include DI-012, DI-013. Human Decisions table extended with DD-027. Shard versions bumped: invariants.md 1.4→1.5, failure-modes.md 1.3→1.4, capabilities.md 1.4→1.5, decisions.md 1.6→1.7."
+  - version: "1.7"
+    date: 2026-08-06
+    change: "Mechanical spec remediation: shard versions bumped — edge-cases.md 1.3→1.4, failure-modes.md 1.2→1.3, decisions.md 1.5→1.6. Fixes: (1) DEC-006 retired-holdout and mis-cited active-holdout source references removed — BV-013 only; (2) FM-001/002/003 Invariant Violated corrected from DI-001 (ordering — wrong) to no-governing-DI annotation with DD-015 normative reference; (3) FM-004 retired-holdout corpus fixture citation removed; (4) DD-017 erroneous still-active holdout citation removed from Decision text and Resolves; (5) DD-007/009/010 active holdout IDs in Resolves column replaced with risk-class descriptions per DD-026. check-id-resolution and check-holdout-boundary both at 0."
   - version: "1.6"
     date: 2026-08-05
     change: "Pass-2 adversarial remediation: ID Registry DD-NNN count updated 22→26; Domain Decisions row updated to DD-001–DD-026; Human Decisions table extended with DD-023–DD-026. Shard versions bumped: capabilities.md 1.3→1.4, invariants.md 1.3→1.4, edge-cases.md 1.2→1.3, failure-modes.md 1.1→1.2, decisions.md 1.4→1.5. Changes: CAP-008 directory+fragment discriminator, CAP-011 --allow fallback, CAP-013 JSON object envelope, CAP-014 three-input exit code, DI-001 falsifiable, DI-002 concrete example removed, DI-006 Pass 1.5 missing-target rule, DI-009 non-canonicalize dedup key, http-error/http-indeterminate 400-after-GET reclassification, DEC-001/003/009 holdout burn + concrete detail restored."
@@ -74,7 +80,7 @@ correctness-intensive domain.
 |---------|------|-----------------|---------|
 | Domain Capabilities | `capabilities.md` | product-owner, architect, story-writer | CAP-001–CAP-014 capability catalog |
 | Domain Entities | `entities.md` | architect, product-owner | Ubiquitous language + entity model |
-| Domain Invariants | `invariants.md` | product-owner, architect | DI-001–DI-011 business rules |
+| Domain Invariants | `invariants.md` | product-owner, architect | DI-001–DI-013 business rules |
 | Processing Stages | `events.md` | architect | Scan pipeline stage definitions |
 | Edge Cases | `edge-cases.md` | story-writer, test-writer | DEC-001–DEC-009 domain-level edge cases |
 | Assumptions | `assumptions.md` | product-owner, test-writer | ASM-001–ASM-010 with validation methods |
@@ -82,7 +88,7 @@ correctness-intensive domain.
 | Failure Modes | `failure-modes.md` | architect, test-writer | FM-001–FM-010 runtime failure catalog |
 | Differentiators | `differentiators.md` | product-owner | Competitive differentiator → CAP mapping |
 | Event Flow | `event-flow.md` | (human reference) | End-to-end scan lifecycle state transitions |
-| Domain Decisions | `decisions.md` | product-owner, all | DD-001–DD-026 resolved AMB-* and governance register |
+| Domain Decisions | `decisions.md` | product-owner, all | DD-001–DD-027 resolved AMB-* and governance register |
 
 ## Cross-References
 
@@ -101,7 +107,7 @@ correctness-intensive domain.
 |---|---|---|
 | R1 (discovery) | CAP-001 | DI-009 |
 | R2a (relative file links) | CAP-007 | DI-002, DI-003 |
-| R2b (heading anchors) | CAP-005, CAP-006, CAP-008 | DI-003, DI-007, DI-008 |
+| R2b (heading anchors) | CAP-005, CAP-006, CAP-008 | DI-003, DI-007, DI-008, DI-012, DI-013 |
 | R2c (external URLs) | CAP-009, CAP-010 | DI-005, DI-010 |
 | R3 (reference links/images) | CAP-003 | DI-004 |
 | R4 (code context exclusion) | CAP-004 | DI-004 |
@@ -131,18 +137,19 @@ correctness-intensive domain.
 | DD-024 (D-018: HTTP 400 after GET fallback is `indeterminate`, not `broken`) | — (CAP-010, failure-modes.md) |
 | DD-025 (D-019: `--allow` WHATWG-normalize-then-prefix-match with raw-string fallback at component boundary) | — (CAP-011 only) |
 | DD-026 (D-020: EC-036/049/074/157/158 holdout burn; standing no-concrete-detail rule for newly designated holdouts) | — (edge-cases.md governance) |
+| DD-027 (business-analyst governance: two-invariant model for CAP-006 — DI-012 slug computation fidelity + DI-013 anchor-key uniqueness; closes P3-010 governance gap) | DI-012, DI-013 |
 
 ## ID Registry Summary
 
 | ID Format | Count | Section |
 |-----------|-------|---------|
 | CAP-NNN | 14 (CAP-001–CAP-014) | `capabilities.md` |
-| DI-NNN | 11 (DI-001–DI-011) | `invariants.md` |
+| DI-NNN | 13 (DI-001–DI-013) | `invariants.md` |
 | DEC-NNN | 9 (DEC-001–DEC-009) | `edge-cases.md` |
 | ASM-NNN | 10 (ASM-001–ASM-010) | `assumptions.md` |
 | R-NNN | 9 (R-001–R-009) | `risks.md` |
 | FM-NNN | 10 (FM-001–FM-010) | `failure-modes.md` |
-| DD-NNN | 26 (DD-001–DD-026) | `decisions.md` |
+| DD-NNN | 27 (DD-001–DD-027) | `decisions.md` |
 
 ## Priority Distribution
 

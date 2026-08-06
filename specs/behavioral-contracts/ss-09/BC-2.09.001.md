@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-09"
 capability: "CAP-009"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,13 +52,13 @@ syntactic correctness using the WHATWG URL parser. A URL that fails WHATWG parse
 3. Syntax validation is the ONLY check performed in offline mode for external URLs.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-077 | `https://example.com/path?q=1&r=2#frag` | clean (valid WHATWG URL) |
-| EC-078 | `http://` (no host) | broken (malformed-url) |
-| EC-082 | `https://user:pass@host.com/path` | clean (WHATWG accepts) |
-| EC-083 | `https://[::1]:8080/path` (IPv6) | clean |
-| EC-084 | `https://xn--nxasmq6b.com` (Punycode) | clean |
+| EC | Description |
+|----|-------------|
+| EC-077 | `https://example.com/path?q=1&r=2#frag` |
+| EC-078 | `http://` (no host) |
+| EC-082 | `https://user:pass@host.com/path` |
+| EC-083 | `https://[::1]:8080/path` (IPv6) |
+| EC-084 | `https://xn--nxasmq6b.com` (Punycode) |
 
 ## Canonical Test Vectors
 | URL | Expected Verdict (offline) | Category |
@@ -69,8 +70,8 @@ syntactic correctness using the WHATWG URL parser. A URL that fails WHATWG parse
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | WHATWG-invalid URLs → malformed-url in offline mode | unit test |
-| test-sufficient | No HTTP requests in offline mode | unit test |
+| — | WHATWG-invalid URLs → malformed-url in offline mode | unit test |
+| — | No HTTP requests in offline mode | unit test |
 
 ## Traceability
 | Field | Value |
@@ -78,3 +79,4 @@ syntactic correctness using the WHATWG URL parser. A URL that fails WHATWG parse
 | L2 Capability | CAP-009 ("Validate external URL syntax using WHATWG URL parsing — malformed URLs are broken even in offline mode") per capabilities.md §CAP-009 |
 | Capability Anchor Justification | CAP-009 ("External URL Syntax Validation") per capabilities.md §CAP-009 |
 | Brief Requirement | R5, R6, T11 |
+| Architecture Module | `url_classifier.rs` (SS-09, pure core, HIGH tier) — ADR-007 (verdict model — classification drives routing) |

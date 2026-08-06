@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,9 +53,9 @@ a non-existent hostname is unlikely to be transient.
 2. A resolver connectivity failure (can't reach resolver) MAY be indeterminate; implementer judgement — default to broken.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-081 | URL to non-existent hostname `https://this-domain-does-not-exist-xyz-123.com` | broken (dns-failure) |
+| EC | Description |
+|----|-------------|
+| EC-081 | URL to non-existent hostname `https://this-domain-does-not-exist-xyz-123.com` |
 
 ## Canonical Test Vectors
 | Scenario | Expected |
@@ -72,3 +73,4 @@ a non-existent hostname is unlikely to be transient.
 | L2 Capability | CAP-010 ("DNS failure: broken (dns-failure)") per capabilities.md §CAP-010 |
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
 | Brief Requirement | R2c |
+| Architecture Module | `http_verdict.rs` (SS-10, pure core, CRITICAL tier) primary; `http_client.rs` (SS-10, effectful, MEDIUM tier) secondary — detects DNS failure; encodes into Attempt enum for http_verdict — ADR-004, ADR-007 |

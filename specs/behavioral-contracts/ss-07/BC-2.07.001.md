@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-07"
 capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,12 +52,12 @@ standard URL/file reference semantics: `docs/a.md` + `../api/ref.md` = `api/ref.
 3. The resolved path is then existence-checked using filesystem APIs.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-022 | `[x](../sibling.md)` in `docs/guide.md` | Resolves to `sibling.md` at repo root |
-| EC-023 | `[x](./same-dir.md)` | Resolves to same directory |
-| EC-024 | `[x](sub/nested.md)` | Resolves to `docs/sub/nested.md` |
-| EC-025 | `[x](../../above-root.md)` | Path escapes scan root; broken (file-not-found) |
+| EC | Description |
+|----|-------------|
+| EC-022 | `[x](../sibling.md)` in `docs/guide.md` |
+| EC-023 | `[x](./same-dir.md)` |
+| EC-024 | `[x](sub/nested.md)` |
+| EC-025 | `[x](../../above-root.md)` |
 
 ## Canonical Test Vectors
 | Source | Destination | Expected Resolved | Verdict |
@@ -78,6 +79,7 @@ standard URL/file reference semantics: `docs/a.md` + `../api/ref.md` = `api/ref.
 | Capability Anchor Justification | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 |
 | L2 Domain Invariants | DI-002, DI-003 |
 | Brief Requirement | R5, R6, T7 |
+| Architecture Module | `path_resolver.rs` (SS-07, pure core, CRITICAL tier) — ADR-006 (NFC strict path model) |
 
 ## Related BCs
 - BC-2.07.002 — composes with (root-relative links use git root)

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-07"
 capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,10 +53,10 @@ fallback.
 3. `git rev-parse --show-toplevel` is run once at startup; if git is not in PATH, falls back silently.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-026 | `/docs/api.md` in a git repo | Resolved from `git rev-parse --show-toplevel` |
-| EC-027 | `/docs/api.md` in a non-git directory | Resolved from scan root (CWD or PATH ancestor) |
+| EC | Description |
+|----|-------------|
+| EC-026 | `/docs/api.md` in a git repo |
+| EC-027 | `/docs/api.md` in a non-git directory |
 
 ## Canonical Test Vectors
 | Destination | Context | Expected Resolution |
@@ -66,8 +67,8 @@ fallback.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Root-relative resolved from git root | integration test |
-| test-sufficient | Fallback works in non-git directory | integration test |
+| — | Root-relative resolved from git root | integration test |
+| — | Fallback works in non-git directory | integration test |
 
 ## Traceability
 | Field | Value |
@@ -76,3 +77,4 @@ fallback.
 | Capability Anchor Justification | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 |
 | L2 Domain Invariants | DI-002, DI-003 |
 | Brief Requirement | R5, AMB-017 |
+| Architecture Module | `path_resolver.rs` (SS-07, pure core, CRITICAL tier) — ADR-006 (NFC strict path model) |

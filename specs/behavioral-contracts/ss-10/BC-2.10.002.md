@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "a53c532"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -23,6 +23,7 @@ modified:
   - v1.3: "F-006 — expanded postconditions to total partition of HTTP 0..=599 + transport outcomes (added 400-after-GET, 401, 403, other-4xx, https→http downgrade, TLS failure, too-many-redirects). Removed --insecure clause in old PC7 (D-011: --insecure is a non-goal). Removed holdout EC-093."
   - "v1.4: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.5: D-014/INCONSISTENCY-002 — separated 'alive' (liveness outcome) from 'clean' (link verdict per DD-022); removed 'alive (clean)' / 'alive → clean' conflation. D-018 — confirmed 400-after-GET is indeterminate (not broken). P2-M01 — made partition truly total: added 0..=99, 1xx, HEAD-400-when-GET-also-400, GET-also-405 cases; aligned range claim to 'all valid HTTP status code values'. P2-M15 — corrected VP-007 proof method to kani and removed two unverifiable attribution rows. P2-m05 — fixed L2 Capability title to verbatim capabilities.md title. P2-m06 — fixed Related BCs swap. D-016 — added sub_reason field documentation."
+  - "v1.6: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -121,14 +122,14 @@ VP-021 does NOT check `sub_reason` values.
    (`tls-error`) — there is no flag to change this.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-087 | HTTP 429 response | indeterminate (not broken); triggers host back-off |
-| EC-088 | HTTP 503 | indeterminate |
-| EC-089 | HTTP 410 Gone | broken (http-error) |
-| EC-090 | HTTP 401 on GitHub raw content (private repo) | indeterminate |
-| EC-091 | https://example.com redirects to http://example.com | indeterminate (downgrade not followed; sub_reason: https-downgrade) |
-| EC-092 | Connection to private IP `http://10.0.0.1/` | indeterminate (no outbound request; sub_reason: private-ip) |
+| EC | Description |
+|----|-------------|
+| EC-087 | HTTP 429 response |
+| EC-088 | HTTP 503 |
+| EC-089 | HTTP 410 Gone |
+| EC-090 | HTTP 401 on GitHub raw content (private repo) |
+| EC-091 | https://example.com redirects to http://example.com |
+| EC-092 | Connection to private IP `http://10.0.0.1/` |
 
 ## Canonical Test Vectors
 | Scenario | Expected Verdict | Exit Code Contribution |
@@ -154,8 +155,8 @@ VP-021 does NOT check `sub_reason` values.
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | VP-007 | 429/5xx/timeout never produces broken verdict; 404/410 always produce broken (after full fallback) | kani (P0) |
-| test-sufficient | https→http downgrade produces indeterminate (BC-2.10.007 integration test) | integration test |
-| test-sufficient | private-IP target never sends outbound request (BC-2.10.010 integration test) | integration test |
+| — | https→http downgrade produces indeterminate (BC-2.10.007 integration test) | integration test |
+| — | private-IP target never sends outbound request (BC-2.10.010 integration test) | integration test |
 
 ## Traceability
 | Field | Value |
@@ -164,6 +165,7 @@ VP-021 does NOT check `sub_reason` values.
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 — this BC is the definitive total-partition contract for the HTTP verdict model |
 | L2 Domain Invariants | DI-010 |
 | Brief Requirement | R2c, R7 |
+| Architecture Module | `http_verdict.rs` (SS-10, pure core, CRITICAL tier) primary; `http_client.rs` (SS-10, effectful shell, MEDIUM tier) secondary — implements the HEAD/GET protocol that produces responses for classification — ADR-004, ADR-007 |
 
 ## Related BCs
 - BC-2.10.003 — dependency (HEAD→GET fallback triggers from 405; GET verdict flows back here)

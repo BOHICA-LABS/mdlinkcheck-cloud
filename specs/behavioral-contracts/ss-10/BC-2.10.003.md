@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "a53c532"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: INCONSISTENCY-001/D-014 — replaced 'clean' with 'alive' in test vector (liveness outcome is alive; link verdict is clean per DD-022)"
+  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,9 +52,9 @@ share one 10-second budget).
 3. DNS resolution time counts within the 10-second budget.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-079b | URL times out in 10s | indeterminate (http-timeout) |
+| EC | Description |
+|----|-------------|
+| EC-171 | URL times out in 10s |
 
 ## Canonical Test Vectors
 | Scenario | Expected |
@@ -64,8 +65,8 @@ share one 10-second budget).
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Timeout after 10s produces http-timeout | unit test with mock slow server |
-| test-sufficient | http-timeout is indeterminate not broken | unit test |
+| — | Timeout after 10s produces http-timeout | unit test with mock slow server |
+| — | http-timeout is indeterminate not broken | unit test |
 
 ## Traceability
 | Field | Value |
@@ -74,3 +75,4 @@ share one 10-second budget).
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
 | L2 Domain Invariants | DI-010 |
 | Brief Requirement | R5, T13 |
+| Architecture Module | `http_client.rs` (SS-10, effectful shell, MEDIUM tier) — ADR-004 (ureq sync HTTP) |

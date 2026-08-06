@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-07"
 capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,11 +53,11 @@ slug comparison (DI-003).
 3. Invalid percent sequences (e.g., `%GG`) cause the link to be treated as malformed-url only for external URLs; for file paths they are passed through (not decoded) and likely produce file-not-found.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-033 | `[x](My%20File.md)` where file is `My File.md` | clean (decoded to `My File.md`) |
-| EC-034 | `[x](path%23with-hash.md)` | path decoded to `path#with-hash.md` (not a fragment) |
-| EC-035 | `[x](a%20b.md#section)` | path = `a b.md`; fragment = `section` (split before decode) |
+| EC | Description |
+|----|-------------|
+| EC-033 | `[x](My%20File.md)` where file is `My File.md` |
+| EC-034 | `[x](path%23with-hash.md)` |
+| EC-035 | `[x](a%20b.md#section)` |
 
 ## Canonical Test Vectors
 | Destination | Split + Decode Result | Verdict |
@@ -78,3 +79,4 @@ slug comparison (DI-003).
 | Capability Anchor Justification | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 |
 | L2 Domain Invariants | DI-002, DI-003 |
 | Brief Requirement | R5, R6, T9 |
+| Architecture Module | `fragment.rs` (SS-07, pure core, CRITICAL tier) primary; `path_resolver.rs` (SS-07) secondary — receives already-split, percent-preserved dest string — ADR-006 |

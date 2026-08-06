@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-009) restated PC1/PC2 as DD-015 key-containment semantics (not value semantics); corrected PC3 to restrict the canonical case to the specific document order where both ## Setup headings precede ## Setup 1; added Setup-1-first test vector and PC4"
+  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,12 +69,12 @@ bumped to "setup-1-1".
 3. Processing order is document order (top to bottom).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-055 | `## Setup` × 2 | "setup", "setup-1" |
-| EC-056 | `## Setup` × 2 + `## Setup 1` | "setup", "setup-1", "setup-1-1" |
-| EC-057 | `## Setup` × 3 | "setup", "setup-1", "setup-2" |
-| EC-058 | `## A` × 4 | "a", "a-1", "a-2", "a-3" |
+| EC | Description |
+|----|-------------|
+| EC-055 | `## Setup` × 2 |
+| EC-056 | `## Setup` × 2 + `## Setup 1` |
+| EC-057 | `## Setup` × 3 |
+| EC-058 | `## A` × 4 |
 
 ## Canonical Test Vectors
 | Headings (document order) | Slugs Produced | Category |
@@ -95,6 +96,7 @@ bumped to "setup-1-1".
 | Capability Anchor Justification | CAP-006 ("Heading Slug Computation") per capabilities.md §CAP-006 |
 | L2 Domain Invariants | DI-008 |
 | Brief Requirement | R2b, DD-015 |
+| Architecture Module | `slug.rs` (SS-06, pure core, CRITICAL tier) — ADR-006 (NFC strict path model; slug algorithm is the primary differentiator) |
 
 ## Related BCs
 - BC-2.06.001 — composes with (base slug before counter)

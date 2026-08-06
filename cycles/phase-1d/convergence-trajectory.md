@@ -19,12 +19,13 @@ traces_to: STATE.md
 
 | Pass | Date | Total | CRIT | HIGH | MED | LOW | Novelty | Score | Counter | Verdict |
 |------|------|-------|------|------|-----|-----|---------|-------|---------|---------|
-| 1 | 2026-08-05 | 32 | 6 | 21 | 5 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN |
-| 2 | 2026-08-05 | 34 | 7 | 19 | 8 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN (REGRESSION: novelty increased) |
+| 1 | 2026-08-05 | 32 | 6 | 21 | 5 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN — REMEDIATED |
+| 2 | 2026-08-05 | 34 | 7 | 19 | 8 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN (REGRESSION: novelty increased) — REMEDIATED |
+| 3 | 2026-08-06 | 39 | 5 | 26 | 8 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN (REGRESSION: novelty increased) — REMEDIATED (mechanical enforcement) |
 
 ## Trajectory Shorthand
 
-`→32→34`
+`→32→34→39`
 
 ## Per-Pass Details
 
@@ -53,6 +54,24 @@ Coverage NOT reached in pass 2: 56 of 66 BC files unread; nfr-catalog.md, test-v
 Consistency audit pass 2 result: FAIL — 3 critical / 7 major / 3 minor. 11 of 13 pass-1 findings confirmed FIXED. Regressions introduced by concurrent multi-agent editing noted.
 
 Remediation after pass 2: COMPLETE (burst 4, 2026-08-05). BI-003 resolved — all 4 human spec decisions ruled. D-021..D-025 recorded. PRD v1.7. Holdout pool reconciled to 12 (HS-004..HS-007 authored, EC-165..EC-168 authored, HS-002/003 retired, EC-036/049/074/157/158 burned to visible tests). Delivery model updated: full PR-based delivery restored (D-021/D-022/D-023). Exit-code model codified as three-input function (D-025). PATH arg error model codified as runtime I/O error (D-024). Skip log corrected: phase-1-cicd-setup → COMPLETE; pr steps un-skipped.
+
+---
+
+### Pass 3 (2026-08-06)
+
+**Findings:** 39 (5 CRIT, 26 HIGH, 8 MED, 0 LOW)
+**Novelty:** HIGH (REGRESSION: 34→39 novel findings)
+**Convergence counter:** 0 of 3
+
+Pass 3 covered the unreached perimeter from pass 2: ADR-007-three-verdict-model.md, BC-INDEX.md, BC-2.10.004.md, test-vectors.md, prd.md, HS-INDEX.md, policies.yaml, VP-INDEX.md, verification-coverage-matrix.md, ARCH-INDEX.md, error-taxonomy.md, failure-modes.md. Findings clustered around: missing module ownership tracking in BCs, BC edge-case-table structure (EC ID collisions), placeholder markers (`[filled by story-writer]` / `[filled by architect]`), index integrity issues, title sync failures, slug computation fidelity verification gap (FM-002 unprovable with current VP set).
+
+NOTE: 29 of 39 findings stored as stubs in adversary-pass-3.md — full finding text was not supplied to the persisting agent. Pass 4 supersedes this record.
+
+Consistency audit pass 3 result: FAIL.
+
+Strategy response: Novelty increasing for 3 consecutive passes under manual remediation (32→34→39). Strategy pivoted to mechanical enforcement + generation. Built spec-lint validator/generator suite (8 validators, 4 generators, negative-test selftest) on branch `feature/spec-lint-tooling` (open PR #2). Running `just spec-lint` cleared 254 → 25 mechanical violations. 7 of 8 checkers now PASS. Remaining 25 are check-placeholders `[filled by story-writer]` — legitimately unresolvable until Phase 2 story-writer runs.
+
+Remediation after pass 3: COMPLETE (burst 5, 2026-08-06). D-026/D-027 recorded. PRD v1.9. 25 VPs (VP-025 added for anchor_resolver totality). 13 DIs (DI-012/DI-013 added). All 66 BCs carry owning module/criticality/VP anchor from new `architecture/bc-module-map.md`. ADR-007 rewritten to v1.3 (two-layer verdict model). Mechanical violations 254 → 25 (25 expected-pending placeholders). BI-004 resolved. BI-005/006 opened.
 
 ---
 

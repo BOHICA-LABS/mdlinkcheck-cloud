@@ -76,11 +76,11 @@ cohesion.
    pairs for every finding.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-015 | UTF-8 BOM followed by `## Setup` on line 1 | BOM stripped by scanner.rs; slug is `setup`; line 1, column 1 reported |
-| EC-016 | CRLF file; link on line 10 | Normalized by scanner.rs; reported as line 10 (same as LF file) |
-| EC-015b | BOM file: `[x](missing.md)` is the first link on line 1 | column=1 (NOT column=4; BOM-stripped buffer starts at position 0) — see TV-015b |
+| EC | Description |
+|----|-------------|
+| EC-015 | UTF-8 BOM followed by `## Setup` on line 1 |
+| EC-016 | CRLF file; link on line 10 |
+| EC-015b | BOM file: `[x](missing.md)` is the first link on line 1 |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -92,8 +92,8 @@ cohesion.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | BOM-stripped and non-BOM files produce identical (line, column) findings | unit test |
-| test-sufficient | scanner.rs produces clean string (no BOM/CRLF) before parser invocation | unit test (inspect string at scanner.rs boundary) |
+| — | BOM-stripped and non-BOM files produce identical (line, column) findings | unit test |
+| — | scanner.rs produces clean string (no BOM/CRLF) before parser invocation | unit test (inspect string at scanner.rs boundary) |
 
 ## Traceability
 | Field | Value |

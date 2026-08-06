@@ -1,10 +1,10 @@
 ---
 document_type: architecture-index
 level: L3
-version: "1.1"
+version: "1.4"
 status: draft
 producer: architect
-timestamp: 2026-08-05T20:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/dtu-assessment.md
   - .factory/specs/gene-transfusion-assessment.md
   - .factory/planning/market-intelligence.md
-input-hash: "4e83a61"
+input-hash: "df63811"
 traces_to: .factory/specs/prd.md
 deployment_topology: single-service
 ---
@@ -36,6 +36,7 @@ deployment_topology: single-service
 | Tooling Selection | tooling-selection.md | formal-verifier, dx-engineer | Kani, cargo-fuzz, cargo-mutants, proptest config |
 | Verification Coverage Matrix | verification-coverage-matrix.md | consistency-validator | VP-to-module mapping, coverage totals |
 | Architecture Feasibility Review | feasibility-review.md | product-owner, architect | PRD subsystem grouping feasibility verdict and rationale |
+| BC → Module Map | bc-module-map.md | story-writer, product-owner | Canonical BC → module mapping for all 66 BCs; fills all 47 BC module placeholder cells; POL-14 defect guidance |
 
 ## Cross-References
 
@@ -76,6 +77,6 @@ deployment_topology: single-service
 | ADR-002 | Workspace Layout: Library + Binary Crates | all |
 | ADR-003 | pulldown-cmark 0.13.4 Parser Choice | SS-02, SS-03, SS-04 |
 | ADR-004 | ureq 3.3.0 Sync HTTP Client | SS-10 |
-| ADR-005 | rayon Parallelism + Sort-Before-Emit | SS-01, SS-12, SS-13 |
-| ADR-006 | Case-Sensitive NFC Strict Path Model | SS-07 |
-| ADR-007 | Three-Verdict Model | SS-10, SS-14 |
+| ADR-005 | rayon Parallelism + Sort-Before-Emit | SS-01, SS-10, SS-12, SS-13 |
+| ADR-006 | Case-Sensitive NFC Strict Path Model | SS-05, SS-06, SS-07 |
+| ADR-007 | Two-Layer Verdict Model — clean / broken / indeterminate | SS-08, SS-09, SS-10, SS-11, SS-14 |

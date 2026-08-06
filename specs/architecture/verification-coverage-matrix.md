@@ -2,17 +2,23 @@
 document_type: architecture-section
 level: L3
 section: verification-coverage-matrix
-version: "1.4"
+version: "1.6"
 status: draft
 producer: architect
-timestamp: 2026-08-05T21:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/prd.md
   - .factory/specs/architecture/ARCH-INDEX.md
-input-hash: "56af608"
+input-hash: "31deb21"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.6"
+    date: 2026-08-06
+    change: "DI-012/DI-013 coverage: VP-003 DI column updated BC-2.06.002→DI-013,BC-2.06.002; VP-018 DI column updated NFR-006→DI-012 partial,NFR-006. Fixed stale header 'Total VPs: 24' → 25 (VP-025 was added in v1.5 but prose header was not updated)."
+  - version: "1.5"
+    date: 2026-08-06
+    change: "INC-MAP-001 closure: added VP-025 row (anchor_resolver/proptest/P1, BC-2.08.001/002/004); updated anchor_resolver row from 0 to proptest=1/total=1; updated Totals row (proptest 7→8, total 24→25)"
   - version: "1.4"
     date: 2026-08-05
     change: "P2-m07 remediation: removed erroneous VP-014 reference from url_classifier coverage note — VP-014 is a link_extractor test (code-context exclusion); url_classifier coverage flows from VP-023 and BC-2.09.001 acceptance tests only"
@@ -34,13 +40,13 @@ changelog:
 
 ## VP-to-Module Mapping
 
-Source of truth: VP-INDEX.md. Total VPs: **24**.
+Source of truth: VP-INDEX.md. Total VPs: **25**.
 
 | VP | Module | Method | Pipeline Phase | Tier | DI Discharged |
 |----|--------|--------|---------------|------|--------------|
 | VP-001 | slug | kani | 6 | P0 | — (CAP-006 totality) |
 | VP-002 | slug | kani | 6 | P0 | NFR-003 |
-| VP-003 | slug | kani | 6 | P0 | BC-2.06.002 |
+| VP-003 | slug | kani | 6 | P0 | DI-013, BC-2.06.002 |
 | VP-004 | fragment | kani | 6 | P0 | DI-003 |
 | VP-005 | verdict | kani | 6 | P0 | DI-011 |
 | VP-006 | verdict | kani | 6 | P0 | DI-010 |
@@ -55,13 +61,14 @@ Source of truth: VP-INDEX.md. Total VPs: **24**.
 | VP-015 | anchor_table | integration | 3 | test-sufficient | DI-008 |
 | VP-016 | anchor_table | integration | 3 | test-sufficient | DI-006 |
 | VP-017 | scanner | integration | 3 | test-sufficient | DI-009 |
-| VP-018 | slug | unit | 3 | test-sufficient | NFR-006 |
+| VP-018 | slug | unit | 3 | test-sufficient | DI-012 partial, NFR-006 |
 | VP-019 | link_extractor | proptest | 3 | P1 | DI-005 |
 | VP-020 | anchor_table | integration | 3 | test-sufficient | DI-007 |
 | VP-021 | reporter | integration | 3 | test-sufficient | NFR-007 |
 | VP-022 | app | integration | 3 | test-sufficient | D-013/NFR-001 |
 | VP-023 | url_classifier | proptest | 3 | P1 | — (BC-2.07.007 empty-dest) |
 | VP-024 | path_resolver | proptest | 3 | P1 | — (BC-2.07.008 trailing-slash) |
+| VP-025 | anchor_resolver | proptest | 3 | P1 | — (BC-2.08.001/002/004 totality + correctness) |
 
 ## Per-Module Coverage Totals
 
@@ -78,23 +85,23 @@ Source of truth: VP-INDEX.md. Total VPs: **24**.
 | anchor_table | 0 | 0 | 0 | 3 | 0 | **3** |
 | scanner | 0 | 0 | 0 | 1 | 0 | **1** |
 | app | 0 | 0 | 0 | 1 | 0 | **1** |
-| anchor_resolver | 0 | 0 | 0 | 0 | 0 | 0 |
+| anchor_resolver | 0 | 1 | 0 | 0 | 0 | **1** |
 | url_classifier | 0 | 1 | 0 | 0 | 0 | **1** |
 | cli | 0 | 0 | 0 | 0 | 0 | 0 |
 | http_client | 0 | 0 | 0 | 0 | 0 | 0 |
 | main | 0 | 0 | 0 | 0 | 0 | 0 |
 | types | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Totals** | **7** | **7** | **2** | **7** | **1** | **24** |
+| **Totals** | **7** | **8** | **2** | **7** | **1** | **25** |
 
-**Note:** `anchor_resolver`, `http_client` have zero dedicated VPs; `app` has one. Coverage flows through:
-- `anchor_resolver`: covered by `anchor_table` integration tests (VP-015..016) and BC acceptance corpus
+**Note:** `http_client` has zero dedicated VPs; `app` has one. Coverage notes:
+- `anchor_resolver`: VP-025 (proptest totality + correctness, P1); also transitively covered by `anchor_table` integration tests (VP-015..016)
 - `url_classifier`: VP-023 (proptest totality); additional coverage via BC-2.09.001 acceptance tests (VP-014 is a link_extractor test — it does not cover url_classifier)
 - `http_client`: covered by `--online` httpmock integration tests (DTU assessment strategy)
 - `app`: VP-022 (regression gate benchmark) + end-to-end acceptance corpus tests (Phase 3)
 
 ## DI Coverage Summary
 
-All 11 DIs covered by at least one VP. See verification-architecture.md §DI→VP Coverage Matrix.
+All 13 DIs have at least partial VP coverage (11/13 fully proved, 2/13 partial — DI-012 and DI-013). See verification-architecture.md §DI→VP Coverage Matrix for gap analysis.
 
 ## Mutation Kill Rate Targets (module-criticality.md)
 

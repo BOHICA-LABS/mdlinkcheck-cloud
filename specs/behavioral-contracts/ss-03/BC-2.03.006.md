@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -50,10 +51,10 @@ are handled correctly by pulldown-cmark's parser without special-casing.
 2. No special-case footnote filtering code is needed.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-120 | `[^1]` + `[^1]: text` | Not treated as a reference link; no findings |
-| EC-112 | `\[escaped\](missing.md)` | Not a link; no finding |
+| EC | Description |
+|----|-------------|
+| EC-120 | `[^1]` + `[^1]: text` |
+| EC-112 | `\[escaped\](missing.md)` |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -64,8 +65,8 @@ are handled correctly by pulldown-cmark's parser without special-casing.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Footnote constructs produce no link findings | unit test |
-| test-sufficient | Escaped brackets produce no link findings | unit test |
+| — | Footnote constructs produce no link findings | unit test |
+| — | Escaped brackets produce no link findings | unit test |
 
 ## Traceability
 | Field | Value |
@@ -74,5 +75,5 @@ are handled correctly by pulldown-cmark's parser without special-casing.
 | Capability Anchor Justification | CAP-003 ("Link Extraction") per capabilities.md §CAP-003 — exclusions (footnotes, escaped brackets) are part of the extraction contract |
 | L2 Domain Invariants | DI-004 |
 | Brief Requirement | R3, R4, T6 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `link_extractor.rs` (SS-03, pure core, CRITICAL tier) — ADR-003 (pulldown-cmark event stream) |
 | Stories | [filled by story-writer] |

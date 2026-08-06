@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "79b9564"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - v1.3: "DI-006 four-mechanism note added to Invariants: --ignore is one of four source-exclusion mechanisms that share the DI-006 anchor-target carve-out property."
   - v1.5: "Fix 1 (POL-18 holdout boundary): EC-074 citation removed from edge-case table. The anchor-target carve-out property is stated in PC3 and Invariant 4; corpus-fixture holdout details remain hidden. EC-071..EC-073 provide sufficient visible edge coverage."
+  - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -59,11 +60,11 @@ crate dialect. `**` crosses directory boundaries. The pattern is anchored at CWD
    AnchorIndex membership absence (BC-2.05.001).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-071 | `--ignore 'vendor/**'` excludes all files under `vendor/` | Not scanned as sources |
-| EC-072 | `--ignore '*.md'` excludes all .md files | No files scanned; exit 0 |
-| EC-073 | `--ignore 'docs/a.md'` exact match | Only `docs/a.md` excluded |
+| EC | Description |
+|----|-------------|
+| EC-071 | `--ignore 'vendor/**'` excludes all files under `vendor/` |
+| EC-072 | `--ignore '*.md'` excludes all .md files |
+| EC-073 | `--ignore 'docs/a.md'` exact match |
 
 ## Canonical Test Vectors
 | --ignore pattern | Files present | Expected |
@@ -84,3 +85,4 @@ crate dialect. `**` crosses directory boundaries. The pattern is anchored at CWD
 | Capability Anchor Justification | CAP-011 ("Filter Application") per capabilities.md §CAP-011 — --ignore is the primary filter mechanism |
 | L2 Domain Invariants | DI-006 |
 | Brief Requirement | R6, DD-008 |
+| Architecture Module | `filter.rs` (SS-11, pure core, HIGH tier) primary; `scanner.rs` (SS-01, effectful, HIGH tier) secondary — applies glob patterns during traversal; `--ignore`'d files still have anchor tables built — ADR-005, ADR-007 |

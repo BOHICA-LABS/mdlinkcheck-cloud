@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "a53c532"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: REGRESSION-002 — removed .markdown extension reference from Preconditions (D-012: .md only, case-sensitive)"
+  - "v1.3: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,11 +55,11 @@ by binary-searching a precomputed array of line-start byte positions.
 3. Line numbers are 1-based; columns are 1-based byte-offset within the line.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-016 | CRLF file | Line numbers same as LF equivalent (after normalization) |
-| EC-015 | UTF-8 BOM at start | BOM stripped before parse; heading on line 1 correct |
-| EC-121 | Multi-line link destination | Reports line of opening `[` |
+| EC | Description |
+|----|-------------|
+| EC-016 | CRLF file |
+| EC-015 | UTF-8 BOM at start |
+| EC-121 | Multi-line link destination |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -69,7 +70,7 @@ by binary-searching a precomputed array of line-start byte positions.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Line numbers are identical for LF and CRLF equivalents | property test |
+| — | Line numbers are identical for LF and CRLF equivalents | property test |
 
 ## Traceability
 | Field | Value |
@@ -77,7 +78,7 @@ by binary-searching a precomputed array of line-start byte positions.
 | L2 Capability | CAP-002 ("Parse each discovered Markdown file into a structured AST event stream using the CommonMark 0.31.2 + GFM grammar") per capabilities.md §CAP-002 |
 | Capability Anchor Justification | CAP-002 ("Markdown Parsing") per capabilities.md §CAP-002 — this BC is the central parsing contract |
 | Brief Requirement | R2, R3, R4, R6 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `scanner.rs` (SS-02, effectful shell, HIGH tier) primary; `link_extractor.rs` (SS-03, pure core, CRITICAL tier) secondary — processes the event stream scanner produces — ADR-003 |
 | Stories | [filled by story-writer] |
 
 ## Related BCs

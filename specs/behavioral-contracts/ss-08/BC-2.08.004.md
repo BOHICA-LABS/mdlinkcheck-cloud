@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "79b9564"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - v1.5: "Fix 1 (POL-18 holdout boundary): EC-074 citation removed from edge-case table. Replaced with EC-159/EC-160 generic vectors using distinct variable names so the corpus-fixture holdout details remain hidden. DI-006 invariant coverage is preserved by Description, Postconditions, Invariants, and Canonical Test Vectors."
+  - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,10 +54,10 @@ files can resolve correctly.
 2. DI-006: The anchor table for ignored-source files is always built.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-159 | `--ignore b.md`; `a.md` has `[x](b.md#setup)`; `b.md` exists and has `## Setup` | clean — anchor table for `b.md` is built despite source exclusion |
-| EC-160 | `--ignore b.md`; `a.md` has `[x](b.md#missing)`; `b.md` exists but has no `## Missing` | broken (anchor-not-found) — anchor table built, heading absent |
+| EC | Description |
+|----|-------------|
+| EC-159 | `--ignore b.md`; `a.md` has `[x](b.md#setup)`; `b.md` exists and has `## Setup` |
+| EC-160 | `--ignore b.md`; `a.md` has `[x](b.md#missing)`; `b.md` exists but has no `## Missing` |
 
 ## Canonical Test Vectors
 | Scenario | Expected |
@@ -76,3 +77,4 @@ files can resolve correctly.
 | Capability Anchor Justification | CAP-008 ("Anchor Resolution") per capabilities.md §CAP-008 |
 | L2 Domain Invariants | DI-006, DI-008 |
 | Brief Requirement | R5, DD-008 |
+| Architecture Module | `anchor_resolver.rs` (SS-08, pure core, CRITICAL tier) — ADR-007 (two-layer verdict model) |

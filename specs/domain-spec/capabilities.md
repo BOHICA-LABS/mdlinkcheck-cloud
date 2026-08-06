@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: capabilities
-version: "1.4"
+version: "1.5"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -14,6 +14,9 @@ inputs:
 input-hash: "20e96e1"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.5"
+    date: 2026-08-06
+    change: "P3-010 governance gap closure (DD-027): CAP-005 updated to reference DI-012 and DI-013 (anchor table correctness depends on slug computation fidelity and anchor-key uniqueness); CAP-006 updated to name DI-012 and DI-013 as its governing invariants."
   - version: "1.4"
     date: 2026-08-05
     change: "Pass-2 adversarial remediation: CAP-008 — added fragment-presence discriminator for directory targets (directory + no fragment = clean; directory + fragment = broken(target-is-directory)); P2-M07. CAP-011 — added WHATWG-normalize-then-prefix-match with raw-string fallback at component boundary when normalization fails (D-019/DD-025); P2-M08. CAP-013 — corrected from impossible 'JSON array with schema_version field' to correct JSON object envelope {schema_version, results[], errors[]}; R6 interpretation recorded as D-017/DD-023; P2-M11. CAP-014 — added usage errors as third explicit input; P2-M19."
@@ -97,7 +100,9 @@ from inline/raw HTML elements (narrow carve-out, DI-007). The anchor-target univ
 includes files in the scan set, `--ignore`d files, `.gitignore`-excluded files,
 dot-directory files, and files outside the scan root — whenever an in-scan-set link
 points directly at them. The table for each file must be fully built before any link
-into that file is validated (DI-008).
+into that file is validated (DI-008). Anchor table correctness depends on slug
+computation fidelity (DI-012) and anchor-key uniqueness within each file (DI-013),
+both satisfied by CAP-006.
 
 **Grounding:** R2b — "anchor must match a heading in the target file." **Priority: P0**
 
@@ -107,10 +112,13 @@ into that file is validated (DI-008).
 
 Transform a heading's rendered text content into a GitHub-compatible anchor slug
 using the verbatim github-slugger v2 algorithm (DD-015), including 0-based per-file
-duplicate disambiguation via the `while(occurrences contains result)` loop.
+duplicate disambiguation via the `while(occurrences contains result)` loop. The
+per-heading character-level transformation is governed by DI-012 (slug computation
+fidelity); the file-global injectivity of the resulting anchor-key mapping is
+governed by DI-013 (anchor-key uniqueness within a file).
 
 **Grounding:** R2b — "using GitHub's slug algorithm." Algorithm pinned in DD-015 and
-`decisions.md`. **Priority: P0**
+`decisions.md`. Governed by DI-012, DI-013. **Priority: P0**
 
 ---
 

@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: failure-modes
-version: "1.2"
+version: "1.4"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -14,6 +14,12 @@ inputs:
 input-hash: "20e96e1"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.4"
+    date: 2026-08-06
+    change: "P3-010 governance gap closure (DD-027): FM-001 and FM-003 Invariant Violated updated from '— (no governing DI; DD-015)' to DI-012 (slug computation fidelity); FM-002 updated to DI-013 (anchor-key uniqueness). Notes section first bullet updated to reflect closed gap; recommendation for a DI removed now that DI-012/DI-013 exist."
+  - version: "1.3"
+    date: 2026-08-06
+    change: "Mechanical spec remediation (adversary P3-010): FM-001/002/003 — corrected Invariant Violated column from DI-001 (output ordering — wrong) to '— (no governing DI; DD-015)'. DI-001 is about deterministic output ordering; slug algorithm fidelity has no governing domain invariant. The normative authority is DD-015 (github-slugger v2). Note added to Notes section flagging this governance gap. FM-004 — removed dangling retired-holdout-scenario corpus fixture citation (the scenario was superseded by BV-013; DEC-006 is the visible fixture reference and is sufficient)."
   - version: "1.2"
     date: 2026-08-05
     change: "D-018/DD-024 ruling: HTTP 400 after GET fallback reclassified from `http-error` (broken) to `http-indeterminate` (indeterminate). Trigger updated in both rows. Rationale: 400 after GET means the server rejects the method, not the resource — treating it as broken produces false positives. P2-C03."
@@ -58,10 +64,10 @@ to one or more corpus fixtures.
 
 | FM | Subsystem | Description | Invariant Violated | Corpus Fixture |
 |----|-----------|-------------|-------------------|---------------|
-| FM-001 | Slug computation | Hyphen-run collapsing (v1 behavior) applied instead of 1:1 substitution (v2): `AI & Automation` → `ai-automation` instead of `ai--automation` | DI-001 (wrong result) | EC-043, EC-044 |
-| FM-002 | Slug computation | Duplicate-heading counter is 1-based instead of 0-based: second `## Setup` → `setup-2` instead of `setup-1` | DI-001 | EC-047, EC-048 |
-| FM-003 | Slug computation | Underscore stripped instead of retained: `my_heading` → `my-heading` | DI-001 | EC-050, EC-051 |
-| FM-004 | Parsing | Links inside fenced code blocks extracted → false positive on every code example | DI-004 | DEC-006, EC-102 |
+| FM-001 | Slug computation | Hyphen-run collapsing (v1 behavior) applied instead of 1:1 substitution (v2): `AI & Automation` → `ai-automation` instead of `ai--automation` | DI-012 | EC-043, EC-044 |
+| FM-002 | Slug computation | Duplicate-heading counter is 1-based instead of 0-based: second `## Setup` → `setup-2` instead of `setup-1` | DI-013 | EC-047, EC-048 |
+| FM-003 | Slug computation | Underscore stripped instead of retained: `my_heading` → `my-heading` | DI-012 | EC-050, EC-051 |
+| FM-004 | Parsing | Links inside fenced code blocks extracted → false positive on every code example | DI-004 | DEC-006 |
 | FM-005 | Fragment handling | Fragment split AFTER percent-decode: `a%23b.md` treated as file `a` with fragment `b.md` | DI-003 | DEC-005, EC-053 |
 | FM-006 | Path resolution | Case-insensitive OS delegation: `README.MD` passes on macOS silently | DI-002 | DEC-009, EC-036 |
 | FM-007 | Path resolution | NFC/NFD mismatch: macOS-created file fails on Linux | DI-002 | DEC-004, EC-037 |
@@ -71,9 +77,11 @@ to one or more corpus fixtures.
 
 ## Notes
 
-- FM-001 through FM-003 are all slug-algorithm compliance failures. They share a
-  single mitigation: unit tests against all DD-015 worked examples run as part of
-  CAP-006's story.
+- FM-001 through FM-003 are all slug-algorithm compliance failures. FM-001 and FM-003
+  are character-level transformation failures governed by DI-012 (slug computation
+  fidelity). FM-002 is a duplicate-counter failure governed by DI-013 (anchor-key
+  uniqueness). Their shared mitigation is unit tests against all DD-015 worked examples
+  run as part of CAP-006's story. See DD-027 for the two-invariant model rationale.
 - FM-004 (code-span extraction) is the highest-probability false-positive source;
   DEC-006 (BRIEF.md self-test) catches it trivially.
 - FM-005 (fragment-before-decode) is the subtlest correctness trap — it only

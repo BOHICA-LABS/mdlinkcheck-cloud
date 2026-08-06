@@ -2,17 +2,26 @@
 document_type: architecture-section
 level: L3
 section: verification-architecture
-version: "1.4"
+version: "1.7"
 status: draft
 producer: architect
-timestamp: 2026-08-05T22:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/prd.md
-input-hash: "5df5c68"
+input-hash: "cbcc9b1"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.7"
+    date: 2026-08-06
+    change: "DI-012/DI-013 coverage: new domain invariants landed (invariants.md v1.5). DI→VP Coverage Matrix extended with DI-012 (VP-018, test-sufficient/partial) and DI-013 (VP-003, P0 Kani/partial). Coverage summary updated 11→13. Gap analysis: DI-012 needs a new differential-proptest VP for full coverage; DI-013 suffix-numbering correctness needs duplicate-heading golden vectors in VP-018."
+  - version: "1.6"
+    date: 2026-08-06
+    change: "INC-MAP-001 closure: added VP-025 (anchor_resolver::resolve_anchor totality + correctness, proptest P1, BC-2.08.001/002/004) to Should Prove table; proptest chosen over Kani because AnchorTable is a HashMap — CBMC state explosion for symbolic HashMap keys is unbounded even for a 1-entry table"
+  - version: "1.5"
+    date: 2026-08-05
+    change: "P3-019 hotfix: VP-011 Should Prove table updated — sort key description now reflects four-field total key (nfc_path, line, col, dest); ordering guarantee no longer depends on unproven DI-005 full-pipeline guarantee (VP-019 covers extraction deduplication only; dest tie-break is the architectural resolution)"
   - version: "1.4"
     date: 2026-08-05
     change: "Pass-2 remediation: VP-001 corrected to slug::slugify (pure core, no counter); VP-002/003 confirmed as slug::compute_slug (counter-wrapping function); VP-003 description de-qualified — 'distinct' qualifier removed (property holds for all pairs); VP-005/006 corrected to verdict::exit_code (not compute_exit_code); P0 harness example updated to exit_code_symbolic with config_error third argument; VP-012 confirmed as compute_slug fuzz (consistent with VP-012 file)"
@@ -53,10 +62,11 @@ changelog:
 | VP-008 | NFC normalization applied: `path_resolver` uses NFC-normalized comparison | path_resolver | DI-002, BC-2.07.003 |
 | VP-009 | NFC normalization idempotent: `nfc(nfc(s)) == nfc(s)` for all path strings | path_resolver | DI-002 |
 | VP-010 | `filter::should_allow` enforces component boundary — `https://a.com` ≠ `https://a.com.evil.tld` | filter | DD-013, BC-2.11.002 |
-| VP-011 | Sort order is deterministic — same `Vec<Finding>` always produces same sort permutation | reporter | DI-001, BC-2.12.001 |
+| VP-011 | Sort order is deterministic — sort key `(nfc_path, line, col, dest)` is total; same `Vec<Finding>` always produces same sort permutation regardless of rayon scheduling | reporter | DI-001, BC-2.12.001 |
 | VP-019 | Each link in `extract_links` output has exactly one verdict path | link_extractor | DI-005, BC-2.03.001 |
 | VP-023 | `url_classifier::classify_url` is total — no panic on any `&str`; empty string returns `Malformed(_)` not `NonHttp` | url_classifier | BC-2.07.007 |
 | VP-024 | `path_resolver::resolve_path` trailing-slash-on-file invariant — `EntryKind::File` + trailing slash → `broken(file-not-found)`, never `target-is-directory`, never clean | path_resolver | BC-2.07.008 |
+| VP-025 | `anchor_resolver::resolve_anchor` totality and correctness — no panic on any `(fragment, table)` pair; fragment present in table → Hit; fragment absent → Miss; case-sensitive byte-exact lookup; empty fragment handled | anchor_resolver | BC-2.08.001/002/004 |
 
 ### Fuzz Targets (P1 — cargo-fuzz, Phase 6)
 
@@ -126,6 +136,12 @@ fn verify_exit2_beats_exit1() {
 | DI-009 | Scan terminates for any input | VP-017 | integration |
 | DI-010 | Indeterminate does not cause exit 1 | VP-006 | P0 Kani |
 | DI-011 | Exit 2 takes precedence over exit 1 | VP-005 | P0 Kani |
+| DI-012 | Slug computation fidelity (github-slugger v2 algorithm) | VP-018 | test-sufficient (partial) |
+| DI-013 | Anchor-key uniqueness / injectivity within a file | VP-003 | P0 Kani (partial) |
+
+**DI-012 gap note:** VP-018's 16 worked examples provide the only fidelity pin. This is insufficient for a formal invariant: the 3 DI-012 falsifying cases (`AI & Automation` → `ai--automation`, `my_heading` → `my_heading`, emoji stripped) must be present in VP-018's corpus; additionally a new differential-proptest VP is recommended to achieve full coverage — VP-018 alone cannot exclude subtle edge cases in Unicode lowercasing, hyphen non-collapse, and emoji handling.
+
+**DI-013 gap note:** VP-003 (Kani injectivity proof) proves no two heading strings produce the same slug with a shared counter, but does not prove the specific 0-based suffix scheme (second occurrence = `-1`, not `-2` — the FM-002 bug shape). Closing this gap requires VP-018 to include at least one duplicate-heading golden vector (e.g., two `## Setup` headings → `setup`, `setup-1`).
 
 ## [Section Content]
 

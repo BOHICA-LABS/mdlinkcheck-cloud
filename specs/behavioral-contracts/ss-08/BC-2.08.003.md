@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-08"
 capability: "CAP-008"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,11 +52,11 @@ treated as a fragment separator; it is decoded to `#` and is part of the path.
 3. Subsequent `#` after the fragment start are part of the fragment (not another split point).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-032 | `a%23b.md` | No fragment; path = `a#b.md` (after decode) |
-| EC-035 | `a%20b.md#section` | Path = `a b.md`; fragment = `section` |
-| EC-076 | `a.md##double-hash` | Path = `a.md`; fragment = `#double-hash` |
+| EC | Description |
+|----|-------------|
+| EC-032 | `a%23b.md` |
+| EC-035 | `a%20b.md#section` |
+| EC-076 | `a.md##double-hash` |
 
 ## Canonical Test Vectors
 | Destination | Path Component | Fragment |
@@ -77,3 +78,4 @@ treated as a fragment separator; it is decoded to `#` and is part of the path.
 | Capability Anchor Justification | CAP-008 ("Anchor Resolution") per capabilities.md §CAP-008 |
 | L2 Domain Invariants | DI-003 |
 | Brief Requirement | R5, T9 |
+| Architecture Module | `fragment.rs` (SS-08, pure core, CRITICAL tier) primary; `anchor_resolver.rs` (SS-08) secondary — receives the split fragment for anchor lookup — ADR-007 |

@@ -1,19 +1,22 @@
 ---
 document_type: module-criticality
 level: ops
-version: "1.3"
+version: "1.4"
 status: draft
 producer: architect
-timestamp: 2026-08-05T20:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/domain-spec/capabilities.md
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
   - .factory/specs/architecture/verification-architecture.md
-input-hash: "10e878f"
+input-hash: "7481a1d"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 changelog:
+  - version: "1.4"
+    date: 2026-08-06
+    change: "INC-MAP-001 closure: anchor_resolver VP Count 0→1 (VP-025 proptest totality+correctness)"
   - version: "1.3"
     date: 2026-08-05
     change: "REGRESSION-004 remediation: corrected VP counts to match VP-INDEX v1.2 actual catalog — url_classifier 0→1 (VP-023), path_resolver 2→3 (VP-024), reporter 1→2 (VP-021), app 0→1 (VP-022)"
@@ -68,7 +71,7 @@ changelog:
 | `verdict` | `crates/mdlinkcheck-core/src/verdict.rs` | CRITICAL | Incorrect exit code silently ignores broken links in CI (DI-010, DI-011); VP-005, VP-006 | >= 95% | 2 |
 | `http_verdict` | `crates/mdlinkcheck-core/src/http_verdict.rs` | CRITICAL | Misclassifying alive as broken is a false positive; misclassifying broken as alive is silent failure; VP-007 | >= 95% | 1 |
 | `anchor_table` | `crates/mdlinkcheck-core/src/anchor_table.rs` | CRITICAL | Incorrect anchor table causes false positives/negatives on all heading links; VP-015..016, VP-020 | >= 95% | 3 |
-| `anchor_resolver` | `crates/mdlinkcheck-core/src/anchor_resolver.rs` | CRITICAL | Direct consumer of anchor_table; incorrect lookup produces wrong verdicts for all heading links | >= 95% | 0 |
+| `anchor_resolver` | `crates/mdlinkcheck-core/src/anchor_resolver.rs` | CRITICAL | Direct consumer of anchor_table; incorrect lookup produces wrong verdicts for all heading links; VP-025 (proptest totality+correctness) | >= 95% | 1 |
 | `path_resolver` | `crates/mdlinkcheck-core/src/path_resolver.rs` | CRITICAL | Case-sensitive NFC comparison is the correctness anchor for all local file links (DI-002); VP-008, VP-009, VP-024 | >= 95% | 3 |
 | `link_extractor` | `crates/mdlinkcheck-core/src/link_extractor.rs` | CRITICAL | Missed link extraction = false negative (silent failure); over-extraction from code = false positive; VP-014, VP-019 | >= 95% | 2 |
 | `filter` | `crates/mdlinkcheck-core/src/filter.rs` | HIGH | Incorrect --ignore / --allow behavior silently suppresses findings; VP-010 | >= 90% | 1 |

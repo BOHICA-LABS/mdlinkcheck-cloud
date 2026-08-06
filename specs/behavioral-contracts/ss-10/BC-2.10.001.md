@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "a53c532"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: INCONSISTENCY-001/D-014 — replaced 'clean' with 'alive' in test vectors and postconditions (liveness outcome is alive; link verdict is clean per DD-022)"
+  - "v1.3: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -60,11 +61,11 @@ DNS-level error), a GET request is attempted. The final verdict is based on the 
 3. Redirects count toward the 10-hop limit regardless of whether they occur during HEAD or GET.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-080 | HEAD returns 403 (Forbidden) | GET fallback attempted |
-| EC-085 | HEAD succeeds (200) | No GET; alive → clean |
-| EC-086 | Both HEAD and GET return 404 | broken (http-error) |
+| EC | Description |
+|----|-------------|
+| EC-080 | HEAD returns 403 (Forbidden) |
+| EC-085 | HEAD succeeds (200) |
+| EC-086 | Both HEAD and GET return 404 |
 
 ## Canonical Test Vectors
 | Scenario | Expected |
@@ -78,8 +79,8 @@ DNS-level error), a GET request is attempted. The final verdict is based on the 
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | GET fallback on exactly {400,403,404,405,501,999} + transport | unit test with mock HTTP |
-| test-sufficient | No GET fallback on 200 | unit test |
+| — | GET fallback on exactly {400,403,404,405,501,999} + transport | unit test with mock HTTP |
+| — | No GET fallback on 200 | unit test |
 
 ## Traceability
 | Field | Value |
@@ -87,3 +88,4 @@ DNS-level error), a GET request is attempted. The final verdict is based on the 
 | L2 Capability | CAP-010 ("Issue HTTP HEAD requests with GET fallback on {400,403,404,405,501,999} and transport failures") per capabilities.md §CAP-010 |
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
 | Brief Requirement | R5, DD-016, T12 |
+| Architecture Module | `http_client.rs` (SS-10, effectful shell, MEDIUM tier) primary; `http_verdict.rs` (SS-10, pure core, CRITICAL tier) secondary — classifies the response from the HEAD/GET protocol — ADR-004, ADR-005, ADR-007 |

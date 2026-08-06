@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,13 +50,13 @@ and are not emitted in output. This is intentional scope-boundary behavior (DD-0
 2. `--allow` has no effect on non-http(s) links (they're already skipped).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-094a | `mailto:a@b.com` | Silently skipped; no findings |
-| EC-094b | `ftp://x/y` | Silently skipped; no findings |
-| EC-094c | `tel:+15551234` | Silently skipped; no findings |
-| EC-094d | `javascript:void(0)` | Silently skipped; no findings |
-| EC-094e | `//example.com/x` (protocol-relative) | Silently skipped; no findings |
+| EC | Description |
+|----|-------------|
+| EC-173 | `mailto:a@b.com` |
+| EC-174 | `ftp://x/y` |
+| EC-175 | `tel:+15551234` |
+| EC-176 | `javascript:void(0)` |
+| EC-177 | `//example.com/x` (protocol-relative) |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -66,7 +67,7 @@ and are not emitted in output. This is intentional scope-boundary behavior (DD-0
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | All non-http(s) schemes produce no findings | unit test |
+| — | All non-http(s) schemes produce no findings | unit test |
 
 ## Traceability
 | Field | Value |
@@ -74,5 +75,5 @@ and are not emitted in output. This is intentional scope-boundary behavior (DD-0
 | L2 Capability | CAP-003 ("non-http (silently skipped per DD-009)") per capabilities.md §CAP-003 |
 | Capability Anchor Justification | CAP-003 ("Link Extraction") per capabilities.md §CAP-003 |
 | Brief Requirement | R2c, DD-009 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `url_classifier.rs` (SS-09, pure core, HIGH tier) primary; `link_extractor.rs` (SS-03) secondary — INC-MAP-002: non-http clean verdict is `url_classifier` classification; story must assert both link extraction (link_extractor) and url_classifier classification behavior — ADR-003, ADR-007 |
 | Stories | [filled by story-writer] |

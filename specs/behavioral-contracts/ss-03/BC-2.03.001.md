@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,12 +52,12 @@ external-http, or non-http (silently skipped). This is the primary extraction pa
 2. Each extracted link receives exactly one verdict (DI-005).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-039 | `[x](logo.png)` | Extracted as relative-file; existence-checked |
-| EC-040 | `![alt](missing.png)` | Extracted as image/relative-file; broken if missing |
-| EC-113 | Link inside GFM table cell | Extracted normally |
-| EC-115 | Link inside blockquote or nested list | Extracted normally |
+| EC | Description |
+|----|-------------|
+| EC-039 | `[x](logo.png)` |
+| EC-040 | `![alt](missing.png)` |
+| EC-113 | Link inside GFM table cell |
+| EC-115 | Link inside blockquote or nested list |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -78,7 +79,7 @@ external-http, or non-http (silently skipped). This is the primary extraction pa
 | Capability Anchor Justification | CAP-003 ("Link Extraction") per capabilities.md §CAP-003 — this BC is the core inline-extraction contract |
 | L2 Domain Invariants | DI-004, DI-005 |
 | Brief Requirement | R2, R3 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `link_extractor.rs` (SS-03, pure core, CRITICAL tier) — ADR-003 (pulldown-cmark event stream) |
 | Stories | [filled by story-writer] |
 
 ## Related BCs

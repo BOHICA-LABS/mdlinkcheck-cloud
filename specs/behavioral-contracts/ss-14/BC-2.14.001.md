@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "2860da8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: Three-input model alignment — Precondition 4 corrected: nonexistent PATH is an I/O error (recorded in io_errors), not a startup config/usage error. Preconditions 3 and 4 now cite verdict::exit_code parameter names. Invariants updated to name all three inputs."
+  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -55,11 +56,11 @@ configuration errors occurred. This is the success exit code. In terms of the pu
 4. All three inputs to `verdict::exit_code(findings, io_errors, config_error) → u8` must be "empty/false": no broken findings, `io_errors = []`, `config_error = false`. Any non-empty input in `io_errors` or `config_error = true` produces exit 2, not exit 0.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-142 | Scan with 0 findings | Exit 0 |
-| EC-143 | Scan with indeterminate findings only | Exit 0 |
-| EC-009 | Empty directory (no .md files) | Exit 0 |
+| EC | Description |
+|----|-------------|
+| EC-142 | Scan with 0 findings |
+| EC-143 | Scan with indeterminate findings only |
+| EC-009 | Empty directory (no .md files) |
 
 ## Canonical Test Vectors
 | Scenario | Expected Exit |
@@ -81,3 +82,4 @@ configuration errors occurred. This is the success exit code. In terms of the pu
 | Capability Anchor Justification | CAP-014 ("Exit Code Determination") per capabilities.md §CAP-014 |
 | L2 Domain Invariants | DI-010, DI-011 |
 | Brief Requirement | R7 |
+| Architecture Module | `verdict.rs` (SS-14, pure core, CRITICAL tier) — ADR-007 (two-layer verdict model) |

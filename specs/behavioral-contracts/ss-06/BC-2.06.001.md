@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: clarified Invariant 2 — code-span TEXT is included in rendered text; HTML element text is NOT included; disambiguates heading title vs rendered text content per NOTE-4 in feasibility-review.md"
   - "v1.2: (F-029) fixed PC2 self-contradiction (split into non-empty and empty-heading cases); added PC3 stating counter is keyed on computed slug; added emoji-collision edge cases EC-059/EC-060"
+  - "v1.3: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,16 +77,16 @@ v2 output for all inputs in the test vector corpus.
 3. The space→hyphen step is 1:1 (a heading `## A  B` with two spaces produces `"a--b"`, NOT `"a-b"`).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-043 | `## Hello World` | "hello-world" |
-| EC-044 | `## C++ Guide` | "c-guide" |
-| EC-045 | `## 日本語` | "日本語" |
-| EC-046 | `## **Bold** Heading` | "bold-heading" (markup stripped) |
-| EC-047 | `## A  B` (two spaces) | "a--b" (1:1 space→hyphen, no collapsing) |
-| EC-048 | `##` (empty heading) | "" (empty slug) |
-| EC-059 | `## 🦀Rust` (emoji directly adjacent to word) | "rust" — emoji is not \p{Word}, stripped in step (c) |
-| EC-060 | `## 🦀Rust` followed by `## 🎯Rust` | "rust", "rust-1" — both headings produce "rust" after step (c); counter (BC-2.06.002) bumps second to "rust-1" |
+| EC | Description |
+|----|-------------|
+| EC-043 | `## Hello World` |
+| EC-044 | `## C++ Guide` |
+| EC-045 | `## 日本語` |
+| EC-046 | `## **Bold** Heading` |
+| EC-047 | `## A  B` (two spaces) |
+| EC-048 | `##` (empty heading) |
+| EC-059 | `## 🦀Rust` (emoji directly adjacent to word) |
+| EC-060 | `## 🦀Rust` followed by `## 🎯Rust` |
 
 ## Canonical Test Vectors
 | Input (heading text) | Expected Slug | Source |
@@ -112,6 +113,7 @@ v2 output for all inputs in the test vector corpus.
 | Capability Anchor Justification | CAP-006 ("Heading Slug Computation") per capabilities.md §CAP-006 — this BC is the core slug algorithm contract |
 | L2 Domain Invariants | DI-008 |
 | Brief Requirement | R2b, DD-015 |
+| Architecture Module | `slug.rs` (SS-06, pure core, CRITICAL tier) — ADR-006 (NFC strict path model; slug algorithm is the primary differentiator) |
 
 ## Related BCs
 - BC-2.06.002 — composes with (duplicate-heading counter)

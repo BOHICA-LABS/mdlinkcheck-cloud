@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: edge-cases
-version: "1.3"
+version: "1.4"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -14,6 +14,9 @@ inputs:
 input-hash: "20e96e1"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.4"
+    date: 2026-08-06
+    change: "Mechanical spec remediation: DEC-006 — removed dangling retired-holdout-scenario citation (the ID was superseded by BV-013 and no longer resolves; BV-013 is now the sole authoritative source) and removed erroneous citation of a different, still-active holdout scenario that does not cover the code-span-in-BRIEF.md case (its inclusion was a mis-citation in the original DD-017 text, resolved per adversary P3-022). Source line now reads BV-013 only."
   - version: "1.3"
     date: 2026-08-05
     change: "D-020/DD-026 burned-holdout ruling: DEC-001 (EC-049), DEC-003 (EC-074), DEC-009 (EC-036) — [HOLDOUT] tags removed; concrete scenario detail restored (they are now standard visible corpus fixtures). Preamble updated to record standing rule for future holdouts. P2-C07 holdout sweep complete."
@@ -138,7 +141,7 @@ This is the documented root cause of Sphinx bug #13620.
 **must** exit 0. If this fails, the tool reports false positives on its own
 specification document.
 
-**Canonical test vector.** Source: BV-013, EC-102, EC-148. (DD-017: de-designated from holdout per D-010 — this vector is now in the standard visible suite.)
+**Canonical test vector.** Source: BV-013. (DD-017: de-designated from holdout per D-010 — this vector is now in the standard visible suite.)
 
 ---
 

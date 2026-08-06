@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.2.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -71,11 +72,11 @@ than each triggering an independent pause cycle.
    line (if the verdict is non-`alive`). Only the HTTP request count is reduced.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-090 | `https://example.com/x` (×50 occurrences in corpus) with successful HEAD; `--online` | 0 output lines (alive); exactly 1 HTTP request issued per `test-vectors.md` TV-090 |
-| EC-149 | Same URL referenced on two different lines within the same file | 1 HTTP request; if broken, 2 output lines with the same `file` but different `line` and `column` values |
-| EC-150 | `http://example.com` (HTTP) and `https://example.com` (HTTPS) both referenced; server returns 200 on both | 2 HTTP requests (distinct normalized URLs); 0 output lines |
+| EC | Description |
+|----|-------------|
+| EC-090 | `https://example.com/x` (×50 occurrences in corpus) with successful HEAD; `--online` |
+| EC-149 | Same URL referenced on two different lines within the same file |
+| EC-150 | `http://example.com` (HTTP) and `https://example.com` (HTTPS) both referenced; server returns 200 on both |
 
 ## Canonical Test Vectors
 | Scenario | Expected |
@@ -88,7 +89,7 @@ than each triggering an independent pause cycle.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Request count equals number of unique normalized URLs, not occurrences | integration test with httpmock request counter |
+| — | Request count equals number of unique normalized URLs, not occurrences | integration test with httpmock request counter |
 
 ## Related BCs
 - BC-2.10.001: defines the fetch protocol used for the single request
@@ -97,7 +98,10 @@ than each triggering an independent pause cycle.
 - BC-2.10.008: concurrency caps — deduplicated occurrences do not consume extra slots
 
 ## Architecture Anchors
-- [filled by architect]
+- `http_client.rs` (SS-10) — primary owner per ADR-001 purity boundary (dedup memo table is mutable shared state; cannot live in pure `http_verdict`)
+- ADR-004 (ureq sync HTTP choice)
+- ADR-005 (rayon pool + per-host semaphores; dedup must be co-located with concurrency gating)
+- bc-module-map.md §P3-027 (P3-027 resolution: dedup → http_client)
 
 ## Story Anchor
 - [filled by story-writer]
@@ -112,5 +116,5 @@ than each triggering an independent pause cycle.
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 — URL deduplication is a core efficiency and correctness property of the liveness-checking subsystem, preventing redundant fetches and rate-limit abuse |
 | L2 Domain Invariants | DI-005 |
 | Brief Requirement | R2c, AMB-037 (loop detection described as "detect loops by URL deduplication") |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `http_client.rs` (SS-10, effectful shell, MEDIUM tier) — ADR-004 (ureq sync HTTP), ADR-005 (rayon pool + per-host semaphores); dedup memo table is mutable shared state that cannot live in pure `http_verdict` per ADR-001; see bc-module-map.md §P3-027 |
 | Stories | [filled by story-writer] |

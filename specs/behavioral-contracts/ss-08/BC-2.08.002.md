@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - v1.3: "F-003 — added non-.md and directory carve-outs in PC3/PC4 pointing at BC-2.07.005 and BC-2.07.006. DI-006 widened: out-of-scan-set .md targets (gitignored, dot-dir, outside root, --ignored) are valid anchor targets. Removed holdout EC-074 citation."
+  - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,11 +77,11 @@ its anchor table is built before Pass 2 resolves any link into it.
    non-`.md` file targets are handled by `path_resolver.rs` (SS-07) and never reach SS-08.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-063 | `[x](docs/api.md#overview)` where `docs/api.md` has `## Overview` | clean |
-| EC-064 | `[x](docs/api.md#nope)` where `docs/api.md` has no such heading | broken (anchor-not-found) |
-| EC-072 | `[x](notes.txt#section)` where `notes.txt` exists | clean — non-.md; handled by BC-2.07.006 |
+| EC | Description |
+|----|-------------|
+| EC-063 | `[x](docs/api.md#overview)` where `docs/api.md` has `## Overview` |
+| EC-064 | `[x](docs/api.md#nope)` where `docs/api.md` has no such heading |
+| EC-072 | `[x](notes.txt#section)` where `notes.txt` exists |
 
 ## Canonical Test Vectors
 | Source | Destination | Target File | Expected | Notes |
@@ -105,6 +106,7 @@ its anchor table is built before Pass 2 resolves any link into it.
 | Capability Anchor Justification | CAP-008 ("Anchor Resolution") per capabilities.md §CAP-008 |
 | L2 Domain Invariants | DI-003, DI-006, DI-008 |
 | Brief Requirement | R2b |
+| Architecture Module | `anchor_resolver.rs` (SS-08, pure core, CRITICAL tier) — ADR-007 (two-layer verdict model) |
 
 ## Related BCs
 - BC-2.07.005 — dependency (directory targets handled there; BC-2.08.002 defers to it)

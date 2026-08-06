@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-14"
 capability: "CAP-014"
 lifecycle_status: active
 introduced: v1.3.0
-modified: []
+modified:
+  - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,8 +54,8 @@ trigger false exits.
 3. The version string matches the `version` field in `Cargo.toml`.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
+| EC | Description |
+|----|-------------|
 | EC-NEW-14 | `mdlinkcheck --help` with no PATH | Exit 0; help text on stdout |
 | EC-NEW-15 | `mdlinkcheck --version` | Exit 0; `mdlinkcheck X.Y.Z` on stdout |
 | EC-NEW-16 | `mdlinkcheck . --version` (PATH + --version) | Exit 0; --version takes priority per clap |
@@ -68,8 +69,8 @@ trigger false exits.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | --help exits 0 without scanning | integration test |
-| test-sufficient | --version output matches Cargo.toml version | integration test |
+| — | --help exits 0 without scanning | integration test |
+| — | --version output matches Cargo.toml version | integration test |
 
 ## Traceability
 | Field | Value |
@@ -78,6 +79,7 @@ trigger false exits.
 | Capability Anchor Justification | CAP-014 ("Exit Code Determination") per capabilities.md §CAP-014 — --help and --version are special exit-0 cases in the exit code determination subsystem |
 | L2 Domain Invariants | — |
 | Brief Requirement | R7, standard CLI conventions |
+| Architecture Module | `cli.rs` (SS-11, effectful shell, LOW tier) — ADR-007 (--help/--version are cli module concerns) |
 
 ## Related BCs
 - BC-2.14.001 — sibling (exit 0 when no broken links found)

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - v1.3: "DI-006 four-mechanism note added to Invariants."
+  - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -55,9 +56,9 @@ entered the scan set.
    traversal). It remains a valid anchor target.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-073b | `mdlinkcheck vendor/lib.md --ignore vendor/**` | `vendor/lib.md` not scanned (ignore wins) |
+| EC | Description |
+|----|-------------|
+| EC-073b | `mdlinkcheck vendor/lib.md --ignore vendor/**` |
 
 ## Canonical Test Vectors
 | Command | Expected |
@@ -67,7 +68,7 @@ entered the scan set.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | --ignore wins over explicit PATH | unit test |
+| — | --ignore wins over explicit PATH | unit test |
 
 ## Traceability
 | Field | Value |
@@ -75,3 +76,4 @@ entered the scan set.
 | L2 Capability | CAP-011 ("Filter Application") per capabilities.md §CAP-011 |
 | Capability Anchor Justification | CAP-011 ("Filter Application") per capabilities.md §CAP-011 |
 | Brief Requirement | R5 |
+| Architecture Module | `filter.rs` (SS-11, pure core, HIGH tier) primary; `scanner.rs` (SS-01, effectful, HIGH tier) secondary — applies filter to explicit PATH arguments during traversal — ADR-007 |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - v1.3: "D-012 — extension matching is now .md only, case-sensitive. .MD, .markdown, .mdx are explicit non-goals. Retitled from 'Extension Matching (Case-Insensitive .md and .markdown)'."
+  - "v1.4: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -58,12 +59,12 @@ The `ignore` crate's WalkBuilder is configured with a case-sensitive filter for 
 3. Files matched by extension but excluded by `.gitignore` are still excluded (BC-2.01.003 takes precedence).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-005 | `README.MD` (uppercase extension) | **Excluded** (case-sensitive; `.MD` is not `.md`) |
-| EC-006a | `notes.markdown` | Excluded (non-goal per D-012) |
-| EC-006b | `notes.mdown` or `notes.mdx` | Excluded |
-| EC-007 | `notes.txt` passed explicitly | Included (explicit overrides extension filter) |
+| EC | Description |
+|----|-------------|
+| EC-005 | `README.MD` (uppercase extension) |
+| EC-006a | `notes.markdown` |
+| EC-006b | `notes.mdown` or `notes.mdx` |
+| EC-007 | `notes.txt` passed explicitly |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -77,7 +78,7 @@ The `ignore` crate's WalkBuilder is configured with a case-sensitive filter for 
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Only exact .md files included; case-sensitive byte match | unit test |
+| — | Only exact .md files included; case-sensitive byte match | unit test |
 
 ## Traceability
 | Field | Value |
@@ -85,7 +86,7 @@ The `ignore` crate's WalkBuilder is configured with a case-sensitive filter for 
 | L2 Capability | CAP-001 ("Extension match is .md only, case-sensitive (D-012)") per capabilities.md §CAP-001 |
 | Capability Anchor Justification | CAP-001 ("File Discovery") per capabilities.md §CAP-001 |
 | Brief Requirement | R1, D-012 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `scanner.rs` (SS-01, effectful shell, HIGH tier) — ADR-005 (rayon traversal) |
 | Stories | [filled by story-writer] |
 
 ## Related BCs

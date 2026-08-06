@@ -62,10 +62,10 @@ to code files, images, PDFs, or any other non-Markdown file.
 3. "Non-Markdown" is determined by file extension, not MIME type or file content.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-072 | `[x](notes.txt#section)` where `notes.txt` exists | clean — non-MD file; fragment silently ignored |
-| EC-073 | `[x](src/main.rs#L42-L50)` where `src/main.rs` exists | clean — line-range anchor on code file; no anchor lookup |
+| EC | Description |
+|----|-------------|
+| EC-072 | `[x](notes.txt#section)` where `notes.txt` exists |
+| EC-073 | `[x](src/main.rs#L42-L50)` where `src/main.rs` exists |
 | EC-NEW-1 | `[x](assets/logo.png#anchor)` where `assets/logo.png` exists | clean — image file; fragment ignored |
 | EC-NEW-2 | `[x](scripts/build.sh)` where file does not exist | broken (file-not-found) |
 
@@ -80,8 +80,8 @@ to code files, images, PDFs, or any other non-Markdown file.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Non-.md file targets never trigger anchor_resolver | unit test (routing verification) |
-| test-sufficient | Fragment on non-.md file never produces anchor-not-found | unit test (EC-072, EC-073) |
+| — | Non-.md file targets never trigger anchor_resolver | unit test (routing verification) |
+| — | Fragment on non-.md file never produces anchor-not-found | unit test (EC-072, EC-073) |
 
 ## Traceability
 | Field | Value |

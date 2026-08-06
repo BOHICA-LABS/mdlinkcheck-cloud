@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "79b9564"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - v1.5: "Fix 1 (POL-18 holdout boundary): EC-074 citation removed from edge-case table. EC-074 is a corpus-fixture holdout; its generic behavior is already covered by Invariant 2, BC-2.08.004, and TV-152/EC-152. This BC's scope is .gitignore traversal (DI-006 case 2); the removed row incorrectly cited an --ignore scenario (DI-006 case 1)."
+  - "v1.6: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -55,9 +56,9 @@ directories from blowing the R8 performance budget.
 3. `--no-ignore-vcs` (not a planned flag in v1.0 — defer to architecture) would override this behavior; today the behavior is always-on.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-002 | `node_modules/**/*.md` (5000 files) | Excluded by `.gitignore`; R8 budget not blown |
+| EC | Description |
+|----|-------------|
+| EC-002 | `node_modules/**/*.md` (5000 files) |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -77,7 +78,7 @@ directories from blowing the R8 performance budget.
 | Capability Anchor Justification | CAP-001 ("File Discovery") per capabilities.md §CAP-001 — .gitignore exclusion is a traversal constraint within CAP-001 |
 | L2 Domain Invariants | DI-006, DI-009 |
 | Brief Requirement | R1 (implied), AMB-003 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `scanner.rs` (SS-01, effectful shell, HIGH tier) — ADR-005 (rayon traversal); note: VP-016 formal assignment is to `anchor_table` module (INC-MAP-004) |
 | Stories | [filled by story-writer] |
 
 ## Related BCs

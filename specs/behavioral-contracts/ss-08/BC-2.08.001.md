@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-08"
 capability: "CAP-008"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,12 +54,12 @@ and looked up in the anchor table. If found, verdict is clean; if not, verdict i
 3. Percent-decoded vs non-decoded: fragment is used verbatim from source (not decoded) unless DI-003 requires split. For anchor-only links, the entire destination after `#` is the fragment.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-060 | `[x](#setup)` where `## Setup` exists | clean (slug "setup" matches) |
-| EC-061 | `[x](#Setup)` where `## Setup` exists | broken (slugs are lowercase; "Setup" != "setup") |
-| EC-062 | `[x](#no-such-anchor)` | broken (anchor-not-found) |
-| EC-075 | `[x](#)` empty anchor | clean (top-of-page convention) |
+| EC | Description |
+|----|-------------|
+| EC-060 | `[x](#setup)` where `## Setup` exists |
+| EC-061 | `[x](#Setup)` where `## Setup` exists |
+| EC-062 | `[x](#no-such-anchor)` |
+| EC-075 | `[x](#)` empty anchor |
 
 ## Canonical Test Vectors
 | Input | Expected Verdict | Category |
@@ -80,3 +81,4 @@ and looked up in the anchor table. If found, verdict is clean; if not, verdict i
 | Capability Anchor Justification | CAP-008 ("Anchor Resolution") per capabilities.md §CAP-008 |
 | L2 Domain Invariants | DI-003, DI-008 |
 | Brief Requirement | R5, AMB-053 |
+| Architecture Module | `anchor_resolver.rs` (SS-08, pure core, CRITICAL tier) — ADR-007 (two-layer verdict model) |

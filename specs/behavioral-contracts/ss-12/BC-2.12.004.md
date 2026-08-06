@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-12"
 capability: "CAP-012"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,12 +50,12 @@ a usage error.
 2. Invalid value triggers exit 2 immediately, before any scanning begins.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-134 | `--format text` | Same as default |
-| EC-135 | `--format xml` | Exit 2; usage error |
-| EC-136 | `--format TEXT` (uppercase) | Exit 2; usage error |
-| EC-137 | `--format json --format text` | Last value wins: text output |
+| EC | Description |
+|----|-------------|
+| EC-134 | `--format text` |
+| EC-135 | `--format xml` |
+| EC-136 | `--format TEXT` (uppercase) |
+| EC-137 | `--format json --format text` |
 
 ## Canonical Test Vectors
 | Flag | Expected |
@@ -67,8 +68,8 @@ a usage error.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Invalid --format value → exit 2 | unit test |
-| test-sufficient | Last --format wins when repeated | unit test |
+| — | Invalid --format value → exit 2 | unit test |
+| — | Last --format wins when repeated | unit test |
 
 ## Traceability
 | Field | Value |
@@ -76,3 +77,4 @@ a usage error.
 | L2 Capability | CAP-012 ("Text Report Generation; --format text explicit alias accepted") per capabilities.md §CAP-012 |
 | Capability Anchor Justification | CAP-012 ("Text Report Generation") per capabilities.md §CAP-012 |
 | Brief Requirement | R6, AMB-092 |
+| Architecture Module | `cli.rs` (SS-11, effectful shell, LOW tier) primary; `reporter.rs` (SS-12, pure core, HIGH tier) secondary — `--format text` flag selects format_text — ADR-005 |

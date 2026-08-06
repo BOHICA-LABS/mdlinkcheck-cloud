@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,12 +54,12 @@ github-slugger v2 semantics.
 3. The lookup in Pass 2 is by slug string (not heading text).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-050 | File with three `## Setup` headings | Table contains: "setup", "setup-1", "setup-2" |
-| EC-051 | `# Hello World` | Slug: "hello-world" |
-| EC-052 | `## C++ API` | Slug: "c-api" (non-word chars removed except hyphen) |
-| EC-053 | `## 日本語 heading` | Slug: "日本語-heading" (\p{Word} includes Unicode letters) |
+| EC | Description |
+|----|-------------|
+| EC-050 | File with three `## Setup` headings |
+| EC-051 | `# Hello World` |
+| EC-052 | `## C++ API` |
+| EC-053 | `## 日本語 heading` |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -78,6 +79,7 @@ github-slugger v2 semantics.
 | Capability Anchor Justification | CAP-005 ("Anchor Table Construction") per capabilities.md §CAP-005 |
 | L2 Domain Invariants | DI-008 |
 | Brief Requirement | R5 |
+| Architecture Module | `anchor_table.rs` (SS-05, pure core, CRITICAL tier) primary; `slug.rs` (SS-06, CRITICAL tier) secondary — ATX/Setext headings require slug computation to build anchor key — ADR-006 |
 
 ## Related BCs
 - BC-2.06.001 — composes with (slug algorithm)

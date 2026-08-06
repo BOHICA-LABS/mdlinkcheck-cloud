@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - v1.3: "D-011 — dot-directory skip is now UNCONDITIONAL; --hidden is a dropped non-goal. DI-006 carve-out added: dot-dir .md files remain valid anchor targets."
+  - "v1.4: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -57,12 +58,12 @@ by AnchorIndex membership absence, per system-overview.md v1.2).
    its anchor table built (DI-006 case 3 — Pass 1.5 builds it via AnchorIndex membership check).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-003 | `.github/PULL_REQUEST_TEMPLATE.md` | Not scanned (dot-dir unconditionally skipped) |
-| EC-004 | `.git/` directory | Not scanned (dot-dir) |
-| EC-008 | Dir symlink creating cycle `a/b -> a` | Terminates (dir symlinks not followed) |
-| EC-009 | Symlink `docs -> ../shared-docs` | Dir symlink not followed; no crash |
+| EC | Description |
+|----|-------------|
+| EC-003 | `.github/PULL_REQUEST_TEMPLATE.md` |
+| EC-004 | `.git/` directory |
+| EC-008 | Dir symlink creating cycle `a/b -> a` |
+| EC-009 | Symlink `docs -> ../shared-docs` |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -84,7 +85,7 @@ by AnchorIndex membership absence, per system-overview.md v1.2).
 | Capability Anchor Justification | CAP-001 ("File Discovery") per capabilities.md §CAP-001 — dot-dir policy and symlink safety are traversal constraints |
 | L2 Domain Invariants | DI-006, DI-009 |
 | Brief Requirement | R1, AMB-002, AMB-007 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `scanner.rs` (SS-01, effectful shell, HIGH tier) — ADR-005 (rayon traversal) |
 | Stories | [filled by story-writer] |
 
 ## Related BCs

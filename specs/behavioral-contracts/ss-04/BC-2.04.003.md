@@ -72,9 +72,9 @@ heading-like lines inside fenced code.
 3. This BC is the anchor-side complement to BC-2.04.001 (link-extraction side).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-065 | Fenced block with `# Fake Heading` + `[x](#fake-heading)` | `anchor-not-found` — no anchor entry created |
+| EC | Description |
+|----|-------------|
+| EC-065 | Fenced block with `# Fake Heading` + `[x](#fake-heading)` |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |

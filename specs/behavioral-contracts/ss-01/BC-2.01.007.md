@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-01"
 capability: "CAP-001"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,9 +50,9 @@ occurrence in the PATH arguments.
 2. The scan set is a set (no duplicates), not a list (with duplicates).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-010 | `mdlinkcheck . docs docs/a.md` | `docs/a.md` scanned once; finding reported once |
+| EC | Description |
+|----|-------------|
+| EC-010 | `mdlinkcheck . docs docs/a.md` |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -61,7 +62,7 @@ occurrence in the PATH arguments.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Scan set is a proper set of canonical paths | unit test |
+| — | Scan set is a proper set of canonical paths | unit test |
 
 ## Traceability
 | Field | Value |
@@ -69,7 +70,7 @@ occurrence in the PATH arguments.
 | L2 Capability | CAP-001 ("File Discovery") per capabilities.md §CAP-001 |
 | Capability Anchor Justification | CAP-001 ("File Discovery") per capabilities.md §CAP-001 |
 | Brief Requirement | R1, AMB-008 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `scanner.rs` (SS-01, effectful shell, HIGH tier) — ADR-005 (rayon traversal) |
 | Stories | [filled by story-writer] |
 
 ## Related BCs

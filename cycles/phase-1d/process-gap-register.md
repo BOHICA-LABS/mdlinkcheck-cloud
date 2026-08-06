@@ -160,3 +160,82 @@ convergence loop may proceed to gate evaluation on this dimension.
 The deferred factory-engine improvements should be filed in the vsdd-factory backlog
 with references to this register (finding IDs F-001, F-004, F-007, F-008, F-011,
 F-020, F-024) and the corresponding policy IDs (POL-12 through POL-19).
+
+---
+
+## Convergence Strategy Change — 2026-08-05
+
+### Decision
+
+The human has ruled that **manual remediation is not converging** and the fix is to
+**automate enforcement and generate derived artifacts** rather than hand-patch
+individual files.
+
+### Root Cause
+
+Approximately 600 hand-maintained cross-referenced identifiers exist across
+approximately 130 files, with **all 19 policies at `lint_hook: null`** — meaning
+no policy has any automated enforcement. Evidence of systemic failure:
+
+- BC counts wrong at least 5 times across the adversarial passes
+- PRD §2 titles drifted at least 3 times; a manual pass caught 2 of 14 (86% miss rate)
+- Approximately 60 EC-ID collisions discovered in pass 3 (P3-003 CRITICAL)
+
+### Direction
+
+A devops-engineer is building validators and generators under
+`/Users/jmagady/Dev/mdlinkcheck-cloud/scripts/spec-lint/`. These tools will:
+
+1. Validate EC-ID injectivity across all BC files
+2. Regenerate derived index tables from source documents
+3. Enforce PRD§2 title ↔ BC-H1 synchronization
+4. Wire `lint_hook` fields in `policies.yaml` to the generated scripts
+
+Future adversarial passes must verify `lint_hook` fields are populated, not just
+that policies are codified.
+
+---
+
+### PG-008 — `[filled by ...]` placeholder values in BC files, uncovered by POL-14 and POL-15
+
+| Field | Value |
+|-------|-------|
+| Origin finding | P3 pass — 73 occurrences of `[filled by ...]` placeholder text across 35 BC files |
+| Process gap | POL-14 (`no_vp_tbd_after_phase_1b`) and POL-15 (`no_ss_tbd_after_phase_1b`) catch `VP-TBD` and `SS-TBD` sentinels respectively, but neither policy covers the `[filled by ...]` placeholder pattern. These 73 instances in 35 BC files passed all current gates undetected |
+| Policy coverage | None — uncovered gap. Requires a new sentinel lint rule |
+| Disposition | **Deferred — automation track** |
+| Deferral reason | The `[filled by ...]` pattern is a different sentinel family from VP-TBD/SS-TBD. The fix is to extend the spec-lint validator being built under `scripts/spec-lint/` to grep for this pattern and fail the gate. This is part of the automation-first strategy recorded above. A new POL entry should be added once the lint hook is wired — adding a policy with `lint_hook: null` would repeat the pattern this convergence strategy change is designed to break. |
+| Upstream location | `scripts/spec-lint/` (in-progress); vsdd-factory Phase 1b gate (longer term) |
+
+---
+
+### PG-009 — POL-12's verification step encodes `alive` as an external-URL verdict, inverting binding decision D-014
+
+| Field | Value |
+|-------|-------|
+| Origin finding | P3-028 (adversary-pass-3.md) — `[process-gap]` tagged |
+| Process gap | `policies.yaml` POL-12 (`bc_adr_verdict_exit_code_consistency`) was written to enforce ADR/taxonomy consistency. Its own `verification_steps` field encodes `alive` as a valid external-URL verdict. Binding decision D-014 resolves the alive/clean naming question. POL-12's verification procedure therefore contradicts the binding decision it is supposed to protect — a governance rule that inverts a binding decision is actively harmful: it misdirects the adversary and produces false clean-pass results on any D-014-class finding |
+| Policy coverage | POL-12 is itself the defective artifact |
+| Disposition | **Deferred — automation track** |
+| Deferral reason | Correcting POL-12 requires resolving D-014's alive/clean decision unambiguously first (that is a product-owner + architect task on P3-001/P3-002). Once D-014 is resolved and ADR-007 is updated, POL-12's verification steps must be regenerated from the authoritative source. The automation track's validator generation approach (scripts/spec-lint/) should derive policy verification procedures from spec decisions rather than encoding them by hand — this is the root cause that allowed a policy to drift from the decision it encodes. |
+| Upstream location | `.factory/policies.yaml` (POL-12 `verification_steps`); `scripts/spec-lint/` for regeneration |
+
+---
+
+## Updated Summary (after pass 3)
+
+| Gap ID | Origin | Gap Description (one sentence) | Policy | Disposition |
+|--------|--------|-------------------------------|--------|-------------|
+| PG-001 | F-001 | No gate verifies ADR exit codes and reason codes against error-taxonomy.md before ADR acceptance | POL-12 | Deferred — vsdd-factory consistency-validator + ADR gate |
+| PG-002 | F-004 | PRD§2↔BC-H1 title drift check exists in the consistency-validator but is not configured as blocking | POL-13 | Deferred — vsdd-factory gate severity config |
+| PG-003 | F-007 | No Phase 1b gate check rejects BCs with VP-TBD in Verification Properties | POL-14 | Deferred — vsdd-factory Phase 1b gate script |
+| PG-004 | F-008 | No EC-NNN anchor validation; no holdout boundary enforcement gate | POL-16, POL-18 | Deferred — vsdd-factory consistency-validator + holdout gate |
+| PG-005 | F-011 | No Phase 1b gate check rejects BCs with SS-TBD frontmatter | POL-15 | Deferred — vsdd-factory Phase 1b gate script |
+| PG-006 | F-020 | BC-INDEX derived tables (P0/P1 counts, KD/R labels) are hand-maintained and drift from their sources | POL-17 | Deferred — vsdd-factory consistency-validator + BC-INDEX template |
+| PG-007 | F-024 | T-NNN, EC-NNN, R-NNN reference families in BC Traceability sections are not resolved by any validator | POL-16 | Deferred — vsdd-factory consistency-validator ID resolution |
+| PG-008 | P3 pass | `[filled by ...]` placeholder text (73 occurrences, 35 BC files) passes all current gates; not covered by POL-14/POL-15 | None yet | Deferred — automation track (scripts/spec-lint/) |
+| PG-009 | P3-028 | POL-12's own verification step encodes `alive` as external-URL verdict, inverting binding decision D-014 | POL-12 (defective) | Deferred — automation track; resolve D-014 first |
+
+**PG-001 through PG-007:** Justified Deferral — vsdd-factory engine changes.
+**PG-008 through PG-009:** Deferred — automation track (scripts/spec-lint/ in progress).
+No Phase 2 product stories are created for any gap. All 9 gaps have explicit dispositions.

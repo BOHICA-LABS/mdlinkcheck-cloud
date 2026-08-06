@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -55,13 +56,13 @@ with internal whitespace collapsed. First definition wins on duplicates.
 3. Unused reference definitions are NOT reported as errors.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-095 | `[text][ref]` with `[ref]: docs/a.md` at EOF | clean (definition found) |
-| EC-098 | `[REF]` referencing `[ref]: a.md` | clean (case-insensitive) |
-| EC-099 | `[ref]` (shortcut) and `[ref][]` (collapsed) | Both in scope |
-| EC-100 | Duplicate `[ref]:` definitions | First wins; no error |
-| EC-101 | `![alt][imgref]` | Image reference in scope |
+| EC | Description |
+|----|-------------|
+| EC-095 | `[text][ref]` with `[ref]: docs/a.md` at EOF |
+| EC-098 | `[REF]` referencing `[ref]: a.md` |
+| EC-099 | `[ref]` (shortcut) and `[ref][]` (collapsed) |
+| EC-100 | Duplicate `[ref]:` definitions |
+| EC-101 | `![alt][imgref]` |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -83,5 +84,5 @@ with internal whitespace collapsed. First definition wins on duplicates.
 | Capability Anchor Justification | CAP-003 ("Link Extraction") per capabilities.md §CAP-003 |
 | L2 Domain Invariants | DI-004, DI-005 |
 | Brief Requirement | R3, T4 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `link_extractor.rs` (SS-03, pure core, CRITICAL tier) — ADR-003 (pulldown-cmark event stream) |
 | Stories | [filled by story-writer] |

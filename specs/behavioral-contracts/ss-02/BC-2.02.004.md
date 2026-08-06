@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,9 +50,9 @@ regardless of its extension. Explicit intent overrides the extension filter appl
 2. The file must be readable; if not, BC-2.02.003 applies.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-007 | `mdlinkcheck notes.txt` | Parsed; broken links found and reported |
+| EC | Description |
+|----|-------------|
+| EC-007 | `mdlinkcheck notes.txt` |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -62,7 +63,7 @@ regardless of its extension. Explicit intent overrides the extension filter appl
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Explicit non-.md args are parsed | unit test |
+| — | Explicit non-.md args are parsed | unit test |
 
 ## Traceability
 | Field | Value |
@@ -70,5 +71,5 @@ regardless of its extension. Explicit intent overrides the extension filter appl
 | L2 Capability | CAP-002 ("Markdown Parsing") per capabilities.md §CAP-002 |
 | Capability Anchor Justification | CAP-002 ("Markdown Parsing") per capabilities.md §CAP-002 |
 | Brief Requirement | R1, AMB-006 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `scanner.rs` (SS-02, effectful shell, HIGH tier) — ADR-003 (pulldown-cmark event stream) |
 | Stories | [filled by story-writer] |

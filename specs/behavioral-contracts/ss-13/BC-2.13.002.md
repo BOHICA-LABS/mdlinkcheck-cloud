@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-13"
 capability: "CAP-013"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,9 +53,9 @@ before parsing.
 3. The `verdict` field only ever contains `"broken"` or `"indeterminate"`.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-141b | Future version changes schema | schema_version incremented |
+| EC | Description |
+|----|-------------|
+| EC-170 | Future version changes schema |
 
 ## Canonical Test Vectors
 | Scenario | Expected |
@@ -64,8 +65,8 @@ before parsing.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | schema_version always present and integer | unit test |
-| test-sufficient | verdict only "broken" or "indeterminate" | unit test |
+| — | schema_version always present and integer | unit test |
+| — | verdict only "broken" or "indeterminate" | unit test |
 
 ## Traceability
 | Field | Value |
@@ -73,3 +74,4 @@ before parsing.
 | L2 Capability | CAP-013 ("JSON schema stability — schema_version field; reason codes stable after v1.0") per capabilities.md §CAP-013 |
 | Capability Anchor Justification | CAP-013 ("JSON Report Generation") per capabilities.md §CAP-013 |
 | Brief Requirement | R6, NFR-007 |
+| Architecture Module | `reporter.rs` (SS-13, pure core, HIGH tier) — ADR-005 (sort-before-emit), ADR-007 (verdict model) |

@@ -67,11 +67,11 @@ for directory targets. `path_resolver.rs` owns this routing decision.
    TV-029, TV-030).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-029 | `[x](docs/)` where `docs/` is a directory, no fragment | clean — directory exists, valid target |
-| EC-030 | `[x](docs)` where `docs` is a directory (no trailing slash), no fragment | clean — directory exists |
-| EC-164 | `[x](docs#section)` where `docs` is a directory, fragment present | broken (target-is-directory) |
+| EC | Description |
+|----|-------------|
+| EC-029 | `[x](docs/)` where `docs/` is a directory, no fragment |
+| EC-030 | `[x](docs)` where `docs` is a directory (no trailing slash), no fragment |
+| EC-164 | `[x](docs#section)` where `docs` is a directory, fragment present |
 
 ## Canonical Test Vectors
 | Link Target | Filesystem State | Fragment | Expected Verdict |
@@ -83,8 +83,8 @@ for directory targets. `path_resolver.rs` owns this routing decision.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Plain directory link (no fragment) → clean | unit test |
-| test-sufficient | Directory link with fragment → broken (target-is-directory) | unit test |
+| — | Plain directory link (no fragment) → clean | unit test |
+| — | Directory link with fragment → broken (target-is-directory) | unit test |
 
 ## Traceability
 | Field | Value |

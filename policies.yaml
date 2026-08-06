@@ -14,6 +14,10 @@
 #
 # CHANGELOG
 # ---------
+# 1.3 (2026-08-05): lint_hook fields set for POL-7, POL-9, POL-12..POL-19 via
+#                   scripts/spec-lint/ — 8 validators + 4 generators added under
+#                   D-472. codified_at updated from null/date to "D-472" for all
+#                   policies receiving automated enforcement.
 # 1.2 (2026-08-05): POL-12..POL-19 added — project-specific policies derived
 #                   from Phase 1d gate reviews (adversary-pass-1.md F-001,
 #                   F-004, F-007, F-008, F-011, F-020, F-024 and
@@ -22,7 +26,7 @@
 # 1.0 (baseline):   Initial 10 baseline policies (POL-1..POL-10).
 
 document_type: governance-policy-registry
-version: "1.2"
+version: "1.3"
 last_amended: "2026-08-05"
 
 metadata:
@@ -123,8 +127,8 @@ policies:
     severity: HIGH
     enforced_by: [adversary-prompt, consistency-validator]
     scope: [bc, story, prd]
-    lint_hook: null
-    codified_at: null
+    lint_hook: scripts/spec-lint/check-title-sync.py
+    codified_at: "D-472"
     verification_steps:
       - "Sample 10+ BCs — read H1 heading and compare to BC-INDEX title column"
       - "Check for downstream-only enrichment not present in H1"
@@ -152,8 +156,8 @@ policies:
     severity: HIGH
     enforced_by: [adversary-prompt, consistency-validator]
     scope: [vp, architecture]
-    lint_hook: null
-    codified_at: null
+    lint_hook: scripts/spec-lint/check-counts.py
+    codified_at: "D-472"
     verification_steps:
       - "Verify VP-INDEX arithmetic: total = sum of per-tool counts = row count"
       - "For each VP in VP-INDEX, verify it appears in verification-architecture.md Provable Properties Catalog"
@@ -206,8 +210,8 @@ policies:
     severity: HIGH
     enforced_by: [adversary-prompt, manual-gate-review]
     scope: [adr, error-taxonomy]
-    lint_hook: null
-    codified_at: "2026-08-05"
+    lint_hook: scripts/spec-lint/check-adr-consistency.py
+    codified_at: "D-472"
     verification_steps:
       - "Read error-taxonomy.md exit-code table: exit 0=no broken, exit 1=at least one broken, exit 2=I/O error (overrides exit 1)"
       - "Read BRIEF.md R7 for the frozen exit-code contract"
@@ -224,8 +228,8 @@ policies:
     severity: HIGH
     enforced_by: [adversary-prompt, consistency-validator]
     scope: [prd, bc]
-    lint_hook: null
-    codified_at: "2026-08-05"
+    lint_hook: scripts/spec-lint/check-title-sync.py
+    codified_at: "D-472"
     verification_steps:
       - "For every row in PRD section 2.x subsystem summary tables, extract the BC ID and its title string"
       - "Open the referenced BC file and read its H1 heading (first # heading after frontmatter)"
@@ -242,8 +246,8 @@ policies:
     severity: MEDIUM
     enforced_by: [adversary-prompt, lint-hook]
     scope: [bc, vp]
-    lint_hook: null
-    codified_at: "2026-08-05"
+    lint_hook: scripts/spec-lint/check-placeholders.py
+    codified_at: "D-472"
     verification_steps:
       - "Run: grep -r 'VP-TBD' .factory/specs/behavioral-contracts/ — must return zero results after Phase 1b"
       - "For each BC Verification Properties table, verify every row references a real VP-NNN ID from VP-INDEX.md"
@@ -258,8 +262,8 @@ policies:
     severity: MEDIUM
     enforced_by: [adversary-prompt, lint-hook]
     scope: [bc]
-    lint_hook: null
-    codified_at: "2026-08-05"
+    lint_hook: scripts/spec-lint/check-placeholders.py
+    codified_at: "D-472"
     verification_steps:
       - "Run: grep -r 'subsystem: \"SS-TBD\"' .factory/specs/behavioral-contracts/ — must return zero results after Phase 1b"
       - "For each BC file, verify subsystem: frontmatter contains a real SS-NN identifier matching ARCH-INDEX"
@@ -273,8 +277,8 @@ policies:
     severity: HIGH
     enforced_by: [adversary-prompt, consistency-validator]
     scope: [bc, vp, adr, architecture]
-    lint_hook: null
-    codified_at: "2026-08-05"
+    lint_hook: scripts/spec-lint/check-id-resolution.py
+    codified_at: "D-472"
     verification_steps:
       - "For each BC Traceability section, extract all ID references across every ID family"
       - "T-NN: verify against test-vectors.md section 8 T1-T16 canonical trap map — BC description must match the T entry's actual meaning"
@@ -292,8 +296,8 @@ policies:
     severity: MEDIUM
     enforced_by: [adversary-prompt, consistency-validator]
     scope: [bc]
-    lint_hook: null
-    codified_at: "2026-08-05"
+    lint_hook: scripts/spec-lint/check-counts.py
+    codified_at: "D-472"
     verification_steps:
       - "Count P0 and P1 rows across all BC-INDEX subsystem tables — compare totals to the declared P0/P1/Total in the summary statistics block"
       - "For each KD-NNN entry in BC-INDEX, verify the description matches prd.md section 1.3 exactly"
@@ -310,8 +314,8 @@ policies:
     severity: HIGH
     enforced_by: [adversary-prompt]
     scope: [bc, edge-cases, test-vectors, assumptions]
-    lint_hook: null
-    codified_at: "2026-08-05"
+    lint_hook: scripts/spec-lint/check-holdout-boundary.py
+    codified_at: "D-472"
     verification_steps:
       - "Read prd.md holdout-reserved EC ID list (marked 'NOT in the visible test suite')"
       - "For each reserved EC ID, grep .factory/specs/behavioral-contracts/, .factory/specs/prd-supplements/, and .factory/specs/domain-spec/"
@@ -327,8 +331,8 @@ policies:
     severity: MEDIUM
     enforced_by: [adversary-prompt, consistency-validator]
     scope: [adr, bc, test-vectors, error-taxonomy]
-    lint_hook: null
-    codified_at: "2026-08-05"
+    lint_hook: scripts/spec-lint/check-adr-consistency.py
+    codified_at: "D-472"
     verification_steps:
       - "Read error-taxonomy.md to extract the complete closed reason code set"
       - "For each accepted ADR, extract all reason code strings and verify each is in the closed set"

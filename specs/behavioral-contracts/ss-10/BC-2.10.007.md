@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "a53c532"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: INCONSISTENCY-001/D-014 — replaced 'clean' with 'alive' in test vector (liveness outcome is alive; link verdict is clean per DD-022)"
+  - "v1.3: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,11 +54,11 @@ upgrades are followed. HTTPS→HTTP downgrades produce `indeterminate` with a wa
 3. Loop detection: if a redirect target is the same as a URL already in the chain, break immediately → too-many-redirects.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-087e | Redirect chain of 11 hops | broken (too-many-redirects) |
-| EC-087f | HTTP → HTTPS upgrade | follow and resolve normally |
-| EC-087g | HTTPS → HTTP downgrade | indeterminate |
+| EC | Description |
+|----|-------------|
+| EC-087e | Redirect chain of 11 hops |
+| EC-087f | HTTP → HTTPS upgrade |
+| EC-087g | HTTPS → HTTP downgrade |
 
 ## Canonical Test Vectors
 | Scenario | Expected |
@@ -69,8 +70,8 @@ upgrades are followed. HTTPS→HTTP downgrades produce `indeterminate` with a wa
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | >10 redirects → too-many-redirects | unit test |
-| test-sufficient | HTTPS→HTTP downgrade → indeterminate | unit test |
+| — | >10 redirects → too-many-redirects | unit test |
+| — | HTTPS→HTTP downgrade → indeterminate | unit test |
 
 ## Traceability
 | Field | Value |
@@ -78,3 +79,4 @@ upgrades are followed. HTTPS→HTTP downgrades produce `indeterminate` with a wa
 | L2 Capability | CAP-010 ("Redirects followed up to 10 hops; too-many-redirects beyond that; HTTPS→HTTP downgrade → indeterminate") per capabilities.md §CAP-010 |
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
 | Brief Requirement | R5, AMB-086 |
+| Architecture Module | `http_client.rs` (SS-10, effectful shell, MEDIUM tier) — ADR-004 (ureq sync HTTP) |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - v1.3: "D-011 — --quiet is an explicit non-goal (dropped flag). Removed title qualifier 'Unless --quiet', PC2/PC4, EC-133, and --quiet test vector. Summary is ALWAYS emitted. Retitled from 'Stderr Summary Line (Unless --quiet)'."
+  - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,11 +55,11 @@ an explicit non-goal (D-011). Indeterminate findings do NOT count toward N.
 4. No flag suppresses the summary line (D-011: `--quiet` is a non-goal).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-130 | 3 broken links in 2 files | "3 broken link(s) in 2 file(s)." |
-| EC-131 | 0 broken, 2 indeterminate | "No broken links found." |
-| EC-132 | 0 broken, 0 indeterminate | "No broken links found." |
+| EC | Description |
+|----|-------------|
+| EC-130 | 3 broken links in 2 files |
+| EC-131 | 0 broken, 2 indeterminate |
+| EC-132 | 0 broken, 0 indeterminate |
 
 ## Canonical Test Vectors
 | Scenario | Expected stderr |
@@ -70,8 +71,8 @@ an explicit non-goal (D-011). Indeterminate findings do NOT count toward N.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Summary on stderr, findings on stdout | integration test (separate streams) |
-| test-sufficient | Summary always emitted (no suppression flag) | integration test |
+| — | Summary on stderr, findings on stdout | integration test (separate streams) |
+| — | Summary always emitted (no suppression flag) | integration test |
 
 ## Traceability
 | Field | Value |
@@ -79,6 +80,7 @@ an explicit non-goal (D-011). Indeterminate findings do NOT count toward N.
 | L2 Capability | CAP-012 ("Stderr summary line: N broken link(s) in M file(s) or No broken links found") per capabilities.md §CAP-012 |
 | Capability Anchor Justification | CAP-012 ("Text Report Generation") per capabilities.md §CAP-012 |
 | Brief Requirement | R6, R7, AMB-091 |
+| Architecture Module | `reporter.rs` (SS-12, pure core, HIGH tier) primary; `main.rs` (LOW tier) secondary — routes summary string to stderr; reporter::format_text produces it — ADR-005 |
 
 ## Related BCs
 - BC-2.12.001 — sibling (text format: per-finding line on stdout)

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -9,7 +9,7 @@ phase: 1a
 inputs:
   - .factory/specs/product-brief.md
   - .factory/specs/domain-spec/L2-INDEX.md
-input-hash: "7f178dd"
+input-hash: "c08cb30"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,6 +19,7 @@ lifecycle_status: active
 introduced: v1.4.0
 modified:
   - v1.5: "Fix 3 (VP elevation): replaced test-sufficient with VP-023 per VP-INDEX v1.2 architect decision. Empty destination → Malformed(_) totality requires proptest to eliminate the NonHttp misclassification risk."
+  - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,10 +53,10 @@ deterministic single-verdict for EC-031/TV-031 (F-012).
 3. This applies to `[x]()` and to equivalent forms where pulldown-cmark produces an empty href.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-031 | `[x]()` in any file | broken (malformed-url) |
-| EC-031b | `[x]( )` whitespace-only (see TV-032, EC-032) | broken (malformed-url) — whitespace trimmed → empty |
+| EC | Description |
+|----|-------------|
+| EC-031 | `[x]()` in any file |
+| EC-031b | `[x]( )` whitespace-only (see TV-032, EC-032) |
 
 ## Canonical Test Vectors
 | Link | Filesystem | Expected Exit | Expected Verdict | Reason |
@@ -75,6 +76,7 @@ deterministic single-verdict for EC-031/TV-031 (F-012).
 | Capability Anchor Justification | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 — this BC constrains the path resolution entry point |
 | L2 Domain Invariants | DI-005 |
 | Brief Requirement | R2a |
+| Architecture Module | `url_classifier.rs` (SS-09, pure core, HIGH tier) — ADR-006, ADR-007; VP-023 totality proptest verifies empty string → Malformed(_), never NonHttp (filed in SS-07 because observable during path resolution; classification boundary belongs to url_classifier) |
 
 ## Related BCs
 - BC-2.07.001 — sibling (handles non-empty relative paths)

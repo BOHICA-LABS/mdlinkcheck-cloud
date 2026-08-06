@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -51,9 +52,9 @@ and the scan continues for all other files. The run will ultimately exit 2 due t
 3. No fail-fast: remaining files are processed even after this error.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-014 | File containing ISO-8859-1 bytes | `target-unreadable`; exit 2 |
+| EC | Description |
+|----|-------------|
+| EC-014 | File containing ISO-8859-1 bytes |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -63,7 +64,7 @@ and the scan continues for all other files. The run will ultimately exit 2 due t
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Non-UTF-8 file produces target-unreadable; scan continues | unit test |
+| — | Non-UTF-8 file produces target-unreadable; scan continues | unit test |
 
 ## Traceability
 | Field | Value |
@@ -72,7 +73,7 @@ and the scan continues for all other files. The run will ultimately exit 2 due t
 | Capability Anchor Justification | CAP-002 ("Markdown Parsing") per capabilities.md §CAP-002 — parse failure is part of the parsing contract |
 | L2 Domain Invariants | DI-011 |
 | Brief Requirement | R7, AMB-011 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `scanner.rs` (SS-02, effectful shell, HIGH tier) — ADR-003 (pulldown-cmark event stream) |
 | Stories | [filled by story-writer] |
 
 ## Related BCs

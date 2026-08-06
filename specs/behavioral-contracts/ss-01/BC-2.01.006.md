@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-01"
 capability: "CAP-001"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -48,10 +49,10 @@ Directory symlinks are never followed (BC-2.01.004).
 2. `broken-symlink` is distinct from `file-not-found` in the reason taxonomy.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-038 | `[x](link.md)` where `link.md` is a dangling symlink | broken (`broken-symlink`) |
-| EC-028b | Symlink to valid file | clean (if no anchor issues) |
+| EC | Description |
+|----|-------------|
+| EC-038 | `[x](link.md)` where `link.md` is a dangling symlink |
+| EC-028b | Symlink to valid file |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -62,7 +63,7 @@ Directory symlinks are never followed (BC-2.01.004).
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Dangling symlink always produces broken-symlink reason | unit test |
+| — | Dangling symlink always produces broken-symlink reason | unit test |
 
 ## Traceability
 | Field | Value |
@@ -70,7 +71,7 @@ Directory symlinks are never followed (BC-2.01.004).
 | L2 Capability | CAP-001 ("File Discovery") per capabilities.md §CAP-001 |
 | Capability Anchor Justification | CAP-001 ("File Discovery") per capabilities.md §CAP-001 — symlink handling is part of discovery traversal |
 | Brief Requirement | R1, AMB-007, AMB-028 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `scanner.rs` (SS-01, effectful shell, HIGH tier) — ADR-005 (rayon traversal) |
 | Stories | [filled by story-writer] |
 
 ## Related BCs

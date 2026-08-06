@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.7"
+version: "1.9"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T22:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "2860da8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 supplements:
   - prd-supplements/interface-definitions.md
@@ -97,75 +97,88 @@ formally-hardenable surface; (3) a complete Phase 6 (Kani/fuzz/mutation) proof r
 
 ### 2.1 File Discovery (CAP-001) — SS-01
 
+<!-- BEGIN GENERATED: prd-s2-ss-01 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
-| BC-2.01.001 | Recursive `.md` discovery with default scan root | P0 |
-| BC-2.01.002 | Explicit PATH arguments override default root | P0 |
-| BC-2.01.003 | `.gitignore` and `.ignore` exclusion during traversal | P0 |
+| BC-2.01.001 | Recursive `.md` Discovery with Default Scan Root | P0 |
+| BC-2.01.002 | Explicit PATH Arguments Override Default Root | P0 |
+| BC-2.01.003 | `.gitignore` and `.ignore` Exclusion During Traversal | P0 |
 | BC-2.01.004 | Dot-Directory Skip (Unconditional) and Directory-Symlink Non-Following | P0 |
 | BC-2.01.005 | Extension Matching — `.md` Only, Case-Sensitive | P0 |
-| BC-2.01.006 | File symlink following with dangling-symlink detection | P1 |
-| BC-2.01.007 | Path deduplication for overlapping PATH arguments | P1 |
-| BC-2.01.008 | Zero markdown files found yields exit 0 with stderr message | P0 |
-| BC-2.01.009 | Non-existent or unreadable PATH argument yields exit 2 | P0 |
+| BC-2.01.006 | File Symlink Following with Dangling-Symlink Detection | P1 |
+| BC-2.01.007 | Path Deduplication for Overlapping PATH Arguments | P1 |
+| BC-2.01.008 | Zero Markdown Files Found Yields Exit 0 with Stderr Message | P0 |
+| BC-2.01.009 | Non-Existent or Unreadable PATH Argument Yields Exit 2 | P0 |
+<!-- END GENERATED: prd-s2-ss-01 -->
 
 > Full contracts: `behavioral-contracts/ss-01/BC-2.01.001.md` through `BC-2.01.009.md`
 
 ### 2.2 Markdown Parsing (CAP-002) — SS-02
 
+<!-- BEGIN GENERATED: prd-s2-ss-02 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
-| BC-2.02.001 | CommonMark + GFM AST parsing with byte-offset line numbers | P0 |
+| BC-2.02.001 | CommonMark + GFM AST Parsing with Byte-Offset Line Numbers | P0 |
 | BC-2.02.002 | UTF-8 BOM Stripping and CRLF Normalization (Shell-Side) | P0 |
-| BC-2.02.003 | Non-UTF-8 file reported as per-file I/O error; scan continues | P0 |
-| BC-2.02.004 | Explicit non-`.md` file argument is parsed (not skipped) | P1 |
+| BC-2.02.003 | Non-UTF-8 File Reported as Per-File I/O Error; Scan Continues | P0 |
+| BC-2.02.004 | Explicit Non-`.md` File Argument Is Parsed (Not Skipped) | P1 |
+<!-- END GENERATED: prd-s2-ss-02 -->
 
 > Full contracts: `behavioral-contracts/ss-02/BC-2.02.001.md` through `BC-2.02.004.md`
 
 ### 2.3 Link Extraction (CAP-003) — SS-03
 
+<!-- BEGIN GENERATED: prd-s2-ss-03 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
-| BC-2.03.001 | Inline link and image extraction with kind classification | P0 |
-| BC-2.03.002 | Full reference-style, collapsed, and shortcut link/image forms | P0 |
-| BC-2.03.003 | Undefined reference label yields `broken` verdict | P0 |
-| BC-2.03.004 | CommonMark `<https://...>` autolinks in scope; GFM bare-URLs out of scope | P0 |
-| BC-2.03.005 | Non-http(s) schemes silently skipped with `clean` verdict | P0 |
-| BC-2.03.006 | Footnote references excluded; escaped brackets are not links | P1 |
+| BC-2.03.001 | Inline Link and Image Extraction with Kind Classification | P0 |
+| BC-2.03.002 | Full Reference-Style, Collapsed, and Shortcut Link/Image Forms | P0 |
+| BC-2.03.003 | Undefined Reference Label Yields `broken` Verdict | P0 |
+| BC-2.03.004 | CommonMark Autolinks In Scope; GFM Bare-URLs Out of Scope | P0 |
+| BC-2.03.005 | Non-http(s) Schemes Silently Skipped with `clean` Verdict | P0 |
+| BC-2.03.006 | Footnote References Excluded; Escaped Brackets Are Not Links | P1 |
+<!-- END GENERATED: prd-s2-ss-03 -->
 
 > Full contracts: `behavioral-contracts/ss-03/BC-2.03.001.md` through `BC-2.03.006.md`
 
 ### 2.4 Code Context Exclusion (CAP-004) — SS-04
 
+<!-- BEGIN GENERATED: prd-s2-ss-04 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
-| BC-2.04.001 | Fenced code blocks and inline code spans yield no links | P0 |
-| BC-2.04.002 | Indented (4-space) code blocks and HTML comments yield no links | P0 |
-| BC-2.04.003 | ATX headings inside fenced blocks do not create anchor entries | P0 |
+| BC-2.04.001 | Fenced Code Blocks and Inline Code Spans Yield No Links | P0 |
+| BC-2.04.002 | Indented Code Blocks and HTML Comments Yield No Links | P0 |
+| BC-2.04.003 | ATX Headings Inside Fenced Blocks Do Not Create Anchor Entries | P0 |
+<!-- END GENERATED: prd-s2-ss-04 -->
 
 > Full contracts: `behavioral-contracts/ss-04/BC-2.04.001.md` through `BC-2.04.003.md`
 
 ### 2.5 Anchor Table Construction (CAP-005) — SS-05
 
+<!-- BEGIN GENERATED: prd-s2-ss-05 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
 | BC-2.05.001 | Three-Phase Design — Full Anchor Table Before Any Resolution | P0 |
 | BC-2.05.002 | ATX and Setext Heading Extraction into Anchor Table | P0 |
 | BC-2.05.003 | HTML `id=` and `name=` Attribute Extraction into Anchor Table | P1 |
+<!-- END GENERATED: prd-s2-ss-05 -->
 
 > Full contracts: `behavioral-contracts/ss-05/BC-2.05.001.md` through `BC-2.05.003.md`
 
 ### 2.6 Heading Slug Computation (CAP-006) — SS-06
 
+<!-- BEGIN GENERATED: prd-s2-ss-06 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
 | BC-2.06.001 | github-slugger v2 Core Algorithm | P0 |
 | BC-2.06.002 | github-slugger v2 Duplicate-Heading Counter with Collision Bump | P0 |
+<!-- END GENERATED: prd-s2-ss-06 -->
 
 > Full contracts: `behavioral-contracts/ss-06/BC-2.06.001.md`, `BC-2.06.002.md`
 
 ### 2.7 Relative Path Resolution (CAP-007) — SS-07
 
+<!-- BEGIN GENERATED: prd-s2-ss-07 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
 | BC-2.07.001 | Relative Path Resolution Against Source File's Directory | P0 |
@@ -176,31 +189,37 @@ formally-hardenable surface; (3) a complete Phase 6 (Kani/fuzz/mutation) proof r
 | BC-2.07.006 | Non-Markdown Target — File Existence Check Only, Anchor Resolution Skipped | P0 |
 | BC-2.07.007 | Empty Link Destination → Malformed URL | P0 |
 | BC-2.07.008 | Trailing Slash on Regular File → file-not-found | P0 |
+<!-- END GENERATED: prd-s2-ss-07 -->
 
 > Full contracts: `behavioral-contracts/ss-07/BC-2.07.001.md` through `BC-2.07.008.md`
 
 ### 2.8 Anchor Resolution (CAP-008) — SS-08
 
+<!-- BEGIN GENERATED: prd-s2-ss-08 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
 | BC-2.08.001 | Anchor-Only Link Resolution (`#fragment`) | P0 |
 | BC-2.08.002 | Cross-File Anchor Resolution (`path.md#fragment`) | P0 |
 | BC-2.08.003 | Fragment Split at First Unescaped `#` Before Percent-Decode | P0 |
 | BC-2.08.004 | Cross-File Anchor Into Ignored-Source File | P1 |
+<!-- END GENERATED: prd-s2-ss-08 -->
 
 > Full contracts: `behavioral-contracts/ss-08/BC-2.08.001.md` through `BC-2.08.004.md`
 
 ### 2.9 External URL Syntax Validation (CAP-009) — SS-09
 
+<!-- BEGIN GENERATED: prd-s2-ss-09 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
 | BC-2.09.001 | External URL Syntax Validation (Offline) | P0 |
 | BC-2.09.002 | `--allow` URL Exemption — Specification in BC-2.11.002 | P0 |
+<!-- END GENERATED: prd-s2-ss-09 -->
 
 > Full contracts: `behavioral-contracts/ss-09/BC-2.09.001.md`, `BC-2.09.002.md`
 
 ### 2.10 External URL Liveness Checking (CAP-010) — SS-10
 
+<!-- BEGIN GENERATED: prd-s2-ss-10 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
 | BC-2.10.001 | HEAD-then-GET Fallback Protocol (`--online` mode) | P0 |
@@ -213,22 +232,26 @@ formally-hardenable surface; (3) a complete Phase 6 (Kani/fuzz/mutation) proof r
 | BC-2.10.008 | Concurrency — Dedicated Pool, 32 Global / 4 Per-Host Request Limits | P1 |
 | BC-2.10.009 | URL Deduplication — Each Unique External URL Fetched Once, Verdict Reported at Every Occurrence | P0 |
 | BC-2.10.010 | Private-IP and Link-Local URL Classification (Indeterminate, No Outbound Request) | P0 |
+<!-- END GENERATED: prd-s2-ss-10 -->
 
 > Full contracts: `behavioral-contracts/ss-10/BC-2.10.001.md` through `BC-2.10.010.md`
 
 ### 2.11 Filter Application (CAP-011) — SS-11
 
+<!-- BEGIN GENERATED: prd-s2-ss-11 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
 | BC-2.11.001 | `--ignore` Glob Exclusion (Source Files Only) | P0 |
 | BC-2.11.002 | `--allow` URL Prefix Exemption with Component-Boundary Safety | P0 |
 | BC-2.11.003 | `--ignore` on Explicit PATH Argument | P1 |
 | BC-2.11.004 | Invalid `--ignore` Glob → Exit 2 Before Scanning Begins | P0 |
+<!-- END GENERATED: prd-s2-ss-11 -->
 
 > Full contracts: `behavioral-contracts/ss-11/BC-2.11.001.md` through `BC-2.11.004.md`
 
 ### 2.12 Text Report Generation (CAP-012) — SS-12
 
+<!-- BEGIN GENERATED: prd-s2-ss-12 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
 | BC-2.12.001 | Text Report Format — One Finding per Line, Deterministic Order | P0 |
@@ -236,26 +259,31 @@ formally-hardenable surface; (3) a complete Phase 6 (Kani/fuzz/mutation) proof r
 | BC-2.12.003 | Stderr Summary Line (Always Emitted) | P0 |
 | BC-2.12.004 | `--format text` Explicit Alias Is Accepted | P1 |
 | BC-2.12.005 | Stdout/Stderr Separation for Text Format | P0 |
+<!-- END GENERATED: prd-s2-ss-12 -->
 
 > Full contracts: `behavioral-contracts/ss-12/BC-2.12.001.md` through `BC-2.12.005.md`
 
 ### 2.13 JSON Report Generation (CAP-013) — SS-13
 
+<!-- BEGIN GENERATED: prd-s2-ss-13 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
 | BC-2.13.001 | JSON Report Format — `{"schema_version":1,"results":[...],"errors":[...]}` to Stdout | P0 |
 | BC-2.13.002 | JSON Schema Stability Contract | P1 |
+<!-- END GENERATED: prd-s2-ss-13 -->
 
 > Full contracts: `behavioral-contracts/ss-13/BC-2.13.001.md`, `BC-2.13.002.md`
 
 ### 2.14 Exit Code Determination (CAP-014) — SS-14
 
+<!-- BEGIN GENERATED: prd-s2-ss-14 -->
 | BC ID | Title | Priority |
 |-------|-------|----------|
 | BC-2.14.001 | Exit Code 0 — No Broken Links | P0 |
 | BC-2.14.002 | Exit Code 2 Takes Precedence Over Exit Code 1 | P0 |
 | BC-2.14.003 | Exit Code 1 — At Least One Broken Link Found | P0 |
 | BC-2.14.004 | `--help` and `--version` Exit 0 Without Scanning | P0 |
+<!-- END GENERATED: prd-s2-ss-14 -->
 
 > Full contracts: `behavioral-contracts/ss-14/BC-2.14.001.md` through `BC-2.14.004.md`
 
@@ -332,7 +360,7 @@ Nothing may fail with a reason outside this closed set.
 
 > **Supplement:** Canonical test vectors in `prd-supplements/test-vectors.md`.
 
-168 edge cases registered (EC-001..EC-168) and 16 correctness traps (T1–T16) converted to executable test vectors. Includes the self-referential BV-013 vector: `mdlinkcheck BRIEF.md` MUST exit 0 (TV-BV013 is now a visible required test vector per D-010). Holdout vectors **(EC-079, EC-093, EC-094, EC-141, EC-147, EC-148, EC-151, EC-156, EC-165, EC-166, EC-167, EC-168)** reserved for holdout evaluation and NOT in the visible test suite — 12 holdouts total. EC-151 replaces EC-102 as the BV-013 holdout scenario (D-010). EC-036, EC-049, EC-074, EC-157, EC-158 burned to visible tests (D-020): their holdout designation is retired; they are now normal visible tests in the suite. EC-165..EC-168 are fresh replacement hidden scenarios (D-020) covering the same risk clusters; concrete inputs and expected outputs are stored ONLY in `.factory/holdout-scenarios/wave-scenarios/` per POL-18.
+182 edge cases registered (EC-001..EC-183) and 16 correctness traps (T1–T16) converted to executable test vectors. Includes the self-referential BV-013 vector: `mdlinkcheck BRIEF.md` MUST exit 0 (TV-BV013 is now a visible required test vector per D-010). Holdout vectors **(EC-079, EC-093, EC-094, EC-141, EC-147, EC-148, EC-151, EC-156, EC-165, EC-166, EC-167, EC-168)** reserved for holdout evaluation and NOT in the visible test suite — 12 holdouts total. EC-151 is the BV-013 holdout scenario (D-010). EC-036, EC-049, EC-074, EC-157, EC-158 burned to visible tests (D-020): their holdout designation is retired; they are now normal visible tests in the suite — vectors TV-036, TV-049, TV-074, TV-157, TV-157b, TV-158, TV-158b are present in test-vectors.md v1.6 (P3-005 hotfix). DI-002/D-006/T12 flagship differentiator (KD-004 — case-sensitive filename comparison) now has falsifiable visible coverage via TV-036. EC-165..EC-168 are fresh replacement hidden scenarios (D-020) covering the same risk clusters; concrete inputs and expected outputs are stored ONLY in `.factory/holdout-scenarios/wave-scenarios/` per POL-18.
 
 ---
 
@@ -468,6 +496,57 @@ Nothing may fail with a reason outside this closed set.
 | v1.4 | 2026-08-05 | F-007, F-008, F-009, F-011, F-012, F-013, F-014, F-020, F-023, F-024, F-025, F-028, F-029, F-030, F-031, F-032 (adversary-pass-1.md sub-burst B) | See below |
 | v1.5 | 2026-08-05 | POL-18 holdout boundary (EC-074 leak), VP elevations VP-023/VP-024 | See below |
 | v1.6 | 2026-08-05 | P2-C01..P2-m06, REGRESSION-001..005, INCONSISTENCY-001/002, DRIFT-001/002 (adversary-pass-2 + consistency-pass-2); D-014..D-020 human decisions | See below |
+| v1.7 | 2026-08-05 | P3-005, P3-006, P3-032 partial (test-vectors.md hotfix) | See below |
+| v1.8 | 2026-08-05 | POL-16 (EC injectivity), unregistered EC-159..EC-183, vCurrent title sync, BC-INDEX statistics | Spec-lint remediation pass; see below |
+| v1.9 | 2026-08-06 | INC-MAP-002, INC-MAP-003, P3-027 resolution | Architecture Module fields resolved across 26 BC files per bc-module-map.md Phase 1b; joint-ownership BCs annotated; PRD version aligned |
+
+### v1.9 — Architecture Module Resolution (bc-module-map.md Phase 1b)
+
+**INC-MAP resolution:** Closed all 22 `[filled by architect]` placeholders across 26 BC files
+using bc-module-map.md as authoritative source (architect, Phase 1b). Placeholders were in
+the `Architecture Module` field of the Traceability table.
+
+**INC-MAP-002 (BC-2.03.005 joint SS-03/SS-09 ownership):** Architecture Module field now names
+`url_classifier.rs` (SS-09) as primary and `link_extractor.rs` (SS-03) as secondary with
+explicit note that story decomposition must assert both link extraction and url_classifier
+classification behavior.
+
+**INC-MAP-003 (BC-2.11.004 cli → verdict boundary):** Architecture Module field now names
+`cli.rs` (SS-11) as primary and `verdict.rs` (SS-14) as secondary with explicit note that
+acceptance tests must assert both cli validation error AND exit 2 via `verdict::exit_code`.
+
+**P3-027 resolution (BC-2.10.009 dedup ownership):** BC-2.10.009 `## Architecture Anchors`
+section filled with http_client.rs as primary owner, citing ADR-001 purity boundary rationale,
+ADR-004/005 coupling requirement, and bc-module-map.md §P3-027.
+
+**Four joint-ownership BCs annotated (Architecture Module row added):**
+- BC-2.07.003: `path_resolver.rs` primary + `fragment.rs` secondary (percent-encode ordering per DI-002)
+- BC-2.07.004: `fragment.rs` primary + `path_resolver.rs` secondary (already-split dest string)
+- BC-2.08.003: `fragment.rs` primary + `anchor_resolver.rs` secondary (fragment-for-anchor-lookup)
+- BC-2.11.004: `cli.rs` primary + `verdict.rs` secondary (INC-MAP-003 config_error coupling)
+
+**INC-MAP-004 noted (BC-2.01.003):** VP-016 formal assignment is to `anchor_table` module;
+Architecture Module note added to BC-2.01.003 to guide story decomposition.
+
+**Version drift repaired:** BC-2.01.003 had frontmatter `version: "1.0"` while its modification
+log had reached `v1.5`. Frontmatter corrected to `"1.6"` to match the new top-of-log entry.
+
+### v1.8 — Spec-Lint Violation Remediation Pass
+
+**EC injectivity (POL-16):** TV-NNNb variant rows (TV-015b, TV-124b, TV-134b, TV-138b, TV-157b, TV-158b) reassigned to distinct EC-NNNs (EC-178..EC-183) to eliminate same-EC collision flags. §10 added to test-vectors.md registering EC-159..EC-183.
+
+**Unregistered EC IDs:** EC-159..EC-164, EC-169..EC-183 registered in test-vectors.md §10. Retired holdout citation removed from prd.md prose and BC-2.04.001 edge cases (the retired ID was replaced by EC-151 per D-010; TV-BV013 is the visible replacement).
+
+**EC count:** Updated to 182 edge cases registered (EC-001..EC-183).
+
+**Title sync:** GENERATED markers added to prd.md §2 tables; gen-prd-sections.py regenerated all 14 subsystem tables from authoritative BC H1 headings.
+
+**NFR-006 count:** Updated from 10 to 16 worked examples (matches §7 actual TV-S count).
+
+**test-vectors.md §4 header:** Range updated to EC-077 through EC-150 (includes EC-149, EC-150).
+
+**BC-INDEX titles:** BC-2.09.002, BC-2.10.002, BC-2.10.008 corrected to match BC H1 headings.
+
 
 ### v1.2 — Phase 1 Gate Review Remediation
 
@@ -506,7 +585,7 @@ gene-transfusion-assessment.md uses "valid" for the positive external URL verdic
 
 ### v1.3 — Adversary Pass-1 Remediation (Sub-Burst A: Behavioral Semantics)
 
-**D-010 (holdout scenario replacement):** TV-BV013 (`mdlinkcheck BRIEF.md` → exit 0) is now a visible required test vector. EC-102 removed from holdout list; replaced by EC-151 (hidden `## Hidden Section` inside `<details>` HTML block with `[x](#hidden-section)` → broken). Updated §5b and test-vectors.md §0 holdout WARNING accordingly.
+**D-010 (holdout scenario replacement):** TV-BV013 (`mdlinkcheck BRIEF.md` → exit 0) is now a visible required test vector. Former holdout removed from holdout list; replaced by EC-151 (hidden `## Hidden Section` inside `<details>` HTML block with `[x](#hidden-section)` → broken). Updated §5b and test-vectors.md §0 holdout WARNING accordingly.
 
 **D-011 (dropped flags: --quiet, --offline, --insecure, --hidden):** All four flags removed from interface-definitions.md §2 and §8. §1.5 Out of Scope updated with explicit non-goals. BC-2.01.004 rewritten (dot-dir skip unconditional; no --hidden override). BC-2.12.003 retitled "Stderr Summary Line (Always Emitted)" — --quiet qualifier removed from title, preconditions, invariants, edge cases, test vectors. AMB-042 updated: --insecure is a non-goal; TLS failures are always `broken`. §3 interface summary updated.
 
@@ -639,6 +718,25 @@ Note: The BC-2.01.003 EC-074 row was also incorrectly scoped — that BC covers 
 The four other new BCs (BC-2.10.010, BC-2.11.004, BC-2.12.005, BC-2.14.004) correctly remain `test-sufficient`. BC-2.11.004 fail-fast question resolved by architect: invalid `--ignore` glob is startup configuration error (before traversal), outside DD-007 no-fail-fast scope.
 
 **BC→VP count (post-v1.5):** 66 BCs total; 33 with a real VP (VP-001..VP-024); 33 test-sufficient.
+
+---
+
+### v1.7 — Test-Vectors Hotfix (P3-005, P3-006, P3-032 partial)
+
+**P3-005 (flagship differentiator KD-004 had zero test coverage):**
+D-020 retired the holdout designation on EC-036, EC-049, EC-074, EC-157, EC-158 and declared them visible tests. That ruling was applied to `domain-spec/edge-cases.md` (which restored concrete detail) but was never executed in `test-vectors.md` — leaving zero visible vectors for those five ECs. This hotfix adds the missing vectors:
+
+- **TV-036** (EC-036/DEC-009/T12): Case-mismatched filename — `[x](README.MD)` where only `README.md` exists on disk. Expected: exit 1, broken (`file-not-found`) on ALL platforms including macOS. This vector falsifies KD-004/DI-002 — an `std::fs::exists()`-based implementation passes on APFS, fails in Linux CI. DI-002 / D-006 / Trap T12 now has falsifiable visible coverage.
+- **TV-049** (EC-049/DEC-001): Duplicate heading collision `Foo/Foo/Foo-1` — all three links clean (disambiguation while-loop must handle secondary collision). Exit 0.
+- **TV-074** (EC-074/DEC-003): Cross-file anchor into `--ignore`'d `vendor.md` — link `[x](vendor.md#section)` resolves clean because `--ignore` suppresses link-source only, not anchor-table construction. Exit 0.
+- **TV-157 / TV-157b** (EC-157): Percent-encoded fragment in cross-file link — `[Guide](other.md#caf%C3%A9)` where `other.md` has `## Café`. Positive: exit 0 clean. Negative control (wrong heading): exit 1 broken. Covers the cross-file path of BC-2.08.003; TV-053 only covers the same-file path (Sphinx bug #13620 root cause).
+- **TV-158 / TV-158b** (EC-158): Emoji heading × collision counter — `## 🚀 Foo` then `## Foo` produce slug `foo` and `foo-1`; links to both clean. Failure probe `#foo-2` broken. Exit 0 and exit 1 respectively.
+
+**P3-006 (HOLDOUT WARNING stale in both directions):**
+The HOLDOUT WARNING in `test-vectors.md` listed EC-036/049/074/157/158 as hidden (their designation was retired by D-020) and omitted the four live replacements EC-165..EC-168. A reader could have treated four active holdouts as fair game for visible vectors. Rewritten to show the true active pool of 12. Frontmatter `version` field corrected from "1.4" (stale) to "1.6" (current body state + this hotfix). Intro range updated from EC-001..EC-150 to EC-001..EC-168.
+
+**P3-032 partial (Trap T12 and T16 trap-map honesty):**
+T12 updated from `[HOLDOUT] EC-036 reserved | holdout` to `TV-036 | covered` with explicit DI-002/KD-004 rationale. T16 ("Path above scan root") changed from `covered` to `not-covered` with tracked reason: TV-076 is broken because the target file does not exist (relative path), not because of scan-root boundary enforcement; TV-024 confirms relative paths have no scan-root boundary; a root-relative path with `..` traversal above git root on an existing file (per BC-2.07.002) has no dedicated vector.
 
 ---
 

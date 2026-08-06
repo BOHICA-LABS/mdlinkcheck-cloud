@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - v1.3: "Architect required change: Invariant 3 now specifies dedicated rayon thread pool of size 32 (not general rayon worker pool). Test vectors rewritten to assert observed concurrent connections at mock server, not internal thread counts."
   - "v1.4: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.5: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -57,10 +58,10 @@ server while maintaining throughput and avoids contention with Pass 1 parallelis
    parallelism (which use the default global pool in Pass 1).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-088b | 100 URLs to same host | At most 4 observed concurrent connections at mock server; no thundering-herd |
-| EC-088c | 100 URLs to 100 different hosts | At most 32 observed concurrent connections total |
+| EC | Description |
+|----|-------------|
+| EC-088b | 100 URLs to same host |
+| EC-088c | 100 URLs to 100 different hosts |
 
 ## Canonical Test Vectors
 
@@ -76,8 +77,8 @@ mock server), not internal thread counts or pool sizes.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Per-host limit enforced: mock server observes ≤ 4 concurrent connections | integration (mock HTTP server counting concurrent connections) |
-| test-sufficient | Global limit enforced: total concurrent connections ≤ 32 | integration (multi-host mock) |
+| — | Per-host limit enforced: mock server observes ≤ 4 concurrent connections | integration (mock HTTP server counting concurrent connections) |
+| — | Global limit enforced: total concurrent connections ≤ 32 | integration (multi-host mock) |
 
 ## Traceability
 | Field | Value |
@@ -85,6 +86,7 @@ mock server), not internal thread counts or pool sizes.
 | L2 Capability | CAP-010 ("Parallelism: 32 global / 4 per-host concurrent requests via rayon") per capabilities.md §CAP-010 |
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
 | Brief Requirement | R2c, R8 |
+| Architecture Module | `http_client.rs` (SS-10, effectful shell, MEDIUM tier) — ADR-004 (ureq sync HTTP), ADR-005 (rayon pool; 32-global / 4-per-host caps) |
 
 ## Related BCs
 - BC-2.10.004 — dependency (429 pausing reduces per-host in-flight count to 0)

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,11 +50,11 @@ use regex-based link extraction.
 2. HTML comments are represented as `Event::Html` / `Event::InlineHtml` events containing `<!--`; links within are not parsed as structured events.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-106 | 4-space indented `[x](missing.md)` | Zero findings |
-| EC-110 | `<!-- [x](missing.md) -->` HTML comment | Zero findings |
-| EC-111 | `<pre>[x](missing.md)</pre>` | Zero findings |
+| EC | Description |
+|----|-------------|
+| EC-106 | 4-space indented `[x](missing.md)` |
+| EC-110 | `<!-- [x](missing.md) -->` HTML comment |
+| EC-111 | `<pre>[x](missing.md)</pre>` |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -74,5 +75,5 @@ use regex-based link extraction.
 | Capability Anchor Justification | CAP-004 ("Code Context Exclusion") per capabilities.md §CAP-004 |
 | L2 Domain Invariants | DI-004 |
 | Brief Requirement | R4, AMB-071 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `link_extractor.rs` (SS-04, pure core, CRITICAL tier) — ADR-003 (pulldown-cmark structural event types for code context exclusion) |
 | Stories | [filled by story-writer] |

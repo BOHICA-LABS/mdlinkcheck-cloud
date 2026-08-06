@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -60,10 +61,10 @@ file path (the target is not even attempted to be resolved).
    therefore mandatory, not optional.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-096 | `[text][nope]` — label never defined | broken (undefined-reference-definition) |
-| EC-097 | `[ref]: missing.md` — defined but never used | No error (unused defs not reported) |
+| EC | Description |
+|----|-------------|
+| EC-096 | `[text][nope]` — label never defined |
+| EC-097 | `[ref]: missing.md` — defined but never used |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -74,7 +75,7 @@ file path (the target is not even attempted to be resolved).
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | *Unknown LinkType variants always produce undefined-reference-definition | unit test |
+| — | *Unknown LinkType variants always produce undefined-reference-definition | unit test |
 
 ## Traceability
 | Field | Value |
@@ -83,5 +84,5 @@ file path (the target is not even attempted to be resolved).
 | Capability Anchor Justification | CAP-003 ("Link Extraction") per capabilities.md §CAP-003 — undefined-reference is a distinct extraction outcome within CAP-003 |
 | L2 Domain Invariants | DI-005 |
 | Brief Requirement | R3, T5, AMB-070 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `link_extractor.rs` (SS-03, pure core, CRITICAL tier) — ADR-003 (pulldown-cmark event stream) |
 | Stories | [filled by story-writer] |

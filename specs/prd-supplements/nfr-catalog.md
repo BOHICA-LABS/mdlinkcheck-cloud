@@ -117,7 +117,7 @@ primary_consumers: [architect, performance-engineer]
 | **Category** | Correctness |
 | **Status** | active |
 | **Requirement** | All worked examples from DD-015 (market-intelligence §4.1) pass as unit tests in the slug module |
-| **Target** | 100% — all 10 worked examples + DEC-001 collision case pass |
+| **Target** | 100% — all 16 worked examples + DEC-001 collision case pass |
 | **Validation method** | Unit test suite for `slug_compute` module; run on every commit |
 | **Source** | R-001, R-002, DD-015, ASM-008 |
 | **Test inputs** | See test-vectors.md §7 (slug algorithm vectors) |

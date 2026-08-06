@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "a53c532"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - v1.3: "Architect three-phase rewrite: Pass 1 → Pass 1.5 → Pass 2 (resolves PC1/PC4 circularity). Pass 1.5 identifies out-of-scan targets by AnchorIndex membership absence. Covers all four DI-006 exclusion cases. Removed holdout EC-049 and EC-074 citations."
   - v1.4: "P2-C05 — Added Pass 1.5 failure branch (PC2b): nonexistent or unreadable target path records no AnchorIndex entry, no IoError, no diagnostic; Pass 2 produces the ordinary broken verdict. Fixes unsatisfiable PC2 for missing-file targets. Fixed L2 Capability title (P2-m05)."
+  - "v1.5: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -89,10 +90,10 @@ table construction occurs in Pass 2.
    - Case 4 (outside scan root): Same as case 2 — absent from AnchorIndex; Pass 1.5 builds tables.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-075 | `a.md` has `[x](b.md#intro)` and `b.md` has `## Intro` | clean — basic case |
-| EC-076 | `a.md` has `[x](b.md#intro)` but `b.md` has no such heading | broken (anchor-not-found) |
+| EC | Description |
+|----|-------------|
+| EC-075 | `a.md` has `[x](b.md#intro)` and `b.md` has `## Intro` |
+| EC-076 | `a.md` has `[x](b.md#intro)` but `b.md` has no such heading |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -115,6 +116,7 @@ table construction occurs in Pass 2.
 | Capability Anchor Justification | CAP-005 ("Anchor Table Construction") per capabilities.md §CAP-005 — three-phase design IS the anchor table construction contract |
 | L2 Domain Invariants | DI-006, DI-008 |
 | Brief Requirement | R2b, BV-009 |
+| Architecture Module | `anchor_table.rs` (SS-05, pure core, CRITICAL tier) primary; `app.rs` (MEDIUM tier) secondary — three-pass pipeline (app) ensures anchor_table is complete before any resolution — ADR-006 |
 
 ## Related BCs
 - BC-2.05.002 — composes with (heading extraction into anchor table)

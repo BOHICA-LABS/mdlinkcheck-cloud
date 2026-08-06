@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "a53c532"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - v1.3: "F-017 — this is now the CANONICAL --allow contract (owned by SS-11/CAP-011). BC-2.09.002 is a pointer to this BC. Added explicit normalize-then-prefix-match ordering in description and postconditions."
   - v1.4: "D-019/P2-M08 — added WHATWG-fail fallback to raw-string prefix match at component boundary for malformed URLs. P2-M09 — renamed EC-090/091/092 to EC-161/162/163 (deduplicated from BC-2.10.002's legitimate HTTP block use of those IDs). P2-m05 — fixed L2 Capability title; corrected Brief Requirement from R6 to R5."
+  - "v1.5: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -76,11 +77,11 @@ matching `https://example.com.evil.tld`. A naive `starts_with` is never used.
 3. Multiple `--allow` flags are OR'd: a URL matching ANY of them is exempted.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-161 | `--allow https://example.com`; URL = `https://example.com/path` | exempt (normalized path, boundary `/`) |
-| EC-162 | `--allow https://example.com`; URL = `https://example.com.evil.tld/` | NOT exempt (boundary safety — `.` is not a valid boundary char) |
-| EC-163 | `--allow https://example.com`; URL = `https://example.comX/path` | NOT exempt (boundary safety — `X` is not a valid boundary char) |
+| EC | Description |
+|----|-------------|
+| EC-161 | `--allow https://example.com`; URL = `https://example.com/path` |
+| EC-162 | `--allow https://example.com`; URL = `https://example.com.evil.tld/` |
+| EC-163 | `--allow https://example.com`; URL = `https://example.comX/path` |
 
 ## Canonical Test Vectors
 | Prefix | URL | Boundary OK? | Expected |
@@ -103,6 +104,7 @@ matching `https://example.com.evil.tld`. A naive `starts_with` is never used.
 | L2 Capability | CAP-011 ("Filter Application") per capabilities.md §CAP-011 |
 | Capability Anchor Justification | CAP-011 ("Filter Application") per capabilities.md §CAP-011 — --allow prefix exemption IS the filter application contract |
 | Brief Requirement | R5, DD-010, T16 |
+| Architecture Module | `filter.rs` (SS-11, pure core, HIGH tier) — ADR-007 (verdict model — filtering suppresses findings) |
 
 ## Related BCs
 - BC-2.09.002 — pointer (BC-2.09.002 is a cross-reference to this canonical BC)

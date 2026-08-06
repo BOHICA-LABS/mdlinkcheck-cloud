@@ -39,4 +39,21 @@ decisions (BI-003) before pass 3.
 
 ---
 
+## Session Resume Checkpoint (2026-08-05) — after pass-2 remediation COMPLETE
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-05 |
+| **Position** | phase-1d; pass-2 remediation COMPLETE across all owners; remote enabled; full PR delivery active |
+| **Next Step** | Adversary pass 3 + consistency pass 3 — start at unreached perimeter listed in adversary-pass-2.md |
+| **Convergence counter** | 0 of 3 |
+
+### Artifact Snapshot
+
+PRD v1.7 | 66 BCs | 24 VPs | 7 ADRs | 9 arch shards | 12 domain-spec shards | 26+ DD decisions | 19 policies | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). Remote live at https://github.com/BOHICA-LABS/mdlinkcheck-cloud. Branch protection active (8 status checks). D-021..D-025 (exhaustive) recorded. BI-001/003 resolved.
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

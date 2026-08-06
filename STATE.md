@@ -4,21 +4,21 @@ level: ops
 version: "2.1"
 status: draft
 producer: state-manager
-timestamp: 2026-08-05T23:30:00Z
+timestamp: 2026-08-06T08:06:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; pass-2 remediation COMPLETE; D-421 latest; trajectory-tail →0→0→32→34; next=pass3+consistency-pass3"
+current_step: "phase-1d; pass-3 remediation COMPLETE; D-421 latest; trajectory-tail →0→32→34→39; next=pass4+consistency-pass4"
 current_cycle: ""
 dtu_required: false
 ---
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 160 = 340. 160 lines (wc-l).
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 164 = 336. 164 lines (wc-l).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
@@ -37,9 +37,9 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-05 — pass-2 remediation COMPLETE; D-025 pipeline-latest; trajectory-tail →0→0→32→34 |
+| **Last Updated** | 2026-08-06 — pass-3 remediation COMPLETE; D-026/D-027; trajectory-tail →0→32→34→39 |
 | **Current Phase** | phase-1d |
-| **Current Step** | pass-2 remediation COMPLETE; D-021..D-025 (exhaustive) recorded; BI-001/003 resolved; next=adversary pass 3 + consistency pass 3 |
+| **Current Step** | pass-3 remediation COMPLETE; spec-lint tooling built (PR #2); 7/8 checkers PASS; 25 expected-pending placeholders; next=adversary pass 4 + consistency pass 4 |
 
 ## Phase Progress
 
@@ -48,15 +48,15 @@ dtu_required: false
 | pre-1: Planning | completed | 2026-08-05 | 2026-08-05 | HUMAN: market-intel-review + intake-approval | |
 | 0: Codebase Ingestion | not-started | | | | |
 | 1: Spec Crystallization | artifacts-complete | 2026-08-05 | 2026-08-05 | awaiting phase-1d convergence | |
-| phase-1d: Adversarial Spec Review | in-progress | 2026-08-05 | — | adversary: 3 clean passes required | →0→0→32→34 |
+| phase-1d: Adversarial Spec Review | in-progress | 2026-08-05 | — | adversary: 3 clean passes required | →0→32→34→39 |
 | 2: Story Decomposition | not-started | | | | |
 | 3: TDD Implementation | not-started | | | | |
 | 4: Holdout Evaluation | not-started | | | | |
 | 5: Adversarial Refinement | not-started | | | | |
 | 6: Formal Hardening | not-started | | | | |
 | 7: Convergence | not-started | | | | |
-| pass-2 adversary | COMPLETE | 2026-08-05 | 2026-08-05 | — | →0→0→32→34 |
-| pass-2 fix burst | COMPLETE | 2026-08-05 | 2026-08-05 | — | →0→0→32→34 |
+| pass-3 adversary | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39 |
+| pass-3 fix burst | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39 |
 
 ## Current Phase Steps
 
@@ -64,24 +64,25 @@ dtu_required: false
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
-| phase-1d adversary pass 1 | adversary | COMPLETE | adversary-pass-1.md; 32 novel findings; consistency-audit FAIL |
-| phase-1d adversary pass 2 | adversary | COMPLETE | adversary-pass-2.md; 34 novel findings (REGRESSION); consistency-audit FAIL |
-| phase-1d checkpoint | state-manager | COMPLETE | STATE.md updated; burst-log + convergence-trajectory written |
-| phase-1d pass-2 remediation | product-owner/architect/BA/spec-steward/devops | COMPLETE | D-021..D-025 (exhaustive); BI-001/003 resolved; PRD v1.7; delivery model restored; 4 new holdouts |
-| next: adversary pass 3 + consistency pass 3 | adversary + consistency-validator | pending | start at unreached perimeter in adversary-pass-2.md |
+| phase-1d adversary pass 3 | adversary | COMPLETE | adversary-pass-3.md; 39 novel (5 CRIT); consistency FAIL; record 29/39 stored as stubs — pass 4 supersedes |
+| phase-1d consistency audit pass 3 | consistency-validator | COMPLETE | consistency-audit-phase-1-pass-3.md; FAIL |
+| phase-1d spec-lint tooling built | devops-engineer | COMPLETE | scripts/spec-lint/ (8 validators, 4 generators, selftest); just spec-lint CI job; PR #2 open (feature/spec-lint-tooling) |
+| phase-1d pass-3 remediation | architect/product-owner/spec-steward | COMPLETE | 254→25 violations; D-026/D-027; PRD v1.9; VP-025; DI-012/DI-013; ADR-007 v1.3; bc-module-map.md |
+| next: adversary pass 4 + consistency pass 4 | adversary + consistency-validator | pending | first test of mechanical enforcement — target: novelty decays |
 
 ## Convergence Status
 
-Trajectory →0→0→32→34
+Trajectory →0→32→34→39
 
 pass count: 0 of 3 required clean passes
 
-REGRESSION RISK: novelty increased pass 1 → pass 2 (32 → 34 novel findings). Pass-2 remediation COMPLETE — awaiting pass 3.
+REGRESSION: novelty increased across all 3 passes (32→34→39). Strategy changed to mechanical enforcement. Pass-3 remediation COMPLETE — awaiting pass 4. First test of whether enforcement bends the curve.
 
 | Pass | Findings | Delta | Status |
 |------|----------|-------|--------|
-| 1 | 32 (6C/21M/5m) | — | FINDINGS_REMAIN |
+| 1 | 32 (6C/21M/5m) | — | FINDINGS_REMAIN — REMEDIATED |
 | 2 | 34 (7C/19M/8m) | +2 | FINDINGS_REMAIN (REGRESSION) — REMEDIATED |
+| 3 | 39 (5C/26M/8m) | +5 | FINDINGS_REMAIN (REGRESSION) — REMEDIATED (mechanical enforcement) |
 
 ## Decisions Log
 
@@ -108,6 +109,8 @@ REGRESSION RISK: novelty increased pass 1 → pass 2 (32 → 34 novel findings).
 | D-023 | CI jobs use `Cargo.toml`-presence guards so they pass green before the Rust workspace exists; required status check context strings are the unprefixed job names (`Format check`, `Clippy (deny warnings)`, `Test (ubuntu-latest)`, etc.) — verified empirically from live run 31065845669, NOT the guessed `CI / `-prefixed form | Avoids branch-protection deadlock on bootstrap PR; context string form verified from live CI run | phase-1d | 2026-08-05 | devops-engineer |
 | D-024 | Nonexistent/unreadable PATH argument is a runtime I/O error (recorded, scan continues, exit 2 at end) — NOT a startup config error with immediate abort. Required by DD-007 no-fail-fast | architect ruling; PO reconciled | phase-1d | 2026-08-05 | architect |
 | D-025 | `verdict::exit_code(findings, io_errors, config_error) -> u8` — three inputs. Precedence: io_errors non-empty OR config_error → 2; elif any broken → 1; else 0; indeterminate never raises the exit code | P2-M19 found the config_error half of exit 2 unmodeled; three-input function closes that gap | phase-1d | 2026-08-05 | architect |
+| D-026 | BC `## Edge Cases` tables now cite EC registry IDs plus a one-line label ONLY; all concrete inputs and expected verdicts live solely in `prd-supplements/test-vectors.md` as the single canonical EC registry (POL-16) | Duplicating expectations in both BCs and the registry was the structural cause of 98 EC-ID collisions, six with opposite expected verdicts. Makes the collision class unrepeatable rather than merely repaired | phase-1d | 2026-08-06 | product-owner/orchestrator |
+| D-027 | Validator hardening is mandatory before trusting any validator result | `check-id-resolution` initially returned PASS while never checking EC IDs (`VALID_EC` built but unused); `check-counts` missing 3 checks; `check-placeholders` had 23 false positives + missed 55 real defects. All 8 checkers now have negative tests proving they can fail | phase-1d | 2026-08-06 | devops-engineer/orchestrator |
 
 ## Skip Log
 
@@ -127,25 +130,26 @@ REGRESSION RISK: novelty increased pass 1 → pass 2 (32 → 34 novel findings).
 
 | ID | Issue | Severity | Blocking Phase | Owner | Resolution |
 |----|-------|----------|----------------|-------|------------|
-| BI-002 | phase-1d not converged: adversary novelty not yet decaying (pass 1: 32 → pass 2: 34 novel); 0 of 3 required clean passes | HIGH | phase-1 gate | orchestrator | continue adversary passes; pass-2 remediation COMPLETE |
-| BI-004 | Adversary pass 2 did not reach 56 of 66 BC files, nfr-catalog.md, test-vectors.md, BC-INDEX.md, ADRs 001–005/007, policies.yaml — coverage gap | MEDIUM | phase-1 gate | orchestrator | pass 3 must start at unreached perimeter listed in adversary-pass-2.md |
+| BI-002 | phase-1d not converged: novelty increasing across 3 passes (32→34→39); 0 of 3 clean passes; pass 4 not yet run | HIGH | phase-1 gate | orchestrator | mechanical enforcement built; pass 4 is next action and first test of curve-bending |
+| BI-005 | DI-012 (slug fidelity) VP coverage INSUFFICIENT; DI-013 PARTIAL — VP-018's 16 golden vectors are the only pin on github-slugger parity; 1-based duplicate counter bug (setup→setup-2 vs setup→setup-1) would pass VP-003 injectivity because outputs remain distinct (FM-002 unprovable) | HIGH | phase-1 gate | architect | needs differential proptest against canonical reference oracle covering all 7 DI-012 rules + duplicate-heading golden vector |
+| BI-006 | PR #2 (spec-lint tooling) open and unmerged; `spec-lint` CI job runs but NOT in 8 required status checks — spec violations cannot block a merge | MEDIUM | phase-2 | human | merge PR #2; decide whether to add `Spec lint` to branch protection required contexts |
 
 ## Session Resume Checkpoint
 
 | Field | Value |
 |-------|-------|
-| **Date** | 2026-08-05 |
-| **Position** | phase-1d; pass-2 remediation COMPLETE across all owners; remote enabled; full PR delivery active |
-| **Next Step** | Adversary pass 3 + consistency pass 3 — start at unreached perimeter listed in adversary-pass-2.md |
+| **Date** | 2026-08-06 |
+| **Position** | phase-1d; mechanical enforcement plus generation built and 254→25 violations cleared; 7 of 8 checkers green |
+| **Next Step** | Adversary pass 4 + consistency pass 4 — first real test of mechanical enforcement bending the novelty curve; then close BI-005 (slug-fidelity VP gap) and merge PR #2 |
 | **Convergence counter** | 0 of 3 |
 
-PRD v1.7 | 66 BCs | 24 VPs | 7 ADRs | 9 arch shards | 12 domain-spec shards | 26+ DD decisions | 19 policies | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). Remote live at https://github.com/BOHICA-LABS/mdlinkcheck-cloud. Branch protection active (8 status checks). D-021..D-025 (exhaustive) recorded. BI-001/003 resolved (archived in cycles/phase-1d/blocking-issues-resolved.md).
+PRD v1.9 | 66 BCs (all carry owning module, criticality tier, VP anchor) | 25 VPs | 13 DIs | 7 ADRs | 27 DD decisions | 19 policies | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). spec-lint tooling on PR #2 (feature/spec-lint-tooling, unmerged). D-026/D-027 recorded. BI-004 resolved (pass 3 covered perimeter). BI-005/006 opened.
 
 ## Concurrent Cycles
 
 | Cycle | Status | Notes |
 |-------|--------|-------|
-| phase-1d | in-progress | adversarial spec convergence; trajectory-tail →0→0→32→34; pass-2 remediation COMPLETE |
+| phase-1d | in-progress | adversarial spec convergence; trajectory →0→32→34→39; pass-3 remediation COMPLETE |
 
 ## Historical Content
 
@@ -157,4 +161,4 @@ PRD v1.7 | 66 BCs | 24 VPs | 7 ADRs | 9 arch shards | 12 domain-spec shards | 26
 | Lessons learned | `cycles/phase-1d/lessons.md` |
 | Resolved blockers | `cycles/phase-1d/blocking-issues-resolved.md` |
 
-Last Updated: 2026-08-05
+Last Updated: 2026-08-06

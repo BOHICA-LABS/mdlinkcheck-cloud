@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.3.0
 modified:
   - "v1.4: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.5: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -62,12 +63,12 @@ Private/link-local ranges checked (non-exhaustive; implementation must cover at 
 3. `indeterminate` is never escalated to `broken` for private-IP targets (DI-010).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-092 | `http://192.168.1.1/` (RFC 1918 private) | indeterminate (private-ip); no request sent |
-| EC-092b | `http://[::1]/` (IPv6 loopback) | indeterminate (private-ip); no request sent |
-| EC-092c | `http://10.0.0.1/resource` | indeterminate (private-ip); no request sent |
-| EC-092d | `http://localhost/` (resolves to 127.0.0.1) | indeterminate (private-ip); no request sent |
+| EC | Description |
+|----|-------------|
+| EC-092 | `http://192.168.1.1/` (RFC 1918 private) |
+| EC-092b | `http://[::1]/` (IPv6 loopback) |
+| EC-092c | `http://10.0.0.1/resource` |
+| EC-092d | `http://localhost/` (resolves to 127.0.0.1) |
 
 ## Canonical Test Vectors
 | URL | Expected Verdict | Notes |
@@ -81,8 +82,8 @@ Private/link-local ranges checked (non-exhaustive; implementation must cover at 
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | Private-IP URLs never produce outbound HTTP requests | unit test (mock DNS resolver returns private IP; assert no socket open) |
-| test-sufficient | Private-IP verdict is indeterminate, not broken | unit test |
+| — | Private-IP URLs never produce outbound HTTP requests | unit test (mock DNS resolver returns private IP; assert no socket open) |
+| — | Private-IP verdict is indeterminate, not broken | unit test |
 
 ## Traceability
 | Field | Value |
@@ -91,6 +92,7 @@ Private/link-local ranges checked (non-exhaustive; implementation must cover at 
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 — private-IP guard is a pre-flight check in the external URL liveness pipeline |
 | L2 Domain Invariants | DI-010 |
 | Brief Requirement | R5, D-008 |
+| Architecture Module | `http_client.rs` (SS-10, effectful shell, MEDIUM tier) primary; `http_verdict.rs` (SS-10, pure core, CRITICAL tier) secondary — indeterminate verdict returned for private-IP URLs — ADR-004, ADR-007 |
 
 ## Related BCs
 - BC-2.10.002 — parent (total partition; private-IP maps to PC16 indeterminate)

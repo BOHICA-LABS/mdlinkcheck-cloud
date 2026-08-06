@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,14 +53,13 @@ produces a `Tag::Link` event. This is DI-004 applied to the most common code con
 3. An unclosed fence swallows all content to EOF (CommonMark behavior).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-102 | Inline code span containing `[x](missing.md)` | Zero findings |
-| EC-103 | Double-backtick span containing link syntax | Zero findings |
-| EC-104 | Fenced block with `[x](missing.md)` inside | Zero findings |
-| EC-105 | `~~~`-fenced block | Zero findings |
-| EC-108 | Unclosed fence at EOF with links inside | Zero findings |
-| EC-109 | Fence inside list item | Zero findings |
+| EC | Description |
+|----|-------------|
+| EC-103 | Double-backtick span containing link syntax |
+| EC-104 | Fenced block with `[x](missing.md)` inside |
+| EC-105 | `~~~`-fenced block |
+| EC-108 | Unclosed fence at EOF with links inside |
+| EC-109 | Fence inside list item |
 | TV-BV013 | BRIEF.md lines 18-19: inline code spans | Exit 0 (canonical self-test) |
 
 ## Canonical Test Vectors
@@ -82,7 +82,7 @@ produces a `Tag::Link` event. This is DI-004 applied to the most common code con
 | Capability Anchor Justification | CAP-004 ("Code Context Exclusion") per capabilities.md §CAP-004 — fenced blocks and inline spans are the primary code contexts |
 | L2 Domain Invariants | DI-004 |
 | Brief Requirement | R4, BV-013 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `link_extractor.rs` (SS-04, pure core, CRITICAL tier) — ADR-003 (pulldown-cmark structural event types for code context exclusion) |
 | Stories | [filled by story-writer] |
 
 ## Related BCs

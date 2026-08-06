@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - v1.3: "F-017 — converted to pointer. --allow specification is now OWNED by BC-2.11.002 (SS-11/CAP-011). This BC exists only to note the SS-09 side-effect of --allow (URL is not validated). Duplicate postconditions removed; readers reference BC-2.11.002 for full matching algorithm."
+  - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,10 +55,10 @@ URL. The verdict is `clean` and the link is not emitted in output.
    specified exclusively in BC-2.11.002. SS-09 delegates the match decision to SS-11 logic.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-090 | `--allow https://example.com`; URL `https://example.com/page` | clean (see BC-2.11.002 for matching algorithm) |
-| EC-091 | `--allow https://example.com`; URL `https://example.com.evil.tld/` | NOT exempt — normal SS-09 validation applies (see BC-2.11.002 §boundary check) |
+| EC | Description |
+|----|-------------|
+| EC-090 | `--allow https://example.com`; URL `https://example.com/page` |
+| EC-091 | `--allow https://example.com`; URL `https://example.com.evil.tld/` |
 
 ## Canonical Test Vectors
 | `--allow` Prefix | URL | Expected (SS-09 view) |
@@ -80,6 +81,7 @@ See BC-2.11.002 for the authoritative test vectors including ordering and bounda
 | Capability Anchor Justification | CAP-009 ("External URL Syntax Validation") per capabilities.md §CAP-009 — `--allow` causes SS-09 to skip validation; this is an SS-09 side-effect contract |
 | L2 Domain Invariants | — (matching semantics fully specified in BC-2.11.002) |
 | Brief Requirement | R5 |
+| Architecture Module | `filter.rs` (SS-11, pure core, HIGH tier) primary; `url_classifier.rs` (SS-09) secondary — the external URL check that `--allow` suppresses — ADR-007 |
 
 ## Related BCs
 - BC-2.11.002 — canonical specification for `--allow` matching algorithm (normalize-then-prefix-match with component-boundary safety)

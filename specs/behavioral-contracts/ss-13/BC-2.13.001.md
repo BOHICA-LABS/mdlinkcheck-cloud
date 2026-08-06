@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "79b9564"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-013) added PC7 — top-level errors array for file-level I/O failures; target-unreadable entries go in errors[], not results[]; updated invariants and test vectors. (F-023) fixed PC4 sort key to specify NFC-normalized file path per DI-001"
+  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -68,11 +69,11 @@ indeterminate). Clean links are never included. The object is compact (not prett
    was present from schema_version 1 (non-breaking addition in pre-1.0).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-138 | No findings, no errors | `{"schema_version":1,"results":[],"errors":[]}` |
-| EC-139 | JSON piped to file | Valid JSON in file; no extra text |
-| EC-140 | Mixed broken + indeterminate findings | Both in results array; sorted by NFC-normalized (file, line, column) |
+| EC | Description |
+|----|-------------|
+| EC-138 | No findings, no errors |
+| EC-139 | JSON piped to file |
+| EC-140 | Mixed broken + indeterminate findings |
 
 ## Canonical Test Vectors
 | Scenario | Expected JSON |
@@ -95,3 +96,4 @@ indeterminate). Clean links are never included. The object is compact (not prett
 | Capability Anchor Justification | CAP-013 ("JSON Report Generation") per capabilities.md §CAP-013 |
 | L2 Domain Invariants | DI-001 (NFC-normalized sort order enforced in PC4) |
 | Brief Requirement | R6 |
+| Architecture Module | `reporter.rs` (SS-13, pure core, HIGH tier) — ADR-005 (sort-before-emit), ADR-007 (verdict model) |

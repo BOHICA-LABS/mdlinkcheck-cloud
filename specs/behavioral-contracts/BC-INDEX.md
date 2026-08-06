@@ -125,7 +125,7 @@ self-contained contract file. The H1 title in each file is the authoritative tit
 | BC ID | Title | Priority | File |
 |-------|-------|----------|------|
 | BC-2.09.001 | External URL Syntax Validation (Offline) | P0 | [ss-09/BC-2.09.001.md](ss-09/BC-2.09.001.md) |
-| BC-2.09.002 | `--allow` Suppresses External URL Checks | P0 | [ss-09/BC-2.09.002.md](ss-09/BC-2.09.002.md) |
+| BC-2.09.002 | `--allow` URL Exemption — Specification in BC-2.11.002 | P0 | [ss-09/BC-2.09.002.md](ss-09/BC-2.09.002.md) |
 
 ---
 
@@ -134,13 +134,13 @@ self-contained contract file. The H1 title in each file is the authoritative tit
 | BC ID | Title | Priority | File |
 |-------|-------|----------|------|
 | BC-2.10.001 | HEAD-then-GET Fallback Protocol (`--online` mode) | P0 | [ss-10/BC-2.10.001.md](ss-10/BC-2.10.001.md) |
-| BC-2.10.002 | Three-Verdict Model (alive/broken/indeterminate) | P0 | [ss-10/BC-2.10.002.md](ss-10/BC-2.10.002.md) |
+| BC-2.10.002 | Three-Verdict Model (alive/broken/indeterminate) — Total Partition | P0 | [ss-10/BC-2.10.002.md](ss-10/BC-2.10.002.md) |
 | BC-2.10.003 | Per-URL 10-Second Timeout | P0 | [ss-10/BC-2.10.003.md](ss-10/BC-2.10.003.md) |
 | BC-2.10.004 | 429 Rate-Limit Handling — Pause Host, Resume After Retry-After | P0 | [ss-10/BC-2.10.004.md](ss-10/BC-2.10.004.md) |
 | BC-2.10.005 | DNS Resolution Failure Yields `broken` Verdict | P0 | [ss-10/BC-2.10.005.md](ss-10/BC-2.10.005.md) |
 | BC-2.10.006 | TLS Handshake Failure Behavior | P0 | [ss-10/BC-2.10.006.md](ss-10/BC-2.10.006.md) |
 | BC-2.10.007 | Redirect Chain Handling (Max 10 Hops) | P0 | [ss-10/BC-2.10.007.md](ss-10/BC-2.10.007.md) |
-| BC-2.10.008 | Concurrency — 32 Global / 4 Per-Host Request Limits | P1 | [ss-10/BC-2.10.008.md](ss-10/BC-2.10.008.md) |
+| BC-2.10.008 | Concurrency — Dedicated Pool, 32 Global / 4 Per-Host Request Limits | P1 | [ss-10/BC-2.10.008.md](ss-10/BC-2.10.008.md) |
 | BC-2.10.009 | URL Deduplication — Each Unique External URL Fetched Once, Verdict Reported at Every Occurrence | P0 | [ss-10/BC-2.10.009.md](ss-10/BC-2.10.009.md) |
 | BC-2.10.010 | Private-IP and Link-Local URL Classification (Indeterminate, No Outbound Request) | P0 | [ss-10/BC-2.10.010.md](ss-10/BC-2.10.010.md) |
 

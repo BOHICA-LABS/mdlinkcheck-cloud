@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T22:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "2860da8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: P2-C06 — aligned nonexistent PATH behavior with DD-007 no-fail-fast: record error and continue scanning for remaining valid paths; exit 2 after all scanning completes. Error class changed from E-CLI-001 to E-IO-002."
   - "v1.2: P2-C06 convergence with architect v1.4 — EC-012 corrected: removed 'before scan begins' wording that implied immediate abort. A nonexistent PATH argument is a runtime I/O error recorded into Vec<IoError>; it is NOT a startup configuration error and does NOT cause immediate exit. Added mixed-case test vector (EC-014) that distinguishes the two readings: good_dir IS scanned and its findings ARE reported; exit 2 is produced at the end because exit 2 beats exit 1. Description rewritten to make no-fail-fast explicit for all I/O error classes."
+  - "v1.3: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -56,11 +57,11 @@ for `nonexistent_dir/`, and exits 2 (exit 2 beats exit 1 per DI-011).
 3. `target-unreadable` is emitted in output to identify which file caused the I/O error.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-012 | `mdlinkcheck /does/not/exist` (single nonexistent PATH, no other paths) | E-IO-002 recorded; error message on stderr; no remaining valid paths to scan; exit 2 after scan phase completes. Mechanism is identical to a runtime I/O error — no immediate abort before traversal begins. |
-| EC-013 | File with mode 000 encountered in traversal | Exit 2; `target-unreadable` finding; other files scanned |
-| EC-014 | `mdlinkcheck good_dir/ nonexistent_dir/` — `good_dir/` has one broken link; `nonexistent_dir/` does not exist | `good_dir/` IS fully scanned; its broken-link finding IS emitted on stdout; E-IO-002 error for `nonexistent_dir/` on stderr; exit 2 (exit 2 beats exit 1 per DI-011). This vector distinguishes no-fail-fast from immediate-abort: the broken link is reported. |
+| EC | Description |
+|----|-------------|
+| EC-012 | `mdlinkcheck /does/not/exist` (single nonexistent PATH, no other paths) |
+| EC-013 | File with mode 000 encountered in traversal |
+| EC-014 | `mdlinkcheck good_dir/ nonexistent_dir/` — `good_dir/` has one broken link; `nonexistent_dir/` does not exist |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -81,7 +82,7 @@ for `nonexistent_dir/`, and exits 2 (exit 2 beats exit 1 per DI-011).
 | Capability Anchor Justification | CAP-001 ("File Discovery") per capabilities.md §CAP-001 — nonexistent PATH handling is part of the discovery contract |
 | L2 Domain Invariants | DI-011 |
 | Brief Requirement | R1, R7, BV-005, AMB-010, AMB-011 |
-| Architecture Module | [filled by architect] |
+| Architecture Module | `scanner.rs` (SS-01, effectful shell, HIGH tier) primary; `verdict.rs` (SS-14, pure core, CRITICAL tier) secondary — I/O errors become exit 2 via `verdict::exit_code` — ADR-005, ADR-007 |
 | Stories | [filled by story-writer] |
 
 ## Related BCs

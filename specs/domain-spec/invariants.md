@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: invariants
-version: "1.4"
+version: "1.5"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -14,6 +14,9 @@ inputs:
 input-hash: "20e96e1"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.5"
+    date: 2026-08-06
+    change: "P3-010 governance gap closure (DD-027): added DI-012 (slug computation fidelity — per-heading character-level transformation must be exact per DD-015) and DI-013 (anchor-key uniqueness — per-file duplicate-counter must produce an injective mapping). Two invariants rather than one because they are logically independent (a wrong counter violates DI-013 without violating DI-012, and vice versa) and have different proof obligations (individual transformation vs. global injectivity). FM-001/003 now cite DI-012; FM-002 now cites DI-013."
   - version: "1.4"
     date: 2026-08-05
     change: "Pass-2 adversarial remediation: DI-001 — added falsifying method (byte-identical comparison without pre-normalization, vary thread count); P2-M16. DI-002 — removed concrete EC-036 `[x](README.MD)` example per P2-C07 holdout sweep (EC-036 is burned per D-020/DD-026; the rule is generalised and DEC-009 cross-reference added). DI-006 — added Pass 1.5 missing-target rule: missing target = normal broken verdict, no IoError recorded; P2-C05. DI-009 — updated deduplication key description to 'NFC-normalized, lexically-normalized, not fs::canonicalize' consistent with P2-M13 architect key-form requirement."
@@ -241,3 +244,74 @@ reported — but the final exit code reflects the most severe condition.
 
 **Why invariant:** An I/O error means the scan was incomplete; reporting exit 1 would
 overstate coverage. R7 defines exit codes by condition type. BV-005. Decision DD-007.
+
+---
+
+## DI-012: Slug Computation Fidelity
+
+The slug computed for any heading by CAP-006 is the exact output of the DD-015
+github-slugger v2 algorithm applied to the heading's rendered text content. The
+following properties must all hold — they are the failure classes every incumbent
+tool gets wrong (market-intelligence T1–T9):
+
+1. **Input is rendered text content.** Inline-code spans contribute their text
+   content. HTML tags contribute nothing (tag tokens are stripped; their visible
+   text content, if any, is retained). The heading text is taken after AST
+   rendering, not from raw source bytes.
+2. **Full Unicode `to_lowercase()`.** Not ASCII-only case folding. Cyrillic, Greek,
+   and accented Latin characters are correctly lowercased.
+3. **1:1 space→hyphen substitution.** Each space character becomes exactly one `-`.
+   Runs of spaces become runs of hyphens. Hyphen runs are NEVER collapsed.
+   (`AI & Automation` → `ai--automation`, not `ai-automation`.)
+4. **`_` is retained.** Underscore is a `\p{Word}` character and passes through
+   unchanged. (`my_heading` → `my_heading`, not `my-heading`.)
+5. **Leading and trailing hyphens are retained.** There is no trim step.
+6. **CJK, Cyrillic, and accented Latin characters are retained** (all `\p{Word}`).
+7. **Emoji are stripped** (not `\p{Word}`, not `-`, not space; removed in step 3).
+
+**Falsifying method:** Apply CAP-006 to any of the DD-015 worked examples (VP-018
+corpus). Any heading-to-slug mapping that diverges from the expected output is a
+violation. Minimum falsifying cases: `AI & Automation` → `ai--automation`;
+`my_heading` → `my_heading`; any emoji-containing heading → emoji stripped.
+
+**Why invariant:** A wrong slug produces a wrong anchor key, which produces either a
+false `anchor-not-found` verdict (false positive on a valid link) or a missed broken
+anchor (false negative). DD-015 is the normative *decision* (which algorithm to use);
+DI-012 is the *invariant* (the property that must hold for every input on every run).
+Without this invariant the DI→VP coverage matrix has no requirement to demand
+verification of the product's highest-risk correctness surface. CAP-006, CAP-005.
+DD-027.
+
+---
+
+## DI-013: Anchor-Key Uniqueness within a File
+
+For any file, the mapping from heading occurrences to anchor keys produced by CAP-006
+is injective: no two headings in the same file share an anchor key. When the base
+slug (DD-015 steps 1–4) of two or more headings is identical, the duplicate-counter
+mechanism must produce a unique key for each:
+
+- The **first** occurrence of any base slug takes the slug with no suffix.
+- The **second** occurrence takes suffix `-1` (0-based counter: the first duplicate
+  slot is numbered 1, NOT 2 — the FM-002 bug is off-by-one here).
+- The **N-th** occurrence (N ≥ 2) takes suffix `-(N−1)`.
+- The counter is **per-base-slug** and **per-file** (not global across files).
+- The counter key is the *computed slug* after DD-015 steps 1–4, not the raw heading
+  text.
+
+Specifically: three consecutive `## Setup` headings in a single file must produce
+anchor keys `setup`, `setup-1`, `setup-2` in order.
+
+**Falsifying method:** Create a file with two headings producing identical base slugs
+(e.g., two `## Setup` headings). The anchor keys must be `setup` and `setup-1`. If
+the second key is `setup-2`, the counter is 1-based (FM-002 violation). Run VP-003
+(Kani injectivity proof) against any file with duplicate headings; any counterexample
+is a violation.
+
+**Why invariant:** Injectivity ensures every incoming link like `[text](#setup-1)` has
+a unique, predictable anchor to match against. Without it, two valid headings may
+produce the same key (one unreachable → false positive on every link targeting it),
+or a broken link collides with a valid anchor (false negative). This is a distinct
+proof obligation from DI-012: a tool can compute each individual slug correctly
+(DI-012 satisfied) while using a 1-based counter (DI-013 violated), and vice versa.
+VP-003 (Kani injectivity) directly targets DI-013. CAP-006, CAP-005. DD-027.

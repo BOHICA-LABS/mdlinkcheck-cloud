@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -55,11 +56,11 @@ URL that triggered the 429 receives verdict `indeterminate (http-indeterminate)`
 3. Requests to OTHER hosts are not paused by a 429 from one host.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-087 | 429 with `Retry-After: 30` | Pause host 30 seconds |
-| EC-087b | 429 with no Retry-After header | Pause host 60 seconds |
-| EC-087c | 429 when all URLs are to the same host | All paused; all indeterminate |
+| EC | Description |
+|----|-------------|
+| EC-087 | 429 with `Retry-After: 30` |
+| EC-087b | 429 with no Retry-After header |
+| EC-087c | 429 when all URLs are to the same host |
 
 ## Canonical Test Vectors
 | Scenario | Expected |
@@ -70,8 +71,8 @@ URL that triggered the 429 receives verdict `indeterminate (http-indeterminate)`
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | 429 triggers host pause per Retry-After | unit test with mock HTTP |
-| test-sufficient | Only the 429 host is paused | unit test |
+| — | 429 triggers host pause per Retry-After | unit test with mock HTTP |
+| — | Only the 429 host is paused | unit test |
 
 ## Traceability
 | Field | Value |
@@ -80,3 +81,4 @@ URL that triggered the 429 receives verdict `indeterminate (http-indeterminate)`
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
 | L2 Domain Invariants | DI-010 |
 | Brief Requirement | R5, AMB-088 |
+| Architecture Module | `http_client.rs` (SS-10, effectful shell, MEDIUM tier) primary; `http_verdict.rs` (SS-10, pure core, CRITICAL tier) secondary — 429 classification drives pause decision — ADR-004, ADR-005, ADR-007 |

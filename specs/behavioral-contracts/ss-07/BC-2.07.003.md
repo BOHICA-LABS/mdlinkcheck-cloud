@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-07"
 capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,11 +54,11 @@ case-sensitivity to the OS filesystem layer.
 3. This behavior is identical on macOS, Linux, and Windows.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-029 | `[x](readme.md)` but file is `README.md` | broken (file-not-found) |
-| EC-030 | NFC vs NFD normalization in filename | Normalized comparison; pass iff NFC-identical |
-| EC-031 | Unicode filename with uppercase/lowercase | Case-sensitive comparison |
+| EC | Description |
+|----|-------------|
+| EC-029 | `[x](readme.md)` but file is `README.md` |
+| EC-030 | NFC vs NFD normalization in filename |
+| EC-031 | Unicode filename with uppercase/lowercase |
 
 ## Canonical Test Vectors
 | Link Target | Actual Filename | Expected Verdict | Notes |
@@ -81,3 +82,4 @@ case-sensitivity to the OS filesystem layer.
 | Capability Anchor Justification | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 — NFC+case-sensitive comparison is the core correctness property of CAP-007 |
 | L2 Domain Invariants | DI-002 |
 | Brief Requirement | R2a |
+| Architecture Module | `path_resolver.rs` (SS-07, pure core, CRITICAL tier) primary; `fragment.rs` (SS-07, pure core, CRITICAL tier) secondary — percent-encoding decoded before NFC comparison per DI-002 ordering requirement — ADR-006 |

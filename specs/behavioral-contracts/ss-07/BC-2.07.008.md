@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -9,7 +9,7 @@ phase: 1a
 inputs:
   - .factory/specs/product-brief.md
   - .factory/specs/domain-spec/L2-INDEX.md
-input-hash: "20c0838"
+input-hash: "c08cb30"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,6 +19,7 @@ lifecycle_status: active
 introduced: v1.4.0
 modified:
   - v1.5: "Fix 3 (VP elevation): replaced test-sufficient with VP-024 per VP-INDEX v1.2 architect decision. Trailing-slash-on-file invariant requires proptest to eliminate the file-not-found vs target-is-directory swap risk on EntryKind refactor."
+  - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,11 +55,11 @@ single-verdict for EC-034/TV-034 (F-012).
 3. If `a.md` does NOT exist either: verdict is still `file-not-found` (same code, different cause).
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-034 | `[x](a.md/)` where `a.md` is a regular file | broken (file-not-found) |
-| EC-034b | `[x](a.md/)` where `a.md` does NOT exist | broken (file-not-found) |
-| EC-034c | `[x](docs/)` where `docs` IS a directory | clean — see BC-2.07.005 (directory link, no fragment) |
+| EC | Description |
+|----|-------------|
+| EC-034 | `[x](a.md/)` where `a.md` is a regular file |
+| EC-034b | `[x](a.md/)` where `a.md` does NOT exist |
+| EC-034c | `[x](docs/)` where `docs` IS a directory |
 
 ## Canonical Test Vectors
 | Link | Filesystem | Expected Exit | Expected Verdict | Reason |
@@ -79,6 +80,7 @@ single-verdict for EC-034/TV-034 (F-012).
 | Capability Anchor Justification | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 — this BC defines path resolution behavior for trailing-slash destinations |
 | L2 Domain Invariants | DI-005 |
 | Brief Requirement | R2a |
+| Architecture Module | `path_resolver.rs` (SS-07, pure core, CRITICAL tier) — ADR-006 (NFC strict path model) |
 
 ## Related BCs
 - BC-2.07.005 — sibling (directory link WITHOUT trailing-slash oddity; verdict is clean when no fragment)

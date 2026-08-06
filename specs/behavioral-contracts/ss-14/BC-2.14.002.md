@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "2860da8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: Three-input model alignment — Description, Precondition 2, and Invariant 3 updated to name verdict::exit_code(findings, io_errors, config_error). Nonexistent PATH explicitly classified as io_errors (not config_error). Mixed-case test vector added (good_dir + nonexistent_dir + broken link → exit 2). Architect v1.4 reconciliation."
+  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -54,9 +55,9 @@ and no 2-triggering condition; exit 0 otherwise. `indeterminate` findings never 
 3. The exit code is the deterministic output of `verdict::exit_code(findings, io_errors, config_error) → u8`. Precedence: if `io_errors` non-empty OR `config_error = true` → 2; elif any `broken` finding → 1; else → 0. `indeterminate` never raises the exit code.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-141b | 1 broken link + invalid `--format` flag | Exit 2; usage error |
+| EC | Description |
+|----|-------------|
+| EC-169 | 1 broken link + invalid `--format` flag |
 
 ## Canonical Test Vectors
 | Scenario | Expected Exit |
@@ -80,3 +81,4 @@ and no 2-triggering condition; exit 0 otherwise. `indeterminate` findings never 
 | Capability Anchor Justification | CAP-014 ("Exit Code Determination") per capabilities.md §CAP-014 |
 | L2 Domain Invariants | DI-011 |
 | Brief Requirement | R7, DD-007, BV-005 |
+| Architecture Module | `verdict.rs` (SS-14, pure core, CRITICAL tier) — ADR-007 (two-layer verdict model) |

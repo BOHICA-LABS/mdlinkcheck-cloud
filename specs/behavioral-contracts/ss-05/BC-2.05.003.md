@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,12 +54,12 @@ legacy `<a name="top">` patterns and explicit id anchors in documentation.
 3. Malformed HTML that pulldown-cmark cannot parse as inline HTML yields no anchor entries from that element.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-066 | `<a name="custom-anchor">` | Adds "custom-anchor" to anchor table |
-| EC-067 | `<span id="api-reference">` | Adds "api-reference" to anchor table |
-| EC-068 | `id=""` empty value | NOT added to anchor table |
-| EC-069 | `[x](#custom-anchor)` targeting `<a name="custom-anchor">` | Clean |
+| EC | Description |
+|----|-------------|
+| EC-066 | `<a name="custom-anchor">` |
+| EC-067 | `<span id="api-reference">` |
+| EC-068 | `id=""` empty value |
+| EC-069 | `[x](#custom-anchor)` targeting `<a name="custom-anchor">` |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
@@ -78,3 +79,4 @@ legacy `<a name="top">` patterns and explicit id anchors in documentation.
 | Capability Anchor Justification | CAP-005 ("Anchor Table Construction") per capabilities.md §CAP-005 |
 | L2 Domain Invariants | DI-008 |
 | Brief Requirement | R5, DD-007 |
+| Architecture Module | `anchor_table.rs` (SS-05, pure core, CRITICAL tier) — ADR-006 (NFC strict path model; HTML id/name anchor extraction) |

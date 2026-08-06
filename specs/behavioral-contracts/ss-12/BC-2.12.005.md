@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-12"
 capability: "CAP-012"
 lifecycle_status: active
 introduced: v1.3.0
-modified: []
+modified:
+  - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -57,8 +58,8 @@ contamination.
    only the summary on stderr.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
+| EC | Description |
+|----|-------------|
 | EC-NEW-12 | 0 broken, 0 indeterminate | stdout empty; stderr: "No broken links found." |
 | EC-NEW-13 | 2 broken findings | stdout: 2 finding lines; stderr: "2 broken link(s) in 1 file(s)." |
 
@@ -72,8 +73,8 @@ contamination.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | No finding lines on stderr | integration test (capture stderr; assert no finding-line pattern) |
-| test-sufficient | Summary never appears on stdout | integration test (capture stdout; assert no summary pattern) |
+| — | No finding lines on stderr | integration test (capture stderr; assert no finding-line pattern) |
+| — | Summary never appears on stdout | integration test (capture stdout; assert no summary pattern) |
 
 ## Traceability
 | Field | Value |
@@ -82,6 +83,7 @@ contamination.
 | Capability Anchor Justification | CAP-012 ("Text Report Generation") per capabilities.md §CAP-012 — stdout/stderr separation is a core output contract of the text reporter |
 | L2 Domain Invariants | — |
 | Brief Requirement | R6, R7 |
+| Architecture Module | `reporter.rs` (SS-12, pure core, HIGH tier) primary; `main.rs` (LOW tier) secondary — writes findings to stdout; writes summary to stderr; reporter produces both strings — ADR-005 |
 
 ## Related BCs
 - BC-2.12.001 — composes with (per-finding line format on stdout)

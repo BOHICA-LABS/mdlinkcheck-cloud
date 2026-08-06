@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-12"
 capability: "CAP-012"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,11 +53,11 @@ in red, indeterminate findings in yellow, file path in bold.
 3. stderr diagnostic messages may also use color under the same rules.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-126 | Piped stdout without CLICOLOR_FORCE | No color codes in output |
-| EC-127 | NO_COLOR=1 set | No color codes |
-| EC-128 | CLICOLOR_FORCE=1 | Color codes even when piped |
+| EC | Description |
+|----|-------------|
+| EC-126 | Piped stdout without CLICOLOR_FORCE |
+| EC-127 | NO_COLOR=1 set |
+| EC-128 | CLICOLOR_FORCE=1 |
 
 ## Canonical Test Vectors
 | Env | stdout | Expected |
@@ -68,8 +69,8 @@ in red, indeterminate findings in yellow, file path in bold.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| test-sufficient | NO_COLOR suppresses ANSI codes | integration test |
-| test-sufficient | Piped output has no ANSI codes by default | integration test |
+| — | NO_COLOR suppresses ANSI codes | integration test |
+| — | Piped output has no ANSI codes by default | integration test |
 
 ## Traceability
 | Field | Value |
@@ -77,3 +78,4 @@ in red, indeterminate findings in yellow, file path in bold.
 | L2 Capability | CAP-012 ("Terminal color: NO_COLOR / CLICOLOR / CLICOLOR_FORCE semantics") per capabilities.md §CAP-012 |
 | Capability Anchor Justification | CAP-012 ("Text Report Generation") per capabilities.md §CAP-012 |
 | Brief Requirement | R6, AMB-130 |
+| Architecture Module | `reporter.rs` (SS-12, pure core, HIGH tier) primary; `cli.rs` (SS-11, effectful, LOW tier) secondary — NO_COLOR / CLICOLOR env vars read by cli to produce CliArgs; reporter uses the flag — ADR-005 |

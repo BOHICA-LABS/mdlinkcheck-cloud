@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "2860da8"
+input-hash: "e860246"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: Three-input model alignment — Preconditions 3 and 4 now cite verdict::exit_code parameter names (io_errors and config_error). Precondition 3 clarifies that nonexistent PATH arguments count as I/O errors. Architect v1.4 reconciliation."
+  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,11 +54,11 @@ links; the calling script should treat this as a CI failure.
 3. CI pipelines that check exit code can rely on: 0=success, 1=broken, 2=error.
 
 ## Edge Cases
-| ID | Description | Expected Behavior |
-|----|-------------|-------------------|
-| EC-144 | 1 broken link, 0 I/O errors | Exit 1 |
-| EC-145 | 100 broken links, 0 I/O errors | Exit 1 |
-| EC-146 | 0 broken links, 1 indeterminate | Exit 0 |
+| EC | Description |
+|----|-------------|
+| EC-144 | 1 broken link, 0 I/O errors |
+| EC-145 | 100 broken links, 0 I/O errors |
+| EC-146 | 0 broken links, 1 indeterminate |
 
 ## Canonical Test Vectors
 | Scenario | Expected Exit |
@@ -79,3 +80,4 @@ links; the calling script should treat this as a CI failure.
 | Capability Anchor Justification | CAP-014 ("Exit Code Determination") per capabilities.md §CAP-014 |
 | L2 Domain Invariants | DI-010, DI-011 |
 | Brief Requirement | R7 |
+| Architecture Module | `verdict.rs` (SS-14, pure core, CRITICAL tier) — ADR-007 (two-layer verdict model) |

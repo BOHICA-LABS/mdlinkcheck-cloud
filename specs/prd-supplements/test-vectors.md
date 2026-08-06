@@ -2,7 +2,7 @@
 document_type: prd-supplement
 supplement_type: test-vectors
 level: L3
-version: "1.4"
+version: "1.7"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "79b9564"
+input-hash: "2860da8"
 traces_to: .factory/specs/prd.md
 primary_consumers: [test-writer, holdout-evaluator]
 ---
@@ -20,16 +20,21 @@ primary_consumers: [test-writer, holdout-evaluator]
 # Test Vectors: mdlinkcheck
 
 > Primary consumers: test-writer, holdout-evaluator.
-> Concrete, executable test vectors derived from EC-001..EC-150 and T1..T16.
+> Concrete, executable test vectors derived from EC-001..EC-183 (active holdout pool excluded per HOLDOUT WARNING below) and T1..T16.
 >
-> **HOLDOUT WARNING:** Vectors marked [HOLDOUT] in the source lists (EC-036, EC-049,
-> EC-074, EC-079, EC-093, EC-094, EC-141, EC-147, EC-148, EC-151, EC-156, EC-157,
-> EC-158) are NOT present in this file. They belong exclusively in the hidden holdout
-> evaluation scenarios under `.factory/holdout-scenarios/wave-scenarios/`.
+> **HOLDOUT WARNING:** The following ECs are NOT present in this file. They belong
+> exclusively in the hidden holdout evaluation scenarios under
+> `.factory/holdout-scenarios/wave-scenarios/`.
+> Active holdout pool (12 total): EC-079, EC-093, EC-094, EC-141, EC-147, EC-148,
+> EC-151, EC-156, EC-165, EC-166, EC-167, EC-168.
 > EC-102 was formerly on this list; it has been replaced by EC-151 (D-010 decision).
 > TV-BV013 (formerly EC-102) is now a visible required test vector in §0.
-> EC-156/157/158 added in v1.5: .gitignore×cross-file-anchor, percent-encoded
-> fragment in cross-file link, and emoji heading × collision counting.
+> EC-036, EC-049, EC-074, EC-157, EC-158: holdout designation retired per D-020
+> (burned to visible tests); vectors TV-036, TV-049, TV-074, TV-157, TV-157b, TV-158,
+> TV-158b added in v1.6 (P3-005 hotfix).
+> EC-165..EC-168 are fresh replacement hidden scenarios (D-020) covering anchor
+> resolution, source-exclusion × cross-file anchors, percent-encoding × fragment
+> split, and duplicate-slug collisions.
 >
 > Vector format: each table row is a self-contained test: filesystem fixture, flags,
 > source markdown, expected verdict(s), expected exit code, expected JSON (abbreviated).
@@ -78,7 +83,7 @@ primary_consumers: [test-writer, holdout-evaluator]
 | TV-013 | EC-013 | `docs/secret.md` with mode `000` (no read) | (none) | 2 | exit 2; `errors:[{file:"docs/secret.md",reason:"target-unreadable"}]` in JSON `--format json` output; NOT a `verdict` field (I/O errors go in the `errors` array, not `results`) | I/O error; other files still scanned; see F-013/BC-2.13.001 |
 | TV-014 | EC-014 | `bad.md` containing ISO-8859-1 bytes (not valid UTF-8) | (none) | 2 | exit 2; `errors:[{file:"bad.md",reason:"target-unreadable"}]` in JSON output | Non-UTF-8 reported as I/O error in `errors` array |
 | TV-015 | EC-015 | `utf8bom.md` with UTF-8 BOM followed by `## Setup\n[x](#setup)` | (none) | 0 | (clean) | BOM stripped; heading slug `setup` matches |
-| TV-015b | EC-015 | `utf8bom.md` with UTF-8 BOM, then `[x](missing.md)` on line 1 | (none) | 1 | broken; file=utf8bom.md, line=1, **column=1** | Column is relative to BOM-stripped buffer; the `[` is at byte offset 1 after BOM removal, NOT byte offset 4 counting the 3 BOM bytes. See F-028. |
+| TV-015b | EC-178 | `utf8bom.md` with UTF-8 BOM, then `[x](missing.md)` on line 1 | (none) | 1 | broken; file=utf8bom.md, line=1, **column=1** | Column is relative to BOM-stripped buffer; the `[` is at byte offset 1 after BOM removal, NOT byte offset 4 counting the 3 BOM bytes. See F-028. |
 | TV-016 | EC-016 | CRLF-only file with `## Heading` on line 5, `[x](#heading)` on line 10 | (none) | 0 | (clean) | Line numbers same as LF equivalent |
 | TV-017 | EC-017 | Zero-byte `empty.md` | (none) | 0 | none | No findings |
 | TV-018 | EC-018 | 50 MB single `huge.md` with one broken link | (none) | 1 | broken ×1 | No OOM; completes |
@@ -106,6 +111,7 @@ primary_consumers: [test-writer, holdout-evaluator]
 | TV-033 | EC-033 | `a.md` | `[x](a.md?raw=1)` | `a.md` exists | 0 | clean | Query stripped before resolution |
 | TV-034 | EC-034 | `a.md` | `[x](a.md/)` | `a.md` is a file (not dir) | 1 | broken (`file-not-found`) | Trailing slash signals a directory path. `a.md/` resolves to a directory path that does not exist (POSIX: ENOTDIR when `a.md` exists as a file but not as a directory). Verdict: broken, reason: file-not-found (no such directory path exists). (Verdict chosen: file-not-found because `a.md/` as a path does not point to any existing file or directory — ENOTDIR means the path resolution fails. `target-is-directory` would require a directory to exist there; it does not. Backed by BC-2.07.008.) |
 | TV-035 | EC-035 | `a.md` | `[x](./a.md)`, `[x](././a.md)`, `[x](dir/../a.md)` | `a.md` exists | 0 | clean ×3 | Path normalization |
+| TV-036 | EC-036 | `a.md` | `[x](README.MD)` | `README.md` exists; no `README.MD` on disk (case mismatch) | 1 | broken (`file-not-found`) | DEC-009/DI-002/T12 **flagship differentiator KD-004**: explicit case-sensitive `read_dir` entry comparison on ALL platforms. `std::fs::exists("README.MD")` returns `true` on macOS APFS but MUST NOT be used — tool must enumerate the parent directory and compare entries exactly. An `std::fs::exists()`-based implementation passes on macOS, silently produces false-negative on Linux CI. (D-020) |
 | TV-037 | EC-037 | `a.md` | `[x](Café.md)` (NFC) | `Café.md` on disk in NFD (macOS-created) | 0 | clean | NFC-normalize both sides |
 | TV-038 | EC-038 | `a.md` | `[x](link.md)` | `link.md` is a dangling symlink | 1 | broken | `broken-symlink` |
 | TV-039 | EC-039 | `a.md` | `[x](logo.png)` | `logo.png` exists | 0 | clean | Non-MD file existence-checked |
@@ -115,7 +121,7 @@ primary_consumers: [test-writer, holdout-evaluator]
 
 ---
 
-## §3. Anchors (R2b) — EC-043 through EC-076 (excluding EC-049, EC-074)
+## §3. Anchors (R2b) — EC-043 through EC-076
 
 | TV | EC | Source MD | Heading | Link | Expected Exit | Verdict | Notes |
 |----|-----|-----------|---------|------|---------------|---------|-------|
@@ -125,6 +131,7 @@ primary_consumers: [test-writer, holdout-evaluator]
 | TV-046 | EC-046 | `a.md` | `## Phase 1: MVP (128 Features)` | `[x](#phase-1-mvp-128-features)` | 0 | clean | Colon, parens removed |
 | TV-047 | EC-047 | `a.md` | `## Setup` (×2) | `[x](#setup)` and `[x](#setup-1)` | 0 | clean ×2 | 0-based counter |
 | TV-048 | EC-048 | `a.md` | `## Setup` (×3) | `[x](#setup-2)` | 0 | clean | Third occurrence → `-2` |
+| TV-049 | EC-049 | `a.md` | `## Foo` (×2) then `## Foo-1` in order | `[a](#foo)`, `[b](#foo-1)`, `[c](#foo-1-1)` | 0 | clean ×3 | DEC-001: second `Foo` collides → `foo-1`; `Foo-1` normalizes to `foo-1` (already taken) → disambiguation while-loop bumps to `foo-1-1`. Implementations using a 1-based counter or not re-entering the loop on secondary collision produce broken for `#foo-1-1`. See also TV-S012. (D-020) |
 | TV-050 | EC-050 | `a.md` | `## my_heading` | `[x](#my_heading)` | 0 | clean | Underscore retained |
 | TV-051 | EC-051 | `a.md` | `## my_heading` | `[x](#my-heading)` | 1 | broken | Underscore NOT replaced with hyphen |
 | TV-052 | EC-052 | `a.md` | `## Café` | `[x](#café)` | 0 | clean | Unicode retained |
@@ -149,16 +156,21 @@ primary_consumers: [test-writer, holdout-evaluator]
 | TV-071 | EC-071 | `a.md` | `## setup` | `[x](#setup )` | 0 | clean | Trailing space in fragment trimmed |
 | TV-072 | EC-072 | `a.md` | — | `[x](notes.txt#section)` | 0 | clean | Non-MD: anchor check skipped; file exists |
 | TV-073 | EC-073 | `a.md` | — | `[x](src/main.rs#L42-L50)` | 0 | clean | Line-range anchor: recognized and skipped |
+| TV-074 | EC-074 | `README.md` (flags: `--ignore vendor.md`) | — | `[x](vendor.md#section)` where `vendor.md` has `## Section` | 0 | clean | DEC-003/DI-006: `--ignore` suppresses link-source scanning only; Pass 1 still builds the anchor table for `vendor.md`; the cross-file anchor resolves clean. A false `anchor-not-found` here means the implementation incorrectly skips anchor-table construction for `--ignore`'d targets. (D-020; see also TV-152/EC-152 which tests the same invariant as a general DI-006 fixture) |
 | TV-075 | EC-075 | `README.md` | `## setup` | `[x](#setup)`, `[x](README.md#setup)`, `[x](./README.md#setup)` | 0 | clean ×3 | All three equivalent |
 | TV-076 | EC-076 | `README.md` | — | `[x](../outside-root/a.md#heading)` | 1 | broken | Outside root; file does not exist |
 | TV-152 | EC-152 | `a.md` (flags: `--ignore vendor.md`) | — | `[x](vendor.md#section)` where `vendor.md` has `## Section` | 0 | clean | DI-006 case 1: `--ignore`'d file is still a valid anchor target; Pass 1 builds its anchor table |
 | TV-153 | EC-153 | `a.md` (`.gitignore` lists `gitignored.md`) | — | `[x](gitignored.md#section)` where `gitignored.md` has `## Section` | 0 | clean | DI-006 case 2: .gitignore'd file is still a valid anchor target; Pass 1.5 builds its anchor table |
 | TV-154 | EC-154 | `README.md` | — | `[x](.vitepress/api.md#setup)` where `.vitepress/api.md` has `## Setup` | 0 | clean | DI-006 case 3: dot-dir .md file is still a valid anchor target; Pass 1.5 builds its anchor table |
 | TV-155 | EC-155 | `docs/a.md` | — | `[x](../../sibling-repo/README.md#overview)` where `sibling-repo/README.md` has `## Overview` | 0 | clean | DI-006 case 4: outside-root .md file is still a valid anchor target; Pass 1.5 builds its anchor table |
+| TV-157 | EC-157 | `a.md` | — | `[Guide](other.md#caf%C3%A9)` where `other.md` has `## Café` | 0 | clean | Cross-file percent-decoded fragment: `caf%C3%A9` decoded to `café` before slug comparison in cross-file anchor resolver (BC-2.08.003). Distinct from same-file TV-053 — the cross-file path invokes `anchor_resolver.rs` which must also decode before lookup. Root cause of Sphinx bug #13620. (D-020) |
+| TV-157b | EC-182 | `a.md` | — | `[Guide](other.md#caf%C3%A9)` where `other.md` has `## Coffee` (no Café heading) | 1 | broken (`anchor-not-found`) | Negative control for TV-157: decoded fragment `café` finds no matching slug in `other.md`. |
+| TV-158 | EC-158 | `doc.md` | `## 🚀 Foo` then `## Foo` (in document order) | `[first](#foo)`, `[second](#foo-1)` | 0 | clean ×2 | Emoji-strip before collision counter: both headings produce candidate slug `foo` after emoji removal; counter assigns `foo` to first, `foo-1` to second. If emoji-strip runs AFTER the counter, keys are `🚀 Foo` ≠ `Foo` → no collision detected → `foo-1` remains unassigned → broken. (D-020) |
+| TV-158b | EC-183 | `doc.md` | Same two headings plus link `[probe](#foo-2)` | `[first](#foo)`, `[second](#foo-1)`, `[probe](#foo-2)` | 1 | broken (`anchor-not-found`) | Failure probe: only 2 headings exist; `foo-2` has no third occurrence. Confirms the counter stops at the correct upper bound. |
 
 ---
 
-## §4. External URLs (R2c) — EC-077 through EC-094 (excluding EC-079, EC-093, EC-094)
+## §4. External URLs (R2c) — EC-077 through EC-150 (excluding EC-079, EC-093, EC-094, EC-147, EC-148)
 
 | TV | EC | Link | Mock Server / Setup | Flags | Expected Exit | Verdict |
 |----|-----|------|---------------------|-------|---------------|---------|
@@ -222,7 +234,7 @@ primary_consumers: [test-writer, holdout-evaluator]
 | TV | EC | Input | Flags | Expected Exit | Expected Output |
 |----|-----|-------|-------|---------------|----------------|
 | TV-124 | EC-124 | `docs/a.md` exists; broken link inside | `--ignore 'docs/**'` | 0 | no findings (ignored) |
-| TV-124b | EC-124 | `docs/a.md` exists; broken link inside | `--ignore docs` | 0 | no findings (`docs` matches dir and children) |
+| TV-124b | EC-179 | `docs/a.md` exists; broken link inside | `--ignore docs` | 0 | no findings (`docs` matches dir and children) |
 | TV-125 | EC-125 | All files matched by `*.md` | `--ignore '*.md'` | 0 | warning on stderr; no findings |
 | TV-126 | EC-126 | `README.md` with broken link | `README.md --ignore README.md` | 0 | `--ignore` wins; no findings |
 | TV-127 | EC-127 | `a.md` and `b.md` both broken | `--ignore a.md --ignore b.md` | 0 | both ignored |
@@ -233,12 +245,12 @@ primary_consumers: [test-writer, holdout-evaluator]
 | TV-132 | EC-132 | — | `--format xml` | 2 | exit 2, usage error on stderr |
 | TV-133 | EC-133 | No broken links | `--format json` | 0 | `{"schema_version":1,"results":[]}` |
 | TV-134a | EC-134 | One of each OFFLINE reason type: file-not-found, target-is-directory, broken-symlink, anchor-not-found, undefined-reference-definition, malformed-url | `--format json` | 1 | JSON `results` contains exactly 6 entries, one per offline broken reason code. No http-error/dns-failure/tls-error/too-many-redirects (those require --online). |
-| TV-134b | EC-134 | One of each ONLINE reason type, covering all http-related broken codes: http-error, dns-failure, tls-error, too-many-redirects; plus indeterminate: http-timeout, http-indeterminate | `--online --format json` | 1 | JSON `results` contains entries for all online broken/indeterminate reason codes. Together TV-134a + TV-134b exercise all 13 reason codes in the closed taxonomy (NFR-007). |
+| TV-134b | EC-180 | One of each ONLINE reason type, covering all http-related broken codes: http-error, dns-failure, tls-error, too-many-redirects; plus indeterminate: http-timeout, http-indeterminate | `--online --format json` | 1 | JSON `results` contains entries for all online broken/indeterminate reason codes. Together TV-134a + TV-134b exercise all 13 reason codes in the closed taxonomy (NFR-007). |
 | TV-135 | EC-135 | Broken link found; diagnostic also occurs | `--format json` | 1 | stdout = pure JSON; stderr = diagnostic only |
 | TV-136 | EC-136 | — | `--format json --format text` | 0/1 | last wins: `text` format |
 | TV-137 | EC-137 | — | `--unknown-flag` | 2 | exit 2, usage error |
 | TV-138 | EC-138 | — | `--help` | 0 | help text on stdout |
-| TV-138b | EC-138 | — | `--version` | 0 | version string on stdout |
+| TV-138b | EC-181 | — | `--version` | 0 | version string on stdout |
 | TV-139 | EC-139 | file `-weird-name.md` | `-- -weird-name.md` | (depends on links) | File processed correctly |
 | TV-140 | EC-140 | Broken link in `docs/` | `docs --format json` | 1 | flag after positional accepted |
 | TV-142 | EC-142 | Only an unreadable file | (none) | 2 | exit 2 only |
@@ -291,11 +303,11 @@ Each trap from market-intelligence §4.3 has at least one test vector above.
 | T9: Percent-encoding order | TV-053, TV-025 | covered |
 | T10: Fragments on dirs/non-MD | TV-072 (non-MD), TV-029 (dir) | covered |
 | T11: Empty fragment | TV-068, TV-069 | covered |
-| T12: Case-sensitive filename | [HOLDOUT] EC-036 reserved | holdout |
+| T12: Case-sensitive filename | TV-036 | covered — DI-002/D-006/KD-004: explicit case-sensitive `read_dir` comparison; macOS APFS false-pass eliminated |
 | T13: Windows path separators | TV-042 (partial) | partially covered |
 | T14: Heading with link syntax | TV-058 | covered |
 | T15: Forward heading reference | TV-047 (implicit) + DEC-002 corpus | covered |
-| T16: Path above scan root | TV-076 | covered |
+| T16: Path above scan root | TV-076 (file absent) | not-covered — TV-076 is broken because the target file does not exist (relative path to a nonexistent file outside git root), not because of scan-root boundary enforcement. TV-024 establishes there is no scan-root boundary for relative links. A root-relative path (starting with `/`) with `..` traversal above git root on an existing file (per BC-2.07.002) has no dedicated vector; boundary enforcement for root-relative paths is untested. |
 
 ---
 
@@ -333,3 +345,65 @@ mdlinkcheck --format json tests/corpus/fixtures/ > /tmp/corpus-result.json
 ```
 
 **Pass criterion:** JSON output matches `tests/corpus/manifest.json` exactly (modulo ordering, which must itself match the sorted order).
+
+---
+
+## §10. Supplementary Edge Case Registrations (EC-159..EC-183)
+
+Rows in this section register ECs that were named in BC edge-case tables after
+test-vectors.md v1.6 was produced. Each row is the minimal registration needed
+by POL-16; full scenario detail lives in the BC file referenced in the Description.
+
+### §10.1 Anchor Resolution (SS-08) — EC-159, EC-160
+
+| TV | EC | Description | Flags | Exit | Verdict | Notes |
+|----|----|-------------|-------|------|---------|-------|
+| TV-159 | EC-159 | `a.md` has `[x](b.md#setup)`; `b.md` ignored as source but has `## Setup` | `--ignore b.md` | 0 | clean | Anchor table built for ignored-source `b.md` (DI-006); cross-file anchor found (BC-2.08.004) |
+| TV-160 | EC-160 | `a.md` has `[x](b.md#missing)`; `b.md` ignored as source, no `## Missing` | `--ignore b.md` | 1 | broken (`anchor-not-found`) | Anchor table built for ignored-source `b.md`; fragment not found |
+
+### §10.2 Filter Application (SS-11) — EC-161..EC-163
+
+| TV | EC | Description | Flags | Exit | Verdict | Notes |
+|----|----|-------------|-------|------|---------|-------|
+| TV-161 | EC-161 | URL `https://example.com/path` against prefix `https://example.com` | `--allow https://example.com` | n/a | exempt | Component boundary `/` → prefix matches at boundary |
+| TV-162 | EC-162 | URL `https://example.com.evil.tld/` against prefix `https://example.com` | `--allow https://example.com` | n/a | not exempt | Boundary safety: next char after prefix is `.`, not `/` or end |
+| TV-163 | EC-163 | URL `https://example.comX/path` against prefix `https://example.com` | `--allow https://example.com` | n/a | not exempt | Boundary safety: next char is `X`, not `/` or end |
+
+### §10.3 Relative Path Resolution (SS-07) — EC-164
+
+| TV | EC | Description | Flags | Exit | Verdict | Notes |
+|----|----|-------------|-------|------|---------|-------|
+| TV-164 | EC-164 | `[x](docs#section)` where `docs` is a directory, fragment present | (none) | 1 | broken (`target-is-directory`) | Directory target with fragment always broken; no anchor lookup attempted |
+
+### §10.4 Holdout-Alias Replacements — EC-169..EC-177
+
+These ECs replace the sub-lettered holdout aliases EC-141b, EC-079b, EC-079c, EC-094a–e
+that were renamed per POL-18 (holdout sub-letter prohibition).
+
+| TV | EC | Description | Flags | Exit | Verdict | Notes |
+|----|----|-------------|-------|------|---------|-------|
+| TV-169 | EC-169 | 1 broken link + invalid `--format` flag | `--format bad` | 2 | exit 2 (config error beats broken) | Exit 2 beats exit 1 (DI-011); see BC-2.14.002 |
+| TV-170 | EC-170 | Future JSON schema version does not break existing consumers | `--format json` | n/a | schema_version integer 1 | Formerly EC-141b in BC-2.13.002; JSON schema stability (BC-2.13.002) |
+| TV-171 | EC-171 | URL connection times out (server takes 15s, timeout is 10s) | `--online` | 0 | indeterminate (`http-timeout`) | Timeout is indeterminate not broken (DI-010); see BC-2.10.003 |
+| TV-172 | EC-172 | HTTPS target with self-signed certificate | `--online` | 1 | broken (`tls-error`) | TLS always enforced; no --insecure flag (D-011); see BC-2.10.006 |
+| TV-173 | EC-173 | Link with `mailto:a@b.com` scheme | (none) | 0 | no findings (silently skipped) | Formerly EC-094a in BC-2.03.005; non-http(s) silently skipped |
+| TV-174 | EC-174 | Link with `ftp://x/y` scheme | (none) | 0 | no findings (silently skipped) | Formerly EC-094b in BC-2.03.005 |
+| TV-175 | EC-175 | Link with `tel:+15551234` scheme | (none) | 0 | no findings (silently skipped) | Formerly EC-094c in BC-2.03.005 |
+| TV-176 | EC-176 | Link with `javascript:void(0)` scheme | (none) | 0 | no findings (silently skipped) | Formerly EC-094d in BC-2.03.005 |
+| TV-177 | EC-177 | Link with `//example.com/x` (protocol-relative) | (none) | 0 | no findings (silently skipped) | Formerly EC-094e in BC-2.03.005 |
+
+### §10.5 EC-178..EC-183 — Disambiguation IDs for Multi-Variant Test Vectors
+
+These EC-NNNs resolve EC injectivity collisions (POL-16). Each EC-NNN below is already
+registered by the corresponding TV-NNNb row in its original section. This sub-section
+exists as an index only — do NOT add table rows here (that would create duplicate
+registrations and re-introduce the injectivity violation).
+
+| EC | TV-NNNb (registered in) | Original Collision |
+|----|------------------------|--------------------|
+| EC-178 | TV-015b (§1) | Disambiguates TV-015 (clean) vs TV-015b (broken) |
+| EC-179 | TV-124b (§6) | Disambiguates `--ignore 'docs/**'` vs `--ignore docs` |
+| EC-180 | TV-134b (§6) | Disambiguates offline (TV-134a) vs online (TV-134b) reason codes |
+| EC-181 | TV-138b (§6) | Disambiguates `--help` vs `--version` |
+| EC-182 | TV-157b (§3) | Negative control for percent-decoded cross-file anchor (D-020) |
+| EC-183 | TV-158b (§3) | Failure probe for emoji-strip slug counter (D-020) |
