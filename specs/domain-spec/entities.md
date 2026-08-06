@@ -65,7 +65,7 @@ A `.md` file discovered during traversal (`.md` only, case-sensitive — DD-019;
 | content | UTF-8 string | BOM stripped, CRLF normalized |
 | line-start-offsets | Vec\<usize\> | byte→line number lookup table |
 | links | Vec\<Link\> | extracted after parsing |
-| anchor-table | AnchorTable | built two-pass (DI-008) |
+| anchor-table | AnchorTable | built three-phase (Pass 1 → Pass 1.5; DI-008) |
 | io-error | Option\<FailureReason\> | non-None triggers exit 2 |
 
 ### Link
@@ -88,10 +88,13 @@ One link occurrence within a MarkdownFile.
 
 The set of valid anchor slugs for one file.
 
+`AnchorTable` is a newtype: `AnchorTable(HashSet<String>)`. The `file` a table belongs
+to is the `HashMap<PathBuf, AnchorTable>` key in the calling module — NOT a field of
+`AnchorTable` itself. There is no `file` attribute on `AnchorTable`.
+
 | Attribute | Type | Notes |
 |-----------|------|-------|
-| file | path | the file this table belongs to |
-| slugs | HashSet\<String\> | all valid fragment values |
+| slugs | HashSet\<String\> | all valid fragment values (the wrapped set) |
 
 Built by: (1) slug-compute all headings; (2) extract HTML `id` + `name` attrs.
 Always complete before any link into the file is validated (DI-008).

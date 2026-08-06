@@ -34,7 +34,7 @@ removal_reason: null
 ## Description
 The text report (default format) emits one line per finding to stdout, in the format
 `<file>:<line>: <link_target> — <reason>`. Findings are sorted deterministically by
-(NFC-normalized file path, line number, column number) ascending. Clean links are never emitted.
+(NFC-normalized file path, line number, column number, link_target) ascending. Clean links are never emitted.
 
 ## Preconditions
 1. All link validation is complete.
@@ -45,7 +45,7 @@ The text report (default format) emits one line per finding to stdout, in the fo
 2. Format: `<file>:<line>: <link_target> — <reason>`
 3. Indeterminate findings are prefixed: `<file>:<line>: <link_target> — [indeterminate] <reason>`
 4. Clean links produce no output lines.
-5. Findings are sorted by (NFC file path asc, line asc, column asc).
+5. Findings are sorted by (NFC file path asc, line asc, column asc, link_target asc).
 
 ## Invariants
 1. Sort order is deterministic across parallel scans (DI-001).

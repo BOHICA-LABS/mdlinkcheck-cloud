@@ -203,7 +203,7 @@ self-contained contract file. The H1 title in each file is the authoritative tit
 
 | DI-NNN | Description | Enforcing BCs |
 |--------|-------------|---------------|
-| DI-001 | Deterministic output order (NFC path, line, col) | BC-2.12.001, BC-2.13.001 |
+| DI-001 | Deterministic output order (NFC path, line, col, link_target) | BC-2.12.001, BC-2.13.001 |
 | DI-002 | Case-sensitive NFC path comparison; never delegate to OS | BC-2.07.003, BC-2.07.004 |
 | DI-003 | Fragment split at first unescaped `#` before percent-decode | BC-2.08.003, BC-2.07.004, BC-2.07.001 |
 | DI-004 | Code context exclusion is structural (AST), not heuristic | BC-2.04.001, BC-2.04.002, BC-2.04.003 |

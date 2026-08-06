@@ -98,7 +98,7 @@ bumped to "setup-1-1".
 | Capability Anchor Justification | CAP-006 ("Heading Slug Computation") per capabilities.md §CAP-006 |
 | L2 Domain Invariants | DI-013 (anchor-key uniqueness; 0-based duplicate counter) |
 | Brief Requirement | R2b, DD-015 |
-| Architecture Module | `slug.rs` (SS-06, pure core, CRITICAL tier) — ADR-006 (NFC strict path model; slug algorithm is the primary differentiator) |
+| Architecture Module | `slug.rs` (SS-06, pure core, CRITICAL tier) — ADR-008 (clean-room github-slugger v2 reimplementation — slug algorithm is the primary differentiator) |
 
 ## Related BCs
 - BC-2.06.001 — composes with (base slug before counter)

@@ -48,7 +48,7 @@ indeterminate). Clean links are never included. The object is compact (not prett
 2. Each finding object in `results` has fields in this order:
    `file`, `line`, `column`, `link_target`, `verdict`, `reason`.
 3. `verdict` in `results` is one of `"broken"` or `"indeterminate"`. Never `"clean"`.
-4. `results` is sorted by (NFC-normalized file path, line, column) ascending — same order
+4. `results` is sorted by (NFC-normalized file path, line, column, link_target) ascending — same order
    as text output (DI-001).
 5. The JSON is compact; no trailing newline required but acceptable.
 6. No ANSI color codes in JSON output.

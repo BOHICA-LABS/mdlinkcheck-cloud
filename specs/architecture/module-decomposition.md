@@ -131,7 +131,7 @@ Pass 2  (pure only, parallel via rayon):
     url_classifier::classify(dest) + http_verdict          → Verdict      [pure]
   Output: Vec<Finding>
 
-Sort:   findings.sort_unstable_by_key(|f| (nfc(&f.path), f.line, f.col))  [pure]
+Sort:   findings.sort_unstable_by_key(|f| (nfc(&f.path), f.line, f.col, f.link_target))  [pure]
 Report: reporter::format_*(sorted_findings)  [pure]
 Exit:   verdict::exit_code(sorted_findings, io_errors, config_error)  [pure]
 ```

@@ -370,7 +370,7 @@ Nothing may fail with a reason outside this closed set.
 
 | BC ID | Contribution |
 |-------|-------------|
-| BC-2.05.001 | Two-pass design extracts ALL headings including forward references before any link check; --ignore files' anchor tables still built, preventing false `anchor-not-found` |
+| BC-2.05.001 | Three-phase pipeline design (Pass 1 → Pass 1.5 → Pass 2) extracts ALL headings including forward references before any link check; --ignore files' anchor tables still built, preventing false `anchor-not-found` |
 | BC-2.05.003 | Narrow HTML `id=`/`name=` carve-out prevents false negatives on `<a name>` anchors |
 | BC-2.06.001 | github-slugger v2 verbatim algorithm eliminates hyphen-collapsing false negatives |
 | BC-2.06.002 | 0-based collision-bumping correctly handles multi-level duplicate heading sequences |

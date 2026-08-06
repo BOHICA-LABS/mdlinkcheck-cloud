@@ -79,4 +79,4 @@ legacy `<a name="top">` patterns and explicit id anchors in documentation.
 | Capability Anchor Justification | CAP-005 ("Anchor Table Construction") per capabilities.md §CAP-005 |
 | L2 Domain Invariants | DI-008 |
 | Brief Requirement | R5, DD-007 |
-| Architecture Module | `anchor_table.rs` (SS-05, pure core, CRITICAL tier) — ADR-006 (NFC strict path model; HTML id/name anchor extraction) |
+| Architecture Module | `anchor_table.rs` (SS-05, pure core, CRITICAL tier) — ADR-003 (pulldown-cmark HTML event stream governs the extraction approach) |

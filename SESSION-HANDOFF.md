@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-050
+  Latest: §RESUME SNAPSHOT D-053
 -->
 
 ---
@@ -261,7 +261,7 @@ j. **D-045 consequence:** macOS APFS is case-insensitive and NFD-storing; on a m
 
 ---
 
-## §RESUME SNAPSHOT D-050
+## §RESUME SNAPSHOT D-050 [SUPERSEDED by D-053 — retained for audit]
 
 *Written: 2026-08-06 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-045.*
 
@@ -400,3 +400,153 @@ h. **`verify-sha-currency.sh` absent.** Post-push hook verification could not be
 i. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
 
 j. **Allowlists / skip-lists in checkers are FORBIDDEN (D-039).** Suppression is worse than editing the spec.
+
+---
+
+## §RESUME SNAPSHOT D-053
+
+*Written: 2026-08-06 — state-manager burst. Single-commit burst TD-VSDD-053. Supersedes D-050.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean passes, trajectory →0→32→34→39→37. **BI-012 and BI-015 are CLOSED.** The spec-topology generators are built, verified (18/18 suite, check-canonical-facts.py exit 0, D-040 negative-test confirmed), and committed to `factory-artifacts`. D-036's precondition for pass 5 is satisfied per D-051 (committed-and-verified spec artifacts on `factory-artifacts` — merge to develop not required). **Pass 5 is ARMED; the frozen HEAD is this commit.** Per BC-5.39.001/D-040, the clean-pass streak re-counts from ZERO against this HEAD. Three PRs are review-complete and merge-ready (PR #3 `6d954ab`, PR #4 `6503d3b`, PR #5 `b054694`); ONLY BLOCKER is the GitHub Actions major outage (2026-08-06T15:22Z, unresolved). **Next actions: (1) Wait for outage resolution; (2) merge all 3 PRs (PR #4 first — re-trigger via `gh pr close 4 && gh pr reopen 4`; update PR #3 covered_sha to `6d954ab`); (3) run pass 5 with updated skip list.**
+
+### HEADS
+
+All heads verified at wrap time. Everything is pushed; nothing is local-only.
+
+| Ref | SHA | Note |
+|---|---|---|
+| `origin/main` | `78a9f77` | CI workflows live (PR #1 merged by operator, 17/17 green) |
+| `origin/develop` | `2290cb0` | PR #2 squash-merged; integration branch; story PRs target this |
+| `origin/feature/spec-lint-hardening` | `6d954ab` | PR #3 head (15→17 tests, 17/17 passing); OPEN; pr-reviewer APPROVE STALE (covered a9b9be0; update covered_sha to 6d954ab before merge) |
+| `origin/chore/macos-only-ci` | `6503d3b` | PR #4 head (ci.yml macos-only); OPEN; APPROVE issued; ZERO CI runs (pushed mid-outage) |
+| `origin/fix/hardening-pins` | `b054694` | PR #5 head (supply-chain hardening); OPEN; APPROVE (0 blocking, 2 cycles) |
+| `origin/feature/bi-012-generators` | `78ef3a4` | BI-012 generators branch (stacked on PR #3, blocked by outage; NOT yet merged) |
+| `.factory` / `factory-artifacts` local == remote | see `git -C .factory log -1` | single-commit burst; all pushed; nothing local-only |
+
+- Main repo working tree: branch checked out: `feature/spec-lint-hardening` (`6d954ab`).
+- `.worktrees/ws-b-generators`: `feature/bi-012-generators` at `78ef3a4` (active; stacked on PR #3).
+- `.worktrees/sec-hardening`: `fix/hardening-pins` at `b054694` (active; PR #5).
+- `stash@{0}` ("pre-merge stash for PR #2") is redundant with committed work. Needs user-space `git stash drop`; NOT dropped automatically.
+- `.factory` worktree: STATE.md, SESSION-HANDOFF.md, canonical-facts.toml, code-delivery/SEC-HARDENING-PINS/, all spec corrections committed in this burst.
+- `.factory/hooks/verify-sha-currency.sh`: NOT present in this project — post-push hook verification gap (record only, not an implied pass).
+
+### WORKSTREAMS
+
+**WS-A (do first) — Merge PR #4, PR #3, PR #5 (ONLY BLOCKER: GitHub Actions outage)**
+
+All 3 PRs are review-complete. ONLY BLOCKER is GitHub Actions major outage (2026-08-06T15:22Z; unresolved).
+
+- **PR #4** = `chore/macos-only-ci` → develop. Head `6503d3b`. APPROVE (cycle 2). ZERO CI runs. Re-trigger: `gh pr close 4 && gh pr reopen 4`. DO NOT push empty commit — invalidates APPROVE. Merge PR #4 first (simpler, no spec content).
+- **PR #3** = `feature/spec-lint-hardening` → develop. Head `6d954ab`. pr-reviewer APPROVE **STALE** (covered `a9b9be0`). `covered_sha` MUST be updated to `6d954ab88f52795bd1cd1c3bf22b5cba31dec495` before `check-stale-verdict.sh` passes. The delta is covered by orchestrator's independent mutation verification (D-050). After covered_sha update, merge at level-4 autonomy per D-031.
+- **PR #5** = `fix/hardening-pins` → develop. Head `b054694`. APPROVE (0 blocking, 2 review cycles). D-052 restricted-path waiver. Merge after PR #3.
+- **NOTE:** `feature/bi-012-generators` (`78ef3a4`) is stacked on PR #3 and not yet merged. It contains the spec-lint generators; spec artifacts are committed to `factory-artifacts` and valid for pass 5 per D-051. Merge `feature/bi-012-generators` to develop after PR #3 lands.
+
+RESUME NEXT-ACTION: Resolve GitHub Actions outage → re-trigger PR #4 CI → update PR #3 covered_sha → merge PR #4, PR #3, PR #5 in order; then merge `feature/bi-012-generators`.
+
+---
+
+**WS-B — BI-012 / BI-015 — CLOSED**
+
+Both closed. Generators committed and verified on `factory-artifacts`. Merge to develop will happen in WS-A (`feature/bi-012-generators`). No further work needed on this workstream before pass 5.
+
+---
+
+**WS-C — adversary pass 5 (ARMED — frozen HEAD is THIS factory-artifacts commit)**
+
+Per D-040/D-050, the pass-5 skip list (proven-can-fail as of D-050):
+- `check-index-integrity` ✓ proven by D-050 mutation audit
+- `check-counts` ✓ proven by D-050 mutation audit
+- `check-adr-consistency` ✓ proven by D-050 mutation audit
+- `check-title-sync` ✓ proven by D-050 mutation audit
+- `check-ec-injectivity` — do NOT skip; demonstrated false-passing (BI-013)
+- `check-id-resolution` — do NOT skip; caught false-passing (D-027)
+- `check-placeholders` — do NOT skip; 25 outstanding `[filled by story-writer]` are legitimate (D-029/D-032, ADVISORY only); adversary must not waste findings on these known outstanding items
+
+Per BC-5.39.001/D-040/D-051, the clean-pass streak MUST be re-counted from ZERO against the HEAD created by this factory-artifacts commit. No prior streak count carries forward.
+
+Remaining unread semantic perimeter (from pass 4 notes): 54 BC bodies, ADR bodies, interaction clusters (32-thread HTTP pool × rayon pool × DI-001; URL dedup × per-occurrence file:line × 429 pausing), domain-spec invariants/capabilities.
+
+RESUME NEXT-ACTION: After WS-A merge (or immediately, since spec artifacts are frozen on factory-artifacts per D-051), dispatch `vsdd-factory:adversary` for pass 5 with this frozen factory-artifacts HEAD and re-derived skip list above.
+
+---
+
+**WS-D — remaining open blockers**
+
+- BI-010 (VP-025 API rewrite): VP-025 rewritten; INC-MAP-001 SPEC-RESOLVED/IMPL-PENDING (D-048). NOT blocking Phase 1.
+- BI-016 (PR #3 merge): WS-A; covered_sha must update to `6d954ab`.
+- BI-017 (Phase 3 CI perf-gate): Phase 3 obligation, not Phase 1.
+- BI-018 (PR #4 CI re-trigger): WS-A.
+- BI-020 (PR #5 merge): WS-A.
+- BI-021 (check-canonical-facts.py worktree resolution): fix before Phase 3 (`SPEC_LINT_REPO_OVERRIDE`).
+- BI-022 (nightly toolchain unpin): fix before Phase 6.
+
+---
+
+**WS-E — Phase 1 human approval gate**
+
+Never yet presented. Gated on: 3 clean adversarial passes. On approval: flip `spec-lint` to required status check per D-029/D-032.
+
+### PENDING USER-APPROVED WORK
+
+| Decision | Approval | Status |
+|----------|----------|--------|
+| D-028: Agents MAY merge PRs after full pr-manager review lifecycle | Granted by operator | In force — applies to PR #3, PR #4, PR #5 (WS-A) |
+| D-029/D-032: Flip `spec-lint` to required status check at Phase 1 approval | Granted by operator | Not started — gated on WS-E (3 clean passes) |
+| D-031: Autonomy level 4 | Granted by operator | In force |
+| D-043: macOS-only platform narrowing | Granted by operator | APPLIED |
+| D-046: Restricted-path waiver PR #3 + PR #4 | Granted by operator | In force for those two PRs |
+| D-049: Cycle-5 exception + mutation audit | Granted by operator | COMPLETE |
+| D-051: Pass-5 gate interpretation (committed spec artifacts suffice) | Granted by operator | APPLIED — pass 5 armed |
+| D-052: Restricted-path waiver PR #5 | Granted by operator | In force for PR #5 |
+| D-053: cargo-mutants on macos-latest | Granted by operator | APPLIED in PR #5 |
+
+### WORKTREE INVENTORY
+
+| Path | Branch | SHA | Status |
+|------|--------|-----|--------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` (root) | `feature/spec-lint-hardening` | `6d954ab` | active; PR #3 open |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | see `git -C .factory log -1` | active |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/ws-b-generators` | `feature/bi-012-generators` | `78ef3a4` | active; stacked on PR #3 |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/sec-hardening` | `fix/hardening-pins` | `b054694` | active; PR #5 open |
+
+No Phase 3 story worktrees exist. `.worktrees/ws-b-generators` and `.worktrees/sec-hardening` are phase-1d spec/hardening worktrees.
+
+### DECISION DELTA
+
+Decisions D-001 through D-050 were committed in prior bursts. This burst adds D-051..D-053 (exhaustive).
+
+| ID | Decision | Rationale | Phase | Date |
+|----|----------|-----------|-------|------|
+| D-051 | Pass-5 gate interpretation (operator-approved): D-036 satisfied by COMMITTED-AND-VERIFIED spec artifacts on `factory-artifacts`, NOT merge-to-develop. Recorded risk: CI enforcement lands only when PR #3/feature/bi-012-generators merge. | Pass 5 reviews spec artifacts on factory-artifacts; outage blocking merge does not block spec-artifact review. | phase-1d | 2026-08-06 |
+| D-052 | Restricted-path waiver extended by operator to PR #5 (`.github/**`). Scoped to PR #5 only; `merge-config.yaml` NOT amended. | Same restricted-path class as D-046; operator explicitly approved. | phase-1d | 2026-08-06 |
+| D-053 | `cargo-mutants` platform classification: mutation testing is platform-DEPENDENT; belongs on `macos-latest` under D-043. D-044's ubuntu-for-cost rule continues to apply only to genuinely platform-independent jobs. ~10x runner cost accepted. Applied in PR #5 hardening.yml. | macOS-only matrix means a mutation breaking case-insensitivity handling would survive on ext4. | phase-1d | 2026-08-06 |
+
+### CAVEATS
+
+a. **pr-reviewer APPROVE for PR #3 is STALE.** The review covered `a9b9be0`; head is now `6d954ab`. `covered_sha` must be updated to `6d954ab88f52795bd1cd1c3bf22b5cba31dec495` before merge. The delta is covered by orchestrator's independent mutation verification (D-050).
+
+b. **GitHub Actions major outage** since 2026-08-06T15:22Z (still unresolved as of this snapshot). ONLY blocker for PR #3, PR #4, and PR #5. Re-trigger PR #4: `gh pr close 4 && gh pr reopen 4`. NEVER push an empty commit to trigger CI — invalidates APPROVE.
+
+c. **`feature/bi-012-generators` (`78ef3a4`) is stacked on PR #3** and not yet merged to develop. Spec artifacts committed to `factory-artifacts` are valid for pass 5 per D-051. Generator scripts land on develop only after PR #3 + `feature/bi-012-generators` merge.
+
+d. **`stash@{0}`** ("pre-merge stash for PR #2") is redundant with committed work. Needs explicit `git stash drop`; NOT dropped automatically.
+
+e. **D-040 skip-list discipline:** `check-ec-injectivity`, `check-id-resolution`, and `check-placeholders` MUST NOT go on the pass-5 skip list — all have demonstrated false-passing or have legitimately outstanding violations (check-placeholders: 25 `[filled by story-writer]` are ADVISORY under D-029/D-032).
+
+f. **Streak reset:** The 0/3 clean-pass counter re-counts against the HEAD created by this factory-artifacts commit. No counter carries forward.
+
+g. **BI-021:** `check-canonical-facts.py` resolves `.factory/` from the script's own location; exits 1 from `.worktrees/STORY-NNN/`. Fix before Phase 3 (`SPEC_LINT_REPO_OVERRIDE`).
+
+h. **BI-022:** `rustup toolchain install nightly` in `fuzz-smoke` job still unpinned. Pin before Phase 6.
+
+i. **`verify-sha-currency.sh` absent.** Post-push hook verification could not be run during this wrap. Known gap; do not treat as a pass.
+
+j. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
+
+k. **Allowlists / skip-lists in checkers are FORBIDDEN (D-039).** Suppression is worse than editing the spec.
+
+l. **`prd.md` versioned changelog entries are IMMUTABLE (D-034).** Do not update them to reference newer VP/EC/BC ids.
+
+m. **True divergence count for BI-012 was 5, not 6.** FACT-4 (module→subsystem) AGREES at all checked sites and was correctly left alone.

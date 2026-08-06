@@ -118,7 +118,7 @@ v2 output for all inputs in the test vector corpus.
 | Capability Anchor Justification | CAP-006 ("Heading Slug Computation") per capabilities.md §CAP-006 — this BC is the core slug algorithm contract |
 | L2 Domain Invariants | DI-012 (slug computation fidelity — all 7 rules) |
 | Brief Requirement | R2b, DD-015 |
-| Architecture Module | `slug.rs` (SS-06, pure core, CRITICAL tier) — ADR-006 (NFC strict path model; slug algorithm is the primary differentiator) |
+| Architecture Module | `slug.rs` (SS-06, pure core, CRITICAL tier) — ADR-008 (clean-room github-slugger v2 reimplementation — slug algorithm is the primary differentiator) |
 
 ## Related BCs
 - BC-2.06.002 — composes with (duplicate-heading counter)

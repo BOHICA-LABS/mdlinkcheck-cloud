@@ -1,24 +1,24 @@
 ---
 document_type: pipeline-state
 level: ops
-version: "2.4"
+version: "2.5"
 status: draft
 producer: state-manager
-timestamp: 2026-08-06T22:30:00Z
+timestamp: 2026-08-07T00:15:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; working tree: feature/spec-lint-hardening; PR #4: APPROVE awaiting CI re-trigger (GitHub Actions outage 2026-08-06T15:22Z); PR #3: mutation audit COMPLETE (6d954ab, 17/17, BI-019 RESOLVED); covered_sha stale (update to 6d954ab before merge); D-046..D-050 (exhaustive); trajectory-tail →32→34→39→37; D-chain cite D-050 D-421"
+current_step: "phase-1d; HEAD frozen for pass 5 (this factory-artifacts commit per BC-5.39.001/D-040); BI-012/BI-015 CLOSED (generators built+verified, D-036 satisfied per D-051); PR #5 APPROVE 0-blocking (b054694); 3 PRs merge-ready blocked only by GitHub Actions outage 2026-08-06T15:22Z; streak re-counts ZERO from this HEAD; D-046..D-053 (exhaustive); trajectory-tail →32→34→39→37; D-chain cite D-053 D-421"
 current_cycle: ""
 dtu_required: false
 ---
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 199 = 301. 199 lines (wc-l).
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 204 = 296. 204 lines (wc-l, post-burst-10).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
@@ -37,9 +37,9 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-06 — PR #3 mutation audit COMPLETE (6d954ab, 15→17 tests, 4/15 over-determined, BI-019 RESOLVED); PR #4 APPROVE on 6503d3b; both merge-ready pending CI (GitHub Actions outage 2026-08-06T15:22Z); D-046..D-050 (exhaustive); trajectory-tail →32→34→39→37; bc-module-map.md v1.4; branch = feature/spec-lint-hardening |
+| **Last Updated** | 2026-08-06 — BI-012/BI-015 CLOSED (generators built+verified; canonical-facts.toml 7 facts/16 bindings; check-canonical-facts.py exit 0, 18/18 suite; D-040 negative-test confirmed); PR #5 APPROVE 0-blocking (b054694, 2 cycles, D-052 waiver); D-036 gate satisfied per D-051; HEAD frozen for pass 5; D-046..D-053 (exhaustive); trajectory-tail →32→34→39→37 |
 | **Current Phase** | phase-1d |
-| **Current Step** | PR #4: APPROVE on 6503d3b, awaiting CI re-trigger (outage — `gh pr close 4 && gh pr reopen 4`; fallback `gh workflow run ci.yml --ref chore/macos-only-ci`; `on.push.branches` omits `chore/**`); PR #3: mutation audit COMPLETE (6d954ab, 17/17); pr-reviewer APPROVE STALE (covered a9b9be0; update covered_sha to 6d954ab); next = CI re-trigger both PRs → merge (WS-A), then WS-B generators, WS-C pass 5 per D-036/D-040 |
+| **Current Step** | BI-012/BI-015 CLOSED and committed. PR #5 (`fix/hardening-pins`) APPROVE (0 blocking, 2 cycles, b054694). 3 PRs merge-ready: PR #3 `6d954ab`, PR #4 `6503d3b`, PR #5 `b054694`; ALL blocked ONLY by GitHub Actions outage (2026-08-06T15:22Z). Pass 5 armed: HEAD frozen to this factory-artifacts commit; streak counts from ZERO per BC-5.39.001/D-040/D-051. PR #4 re-trigger: `gh pr close 4 && gh pr reopen 4`; check-placeholders RED (25 `[filled by story-writer]` outstanding — legitimate until Phase 2, per D-029/D-032). |
 
 ## Phase Progress
 
@@ -66,11 +66,10 @@ dtu_required: false
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
-| phase-1d adversary pass 4 | adversary | COMPLETE | cycles/phase-1d/adversary-pass-4.md; 37 findings (3C/19M/15m); FINDINGS_REMAIN; zero in 7 enforced classes; topology root cause named |
-| phase-1d pass-4 remediation | architect + product-owner | COMPLETE | ADR-008 authored; VP-025 rewritten; 10 VP paths flattened; DI-001 4-field key; 13 EC collisions → EC-184..EC-204; spec-lint 7/8 (only 25 known placeholders fail) |
 | PR #2 merged | pr-manager | COMPLETE | 7 review cycles; squash-merged to develop 2290cb0; branch deleted; 9/9 required CI green |
 | D-043 macOS-only platform narrowing | architect + product-owner + devops | COMPLETE | branch protection 8→4 contexts both branches; ci.yml matrices → macos-latest (PR #4); NFR-002 re-targeted 10s, NFR-004 retired, T13 retired; unicode-normalization pinned 0.1.24; C4-008 fixed; spec-lint 7/8 |
 | PR #4 APPROVE + PR #3 mutation audit COMPLETE + D-050 | pr-manager + state-manager | COMPLETE | PR #4: APPROVE on 6503d3b (CI blocked: GitHub Actions outage 2026-08-06T15:22Z); PR #3: audit COMPLETE (6d954ab, 15→17 tests, 4/15 over-determined); BI-019 RESOLVED; BI-014 closed; D-046..D-050 (exhaustive); trajectory-tail →32→34→39→37; bc-module-map.md v1.4 |
+| BI-012/BI-015 CLOSED + PR #5 + D-051..D-053 + pass-5 HEAD freeze | state-manager | COMPLETE | BI-012: 14 divergent sites corrected; canonical-facts.toml 7 facts/16 bindings; check-canonical-facts.py exit 0; 18/18 suite; D-040 negative test confirmed. BI-015: SLUG_CORPUS generated from §7; TV-S007+TV-S010 first test coverage. PR #5 APPROVE 0-blocking (b054694, 2 cycles, D-052 waiver). D-051..D-053 (exhaustive). HEAD frozen for pass 5. |
 
 ## Convergence Status
 
@@ -78,7 +77,9 @@ Trajectory →0→32→34→39→37
 
 pass count: 0 of 3 required clean passes
 
-Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT the magnitude. Zero of 37 findings fall in the 7 enforced classes (title-sync, EC-injectivity, id-resolution, counts, holdout-boundary, ADR-consistency, index-integrity) — that noise floor is eliminated and verified. The residual defect mass is a SPEC-TOPOLOGY problem, not a spec-quality problem: ~15 documents hand-maintain restatements of the same facts with no generated source of truth. Regression audit found 8 of 12 prior fixes were applied to the primary artifact but not its siblings/dependents. Adversary recommends NOT running pass 5 against the current topology.
+Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT the magnitude. Zero of 37 findings fall in the 7 enforced classes (title-sync, EC-injectivity, id-resolution, counts, holdout-boundary, ADR-consistency, index-integrity) — that noise floor is eliminated and verified. The residual defect mass is a SPEC-TOPOLOGY problem, not a spec-quality problem: ~15 documents hand-maintain restatements of the same facts with no generated source of truth. Regression audit found 8 of 12 prior fixes were applied to the primary artifact but not its siblings/dependents. Adversary recommended NOT running pass 5 against the current topology.
+
+**Pass 5 armed (HEAD frozen this commit):** BI-012 spec-topology generators COMMITTED and VERIFIED on this `factory-artifacts` commit per D-051; D-036 pre-condition satisfied. Per BC-5.39.001/D-040, the clean-pass streak MUST re-count from ZERO against this HEAD. No prior streak count carries forward.
 
 | Pass | Findings | Delta | Status |
 |------|----------|-------|--------|
@@ -137,6 +138,9 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | D-048 | INC-MAP-001 recorded as `SPEC-RESOLVED / IMPL-PENDING`, NOT `RESOLVED`. `bc-module-map.md` bumped v1.3 → v1.4. VP-025 v1.1 discharges the spec-level API misalignment (AnchorTable(HashSet<String>), three-variant Verdict, corrected import path, property 4 replaced); Phase 3 implementation obligation remains open under BI-010. | Per D-033, closing a spec gap and discharging an implementation obligation are separate events (precedent: BI-005 → BI-007 split). Orchestrator rejected architect recommendation of bare closure. Collapsing the two events is precisely how FM-002 became invisible (VP-003 passed while fidelity was unverified). | phase-1d | 2026-08-06 | orchestrator |
 | D-049 | Review cycle 5 EXCEPTION granted for PR #3 by operator, exceeding `max_review_cycles: 3` (precedent D-038, the PR #2 exception). Operator additionally ordered a mutation audit of ALL 15 selftests, not only the B-6 fix, reasoning that over-determination may be systemic and WS-C requires a provably sound skip list per D-040. | B-4 and B-6 (both over-determination defects) were found independently in the same session without searching. An unproven `check-index-integrity` cannot go on the WS-C pass-5 skip list — that is precisely the failure class that put false-passing `check-ec-injectivity` on pass 4's skip list and hid 13 real EC collisions. Mutation audit scopes the risk before committing to the skip list. | phase-1d | 2026-08-06 | human/operator |
 | D-050 | Full mutation audit (operator-ordered per D-049) found 4 of 15 selftests over-determined (27%), not the 1 originally suspected. A green negative-test suite is NOT evidence of validator trustworthiness without mutation verification of each test. Standing rule: mutation verification is required for all future skip-list entries. WS-C consequence: `check-index-integrity`, `check-counts`, `check-adr-consistency`, and `check-title-sync` are proven-can-fail — eligible for the pass-5 skip list per D-040. PR #3 head `6d954ab` (15→17 tests; G1+G2 guard tests for M-1; `__pycache__`/`*.pyc` to `.gitignore`). Orchestrator independently verified at `6d954ab`. | Three of four over-determined tests would have shipped invisibly if only B-6 was patched. D-040's "proven-can-fail" standard is only meaningful under mutation verification. Over-determined: selftest 2 (check-counts co-fired on subsystems); selftest 5 (check-adr-consistency co-fired on dns-failure); selftest 9 (check-title-sync co-fired on PRD §2); selftest 10d (forward-check masked malformed-EC detection). | phase-1d | 2026-08-06 | human/operator |
+| D-051 | Pass-5 gate interpretation (operator-approved): D-036's requirement that the BI-012 generators "land" before pass 5 is satisfied by COMMITTED-AND-VERIFIED spec artifacts on `factory-artifacts`, NOT by merge-to-develop. Rationale: pass 5 reviews spec artifacts, which live on `factory-artifacts` and can be committed independently of the product-repo PRs that the GitHub Actions outage has frozen; the proven-can-fail validators were run against those exact artifacts and are clean. Recorded risk: CI enforcement lands only when PR #3/`feature/bi-012-generators` merge, so a regression could theoretically slip in between commit and merge. | Pass 5 gate unblocked by committed verification evidence; outage blocking merge does not block spec-artifact review. | phase-1d | 2026-08-06 | human/operator |
+| D-052 | Restricted-path waiver extended by the operator to PR #5 (`.github/**`). Scoped to PR #5 only; `merge-config.yaml` NOT amended; future restricted-path PRs still need fresh authorization. | PR #5 contents are entirely `.github/workflows/hardening.yml` modifications; same restricted-path class as D-046. Operator explicitly approved. | phase-1d | 2026-08-06 | human/operator |
+| D-053 | `cargo-mutants` platform classification: mutation testing is platform-DEPENDENT because it wraps the project's test suite and inherits its platform sensitivity. Under D-043, macOS APFS (case-insensitive, NFD-storing) is the only filesystem in the matrix and VP-008/VP-009 are solely load-bearing. On case-sensitive ext4, a mutation breaking case-insensitivity handling would SURVIVE (wrong behaviour matches ubuntu semantics), producing false-green survivor reports on exactly the properties that matter most. D-044's ubuntu-for-cost rule continues to apply only to genuinely platform-independent jobs. ~10x runner cost accepted; correctness fix. Applied in PR #5 hardening.yml. | macOS-only matrix + mutation testing = `cargo-mutants` belongs on `macos-latest`; consistent with D-043 while D-044 governs platform-independent jobs. | phase-1d | 2026-08-06 | human/operator |
 
 ## Skip Log
 
@@ -156,35 +160,36 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 
 | ID | Issue | Severity | Blocking Phase | Owner | Resolution |
 |----|-------|----------|----------------|-------|------------|
-| BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 4 COMPLETE (37 findings, 3C/19M/15m); root cause reclassified to SPEC-TOPOLOGY per D-035; remediation per D-036 in progress | HIGH | phase-1 gate | orchestrator | BI-012 generators + canonical-facts block + BI-009 adjudication + BI-008/BI-011 closure, THEN pass 5 per D-036 |
-| ~~BI-005~~ | DI-012 (slug fidelity) VP coverage INSUFFICIENT; DI-013 PARTIAL — VP-018's 16 golden vectors were the only pin on github-slugger parity; 1-based duplicate counter bug (setup→setup-2 vs setup→setup-1) would pass VP-003 injectivity because outputs remain distinct (FM-002 unprovable) | ~~HIGH~~ CLOSED | ~~phase-1 gate~~ RESOLVED | architect | CLOSED at spec level 2026-08-06. VP-026 authored; FM-002 now covered. Residual implementation risk tracked as BI-007. |
-| BI-007 | VP-026 is SPECIFIED but UNIMPLEMENTED — no Rust workspace exists yet (Phase 3 not started). Until the differential proptest and its pinned `github-slugger@2.0.0` oracle corpus are implemented and green, the product can still emit non-GitHub-fidelity slugs (FM-002) behind a fully green verification suite. Successor to BI-005. | HIGH | phase-6 (formal hardening) — NOT phase-1 | implementer | Phase 3 must implement VP-026 per its Phase 3 Implementation Obligation table; VP-026 must be green before Phase 6 hardening can pass. Story decomposition (Phase 2) MUST generate a story traced to VP-026. |
-| BI-010 | P4-002: VP-025 was authored against an API that does not exist — `AnchorTable` type, `resolve_anchor` return type, and its central "closed two-variant enum" property all contradict `api-surface.md` (which declares `HashSet<String>` and the THREE-variant `Verdict`). Harness cannot compile (non-exhaustive match, E0004). VP-025 was the closure for INC-MAP-001, which `bc-module-map.md:386` marks RESOLVED. | CRITICAL | phase-3 | architect | Architect rewrote VP-025 against the declared API (`AnchorTable(HashSet<String>)`, three-variant `Verdict`); property 4 replaced with 'Indeterminate is never returned'. INC-MAP-001 RE-OPENED in `bc-module-map.md` — closes only when Phase 3 implements it. |
-| BI-012 | Spec-topology defect: ~15 documents hand-maintain restatements of the same canonical facts (DI-001 sort key, AnchorTable/Finding field names, pipeline pass count, module->subsystem, module->ADR, slug golden vectors) with no generated source of truth. Five such facts are currently INCONSISTENT across their restatement sites (FACT-4 module→subsystem confirmed AGREES at all checked BC sites; true count: 5, not 6). | HIGH | phase-1 gate | devops-engineer + architect | Land 3 generators (`gen-bc-traceability.py`, `gen-slug-corpus.py`) plus a canonical-facts block + divergence checker. Adversary estimates this structurally eliminates 11 of 22 MAJOR+ findings and makes the class unrepeatable. |
-| BI-015 | P4-017: NFR-006 names `test-vectors.md` §7 as its inputs but VP-018 implements a near-disjoint corpus (overlap 2 of 16). TV-S007 (`😄 emoji` → `-emoji`, leading hyphen) and TV-S010 (`` `--online` flag `` → `--online-flag`) are the hardest registry vectors and have no test anywhere. PO merged VP-018's unique rows into §7; the one-to-one transcription of §7 into VP-018's SLUG_CORPUS remains outstanding. | MEDIUM | phase-1 gate | architect + devops | Land `gen-slug-corpus.py` (part of BI-012) and generate VP-018's corpus from §7 rather than hand-maintaining it. |
-| BI-016 | PR #3 (`feature/spec-lint-hardening` → `develop`) OPEN: eliminates the vacuous-negative-test class and fixes P4-021. Head `6d954ab` (15→17 tests, 17/17 passing, BI-019 RESOLVED). Awaiting CI (GitHub Actions outage). | MEDIUM | phase-2 | pr-manager | Cycle-5 mutation audit COMPLETE. pr-reviewer APPROVE STALE (covered `a9b9be0`; `covered_sha` must be updated to `6d954ab` before merge; `check-stale-verdict.sh` will exit 1). PR #3 merge-ready pending CI + covered_sha update. Merge at level-4 autonomy per D-031. |
-| BI-017 | Phase 3 CI obligation: NO perf-gate/benchmark job exists in any workflow (orchestrator verified zero matches for `perf-gate`, `NFR-008`, `hyperfine`, `bench` under `.github/workflows/`). When the NFR-008 regression gate (~500ms p95 Tier A) and the NFR-002 benchmark (10s p95) jobs are created in Phase 3, both MUST run on `macos-latest` — their thresholds are Apple-Silicon-calibrated and a Linux runner would silently invalidate them. | MEDIUM | phase-3 | devops-engineer | Recorded in `verification-properties/vp-022-regression-gate.md` Phase 3 obligations and `architecture/tooling-selection.md` §Phase 3 CI Obligations. |
-| BI-018 | PR #4 (`chore/macos-only-ci` → develop): reduces `ci.yml` test/build matrices to `macos-latest`. Branch protection was already narrowed to 4 contexts BEFORE the workflow change (deadlock-free ordering per D-023). All 4 required contexts verified reporting on PR #4; `mergeable: MERGEABLE`. | MEDIUM | phase-2 | pr-manager | Review COMPLETE — APPROVE issued on head `6503d3b`. ZERO workflow runs (pushed mid-outage; GitHub never created runs). Recovery: `gh pr close 4 && gh pr reopen 4` (re-fires `pull_request` event; preserves SHA and APPROVE verdict). DO NOT push an empty commit — invalidates APPROVE. Fallback: `gh workflow run ci.yml --ref chore/macos-only-ci` (workflow_dispatch enabled; `on.push.branches` does NOT cover `chore/**`). |
-| ~~BI-019~~ | ~~B-6 over-determination (selftest 10d in check-index-integrity.py)~~ | ~~CRITICAL~~ **CLOSED** | resolved | test-writer | CLOSED 2026-08-06: Mutation audit COMPLETE at `6d954ab`; suite 15→17 (G1+G2 guard tests for M-1); 17/17 passing. 4/15 over-determined (D-050). `check-index-integrity`, `check-counts`, `check-adr-consistency`, `check-title-sync` proven-can-fail → eligible for WS-C pass-5 skip list per D-040. Orchestrator independently verified. |
+| BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 4 COMPLETE (37 findings, 3C/19M/15m); root cause SPEC-TOPOLOGY (D-035); BI-012 prerequisite CLOSED (D-051); pass 5 ARMED — HEAD frozen this commit | HIGH | phase-1 gate | orchestrator | Pass 5 armed; pending 3 clean passes; if CLEAN → phase-1 gate; if BLOCKED → remediation burst |
+| ~~BI-005~~ | DI-012 (slug fidelity) VP coverage INSUFFICIENT; DI-013 PARTIAL — VP-018's 16 golden vectors were the only pin on github-slugger parity; 1-based duplicate counter bug would pass VP-003 injectivity (FM-002 unprovable) | ~~HIGH~~ CLOSED | ~~phase-1 gate~~ RESOLVED | architect | CLOSED at spec level 2026-08-06. VP-026 authored; FM-002 now covered. Residual implementation risk tracked as BI-007. |
+| BI-007 | VP-026 is SPECIFIED but UNIMPLEMENTED — no Rust workspace exists yet (Phase 3 not started). Until the differential proptest and its pinned `github-slugger@2.0.0` oracle corpus are implemented and green, the product can still emit non-GitHub-fidelity slugs (FM-002) behind a fully green verification suite. Successor to BI-005. | HIGH | phase-6 (formal hardening) — NOT phase-1 | implementer | Phase 3 must implement VP-026; VP-026 must be green before Phase 6 hardening can pass. Story decomposition (Phase 2) MUST generate a story traced to VP-026. |
+| BI-010 | P4-002: VP-025 authored against non-existent API types (AnchorTable, resolve_anchor return type, closed two-variant enum) — all contradict api-surface.md (HashSet<String>, THREE-variant Verdict). Harness cannot compile. | CRITICAL | phase-3 | architect | Architect rewrote VP-025 against declared API (AnchorTable(HashSet<String>), three-variant Verdict, property 4 replaced). INC-MAP-001 RE-OPENED — closes only when Phase 3 implements it. |
+| BI-016 | PR #3 (`feature/spec-lint-hardening` → `develop`) OPEN: eliminates vacuous-negative-test class, fixes P4-021. Head `6d954ab` (15→17 tests, 17/17 passing, BI-019 RESOLVED). Awaiting CI (GitHub Actions outage). | MEDIUM | phase-2 | pr-manager | pr-reviewer APPROVE STALE (covered `a9b9be0`; `covered_sha` must be updated to `6d954ab` before merge). PR #3 merge-ready pending CI + covered_sha update. |
+| BI-017 | Phase 3 CI obligation: NO perf-gate/benchmark job exists in any workflow. When NFR-008 (~500ms p95 Tier A) and NFR-002 (10s p95) benchmark jobs are created in Phase 3, both MUST run on `macos-latest`. | MEDIUM | phase-3 | devops-engineer | Recorded in vp-022-regression-gate.md and tooling-selection.md §Phase 3 CI Obligations. |
+| BI-018 | PR #4 (`chore/macos-only-ci` → develop): reduces `ci.yml` test/build matrices to `macos-latest`. APPROVE on `6503d3b`; ZERO CI runs (pushed mid-outage). | MEDIUM | phase-2 | pr-manager | Recovery: `gh pr close 4 && gh pr reopen 4` (re-fires `pull_request`; preserves SHA and APPROVE). DO NOT push empty commit. Fallback: `gh workflow run ci.yml --ref chore/macos-only-ci`. |
+| ~~BI-019~~ | ~~B-6 over-determination (selftest 10d)~~ | ~~CRITICAL~~ **CLOSED** | resolved | test-writer | CLOSED 2026-08-06: suite 15→17, 17/17. 4/15 over-determined (D-050). proven-can-fail list: check-index-integrity, check-counts, check-adr-consistency, check-title-sync. |
+| BI-020 | PR #5 (`fix/hardening-pins` → develop) OPEN: pins kani-verifier 0.67.0, cargo-fuzz 0.13.2, explicit `contents: read` on all 6 jobs, `persist-credentials: false` on all 6 checkouts, SHA inventory for upload-artifact, fuzz false-green fixed, cargo-mutants moved to macos-latest (D-053). Head `b054694`. pr-reviewer APPROVE (0 blocking, 2 cycles). D-052 restricted-path waiver. Awaiting CI (GitHub Actions outage). | MEDIUM | phase-3/phase-6 | pr-manager | Merge at level-4 autonomy per D-031 once CI clears. |
+| BI-021 | MINOR: `check-canonical-facts.py` resolves `.factory/` from the SCRIPT's own location; exits 1 from any secondary worktree under `.worktrees/`. Fails closed (acceptable per D-039) but Phase 3 runs stories in `.worktrees/STORY-NNN/`, where spec-lint would fail confusingly. Workaround: `SPEC_LINT_REPO_OVERRIDE` env var. | LOW | phase-3 | devops-engineer | Fix path resolution before Phase 3 story worktrees launch. |
+| BI-022 | MINOR: `rustup toolchain install nightly` in `fuzz-smoke` job still UNPINNED — frozen fuzz driver against rolling nightly is a known drift pair. Recommend pinning nightly date before Phase 6. | LOW | phase-6 | devops-engineer | Track as follow-up; pin nightly date in hardening.yml before Phase 6. |
 
 ## Session Resume Checkpoint
 
-Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-050`
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-053`
 
 | Field | Value |
 |-------|-------|
 | **Date** | 2026-08-06 |
-| **Position** | phase-1d; working tree: feature/spec-lint-hardening; PR #4: APPROVE on 6503d3b, awaiting CI re-trigger (GitHub Actions outage 2026-08-06T15:22Z); PR #3: mutation audit COMPLETE (6d954ab, 17/17, BI-019 RESOLVED); covered_sha stale (update to 6d954ab); 0 of 3 clean passes; trajectory-tail →32→34→39→37 |
-| **Convergence counter** | 0 of 3 clean passes |
-| **Next burst** | (1) CI re-trigger both PRs → merge (WS-A); (2) WS-B BI-012 generators; (3) WS-C pass 5 per D-036/D-040 (eligible skip list: check-index-integrity, check-counts, check-adr-consistency, check-title-sync per D-050) |
+| **Position** | phase-1d; HEAD frozen for pass 5 (this factory-artifacts commit); BI-012/BI-015 CLOSED (generators built+verified, 18/18 suite, D-040 confirmed); PR #5 APPROVE 0-blocking (b054694); 3 PRs merge-ready (PR #3 6d954ab, PR #4 6503d3b, PR #5 b054694) blocked ONLY by GitHub Actions outage; streak counts ZERO from this HEAD per BC-5.39.001/D-040/D-051 |
+| **Convergence counter** | 0 of 3 clean passes; pass 5 armed against this HEAD |
+| **Next burst** | (1) Wait for GitHub Actions outage to resolve; (2) re-trigger PR #4 CI (`gh pr close 4 && gh pr reopen 4`), update covered_sha for PR #3 to `6d954ab`, then merge all 3 PRs; (3) WS-C: pass 5 with skip list: check-index-integrity, check-counts, check-adr-consistency, check-title-sync (D-050 proven-can-fail) |
 
-Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-050 recorded (exhaustive). Closed: BI-005/006/008/009/011/013/014/019. Open: BI-007/010/012/015/016/017/018.
+Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-053 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/019. Open: BI-007/010/016/017/018/020/021/022.
 
 ## Concurrent Cycles
 
 | Cycle | Status | Notes |
 |-------|--------|-------|
-| phase-1d | in-progress | adversarial spec convergence; trajectory-tail →32→34→39→37; PR #4 APPROVE awaiting CI re-trigger (GitHub Actions outage 2026-08-06T15:22Z); PR #3 mutation audit COMPLETE (6d954ab, BI-019 RESOLVED; covered_sha stale); next = WS-A both PRs merge + WS-B generators + WS-C pass 5 |
+| phase-1d | in-progress | adversarial spec convergence; trajectory-tail →32→34→39→37; BI-012/BI-015 CLOSED; PR #3/PR #4/PR #5 merge-ready (GitHub Actions outage 2026-08-06T15:22Z); pass 5 ARMED (HEAD frozen this commit, streak zero per BC-5.39.001/D-040); next = outage resolves → merge PRs → WS-C pass 5 |
 
 ## Historical Content
 
@@ -196,4 +201,4 @@ Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC r
 | Lessons learned | `cycles/phase-1d/lessons.md` |
 | Resolved blockers | `cycles/phase-1d/blocking-issues-resolved.md` |
 
-Last Updated: 2026-08-06 — PR #3 mutation audit COMPLETE (6d954ab, 4/15 over-determined, BI-019 RESOLVED); PR #4 APPROVE on 6503d3b; both merge-ready pending CI; D-046..D-050 (exhaustive); trajectory-tail →32→34→39→37
+Last Updated: 2026-08-06 — BI-012/BI-015 CLOSED (generators built+verified; canonical-facts.toml 7 facts/16 bindings; check-canonical-facts.py exit 0, 18/18 suite; D-040 confirmed); PR #5 APPROVE 0-blocking (b054694, 2 cycles, D-052 waiver); D-036 gate satisfied per D-051; HEAD frozen for pass 5; D-046..D-053 (exhaustive); trajectory-tail →32→34→39→37

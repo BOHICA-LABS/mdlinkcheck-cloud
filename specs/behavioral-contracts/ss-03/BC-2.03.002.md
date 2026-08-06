@@ -60,7 +60,7 @@ with internal whitespace collapsed. First definition wins on duplicates.
 2. Label matching is not locale-dependent; it follows CommonMark ASCII case folding.
 3. Unused reference definitions are NOT reported as errors.
 4. Attributing a finding to the definition site `[label]: url` rather than the use site `[text]`
-   is FORBIDDEN. The sort key (file, line, col) must be unique across all findings; reporting two
+   is FORBIDDEN. The sort key (file, line, col, link_target) must be unique across all findings; reporting two
    uses of the same label at the definition line collapses them into one finding and silently
    swallows one broken link.
 

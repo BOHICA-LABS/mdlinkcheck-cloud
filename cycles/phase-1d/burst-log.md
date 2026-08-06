@@ -354,3 +354,94 @@ PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001.
 **Dim-7 Attestation:** Agents dispatched in this burst: architect ×2 (D-043 spec updates, two parallel bursts), product-owner (D-043 NFR decisions + spec updates), state-manager (this burst). Total: 4 agents.
 
 **Closes:** nothing. **Opens:** BI-017 (Phase 3 CI perf-gate must be macos-latest), BI-018 (PR #4 open). **Updates:** BI-016 (spurious CI failures explained). D-043..D-045 recorded.
+
+---
+
+## Burst: burst 9 — PR #4 APPROVE + PR #3 Full Mutation Audit + D-046..D-050 Wrap (2026-08-06)
+
+**Parent-commit:** (D-043/D-045 wrap burst — burst 8 close)
+
+**Adversary verdict:** No adversary pass in this burst. State-manager wrap recording PR #4 APPROVE, PR #3 cycle-5 exception + full mutation audit (D-049/D-050), BI-014 closure. D-046..D-050 recorded.
+
+**Archived from Current Phase Steps (evicted to make room):**
+- `phase-1d adversary pass 4 | adversary | COMPLETE | cycles/phase-1d/adversary-pass-4.md; 37 findings (3C/19M/15m); FINDINGS_REMAIN; zero in 7 enforced classes; topology root cause named`
+
+**Files touched (Dim-1): state/cycle files only**
+
+- `.factory/STATE.md` — D-046..D-050 appended; BI-016/BI-018 updated; BI-019 RESOLVED; BI-014 closed; PR #4 APPROVE recorded; Session Resume Checkpoint → D-050; spec snapshot updated; bc-module-map.md v1.4 noted; timestamp advanced
+- `.factory/SESSION-HANDOFF.md` — D-045 snapshot marked SUPERSEDED; §RESUME SNAPSHOT D-050 appended; Latest pointer → D-050
+- `.factory/cycles/phase-1d/burst-log.md` — this entry
+- `.factory/sidecar-learning.md` — session observations updated
+- `.factory/logs/dispatcher-internal-2026-08-06.jsonl` — dispatcher log
+- `.factory/logs/events-2026-08-06.jsonl` — events log
+- `.factory/specs/architecture/bc-module-map.md` — v1.4 (INC-MAP-001 SPEC-RESOLVED/IMPL-PENDING per D-048)
+- `.factory/code-delivery/` — pr-manager delivery artifacts for PR #3 cycle 5 + PR #4 cycle 2
+
+**Codifications:**
+- D-046: Restricted-path waiver for PR #3 + PR #4 (operator-approved)
+- D-047: Merge wrapper scripts at `.factory/bin/` not `plugins/`
+- D-048: INC-MAP-001 `SPEC-RESOLVED / IMPL-PENDING`; bc-module-map.md v1.4
+- D-049: Cycle-5 exception for PR #3 + full mutation audit ordered (operator)
+- D-050: Full mutation audit COMPLETE (4/15 over-determined, 27%); standing rule: mutation verification required for skip-list entries; proven-can-fail: check-index-integrity, check-counts, check-adr-consistency, check-title-sync
+
+**Artifact state at burst close:**
+PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12. D-001..D-050 recorded (exhaustive). PR #3 head `6d954ab` (15→17 tests, 17/17); PR #4 head `6503d3b` APPROVE. Closed: BI-005/006/008/009/011/013/014/019. Open: BI-007/010/012/015/016/017/018.
+
+**Dim-6 Attestation:** IN_PROGRESS. Convergence counter 0 of 3 required clean passes. Trajectory →0→32→34→39→37. Pass 5 pending WS-A (merge PRs, GitHub Actions outage blocking) + WS-B (BI-012 generators) per D-036/D-040.
+
+**Closes:** BI-014 (VP-022 source_bc NFR-008). BI-019 (selftest 10d over-determination). **Opens:** nothing new. **Updates:** BI-016 (covered_sha stale, update to 6d954ab). D-046..D-050 recorded.
+
+---
+
+## Burst: burst 10 — BI-012/BI-015 CLOSED + PR #5 + D-051..D-053 + Pass-5 HEAD Freeze (2026-08-06)
+
+**Parent-commit:** `e9bee87` (feat(state): mutation audit COMPLETE — D-046..D-050 (exhaustive), BI-019 RESOLVED, wrap D-050)
+
+**Adversary verdict:** No adversary pass in this burst. This is the BI-012 spec-topology remediation closure burst. 14 divergent sites corrected across 9 spec files using verified canonical-facts.toml. PR #5 (supply-chain hardening) recorded as CONVERGED. D-051/D-052/D-053 recorded. HEAD frozen for pass 5.
+
+**Files touched (Dim-1): 19 unique files**
+
+- `.factory/specs/canonical-facts.toml` — NEW: 7 facts, 16 bindings, header prohibiting hand-edits
+- `.factory/code-delivery/SEC-HARDENING-PINS/` — NEW: PR #5 delivery artifacts (pr-description.md, pr-review.md, pr-review-cycle1.md, review-findings.md)
+- `.factory/specs/architecture/module-decomposition.md` — FACT-1 4-field sort key (8 sites corrected via gen-bc-traceability.py)
+- `.factory/specs/behavioral-contracts/BC-INDEX.md` — FACT-1 DI-001 row sort key
+- `.factory/specs/behavioral-contracts/ss-03/BC-2.03.002.md` — FACT-1 sort key uniqueness invariant
+- `.factory/specs/behavioral-contracts/ss-05/BC-2.05.003.md` — FACT-5b ADR-003 cite (anchor_table.rs)
+- `.factory/specs/behavioral-contracts/ss-06/BC-2.06.001.md` — FACT-5a ADR-008 cite (slug.rs)
+- `.factory/specs/behavioral-contracts/ss-06/BC-2.06.002.md` — FACT-5a ADR-008 cite (slug.rs)
+- `.factory/specs/behavioral-contracts/ss-12/BC-2.12.001.md` — FACT-1 sort key (2 sites)
+- `.factory/specs/behavioral-contracts/ss-13/BC-2.13.001.md` — FACT-1 sort key
+- `.factory/specs/domain-spec/entities.md` — FACT-2 AnchorTable(HashSet<String>) newtype; FACT-3 Pass 1.5 three-phase
+- `.factory/specs/prd-supplements/interface-definitions.md` — FACT-1 sort key (2 sites: text output, JSON output)
+- `.factory/specs/prd.md` — FACT-3 Pass 1.5 (BC-2.05.001 row in KD-001 table); §6.1 summary table cell preserved (legitimately corrected in prior burst per D-034 — DO NOT revert)
+- `.factory/specs/verification-properties/vp-018-slug-worked-examples.md` — @GENERATED:BEGIN slug-corpus fence (VP-018 SLUG_CORPUS from §7; TV-S007+TV-S010 first test coverage)
+- `.factory/sidecar-learning.md` — updated observations
+- `.factory/logs/dispatcher-internal-2026-08-06.jsonl` — dispatcher log
+- `.factory/logs/events-2026-08-06.jsonl` — events log
+- `.factory/STATE.md` — BI-012/BI-015 CLOSED; D-051..D-053 appended; BI-020/021/022 added; pass-5 armed; SESSION Resume → D-053; D-046..D-053 exhaustive
+- `.factory/SESSION-HANDOFF.md` — D-050 snapshot marked SUPERSEDED; §RESUME SNAPSHOT D-053 appended
+
+**Verification evidence (orchestrator-confirmed):**
+- `check-canonical-facts.py` against real spec tree: exit 0, "all 16 bindings match canonical values (7 facts)"
+- Selftest suite: 18/18 pass (`EXPECTED_TEST_COUNT` 17→18; test 18 asserts clean-pass + `DIVERGE [FACT-ST18]` message)
+- D-040 negative test: reintroduced exact historical defect (deleted `f.link_target` from module-decomposition.md:134); checker failed with precise attribution `DIVERGE [FACT-1] ... (expected canonical_value='link_target')`; file restored; exit 0 re-confirmed
+- True divergence count: 5 facts (FACT-1, FACT-2, FACT-3, FACT-5a, FACT-5b); FACT-4 (module→subsystem) AGREES at all checked sites — correctly left alone
+- PR #5 (`b054694`): pr-reviewer APPROVE, 0 blocking, 2 review cycles (within max_review_cycles: 3); SEC-1 kani-verifier 0.67.0 --locked; SEC-2 cargo-fuzz 0.13.2 --locked; SEC-3 semgrep already pinned; CI-7 permissions: contents: read on all 6 jobs; persist-credentials: false on all 6 checkouts; SHA inventory upload-artifact v4.3.2; fuzz false-green fixed (for-loop exit-0 bug → assignment form exits 127); MAJOR-1 kani workspace grep fixed; D-053 cargo-mutants moved to macos-latest
+
+**Codifications:**
+- D-051: Pass-5 gate interpretation — committed spec artifacts on factory-artifacts satisfy D-036 (operator-approved)
+- D-052: Restricted-path waiver for PR #5 (.github/**) — operator-approved, scoped to PR #5 only
+- D-053: cargo-mutants platform classification — platform-DEPENDENT, macos-latest per D-043; D-044 unchanged
+
+**Artifact state at burst close:**
+PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-053 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/019. Open: BI-007/010/016/017/018/020/021/022.
+
+**Dim-2 Attestation:** `check-canonical-facts.py` = exit 0, all 16 bindings match. `just spec-lint` = 7/8 PASS (check-placeholders: 25 legitimate `[filled by story-writer]` — ADVISORY, D-029/D-032).
+
+**Dim-5 Attestation:** STATE.md — 204 lines, timestamp 2026-08-07T00:15:00Z, version 2.5, status: draft, producer: state-manager. SESSION-HANDOFF.md — §RESUME SNAPSHOT D-053 appended; D-050 marked SUPERSEDED; Latest → D-053. burst-log.md — 10 bursts (this entry). blocking-issues-resolved.md — BI-012/BI-015/fuzz-false-green closing rows added.
+
+**Dim-6 Attestation:** IN_PROGRESS. Convergence counter 0 of 3 required clean passes. Trajectory →0→32→34→39→37. Pass 5 ARMED against this factory-artifacts HEAD (BC-5.39.001/D-040/D-051). Streak re-counts from ZERO.
+
+**Dim-7 Attestation:** Agents dispatched: state-manager (this burst). Spec corrections applied from verified generator output (gen-bc-traceability.py, gen-slug-corpus.py, check-canonical-facts.py — orchestrator-run, not a separate agent dispatch).
+
+**Closes:** BI-012 (spec-topology generators built+verified; 14 divergent sites corrected). BI-015 (VP-018 SLUG_CORPUS generated from §7). **Opens:** BI-020 (PR #5 pending merge), BI-021 (check-canonical-facts.py worktree resolution), BI-022 (nightly toolchain unpin). **Updates:** BI-002 (pass 5 armed). D-051..D-053 recorded.

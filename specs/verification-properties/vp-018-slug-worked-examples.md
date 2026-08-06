@@ -123,6 +123,21 @@ const SLUG_CORPUS: &[(&str, &str)] = &[
     // step (Rule 1b: AST → text) is bypassed. Rule 1b is deferred to Phase 3 integration
     // in vp018_di012_rule1_end_to_end() below. This row covers Rule 1a only.
     ("code text",              "code-text"),
+    // @GENERATED:BEGIN slug-corpus
+    ("Foo"                , "foo"                ),  // TV-S001
+    ("Hello, World!"      , "hello-world"        ),  // TV-S004
+    ("Hello,  World!"     , "hello--world"       ),  // TV-S005
+    ("Привет non-latin 你好", "привет-non-latin-你好"),  // TV-S006
+    ("😄 emoji"            , "-emoji"             ),  // TV-S007
+    ("snake_case_name"    , "snake_case_name"    ),  // TV-S008
+    ("C++ / C#"           , "c--c"               ),  // TV-S009
+    ("--online flag"      , "--online-flag"      ),  // TV-S010
+    ("AI & Automation"    , "ai--automation"     ),  // TV-S011
+    ("setup"              , "setup"              ),  // TV-S013
+    ("Use --online now"   , "use---online-now"   ),  // TV-S014
+    ("Foo "               , "foo-"               ),  // TV-S015
+    ("Done ✅"             , "done-"              ),  // TV-S016
+    // @GENERATED:END slug-corpus
 ];
 
 #[test]
@@ -176,6 +191,34 @@ fn vp018_duplicate_heading_counter_0_based() {
     assert_eq!(compute_slug("Setup", &mut counter), "setup-2",
         "3rd occurrence: suffix -2 (0-based counter slot 2, NOT -3)");
 }
+```
+
+**TV-S001/S002/S003 and TV-S012 (shared-counter sequence and collision tests — generated from test-vectors.md §7):**
+
+```rust
+// @GENERATED:BEGIN slug-sequence-tests
+
+/// TV-S001/TV-S002/TV-S003: three occurrences of "Foo" with shared counter (TV-S002 needs -1, TV-S003 needs -2)
+#[test]
+fn vp018_tv_s001_s002_s003_foo_sequence() {
+    let mut counter = DuplicateCounter::new();
+    assert_eq!(compute_slug("Foo", &mut counter), "foo",   "TV-S001: 1st Foo");
+    assert_eq!(compute_slug("Foo", &mut counter), "foo-1", "TV-S002: 2nd Foo");
+    assert_eq!(compute_slug("Foo", &mut counter), "foo-2", "TV-S003: 3rd Foo");
+}
+
+/// TV-S012: Foo / Foo / Foo-1 collision with shared counter (DEC-001 / dd-015)
+/// The 3rd heading "Foo-1" has base slug "foo-1"; "foo-1" is already taken by the
+/// 2nd "Foo" → while-loop bumps to "foo-1-1".
+#[test]
+fn vp018_tv_s012_foo_collision() {
+    let mut counter = DuplicateCounter::new();
+    assert_eq!(compute_slug("Foo",   &mut counter), "foo",     "TV-S012.1: first Foo");
+    assert_eq!(compute_slug("Foo",   &mut counter), "foo-1",   "TV-S012.2: second Foo");
+    assert_eq!(compute_slug("Foo-1", &mut counter), "foo-1-1", "TV-S012.3: Foo-1 collides");
+}
+
+// @GENERATED:END slug-sequence-tests
 ```
 
 **DI-012 Rule 1 end-to-end integration skeleton (Phase 3 — CAP-005/CAP-006 required):**

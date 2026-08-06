@@ -122,7 +122,7 @@ Each finding line on stdout:
 <file>:<line>: <link_target> — [indeterminate] <reason>
 ```
 
-**Ordering:** sorted by `(NFC-normalized file path, line number, column number)` — ascending, deterministic across all parallel scans.
+**Ordering:** sorted by `(NFC-normalized file path, line number, column number, link_target)` — ascending, deterministic across all parallel scans.
 
 **Color:** applied only when stdout is a TTY AND `NO_COLOR` is not set AND `CLICOLOR` is not `0`. `CLICOLOR_FORCE=1` forces color even on non-TTY.
 
@@ -193,7 +193,7 @@ JSON output is a single object emitted to stdout, compact (no pretty-printing):
 | `reason` | string | yes | Reason code from the closed taxonomy (see error-taxonomy.md). |
 | `sub_reason` | string | no (optional) | Additional diagnostic context for certain `http-indeterminate` findings. Present only when applicable. Current values: `"https-downgrade"` (HTTPS→HTTP redirect downgrade, BC-2.10.007) and `"private-ip"` (target resolves to private/link-local IP, BC-2.10.010). NOT part of the closed 13-code reason taxonomy. Consumers MUST ignore unknown values. (D-016) |
 
-**Ordering:** `results` is sorted by (NFC-normalized file path, line, column) ascending — identical to text output sort order (DI-001, F-023).
+**Ordering:** `results` is sorted by (NFC-normalized file path, line, column, link_target) ascending — identical to text output sort order (DI-001, F-023).
 
 **Stable key order in each object:** `file`, `line`, `column`, `link_target`, `verdict`, `reason`, `sub_reason` (omit if not applicable).
 
