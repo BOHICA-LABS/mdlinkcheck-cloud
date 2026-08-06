@@ -200,3 +200,9 @@ PRD v1.9 | 66 BCs (all carry owning module, criticality tier, VP anchor) | 25 VP
 **Dim-7 Attestation:** Agents dispatched in this burst: adversary (pass 3), consistency-validator (pass 3), devops-engineer (spec-lint tooling + CI job), architect (bc-module-map, VP-025, DI-012/DI-013), product-owner (PRD v1.9), spec-steward (all BC updates), state-manager (this checkpoint). Total: 7 agents.
 
 **Closes:** BI-004 (pass 3 covered unreached perimeter from pass 2). Opens: BI-005 (slug-fidelity VP gap insufficient), BI-006 (PR #2 unmerged, spec-lint not in required status checks). D-026/D-027 recorded.
+
+## Archived STATE.md Steps (overflow — evicted from Current Phase Steps table 2026-08-06)
+
+| Step | Agent | Status | Output |
+|------|-------|--------|--------|
+| phase-1d consistency audit pass 3 | consistency-validator | COMPLETE | consistency-audit-phase-1-pass-3.md; FAIL |

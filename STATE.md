@@ -4,21 +4,21 @@ level: ops
 version: "2.2"
 status: draft
 producer: state-manager
-timestamp: 2026-08-06T12:40:00Z
+timestamp: 2026-08-06T14:30:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; session wrap D-030 committed; D-421 latest; trajectory-tail →0→32→34→39; next burst = WS-1 PR#2 pr-manager full review lifecycle"
+current_step: "phase-1d; D-031/D-032 autonomy_level 4 + spec-lint advisory recorded; D-421 size policy; trajectory-tail →0→32→34→39; next = WS-1 PR#2 full pr-manager review lifecycle then agent merge"
 current_cycle: ""
 dtu_required: false
 ---
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 169 = 331. 169 lines (wc-l).
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 171 = 329. 171 lines (wc-l).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
@@ -37,9 +37,9 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-06 — session wrap D-030; RESUME SNAPSHOT in SESSION-HANDOFF.md; 0 of 3 clean passes; trajectory-tail →0→32→34→39 |
+| **Last Updated** | 2026-08-06 — D-031 merge autonomy level 4; D-032 spec-lint advisory reaffirmed; 0 of 3 clean passes; trajectory-tail →0→32→34→39 |
 | **Current Phase** | phase-1d |
-| **Current Step** | session wrap D-030 committed; next burst = WS-1 PR #2 pr-manager full review lifecycle per D-028 |
+| **Current Step** | D-031 autonomy_level 4 recorded; next = WS-1 PR#2 full pr-manager review lifecycle then agent merge |
 
 ## Phase Progress
 
@@ -64,11 +64,11 @@ dtu_required: false
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
-| phase-1d consistency audit pass 3 | consistency-validator | COMPLETE | consistency-audit-phase-1-pass-3.md; FAIL |
 | phase-1d spec-lint tooling built | devops-engineer | COMPLETE | scripts/spec-lint/ (8 validators, 4 generators, selftest); just spec-lint CI job; PR #2 open (feature/spec-lint-tooling) |
 | phase-1d pass-3 remediation | architect/product-owner/spec-steward | COMPLETE | 254→25 violations; D-026/D-027; PRD v1.9; VP-025; DI-012/DI-013; ADR-007 v1.3; bc-module-map.md |
 | session wrap D-030 | state-manager | COMPLETE | SESSION-HANDOFF.md §RESUME SNAPSHOT D-030; sidecar committed |
 | next: WS-1 PR#2 pr-manager review | pr-manager | pending | full review lifecycle per D-028 — review dispatch → triage → fix → convergence → merge |
+| merge autonomy D-031 (level 4) | state-manager | COMPLETE | .factory/merge-config.yaml created; autonomy_level 4; D-031/D-032 recorded |
 
 ## Convergence Status
 
@@ -114,6 +114,8 @@ REGRESSION: novelty increased across all 3 passes (32→34→39). Strategy chang
 | D-028 | Merge policy REVISED — agents MAY merge PRs, but ONLY after the full vsdd-factory PR review process (pr-manager lifecycle: review dispatch, finding triage, fix delegation, convergence tracking). Direct unreviewed merges remain FORBIDDEN. SUPERSEDES the "agents NEVER merge" clause of D-021; remainder of D-021 stands. CI checks + factory AI review are a precondition, not the ceiling — passing the full pr-manager process is the explicit merge precondition. | Operator directive. D-021 origin: devops-engineer self-merge blocked by security guard. D-028 unlocks agent-merge post-review to remove human-blocking of routine story PRs. | phase-1d | 2026-08-06 | human/operator |
 | D-029 | `spec-lint` CI job remains ADVISORY (NOT in required status checks) until adversary pass 4 demonstrates convergence; flip to REQUIRED at Phase 1 approval | Operator directive. 25 known `[filled by story-writer]` violations legitimately outstanding until Phase 2; making spec-lint blocking now would deadlock PRs for a non-defect | phase-1d | 2026-08-06 | human/operator |
 | D-030 | Session wrap — durable RESUME SNAPSHOT D-030 committed to factory-artifacts | Zero-context resume; single-commit burst TD-VSDD-053; wrap at end of session before context clear | phase-1d | 2026-08-06 | state-manager |
+| D-031 | Merge autonomy set to level 4 — agents (orchestrator + pr-manager) merge PRs themselves with no human merge gate, ONLY after the full pr-manager review lifecycle passes. Recorded in `.factory/merge-config.yaml` (`autonomy_level: 4`). Direct unreviewed merges remain FORBIDDEN. Reinforces D-028; does not supersede it. | Operator directive to remove human blocking on routine merges while preserving full review rigor. No `merge-config.yaml` existed previously, so autonomy was implicit and unauditable; this makes it explicit and machine-readable. | phase-1d | 2026-08-06 | human/operator |
+| D-032 | `spec-lint` CI job remains ADVISORY through adversary pass 4; flip to REQUIRED status check at the Phase 1 human approval gate. Reaffirms and time-boxes D-029 against the pass-4 convergence checkpoint. | Operator directive. The 25 outstanding `[filled by story-writer]` placeholder violations are legitimate until Phase 2 story decomposition; making spec-lint blocking now would deadlock every PR on a non-defect. Pass 4 is the checkpoint that decides. | phase-1d | 2026-08-06 | human/operator |
 
 ## Skip Log
 
@@ -135,7 +137,7 @@ REGRESSION: novelty increased across all 3 passes (32→34→39). Strategy chang
 |----|-------|----------|----------------|-------|------------|
 | BI-002 | phase-1d not converged: novelty increasing across 3 passes (32→34→39); 0 of 3 clean passes; pass 4 not yet run | HIGH | phase-1 gate | orchestrator | mechanical enforcement built; pass 4 is next action and first test of curve-bending |
 | BI-005 | DI-012 (slug fidelity) VP coverage INSUFFICIENT; DI-013 PARTIAL — VP-018's 16 golden vectors are the only pin on github-slugger parity; 1-based duplicate counter bug (setup→setup-2 vs setup→setup-1) would pass VP-003 injectivity because outputs remain distinct (FM-002 unprovable) | HIGH | phase-1 gate | architect | needs differential proptest against canonical reference oracle covering all 7 DI-012 rules + duplicate-heading golden vector |
-| BI-006 | PR #2 (`feature/spec-lint-tooling`) open and unmerged; `spec-lint` CI job advisory only (D-029, NOT in 8 required status checks) — flip to required at Phase 1 approval per D-029, not now | MEDIUM | phase-2 | pr-manager | run full pr-manager review lifecycle on PR #2 per D-028, then merge when it passes; flip spec-lint to required status check at Phase 1 approval per D-029 |
+| BI-006 | PR #2 (`feature/spec-lint-tooling`) open and unmerged; `spec-lint` CI job advisory only (D-029, NOT in 8 required status checks) — flip to required at Phase 1 approval per D-029, not now | MEDIUM | phase-2 | pr-manager | run full pr-manager review lifecycle on PR #2 per D-028, then merge when it passes (agent-executable at autonomy level 4 per D-031 once pr-manager lifecycle converges); flip spec-lint to required status check at Phase 1 approval per D-029 |
 
 ## Session Resume Checkpoint
 
