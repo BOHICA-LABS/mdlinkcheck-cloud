@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -23,6 +23,7 @@ modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: INCONSISTENCY-001/D-014 — replaced 'clean' with 'alive' in test vector (liveness outcome is alive; link verdict is clean per DD-022)"
   - "v1.3: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.4: (EC-collision) EC-087e→EC-203 (redirect chain 11 hops; EC-087e now owned by BC-2.10.004 P4-015 Retry-After malformed case); EC-087f→EC-204 (HTTP→HTTPS upgrade; EC-087f now owned by BC-2.10.004 P4-015 clamped Retry-After case)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -56,8 +57,8 @@ upgrades are followed. HTTPS→HTTP downgrades produce `indeterminate` with a wa
 ## Edge Cases
 | EC | Description |
 |----|-------------|
-| EC-087e | Redirect chain of 11 hops |
-| EC-087f | HTTP → HTTPS upgrade |
+| EC-203 | Redirect chain of 11 hops |
+| EC-204 | HTTP → HTTPS upgrade |
 | EC-087g | HTTPS → HTTP downgrade |
 
 ## Canonical Test Vectors

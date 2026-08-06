@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - v1.3: "F-003 — added non-.md and directory carve-outs in PC3/PC4 pointing at BC-2.07.005 and BC-2.07.006. DI-006 widened: out-of-scan-set .md targets (gitignored, dot-dir, outside root, --ignored) are valid anchor targets. Removed holdout EC-074 citation."
   - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.5: (C4-006) VP-025 added to Verification Properties."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -98,6 +99,7 @@ its anchor table is built before Pass 2 resolves any link into it.
 |--------|----------|-------------|
 | VP-015 | Anchor table complete before any cross-file resolution (two-pass + Pass 1.5) | integration |
 | VP-016 | Out-of-scan-set .md targets remain valid anchor targets (DI-006) | integration |
+| VP-025 | Anchor-resolver totality (every input resolves to Hit or non-panic outcome) | Kani/proptest |
 
 ## Traceability
 | Field | Value |

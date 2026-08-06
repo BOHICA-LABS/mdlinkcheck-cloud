@@ -3,11 +3,14 @@ document_type: adr
 adr_id: ADR-006
 status: accepted
 date: 2026-08-05
-version: "1.2"
-subsystems_affected: [SS-05, SS-06, SS-07]
+version: "1.3"
+subsystems_affected: [SS-05, SS-07]
 supersedes: null
 superseded_by: null
 changelog:
+  - version: "1.3"
+    date: 2026-08-06
+    change: "P4 remediation: (1) removed SS-06 (slug) from subsystems_affected — SS-06 is governed by ADR-008 (slug algorithm); ADR-006 covers path model only (SS-05, SS-07). (2) Fixed DirEntries → DirIndex at line 63 body reference (stale type name superseded by api-surface.md and purity-boundary-map.md)."
   - version: "1.2"
     date: 2026-08-05
     change: "P2-M02 + P2-M12 remediation: updated Consequences to state VP-008 verifies both NFC normalization AND case-sensitivity (not just NFC); fixed Non-UTF-8 section to say 'app' (not 'scanner') performs Pass 1.5 directory reads — scanner traverses the scan root only, app opens out-of-scan targets in Pass 1.5"
@@ -60,8 +63,10 @@ is responsible for converting `OsStr` directory entries to `&str` before handing
 to `path_resolver`. See the **Non-UTF-8 Filename Verdict** section below for the
 handling of non-convertible entries.
 
-`DirEntries` are pre-populated by `scanner` (effectful shell) before passing to
-`path_resolver`. The pure core receives only `&str` slices — no I/O.
+`DirIndex` is pre-populated by `app` (Pass 1.5, effectful shell) before passing
+to `path_resolver`. The pure core receives only `&str` slices — no I/O. (Note:
+scanner traverses the scan root in Pass 1; app opens out-of-scan targets in
+Pass 1.5. See system-overview.md §Three-Phase Pipeline.)
 
 ## Rationale
 

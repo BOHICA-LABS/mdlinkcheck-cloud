@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.2: (EC-collision) EC-060→EC-191 (EC-060 canonical owner is BC-2.08.001 corrected: was coliding with BC-2.06.001); EC-075→EC-194 (empty-anchor case; three-equivalent-forms case stays in test-vectors.md). (C4-006) VP-025 added to Verification Properties."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -46,7 +47,7 @@ and looked up in the anchor table. If found, verdict is clean; if not, verdict i
 2. The fragment is looked up in the source file's own anchor table.
 3. If found: clean.
 4. If not found: broken (anchor-not-found).
-5. Empty anchor `#` (bare hash): clean (conventionally means "top of page"; in scope per EC-075).
+5. Empty anchor `#` (bare hash): clean (conventionally means "top of page"; in scope per EC-194).
 
 ## Invariants
 1. Anchor lookup is in the SOURCE file's table (not another file's table).
@@ -56,10 +57,10 @@ and looked up in the anchor table. If found, verdict is clean; if not, verdict i
 ## Edge Cases
 | EC | Description |
 |----|-------------|
-| EC-060 | `[x](#setup)` where `## Setup` exists |
+| EC-191 | `[x](#setup)` where `## Setup` exists |
 | EC-061 | `[x](#Setup)` where `## Setup` exists |
 | EC-062 | `[x](#no-such-anchor)` |
-| EC-075 | `[x](#)` empty anchor |
+| EC-194 | `[x](#)` empty anchor |
 
 ## Canonical Test Vectors
 | Input | Expected Verdict | Category |
@@ -73,6 +74,7 @@ and looked up in the anchor table. If found, verdict is clean; if not, verdict i
 |--------|----------|-------------|
 | VP-015 | Anchor-only links resolved in same-file table | unit test |
 | VP-015 | Case mismatch → anchor-not-found | unit test |
+| VP-025 | Anchor-resolver totality (every input resolves to Hit or non-panic outcome) | Kani/proptest |
 
 ## Traceability
 | Field | Value |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.2.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (P4-024) PC2 rewritten to distinguish HTTP-layer liveness outcome (alive/broken/indeterminate) from link-level verdict (clean/broken/indeterminate per DD-022); Invariant 4 added; canonical test vector corrected."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,12 +50,14 @@ than each triggering an independent pause cycle.
 ## Postconditions
 1. Exactly one HTTP request (HEAD, or HEAD + GET fallback per BC-2.10.001) is issued for the
    normalized URL, regardless of the number of source occurrences.
-2. The single verdict (`alive`, `broken`, or `indeterminate` per BC-2.10.002) is reported for
-   every occurrence.
+2. The single HTTP-layer liveness outcome (`alive`, `broken`, or `indeterminate` per BC-2.10.002)
+   is memoized; the resulting link-level verdict (`clean` when the outcome is `alive`, otherwise
+   `broken`/`indeterminate` per DI-005/DD-022) is reported for every occurrence.
 3. Each occurrence is reported with its own correct source `file:line:column` in text and JSON
    output.
 4. The deduplication key is the normalized URL string as produced by the WHATWG URL parser
-   (scheme + authority + path + query; fragment stripped).
+   (scheme + authority + path + query; fragment stripped). Only occurrences whose link-level
+   verdict is not `clean` produce an output line.
 5. Deduplicated URLs share per-host concurrency bookkeeping: the single in-flight request counts
    against the 4-per-host and 32-global caps (BC-2.10.008); duplicate occurrences awaiting the
    shared result do not hold additional concurrency slots.
@@ -68,8 +71,9 @@ than each triggering an independent pause cycle.
 2. URL deduplication applies only to external URLs. Internal file-path deduplication (exact
    canonical-path equality) is a separate mechanism governed by BC-2.01.007.
 3. The deduplication cache is per-invocation only; no cross-run caching.
-4. Deduplication does not alter the number of output lines — every occurrence produces an output
-   line (if the verdict is non-`alive`). Only the HTTP request count is reduced.
+4. Deduplication does not alter the number of output lines — every occurrence whose link-level
+   verdict is not `clean` produces an output line. Only the HTTP request count is reduced.
+   (`alive` → `clean` per DD-022; clean findings are not emitted.)
 
 ## Edge Cases
 | EC | Description |
@@ -82,7 +86,7 @@ than each triggering an independent pause cycle.
 | Scenario | Expected |
 |----------|---------|
 | Same URL broken at 5 locations in `--online` mode (httpmock request counter) | Exactly 1 HTTP request issued; 5 output findings with correct file:line each |
-| Same URL alive at 3 locations | 1 HTTP request; 0 output findings |
+| Same URL alive at 3 locations (link verdict `clean`) | 1 HTTP request; 0 output findings |
 | `https://x.com` and `http://x.com` both broken (different normalized forms) | 2 HTTP requests (not deduplicated — different schemes) |
 | Host paused on 429; same URL referenced at 4 locations | 1 request that receives 429; 1 pause cycle; all 4 occurrences report indeterminate after pause |
 

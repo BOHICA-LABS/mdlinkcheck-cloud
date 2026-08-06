@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
+version: "1.2"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -9,7 +9,7 @@ phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
-input-hash: "012887b"
+input-hash: "9c1a1a8"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.04.001
 module: link_extractor
@@ -21,6 +21,9 @@ proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
 modified:
+  - version: "1.2"
+    date: 2026-08-06
+    change: "(P4-014) test file path corrected: tests/integration/link_extractor_code_exclusion.rs → tests/integration_link_extractor_code_exclusion.rs (flat Cargo-discoverable layout per tooling-selection.md §Test Target Layout)."
   - version: "1.1"
     date: 2026-08-05
     change: "P2-M14 remediation: added HTML <pre> and HTML comment (<!-- -->) code-context fixtures; updated Property Statement to enumerate all 5 code-context exclusion cases."
@@ -64,7 +67,7 @@ The five excluded contexts are:
 ## Proof Harness Skeleton
 
 ```rust
-// tests/integration/link_extractor_code_exclusion.rs
+// tests/integration_link_extractor_code_exclusion.rs  (flat layout per tooling-selection.md §Test Target Layout)
 #[test]
 fn vp014_fenced_code_no_links() {
     let md = r#"

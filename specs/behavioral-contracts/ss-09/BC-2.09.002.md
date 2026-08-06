@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - v1.3: "F-017 — converted to pointer. --allow specification is now OWNED by BC-2.11.002 (SS-11/CAP-011). This BC exists only to note the SS-09 side-effect of --allow (URL is not validated). Duplicate postconditions removed; readers reference BC-2.11.002 for full matching algorithm."
   - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.5: (EC-collision) EC-090→EC-200 (EC-090 canonical owner is BC-2.10.009 per test-vectors.md registry)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -57,7 +58,7 @@ URL. The verdict is `clean` and the link is not emitted in output.
 ## Edge Cases
 | EC | Description |
 |----|-------------|
-| EC-090 | `--allow https://example.com`; URL `https://example.com/page` |
+| EC-200 | `--allow https://example.com`; URL `https://example.com/page` |
 | EC-091 | `--allow https://example.com`; URL `https://example.com.evil.tld/` |
 
 ## Canonical Test Vectors

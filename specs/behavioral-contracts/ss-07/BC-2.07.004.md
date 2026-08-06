@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
+  - "v1.2: (EC-collision) EC-034→EC-189 (EC-034 canonical owner is BC-2.07.008 per test-vectors.md registry)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -56,7 +57,7 @@ slug comparison (DI-003).
 | EC | Description |
 |----|-------------|
 | EC-033 | `[x](My%20File.md)` where file is `My File.md` |
-| EC-034 | `[x](path%23with-hash.md)` |
+| EC-189 | `[x](path%23with-hash.md)` |
 | EC-035 | `[x](a%20b.md#section)` |
 
 ## Canonical Test Vectors

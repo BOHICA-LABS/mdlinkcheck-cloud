@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: system-overview
-version: "1.5"
+version: "1.6"
 status: draft
 producer: architect
 timestamp: 2026-08-05T21:00:00Z
@@ -11,9 +11,12 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/specs/prd.md
   - .factory/specs/prd-supplements/nfr-catalog.md
-input-hash: "9376be7"
+input-hash: "d4b8b1f"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.6"
+    date: 2026-08-06
+    change: "P4 remediation: (P4-003) 'rayon parallelizes both passes' → 'Pass 1 and Pass 2 (Pass 1.5 is sequential)'. (P4-004) Sort line updated to 4-field key (NFC-path, line, col, link_target); P4-019 sort ownership corrected from (app) to (reporter). (P4-035) 'advisory defaults' → 'hard caps' per ADR-004/ADR-005."
   - version: "1.5"
     date: 2026-08-05
     change: "Signature consistency fix: pipeline diagram exit-code call updated from verdict::exit_code(&findings, &io_errors) to verdict::exit_code(&findings, &io_errors, config_error), matching api-surface.md authoritative three-input signature. config_error is the bool that carries the R7 usage-error half of exit 2 (P2-M19)."
@@ -147,7 +150,7 @@ Pass 2 (pure only, parallel, rayon):  For each file in the scan set (NOT --ignor
   b. Collect Finding objects
   Result: Vec<Finding>
 
-Sort:   sort_unstable_by(NFC-path, line, col) — enforces DI-001 determinism (app)
+Sort:   sort_unstable_by(NFC-path, line, col, link_target) — enforces DI-001 determinism (reporter)
 
 Emit:   reporter formats and writes to stdout (effectful)
         exit code = verdict::exit_code(&findings, &io_errors, config_error) (pure)
@@ -161,14 +164,14 @@ thread pool (32 threads, separate from the file-scan pool — see ADR-004):
 
 ## Concurrency and Determinism Reconciliation
 
-rayon parallelizes both passes. The sort-before-emit stage (between Pass 2 output
+rayon parallelizes Pass 1 and Pass 2 (Pass 1.5 is sequential, shell-only — see §Three-Phase Pipeline). The sort-before-emit stage (between Pass 2 output
 collection and stdout write) enforces DI-001. The sort key is
-`(nfc_normalize(path), line, column)`. This is a mandatory late-pipeline step;
+`(nfc_normalize(path), line, column, link_target)`. This is a mandatory late-pipeline step;
 no finding may bypass it.
 
 Per-host concurrency in `--online` mode: a `Semaphore`-style counter per host limits
 concurrent requests to 4. A global semaphore caps total HTTP threads at 32.
-Both limits are advisory defaults, not configurable in v1.0 (BC-2.10.008).
+Both limits are hard caps, not configurable in v1.0 (BC-2.10.008, ADR-004).
 
 ## Performance Architecture — Two-Tier Model (D-013)
 

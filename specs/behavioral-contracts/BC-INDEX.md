@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -9,7 +9,7 @@ phase: 1a
 inputs:
   - .factory/specs/prd.md
   - .factory/specs/domain-spec/capabilities.md
-input-hash: "3eee773"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/prd.md
 total_bcs: 66
 subsystems: 14
@@ -214,6 +214,8 @@ self-contained contract file. The H1 title in each file is the authoritative tit
 | DI-009 | Scan Terminates for Any Input (directory-symlink cycles, overlapping PATHs, zero-file trees, out-of-scan-set reads all terminate) | BC-2.01.004, BC-2.01.001, BC-2.05.001 (Pass 1.5 termination) |
 | DI-010 | Three-verdict model: alive/broken/indeterminate (429/5xx/timeout → indeterminate) | BC-2.10.002, BC-2.14.003 |
 | DI-011 | Exit 2 beats exit 1; no fail-fast | BC-2.01.009, BC-2.02.003, BC-2.14.002 |
+| DI-012 | Slug Computation Fidelity — per-heading character-level transformation must exactly match DD-015 github-slugger v2 algorithm (HTML text retained, emoji stripped, case-fold, non-word stripped) | BC-2.06.001 |
+| DI-013 | Anchor-Key Uniqueness within a File — duplicate-counter produces injective mapping; 0-based suffix (`-1` for 2nd occurrence, `-(N-1)` for N-th) | BC-2.06.002 |
 
 ## Requirements Traceability (R1–R8)
 

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.3.0
 modified:
   - "v1.4: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
+  - "v1.5: (Task-8) Removed incorrect SS-11 subsystem label from cli.rs (cli.rs is not an SS-11 module); fixed pre-existing Edge Cases table header cell count."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -58,8 +59,8 @@ rejects, or empty patterns (implementation must define empty-glob behavior).
 3. Exit code 2 is used for all configuration errors (consistent with E-CLI-001 taxonomy).
 
 ## Edge Cases
-| EC | Description |
-|----|-------------|
+| EC | Description | Expected |
+|----|-------------|---------|
 | EC-NEW-10 | `--ignore '[abc'` (unclosed bracket) | Exit 2; error on stderr; no scanning |
 | EC-NEW-11 | `--ignore 'valid/**' --ignore '[bad'` | Exit 2 on first invalid; no scanning |
 
@@ -82,7 +83,7 @@ rejects, or empty patterns (implementation must define empty-glob behavior).
 | Capability Anchor Justification | CAP-011 ("Filter Application") per capabilities.md §CAP-011 — startup validation of --ignore globs is part of filter application setup |
 | L2 Domain Invariants | — |
 | Brief Requirement | R6, DD-008 |
-| Architecture Module | `cli.rs` (SS-11, effectful shell, LOW tier) primary; `verdict.rs` (SS-14, pure core, CRITICAL tier) secondary — INC-MAP-003: invalid glob exits via `config_error: bool` through `verdict::exit_code`; acceptance test must assert both cli validation error AND exit 2 — ADR-007 |
+| Architecture Module | `cli.rs` (effectful shell, LOW tier) primary; `verdict.rs` (SS-14, pure core, CRITICAL tier) secondary — INC-MAP-003: invalid glob exits via `config_error: bool` through `verdict::exit_code`; acceptance test must assert both cli validation error AND exit 2 — ADR-007 |
 
 ## Related BCs
 - BC-2.11.001 — sibling (valid --ignore glob exclusion)

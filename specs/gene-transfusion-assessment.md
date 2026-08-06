@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/domain-spec/risks.md
   - .factory/planning/market-intelligence.md
-input-hash: "ff89604"
+input-hash: "990f7ae"
 traces_to: architecture/ARCH-INDEX.md
 ---
 
@@ -196,7 +196,7 @@ These are design patterns studied from existing tools and consciously adopted. N
 **Mode:** Model
 **What is taken:** The architectural pattern of fully building the anchor table for every target file before validating any link into that file. This eliminates false negatives for forward heading references (T15, DI-008).
 **Attribution obligation:** None. Design patterns are not copyrightable.
-**Already captured in domain spec:** DI-008 ("Anchor Table Built Two-Pass") is already a domain invariant. This entry documents the provenance of that invariant.
+**Already captured in domain spec:** DI-008 ("Anchor Table Built Before Any Incoming Link Is Validated") is already a domain invariant. This entry documents the provenance of that invariant.
 **Risk if wrong:** markdown-link-check has an open bug for forward-reference false negatives because it uses a single-pass design. A single-pass design is architecturally incorrect for this problem.
 
 ### 3.2 URL Deduplication (from lychee)

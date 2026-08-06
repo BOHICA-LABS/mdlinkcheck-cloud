@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
+version: "1.2"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -9,7 +9,7 @@ phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
-input-hash: "012887b"
+input-hash: "9c1a1a8"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.01.004
 module: scanner
@@ -21,6 +21,9 @@ proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
 modified:
+  - version: "1.2"
+    date: 2026-08-06
+    change: "(P4-014) test file path corrected: tests/integration/scan_termination.rs → tests/integration_scan_termination.rs (flat Cargo-discoverable layout per tooling-selection.md §Test Target Layout)."
   - version: "1.1"
     date: 2026-08-05
     change: "P2-M05 remediation: corrected Source Contract title from invented 'BC-2.01.004 — Scan Termination with Symlink Cycle Handling' to actual BC-2.01.004 H1 'Dot-directory skip (unconditional, D-011)'."
@@ -54,7 +57,7 @@ removal_reason: null
 ## Proof Harness Skeleton
 
 ```rust
-// tests/integration/scan_termination.rs
+// tests/integration_scan_termination.rs  (flat layout per tooling-selection.md §Test Target Layout)
 #[cfg(unix)] // symlinks on Unix; Windows requires elevated privileges
 #[test]
 fn vp017_symlink_cycle_terminates() {

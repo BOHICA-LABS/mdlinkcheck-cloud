@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: bc-module-map
-version: "1.2"
+version: "1.3"
 status: draft
 producer: architect
 timestamp: 2026-08-06T00:00:00Z
@@ -13,9 +13,12 @@ inputs:
   - .factory/specs/architecture/purity-boundary-map.md
   - .factory/specs/module-criticality.md
   - .factory/specs/verification-properties/VP-INDEX.md
-input-hash: "4cf52e1"
+input-hash: "a0075f8"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.3"
+    date: 2026-08-06
+    change: "P4 remediation: (P4-008) SS-06 Key ADRs corrected from ADR-006 → ADR-008 (slug clean-room reimplementation); BC-2.06.001/002 Key ADRs likewise corrected. BC-2.05.003 Key ADRs corrected from ADR-006 → ADR-003 (pulldown-cmark governs HTML event stream). (C4-005) VP-026 added to SS-06 Formal VPs for BC-2.06.001/002. (P4-002) INC-MAP-001 re-opened — VP-025 was written against non-existent API (HashMap<String,usize>); AnchorTable is HashSet<String> per api-surface.md; VP-025 rewrite required."
   - version: "1.2"
     date: 2026-08-06
     change: "Ownership consistency pass: corrected 4 summary-vs-detail contradictions — BC-2.01.008 removed from app secondary (scanner-only per SS-01); BC-2.07.003 removed from path_resolver secondary group (it is primary per SS-07, was double-counted); BC-2.10.002 removed from url_classifier secondary (url_classifier not involved per SS-10); BC-2.10.001 removed from http_client secondary (it is primary per SS-10, was self-contradictory). Updated BC Count values: app 2→1, path_resolver 8→7, url_classifier 5→4, http_client 8→7. Rewrote 2 prose references to the placeholder-string pattern to eliminate false-positive checker matches."
@@ -146,19 +149,19 @@ Key ADRs: ADR-006 (NFC strict path model — anchor slug comparison).
 |----|---------------|-----------------|-----|------|---------|-----------|-----------------|
 | BC-2.05.001 | `anchor_table` | `app` (three-pass pipeline design that ensures anchor_table is complete before any resolution) | Pure / Effectful | CRITICAL / MEDIUM | ADR-006 | VP-015 | VP-015 |
 | BC-2.05.002 | `anchor_table` | `slug` (ATX/Setext headings require slug computation to build the anchor key) | Pure | CRITICAL | ADR-006 | VP-018 | VP-018 |
-| BC-2.05.003 | `anchor_table` | — | Pure | CRITICAL | ADR-006 | VP-020 | VP-020 |
+| BC-2.05.003 | `anchor_table` | — | Pure | CRITICAL | ADR-003 | VP-020 | VP-020 |
 
 ---
 
 ## SS-06: Heading Slug Computation (slug)
 
 Implementing module: `slug` (pure core, CRITICAL).
-Key ADRs: ADR-006 (NFC strict path model; slug algorithm is the primary differentiator).
+Key ADRs: ADR-008 (clean-room github-slugger v2 reimplementation — slug algorithm is the product's headline differentiator).
 
 | BC | Primary Module | Secondary Module | P/E | Tier | Key ADRs | Formal VPs | VP-NNN col value |
 |----|---------------|-----------------|-----|------|---------|-----------|-----------------|
-| BC-2.06.001 | `slug` | — | Pure | CRITICAL | ADR-006 | VP-001, VP-002, VP-012, VP-018 | VP-001, VP-002, VP-012, VP-018 |
-| BC-2.06.002 | `slug` | — | Pure | CRITICAL | ADR-006 | VP-003 | VP-003 |
+| BC-2.06.001 | `slug` | — | Pure | CRITICAL | ADR-008 | VP-001, VP-002, VP-012, VP-018, VP-026 | VP-001, VP-002, VP-012, VP-018, VP-026 |
+| BC-2.06.002 | `slug` | — | Pure | CRITICAL | ADR-008 | VP-003, VP-026 | VP-003, VP-026 |
 
 ---
 
@@ -381,17 +384,27 @@ Key ADRs: ADR-007 (two-layer verdict model — clean / broken / indeterminate fe
 The following inconsistencies were observed while building this map. They are logged here for
 the architect/product-owner to resolve; no BC file was modified.
 
-### INC-MAP-001: anchor_resolver has 0 formal VPs despite CRITICAL tier — RESOLVED
+### INC-MAP-001: anchor_resolver has 0 formal VPs despite CRITICAL tier — RE-OPENED
 
-**Status: RESOLVED (2026-08-06).** VP-025 added in VP-INDEX v1.3.
+**Status: RE-OPENED (2026-08-06, P4-002).** VP-025 (added in VP-INDEX v1.3) was written against
+a non-existent API. `api-surface.md` (the authoritative source) declares:
+```rust
+pub struct AnchorTable(HashSet<String>);
+pub fn resolve_anchor(fragment: &str, table: &AnchorTable) -> Verdict;
+```
+VP-025 was authored against `AnchorTable = HashMap<String, usize>` (which does not exist), an
+`AnchorVerdict` return type (which does not exist), and a two-variant closed enum (but `Verdict`
+has three variants: `Clean`, `Broken(FailureReason)`, `Indeterminate(FailureReason)`). The VP-025
+harness will not compile and its central correctness claim (property 4: "closed enum Hit|Miss") is
+false against the declared API.
 
-VP-025 directly exercises `anchor_resolver::resolve_anchor` with proptest (P1, Phase 3):
-totality (no panic for any (fragment, table) pair), Hit correctness (fragment in table → Hit),
-Miss correctness (fragment absent → Miss), case-sensitive byte-exact lookup, and empty-fragment
-handling. Kani was evaluated and rejected for this module because `AnchorTable` is a
-`HashMap<String, usize>` — CBMC state explosion for symbolic HashMap keys is unbounded even for
-a 1-entry table; a mock-table Kani harness would test the wrong abstraction. proptest with
-10,000 samples/property reaches the interesting branches against the real function.
+**Required fix (VP-025 rewrite):** rewrite VP-025 to:
+- Use `AnchorTable(HashSet<String>)` and `resolve_anchor(...) -> Verdict`
+- Replace property 4 with: "Indeterminate is never returned from anchor resolution"
+- Fix the Kani infeasibility rationale (HashSet, not HashMap — the old SipHash bucket argument was wrong)
+- Fix the import (`use mdlinkcheck_core::anchor_table::AnchorTable`, not `types`)
+
+**Status restores to RESOLVED when VP-025 rewrite lands and VP-INDEX reflects the corrected spec.**
 
 ### INC-MAP-002: BC-2.03.005 spans SS-03 and SS-09 subsystem boundary
 

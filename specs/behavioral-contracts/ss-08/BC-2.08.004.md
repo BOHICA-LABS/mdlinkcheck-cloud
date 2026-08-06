@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - v1.5: "Fix 1 (POL-18 holdout boundary): EC-074 citation removed from edge-case table. Replaced with EC-159/EC-160 generic vectors using distinct variable names so the corpus-fixture holdout details remain hidden. DI-006 invariant coverage is preserved by Description, Postconditions, Invariants, and Canonical Test Vectors."
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.2: (C4-006) VP-025 added to Verification Properties."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -69,6 +70,7 @@ files can resolve correctly.
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | VP-016 | Anchor tables built for --ignore'd sources | integration test |
+| VP-025 | Anchor-resolver totality (every input resolves to Hit or non-panic outcome) | Kani/proptest |
 
 ## Traceability
 | Field | Value |

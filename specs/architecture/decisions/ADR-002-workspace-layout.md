@@ -6,6 +6,11 @@ date: 2026-08-05
 subsystems_affected: [SS-01, SS-02, SS-03, SS-04, SS-05, SS-06, SS-07, SS-08, SS-09, SS-10, SS-11, SS-12, SS-13, SS-14]
 supersedes: null
 superseded_by: null
+version: "1.0"
+changelog:
+  - version: "1.0"
+    date: 2026-08-05
+    change: "Initial draft — established two-crate Cargo workspace layout (library crate + binary crate)."
 ---
 
 # ADR-002: Cargo Workspace Layout — Library Crate + Binary Crate

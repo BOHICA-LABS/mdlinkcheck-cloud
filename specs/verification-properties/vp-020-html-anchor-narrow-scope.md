@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
+version: "1.2"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -9,7 +9,7 @@ phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
-input-hash: "012887b"
+input-hash: "9c1a1a8"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.05.003
 module: anchor_table
@@ -21,6 +21,9 @@ proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
 modified:
+  - version: "1.2"
+    date: 2026-08-06
+    change: "(P4-014) test file path corrected: tests/integration/html_anchor_scope.rs → tests/integration_html_anchor_scope.rs (flat Cargo-discoverable layout per tooling-selection.md §Test Target Layout)."
   - version: "1.1"
     date: 2026-08-05
     change: "P2-m01 remediation: fixed frontmatter field 'removal_range' → 'removal_reason'; corrected pulldown-cmark event name in property description ('Event::Code' → 'Start(Tag::CodeBlock)'); added Event::InlineHtml to property statement; added inline <a name=\"x\"></a> fixture."
@@ -59,7 +62,7 @@ This is DI-007: HTML anchor extraction has narrow, well-defined scope.
 ## Proof Harness Skeleton
 
 ```rust
-// tests/integration/html_anchor_scope.rs
+// tests/integration_html_anchor_scope.rs  (flat layout per tooling-selection.md §Test Target Layout)
 
 #[test]
 fn vp020_id_attribute_extracted() {

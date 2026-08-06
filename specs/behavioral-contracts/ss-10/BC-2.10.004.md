@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (EC-collision) EC-087→EC-199 (EC-087 canonical owner is test-vectors.md TV-087 self-signed TLS). (P4-015) PC3 rewritten for RFC 9110 §10.2.3 compliance (delta-seconds + HTTP-date + malformed fallback); new PC6 (120s clamp); new Invariant 4 (bounded total pause); EC-087d/e/f added."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -46,27 +47,41 @@ URL that triggered the 429 receives verdict `indeterminate (http-indeterminate)`
 ## Postconditions
 1. The 429-triggering URL receives verdict `indeterminate`.
 2. All pending requests to the same host are paused.
-3. Pause duration = Retry-After header value in seconds, or 60 seconds if absent.
+3. Pause duration is derived from `Retry-After` per RFC 9110 §10.2.3: if the value is
+   delta-seconds (a non-negative integer), that many seconds; if it is an HTTP-date,
+   `max(0, date − now)` seconds; if the header is absent, unparseable, negative, or
+   non-numeric-non-date, 60 seconds AND a `[warn]` diagnostic naming the raw header value
+   is emitted to stderr.
 4. After the pause elapses, requests to that host resume.
 5. Resumed requests produce their own verdicts (they are not all automatically indeterminate).
+6. The honored pause is clamped to `min(computed, 120s)`. A `Retry-After` exceeding the
+   clamp is honored at the clamp and a `[warn]` diagnostic is emitted.
 
 ## Invariants
 1. 429 is never `broken`. (DI-010)
 2. The pause is per-host (hostname), not per-URL.
 3. Requests to OTHER hosts are not paused by a 429 from one host.
+4. Total pause time accumulated across all hosts in one invocation is bounded; no `--online`
+   run can be delayed indefinitely by server-controlled headers (120s clamp per PC6).
 
 ## Edge Cases
 | EC | Description |
 |----|-------------|
-| EC-087 | 429 with `Retry-After: 30` |
+| EC-199 | 429 with `Retry-After: 30` |
 | EC-087b | 429 with no Retry-After header |
 | EC-087c | 429 when all URLs are to the same host |
+| EC-087d | 429 with HTTP-date form `Retry-After` (e.g., `Retry-After: Fri, 01 Jan 2027 00:00:00 GMT`) |
+| EC-087e | 429 with malformed `Retry-After` value (e.g., `Retry-After: abc`) |
+| EC-087f | 429 with `Retry-After: 86400` → pause clamped to 120s |
 
 ## Canonical Test Vectors
 | Scenario | Expected |
 |----------|---------|
 | Host returns 429 with `Retry-After: 5` | indeterminate; host paused 5s |
-| Host returns 429 (no Retry-After) | indeterminate; host paused 60s |
+| Host returns 429 (no Retry-After) | indeterminate; host paused 60s (default) |
+| Host returns 429 with `Retry-After: abc` (malformed) | indeterminate; host paused 60s; `[warn]` diagnostic emitted |
+| Host returns 429 with `Retry-After: 86400` | indeterminate; host paused 120s (clamped); `[warn]` diagnostic emitted |
+| Host returns 429 with HTTP-date `Retry-After` (future) | indeterminate; host paused `max(0, date − now)` seconds, capped at 120s |
 
 ## Verification Properties
 | VP-NNN | Property | Proof Method |

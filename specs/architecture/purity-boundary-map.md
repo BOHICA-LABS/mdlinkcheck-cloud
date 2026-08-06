@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: purity-boundary-map
-version: "1.3"
+version: "1.4"
 status: draft
 producer: architect
 timestamp: 2026-08-05T22:00:00Z
@@ -10,15 +10,18 @@ phase: 1b
 inputs:
   - .factory/specs/domain-spec/capabilities.md
   - .factory/specs/domain-spec/invariants.md
-input-hash: "920d165"
+input-hash: "167d444"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.4"
+    date: 2026-08-06
+    change: "P4-028 remediation: corrected v1.2 changelog entry — 'scanner now feeds DirIndex via Pass 1.5 in app' → 'app now builds DirIndex via Pass 1.5 (scanner traverses only the scan root in Pass 1)'. The body was already correct (line 77/104 reference app); only the changelog text was wrong."
   - version: "1.3"
     date: 2026-08-05
     change: "Pass-2 remediation: corrected verdict API — compute_exit_code(findings, io_errors) → exit_code(findings, io_errors, config_error) in pure-core table and Phase 6 Scope list; clarified slug P0 targets — slugify for totality (VP-001), compute_slug for determinism/uniqueness (VP-002/003)"
   - version: "1.2"
     date: 2026-08-05
-    change: "SR-016 remediation: path_resolver now receives DirIndex (not DirEntries); removed fs escape hatch from path_resolver description; updated ParsedFile seam to remove dir_entries; scanner now feeds DirIndex via Pass 1.5 in app"
+    change: "SR-016 remediation: path_resolver now receives DirIndex (not DirEntries); removed fs escape hatch from path_resolver description; updated ParsedFile seam to remove dir_entries; app now builds DirIndex via Pass 1.5 (scanner traverses only the scan root in Pass 1)"
   - version: "1.1"
     date: 2026-08-05
     change: "Previous revision"

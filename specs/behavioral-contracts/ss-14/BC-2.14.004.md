@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.3.0
 modified:
   - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.5: (P4-016) Removed incorrect SS-11 subsystem label from cli.rs; removed fabricated ADR-007 parenthetical '(--help/--version are cli module concerns)' — ADR-007 does not contain that clause."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -56,9 +57,9 @@ trigger false exits.
 ## Edge Cases
 | EC | Description |
 |----|-------------|
-| EC-NEW-14 | `mdlinkcheck --help` with no PATH | Exit 0; help text on stdout |
-| EC-NEW-15 | `mdlinkcheck --version` | Exit 0; `mdlinkcheck X.Y.Z` on stdout |
-| EC-NEW-16 | `mdlinkcheck . --version` (PATH + --version) | Exit 0; --version takes priority per clap |
+| EC-NEW-14 | `mdlinkcheck --help` with no PATH → Exit 0; help text on stdout |
+| EC-NEW-15 | `mdlinkcheck --version` → Exit 0; `mdlinkcheck X.Y.Z` on stdout |
+| EC-NEW-16 | `mdlinkcheck . --version` (PATH + --version) → Exit 0; --version takes priority per clap |
 
 ## Canonical Test Vectors
 | Command | Expected stdout | Expected exit |
@@ -79,7 +80,7 @@ trigger false exits.
 | Capability Anchor Justification | CAP-014 ("Exit Code Determination") per capabilities.md §CAP-014 — --help and --version are special exit-0 cases in the exit code determination subsystem |
 | L2 Domain Invariants | — |
 | Brief Requirement | R7, standard CLI conventions |
-| Architecture Module | `cli.rs` (SS-11, effectful shell, LOW tier) — ADR-007 (--help/--version are cli module concerns) |
+| Architecture Module | `cli.rs` (effectful shell, LOW tier) — ADR-007 |
 
 ## Related BCs
 - BC-2.14.001 — sibling (exit 0 when no broken links found)

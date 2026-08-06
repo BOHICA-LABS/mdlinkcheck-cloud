@@ -1,7 +1,7 @@
 ---
 document_type: module-criticality
 level: ops
-version: "1.5"
+version: "1.6"
 status: draft
 producer: architect
 timestamp: 2026-08-06T00:00:00Z
@@ -11,9 +11,12 @@ inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
   - .factory/specs/architecture/verification-architecture.md
-input-hash: "03cd0a2"
+input-hash: "21a6ba4"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 changelog:
+  - version: "1.6"
+    date: 2026-08-06
+    change: "P4 remediation: (1) ARCH-INDEX:30 'two-pass' fixed to 'three-phase' (P4-003). (2) module-criticality.md four 'two-pass' occurrences updated to 'three-phase pipeline (Pass 1 → Pass 1.5 → Pass 2)' in Module Inventory and Module Classification tables (P4-003). (3) path_resolver description fixed: 'DirEntries' → 'DirIndex' (P4-027). (4) Section labels (v1.3) updated to (v1.5) (P4-033)."
   - version: "1.5"
     date: 2026-08-06
     change: "BI-005 spec-level closure: slug VP Count 5→6 (VP-026 proptest differential oracle added). Rationale updated to cite VP-026 and DI-012/DI-013 (replaces stale DI-003 reference — DI-003 is the fragment invariant; slug invariants are DI-012 and DI-013 per DD-027)."
@@ -49,10 +52,10 @@ changelog:
 
 - **slug** — github-slugger v2 clean-room reimplementation; primary product differentiator (R-001, R-002)
 - **fragment** — splits raw link destination at first unescaped `#`; handles percent-encoding correctly
-- **anchor_table** — builds heading-slug to line-number lookup; two-pass anchor table construction
+- **anchor_table** — builds heading-slug anchor key set (HashSet<String>); three-phase timing ensures anchor keys exist before any link resolution (DI-008)
 - **anchor_resolver** — looks up fragment in AnchorTable; produces anchor Verdict
 - **link_extractor** — extracts links/images from pulldown-cmark event stream; structural code exclusion
-- **path_resolver** — pure NFC case-sensitive file existence check against pre-read DirEntries
+- **path_resolver** — pure NFC case-sensitive file existence check against pre-read DirIndex
 - **url_classifier** — classifies link destination as file-path / mailto / anchor / http / https
 - **http_verdict** — classifies HTTP response code + attempt into three-verdict model
 - **filter** — apply ignore glob patterns and --allow prefix matchers
@@ -60,7 +63,7 @@ changelog:
 - **verdict** — compute process exit code from findings and io_errors collections
 - **scanner** — effectful: traverses directory via `ignore` crate, reads files, produces ParsedFile
 - **http_client** — effectful: ureq HEAD/GET with per-host concurrency and timeout
-- **app** — effectful: two-pass pipeline orchestration; coordinates scanner and http_client
+- **app** — effectful: three-phase pipeline orchestration (Pass 1 → Pass 1.5 → Pass 2); also performs Pass 1.5 DirIndex construction for out-of-scan link targets; coordinates scanner and http_client
 - **cli** — clap argument parsing; produces CliArgs struct (no business logic)
 - **main** — entry point; minimal glue code
 - **types** — shared data types: Link, Finding, Verdict, AnchorTable, DirIndex, DirEntryInfo, EntryKind
@@ -82,7 +85,7 @@ changelog:
 | `url_classifier` | `crates/mdlinkcheck-core/src/url_classifier.rs` | HIGH | Misclassifying URL kind routes links to wrong resolver path; VP-023 (proptest totality) | >= 90% | 1 |
 | `scanner` | `crates/mdlinkcheck/src/scanner.rs` | HIGH | Scan termination and .gitignore compliance directly affect correctness (DI-009); VP-017 | >= 90% | 1 |
 | `http_client` | `crates/mdlinkcheck/src/http_client.rs` | MEDIUM | Effectful; hermetically tested via httpmock; behavior governed by http_verdict (pure) | >= 80% | 0 |
-| `app` | `crates/mdlinkcheck/src/app.rs` | MEDIUM | Two-pass orchestration; correctness verified by integration tests; VP-022 (regression gate) | >= 80% | 1 |
+| `app` | `crates/mdlinkcheck/src/app.rs` | MEDIUM | Three-phase pipeline orchestration (Pass 1 → Pass 1.5 → Pass 2); correctness verified by integration tests; VP-022 (regression gate) | >= 80% | 1 |
 | `cli` | `crates/mdlinkcheck/src/cli.rs` | LOW | Argument parsing only; clap handles most validation; no business logic | >= 70% | 0 |
 | `main` | `crates/mdlinkcheck/src/main.rs` | LOW | Thin glue; no business logic | >= 70% | 0 |
 | `types` | `crates/mdlinkcheck-core/src/types.rs` | LOW | Shared data types; structural only; no executable logic to mutate | >= 70% | 0 |
@@ -95,7 +98,7 @@ changelog:
 | `fragment` | CRITICAL | high | none | medium (percent-encoding edge cases) | P0 |
 | `verdict` | CRITICAL | high | none | low (enum + exit code) | P0 |
 | `http_verdict` | CRITICAL | high | none | medium (13 reason codes, two-attempt model) | P0 |
-| `anchor_table` | CRITICAL | high | none | high (HTML id/name, two-pass timing) | P0 |
+| `anchor_table` | CRITICAL | high | none | high (HTML id/name, three-phase timing) | P0 |
 | `anchor_resolver` | CRITICAL | high | none | low | P0 |
 | `path_resolver` | CRITICAL | high | none | medium (NFC normalization, OsStr) | P0 |
 | `link_extractor` | CRITICAL | high | none | medium (pulldown-cmark event stream) | P0 |
@@ -104,7 +107,7 @@ changelog:
 | `url_classifier` | HIGH | medium | none | low | P1 |
 | `scanner` | HIGH | medium | none | medium (ignore crate, symlink detection) | P1 |
 | `http_client` | MEDIUM | medium | none | medium (ureq, per-host semaphore) | P2 |
-| `app` | MEDIUM | medium | none | medium (two-pass orchestration) | P2 |
+| `app` | MEDIUM | medium | none | medium (three-phase pipeline orchestration (Pass 1 → Pass 1.5 → Pass 2)) | P2 |
 | `cli` | LOW | low | none | low | P2 |
 | `main` | LOW | low | none | low | P2 |
 | `types` | LOW | low | none | low | P2 |
@@ -176,5 +179,5 @@ cli.rs   main.rs
 | Mutation testing | >= 95% kill rate; use cargo-mutants --strict | >= 90% kill rate | >= 80% / >= 70% |
 | Code exclusions | No I/O; violations are CI failures | No I/O (pure modules) | I/O allowed (effectful only) |
 
-**CRITICAL modules (v1.3):** slug, fragment, verdict, http_verdict, anchor_table, anchor_resolver, path_resolver, link_extractor
-**HIGH modules (v1.3):** filter, reporter, url_classifier, scanner
+**CRITICAL modules (v1.5):** slug, fragment, verdict, http_verdict, anchor_table, anchor_resolver, path_resolver, link_extractor
+**HIGH modules (v1.5):** filter, reporter, url_classifier, scanner

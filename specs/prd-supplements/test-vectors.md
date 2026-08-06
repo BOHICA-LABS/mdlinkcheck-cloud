@@ -2,7 +2,7 @@
 document_type: prd-supplement
 supplement_type: test-vectors
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "2860da8"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/prd.md
 primary_consumers: [test-writer, holdout-evaluator]
 ---
@@ -20,7 +20,7 @@ primary_consumers: [test-writer, holdout-evaluator]
 # Test Vectors: mdlinkcheck
 
 > Primary consumers: test-writer, holdout-evaluator.
-> Concrete, executable test vectors derived from EC-001..EC-183 (active holdout pool excluded per HOLDOUT WARNING below) and T1..T16.
+> Concrete, executable test vectors derived from EC-001..EC-204 (active holdout pool excluded per HOLDOUT WARNING below) and T1..T16.
 >
 > **HOLDOUT WARNING:** The following ECs are NOT present in this file. They belong
 > exclusively in the hidden holdout evaluation scenarios under
@@ -261,7 +261,7 @@ primary_consumers: [test-writer, holdout-evaluator]
 
 ---
 
-## §7. Slug Algorithm Vectors (T1–T16 / DD-015 Worked Examples)
+## §7. Slug Algorithm Vectors (DD-015 Worked Examples)
 
 These are the canonical github-slugger v2 test vectors. ALL must pass as unit tests.
 
@@ -348,7 +348,7 @@ mdlinkcheck --format json tests/corpus/fixtures/ > /tmp/corpus-result.json
 
 ---
 
-## §10. Supplementary Edge Case Registrations (EC-159..EC-183)
+## §10. Supplementary Edge Case Registrations (EC-159..EC-204)
 
 Rows in this section register ECs that were named in BC edge-case tables after
 test-vectors.md v1.6 was produced. Each row is the minimal registration needed
@@ -407,3 +407,33 @@ registrations and re-introduce the injectivity violation).
 | EC-181 | TV-138b (§6) | Disambiguates `--help` vs `--version` |
 | EC-182 | TV-157b (§3) | Negative control for percent-decoded cross-file anchor (D-020) |
 | EC-183 | TV-158b (§3) | Failure probe for emoji-strip slug counter (D-020) |
+
+### §10.6 EC-184..EC-204 — Adversary Pass 4 Collision-Remapping Registry
+
+These ECs were introduced during adversary pass 4 + consistency pass 4 remediation (phase-1d)
+to resolve EC-ID collisions. Each ID is the canonical identifier for its described edge case,
+replacing a previously colliding ID in the referencing BC.
+
+| TV | EC | Description | BC Owner | Flags | Exit | Verdict | Notes |
+|----|----|-------------|----------|-------|------|---------|-------|
+| TV-184 | EC-184 | Directory argument contains no .md files | BC-2.01.008, BC-2.14.001 | (none) | 0 | clean (no findings) | Formerly EC-009 in these BCs; EC-009 owned by TV-009 (symlink outside root) |
+| TV-185 | EC-185 | `mdlinkcheck good_dir/ nonexistent_dir/` — good_dir has 1 broken link; nonexistent_dir absent | BC-2.01.009 | (none) | 2 | exit 2 (I/O error); broken finding from good_dir | Formerly EC-014; EC-014 owned by TV-014 (ISO-8859-1 file); distinguishing vector for DD-007 no-fail-fast |
+| TV-186 | EC-186 | `[x](readme.md)` but file is `README.md` (case-sensitive filesystem) | BC-2.07.003 | (none) | 1 | broken (file-not-found) | Formerly EC-029; EC-029 owned by TV-029 (directory link `docs/`) |
+| TV-187 | EC-187 | NFC vs NFD normalization in filename (macOS NFD, Linux NFC) | BC-2.07.003 | (none) | 1 | broken (file-not-found) on mismatched form | Formerly EC-030; EC-030 owned by TV-030 (dir link `docs` no slash); ADR-008: no normalization applied |
+| TV-188 | EC-188 | Unicode filename with mixed case (e.g., `README.Md` target vs `readme.md` on disk) | BC-2.07.003 | (none) | 1 | broken (file-not-found) | Formerly EC-031; EC-031 owned by TV-031 (empty link `[x]()`) |
+| TV-189 | EC-189 | `[x](path%23with-hash.md)` — percent-encoded `#` in path segment | BC-2.07.004 | (none) | 1 | broken (file-not-found) | Formerly EC-034; EC-034 owned by TV-034 (trailing slash `a.md/`); `%23` decoded → path contains literal `#` |
+| TV-190 | EC-190 | `## 🦀Rust` then `## 🎯Rust` in same file | BC-2.06.001 | (none) | n/a | slugs: `rust`, `rust-1` | Formerly EC-060 in BC-2.06.001; EC-060 owned by TV-060 (7-hash non-heading); emoji-collision; 0-based counter keyed on "rust" per DI-012 |
+| TV-191 | EC-191 | `[x](#setup)` where `## Setup` exists in same file | BC-2.08.001 | (none) | 0 | clean | Formerly EC-060 in BC-2.08.001; self-file anchor found |
+| TV-192 | EC-192 | `--ignore '*.md'` — glob excludes all .md source files; 0 files scanned | BC-2.11.001 | `--ignore '*.md'` | 0 | no findings | Formerly EC-072; EC-072 owned by TV-072 (non-MD anchor check skipped) |
+| TV-193 | EC-193 | `--ignore 'docs/a.md'` — exact-path glob excludes one source file | BC-2.11.001 | `--ignore 'docs/a.md'` | 0 or 1 | docs/a.md excluded as source | Formerly EC-073; EC-073 owned by TV-073 (line-range anchor skipped) |
+| TV-194 | EC-194 | `[x](#)` empty anchor (bare hash) | BC-2.08.001 | (none) | 0 | clean (top-of-page convention) | Formerly EC-075 in BC-2.08.001; EC-075 owned by TV-075 (three equivalent anchor forms); bare `#` is clean per BC-2.08.001 PC5 |
+| TV-195 | EC-195 | `a.md` links `[x](b.md#intro)` and `b.md` has `## Intro` | BC-2.05.001 | (none) | 0 | clean | Formerly EC-075 in BC-2.05.001; cross-file anchor found |
+| TV-196 | EC-196 | `a.md` links `[x](b.md#intro)` but `b.md` has no `## Intro` heading | BC-2.05.001 | (none) | 1 | broken (anchor-not-found) | Formerly EC-076 in BC-2.05.001; EC-076 owned by TV-076 (outside scan root); cross-file anchor not found |
+| TV-197 | EC-197 | `[x](a.md##double-hash)` — malformed fragment with double `#` | BC-2.08.003 | (none) | 1 | broken (malformed-fragment) | Formerly EC-076 in BC-2.08.003; double-`#` is syntactically malformed |
+| TV-198 | EC-198 | HTTP 429 response (server rate-limits request) | BC-2.10.002 | `--online` | 0 | indeterminate (http-indeterminate) | Formerly EC-087 in BC-2.10.002; EC-087 owned by TV-087 (self-signed TLS); 429 → indeterminate per DI-010 |
+| TV-199 | EC-199 | 429 response with `Retry-After: 30` (delta-seconds) | BC-2.10.004 | `--online` | 0 | indeterminate; host paused 30s | Formerly EC-087 in BC-2.10.004; delta-seconds form per RFC 9110 §10.2.3 |
+| TV-200 | EC-200 | `--allow https://example.com`; URL `https://example.com/page` (prefix match) | BC-2.09.002 | `--allow https://example.com` | 0 | exempt (not checked online) | Formerly EC-090 in BC-2.09.002; EC-090 owned by TV-090 (50x same URL deduplication) |
+| TV-201 | EC-201 | HTTP 401 response on GitHub raw content URL (private repo) | BC-2.10.002 | `--online` | 0 | indeterminate (http-indeterminate) | Formerly EC-090 in BC-2.10.002; 401 → indeterminate per DI-010 |
+| TV-202 | EC-202 | `[x][ref]` on line 3 and line 7; `[ref]: missing.md` at EOF | BC-2.03.002 | (none) | 1 | broken ×2; findings at line 3 and line 7 | P4-005 use-site position; definition-site attribution forbidden per BC-2.03.002 Invariant 4 |
+| TV-203 | EC-203 | Redirect chain of 11 hops | BC-2.10.007 | `--online` | 1 | broken (too-many-redirects) | Formerly EC-087e in BC-2.10.007; EC-087e now owned by BC-2.10.004 (P4-015 malformed Retry-After) |
+| TV-204 | EC-204 | HTTP → HTTPS upgrade redirect (single hop) | BC-2.10.007 | `--online` | 0 | clean (redirect followed) | Formerly EC-087f in BC-2.10.007; EC-087f now owned by BC-2.10.004 (P4-015 clamped Retry-After) |

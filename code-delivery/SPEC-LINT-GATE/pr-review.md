@@ -1,381 +1,264 @@
-# PR Review — Cycle 3 (final convergence check)
+# PR Review — Cycle 7 (convergence)
 
-**PR:** #2 `feature/spec-lint-tooling` → `develop`
-**Head reviewed:** `35cd3085`
-**Verdict:** REQUEST_CHANGES
-
-I re-reviewed all 24 changed files at the current head and **executed** the validators,
-the generators' code paths, and the selftest suite rather than reading them only. Every
-finding below was reproduced empirically; each one lists the exact probe input.
-
-First, credit where the fix commits landed. I verified these work:
-
-| Claimed fix | Verified how | Result |
-|---|---|---|
-| #2 ARCH-INDEX shard check wired in | injected `stray-shard-probe.md` into an isolated tree copy | CONFIRMED flags it |
-| #3 HS-INDEX duplicate check wired in | appended a duplicate `HS-001` row to an isolated copy | CONFIRMED flags it |
-| #4 T-NN inversion fixed | injected `T-17` | CONFIRMED flags out-of-range |
-| #9 check-title-sync selftest via override | ran selftest 9 | CONFIRMED sound (0 → 1 transition, correct message) |
-| #12 `SPEC_LINT_REPO_OVERRIDE` | check-counts + check-title-sync | CONFIRMED present |
-| #19 CI factory-artifacts checkout | read CI job log for run 31105970034 | CONFIRMED — spec tree present, 7/8 checks PASS in CI |
-| #7/#8 cp + spec-tree guards | read `run-selftests.sh:27-33, 52-57` | CONFIRMED present |
-
-`bash scripts/spec-lint/selftest/run-selftests.sh` does return **11/11 PASS**. The
-problem is that 3 of those 11 assert nothing, and 3 checkers are vacuous in ways no
-test covers. Details below.
+**PR:** #2 — `feat: spec-integrity validator and generator tooling (Phase 1 gate)`
+**Base → Head:** `develop` ← `feature/spec-lint-tooling`
+**Reviewed SHA:** `73334c7dd0a7af250fd8833d01c811078b6beb0e`
+**Verdict:** **APPROVE** — no blocking findings. 4 suggestions + 3 nits, all non-blocking.
 
 ---
 
-## BLOCKING
+## Verdict rationale
 
-### B1. `check-ec-injectivity.py` cannot fire — POL-16 EC injectivity is unenforced
+Every cycle-6 blocking item is fixed, and I verified each one by execution rather than by
+reading the diff. The cycle-7 delta is 4 files / 48 insertions and is surgical: three
+one-line `SPEC_LINT_REPO_OVERRIDE` additions plus the R-ID scraper rewrite. I found no
+new false-pass (D-027-class) defect in any *checker*. I did find two genuine
+discrimination weaknesses in the *selftest harness* and one source-of-truth mismatch in
+`check-id-resolution`. All three are recorded as suggestions because none produces a wrong
+result on today's tree, none blocks the advisory `Spec lint` job, and each has a small
+well-scoped fix that belongs with the Phase 2 harness follow-up.
 
-**File:** `scripts/spec-lint/check-ec-injectivity.py:62`
+---
+
+## Verification performed
+
+Everything below was executed against the reviewed SHA with the factory worktree mounted.
+
+### 1. `SPEC_LINT_REPO_OVERRIDE` in all 8 checkers — CONFIRMED
+
+All 8 checkers carry the identical single-line form:
 
 ```python
-m = re.match(r"^\|\s*(EC-(\d+[a-z]?))\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|", line)
+REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 ```
 
-This requires **three** pipe-delimited content columns. Every real BC `## Edge Cases`
-table in this corpus has **two**:
+Reading that line is not sufficient evidence that the override is *honoured* — a checker
+could still resolve some paths from the real repo and silently contaminate an isolated
+test. So I pointed every checker at an empty temp directory. All 8 fail closed, and all 8
+name the *temp* path in the error, proving no leakage to the live tree:
+
+| Checker | exit (empty override) | Message names temp path |
+|---|---|---|
+| check-adr-consistency | 2 | yes |
+| check-holdout-boundary | 2 | yes (prd.md §5b) |
+| check-index-integrity | 1 | yes |
+| check-id-resolution | 1 | yes |
+| check-counts | 1 | yes |
+| check-placeholders | 1 | yes |
+| check-title-sync | 1 | yes |
+| check-ec-injectivity | 1 | yes |
+
+Empty-string handling is correct: `SPEC_LINT_REPO_OVERRIDE=""` is falsy and falls through
+to the `__file__`-derived default rather than resolving to CWD.
+
+### 2. `check-id-resolution` on the real tree — CONFIRMED exit 0
 
 ```
-| EC-003 | `.github/PULL_REQUEST_TEMPLATE.md` |
-| EC-004 | `.git/` directory |
+Check passed: 134 files checked — all ID references resolve
 ```
 
-Measured on the tree:
+No `R-010`-class false violations remain. Full 8-checker baseline on the real tree:
 
-```
-$ grep -rh '^| EC-[0-9]' .factory/specs/behavioral-contracts/ | awk -F'|' '{print NF}' | sort | uniq -c
- 179 4          # NF=4 => 2 content columns; the regex needs NF>=5
-$ grep -rh '^| EC-[0-9]' .factory/specs/behavioral-contracts/ | awk -F'|' 'NF>=5' | wc -l
-       0
-```
+| Checker | exit | Result |
+|---|---|---|
+| check-adr-consistency | 0 | 8 ADRs, exit codes + reason codes consistent |
+| check-counts | 0 | 37 count checks |
+| check-holdout-boundary | 0 | 134 files, pool of 12 IDs, no leaks |
+| check-id-resolution | 0 | 134 files, all refs resolve |
+| check-index-integrity | 0 | 77 bidirectional checks |
+| check-title-sync | 0 | 66 BC titles |
+| check-ec-injectivity | 1 | 13 EC ID collisions — known/accepted, genuine POL-16 defects |
+| check-placeholders | 1 | 25 placeholders — known/accepted, deferred Phase 2 |
 
-So `ec_map` is populated **exclusively** from `test-vectors.md`, where each EC appears
-once. `multi_occurrence` is structurally always 0 — the checker's own success line
-admits it:
+### 3. Clean baselines for the 11 selftests — CONFIRMED, with one caveat (S-2)
 
-```
-Check passed: 141 EC IDs validated — all injective (0 appear in multiple files but are consistent)
-```
+`bash scripts/spec-lint/selftest/run-selftests.sh` → **11/11 PASS, exit 0**.
 
-The stated purpose ("same EC-NNN in multiple BC files with different scenario
-descriptions, or in both test-vectors.md and a BC with a different expected verdict")
-can never trigger. Probe: a BC file containing `| EC-001 | TOTALLY DIFFERENT SCENARIO |`
-in real 2-column format is **not** flagged; only an artificial 3-column row is.
+The harness never asserts a clean pre-injection baseline (a known/accepted deferred item),
+so I supplied the missing control by hand for every test.
 
-Compounding this, the selftest fixture was authored to the regex rather than to the
-corpus: `selftest/fixtures/bad-ec-injectivity.md` uses a 3-column
-`| ID | Description | Expected Behavior |` table that no real BC file uses. The green
-selftest therefore certifies the vacuity.
+**Real-tree injection tests (1, 1b, 1c, 5, 7, 8).** Sound. The four checkers they exercise
+— `check-id-resolution`, `check-adr-consistency`, `check-holdout-boundary`,
+`check-index-integrity` — all exit 0 on the untouched tree (table above). A clean baseline
+plus a non-zero exit after injection means the injected fixture is provably the sole cause.
+No residue afterwards: `git status` clean in both the main tree and the `.factory`
+worktree.
 
-**Fix:** accept 2-column BC edge-case tables (description-collision detection), handle
-the `test-vectors.md` verdict columns separately, add a hard vacuity assertion (fail if
-0 BC rows were extracted corpus-wide), and re-author the fixture in real 2-column format.
+**Isolated temp-tree tests (2, 3, 4, 6, 9).** I rebuilt each temp tree with the defect
+*removed* and re-ran the checker:
 
-### B2. `check-holdout-boundary.py` — three bypasses leak reserved holdout scenarios
+| Test | Checker | Positive control (defect removed) | Discriminating? |
+|---|---|---|---|
+| 3 | check-placeholders | exit 0 — "no VP-TBD, SS-TBD, [filled by], or test-sufficient" | yes |
+| 4 | check-placeholders | exit 0 | yes |
+| 6 | check-ec-injectivity | exit 0 — "1 EC IDs validated — all injective" | yes |
+| 9 | check-title-sync | exit 0 — "1 BC titles validated" | yes |
+| 2 | check-counts | **exit 1** — fails on an unrelated second mismatch | **no** — see S-2 |
 
-**File:** `scripts/spec-lint/check-holdout-boundary.py:70-82, 138`
+### 4. No new D-027 issues — CONFIRMED for checkers
 
-POL-18 exists so Phase 4 holdout evaluation stays blind. I planted five rows for
-reserved holdout IDs in `prd-supplements/` (isolated tree copy) and only the control
-was caught:
-
-| Probe row (all for IDs in the active holdout pool) | Result |
-|---|---|
-| `\| TV-900 \| EC-079 \| README.md line 4 has [x](https://expired.example.invalid/p); DNS NXDOMAIN \| --online \| 1 \| broken (dns-failure) \|` | **caught** (control) |
-| identical content, **one leading space** before the pipe, EC-093 | **NOT caught** |
-| `... \| 1 \| 1 finding, reason \`tls-error\` \|` (reason-code verdict form), EC-094 | **NOT caught** |
-
-Three independent causes:
-
-1. **`:138` `if line.startswith("|")`** — a single leading space defeats the entire
-   check. Use `line.lstrip().startswith("|")`.
-2. **`:79` regex `exit\s+[012]|exit-[012]`** — the docstring (`:74-76`) says a row is
-   concrete if it has a verdict *or an expected exit code*, but a bare numeric column
-   `| 1 |` never matches. That is exactly the `test-vectors.md` row shape
-   (`| TV | EC | desc | args | exit | verdict | reason |`).
-3. Canonical reason codes are not a concreteness signal, so
-   `1 finding, reason \`dns-failure\`` — a complete expected output — reads as harmless.
-
-Rows 2 and 3 are full input+expected-output specifications for reserved IDs, including
-the sub-lettered `EC-094a` pattern the docstring specifically calls out at `:13-16`.
-A leak here silently invalidates holdout evaluation, and nothing downstream would notice.
-
-### B3. Selftest 2 passes because `check-counts.py` **crashes**, not because it detects anything
-
-**Files:** `scripts/spec-lint/check-counts.py:120, 207`; `selftest/run-selftests.sh:90-132`
-
-`check-counts.py` has exactly one existence guard — line 207, for `BC-INDEX.md` — while
-performing 12 unguarded `read_text()` calls. Selftest 2's temp tree does not create
-`module-criticality.md`, so:
-
-```
-Traceback (most recent call last):
-  File "scripts/spec-lint/check-counts.py", line 289, in main
-    mc_vp = count_module_criticality_vp()
-  File "scripts/spec-lint/check-counts.py", line 120, in count_module_criticality_vp
-    for line in mc.read_text(encoding="utf-8").splitlines():
-FileNotFoundError: .../module-criticality.md
-EXIT=1
-```
-
-The harness only asserts a non-zero exit, so the crash reads as PASS. **Proof the test
-is vacuous:** I removed the injected defect entirely (`total_bcs: 0` against 0 rows, so
-no mismatch exists) and the checker still exits 1 — the test would report PASS with no
-defect present. `check-counts.py` (479 lines, 37 checks), one of the three checkers
-D-027 names as false-passing, therefore has **zero** effective negative-test coverage.
-
-**Fix:** guard every required input in `check-counts.py` (return 2, per W4), and make
-selftest 2 assert on the violation *message* (`grep -q 'total_bcs mismatch'`), not the
-exit code.
-
-### B4. Selftests 3 and 4 assert nothing — `check-placeholders.py` already fails on the clean tree
-
-**File:** `selftest/run-selftests.sh:134-144`
-
-```
-$ python3 scripts/spec-lint/check-placeholders.py ; echo $?
-Check FAILED: 25 placeholder occurrences found (132 files checked)
-1
-```
-
-Both tests inject a fixture into the live tree and assert a non-zero exit from a checker
-that is **already** non-zero (25 known `[filled by ...]` markers deferred to Phase 2,
-also visible in the CI log). They report PASS with no fixture at all. `check-placeholders.py`
-— also named in D-027 — has zero effective negative-test coverage.
-
-**Root cause shared by B3 and B4:** `run_test` (`:61`) asserts only
-`if python3 checker; then FAIL else PASS`. That cannot distinguish "detected my planted
-defect" from "was already failing" or "crashed". This is structurally the same false-pass
-class as D-027, relocated into the test harness. **Fix:** capture the baseline exit code
-before injection and require a `0 → non-zero` transition, plus match the injected path in
-the checker's output.
-
-### B5. `check-id-resolution.py` does not validate the R-ID form the specs actually use
-
-**File:** `scripts/spec-lint/check-id-resolution.py:174-182, 276`
-
-`:276` is `re.finditer(r"\bR-?(\d{1,2}[a-c]?)\b", line)` — at most **two** digits. The
-specs use the three-digit form:
-
-```
-$ grep -rohE '\bR-[0-9]{3}\b' .factory/specs/ | sort | uniq -c
-  37 R-001   18 R-002   6 R-003   4 R-004   5 R-005   6 R-006   5 R-007   8 R-008   4 R-009
-```
-
-Proof it is unchecked — planted in `.factory/specs/`:
-
-```
-This satisfies R-777 and R-999 (nonexistent 3-digit requirement IDs).
-→ Check passed: 134 files checked — all ID references resolve      (exit 0)
-
-This satisfies R-77 (nonexistent 2-digit requirement ID).
-→ SELFTEST-probe-r2.md:3: unresolvable R requirement reference 'R-77'   (exit 1)
-```
-
-Two further defects hide behind that regex gap:
-
-- **Wrong source of truth.** `build_valid_r_ids()` reads `product-brief.md`, and the
-  docstring (`:24`) says `R-NN -> product-brief.md`. But `L2-INDEX.md:150` declares
-  `| R-NNN | 9 (R-001–R-009) | risks.md |` — the R-NNN family is *risk* IDs defined in
-  `domain-spec/risks.md`. Two distinct families (`R1..R8` brief requirements vs
-  `R-001..R-009` risks) are conflated onto one registry pointed at the wrong file.
-- **Hardcoded whitelist already stale.** `:176-177` hardcodes `R-001`..`R-008`;
-  `R-009` is missing, is used 4× in `risks.md`, and is not derivable from
-  `product-brief.md` (the brief-scan regex at `:180` has no optional hyphen, so it never
-  picks up hyphenated forms). I simulated widening the regex to `\d{1,3}`: `R-009`
-  immediately produces 4 false violations.
-
-So fix #1 ("VALID_R now used… R-NN references validated") is half-delivered: the
-dominant form is silently skipped, and the fixture (`bad-r-ref-unregistered.md`, `R-99`)
-tests a 2-digit form that appears nowhere in the corpus.
-
-**Fix:** widen to `\d{1,3}`, derive the registry from `risks.md` for `R-\d{3}` and from
-`product-brief.md` for `R\d+`, delete the hardcoded whitelist, resolve `R-009`, and add a
-3-digit fixture.
-
-### B6. `check-adr-consistency.py` — dominant corpus phrasing bypasses the exit-code check
-
-**File:** `scripts/spec-lint/check-adr-consistency.py:61, 84, 95`
-
-- **`:95`** `re.compile(r"broken[^.]*exit\s+2")` cannot match `exit code 2`, even though
-  the docstring at `:9` explicitly claims it handles `"exit 0/1/2" or "exit code 0/1/2"`.
-  Probed in an isolated copy:
-  - `A broken link finding produces exit 2 from the CLI.` → **caught**
-  - `A broken link finding produces exit code 2 from the CLI.` → **NOT caught**
-
-  `exit code N` is live phrasing in this corpus (`grep -rhoE 'exit (code )?[012]'
-  .factory/specs/architecture/` → 2× `exit code 1`). `[^.]*` also stops at any period, so
-  splitting the claim across two sentences evades it. The fixture `bad-adr-exit-code.md`
-  uses the bare `exit 2` form, so the selftest only exercises the branch that works.
-- **`:61`** `EXIT_CODE_MEANING` is defined and **never referenced** anywhere in the file
-  (`grep -n EXIT_CODE_MEANING` → single hit, the definition). Docstring check #1
-  ("only exit 0/1/2 **with correct semantics**") has no implementation. This is the same
-  build-a-set-and-never-use-it pattern D-027 was raised for (`VALID_EC` in
-  check-id-resolution).
-- **`:84`** `if "|" in line and ("1.1" in line or "1.0" in line or ...): return False`
-  — a substring match on version numbers exempts **any** table row containing `1.0`/`1.1`
-  from the dns/tls-indeterminate check. `| dns-failure | indeterminate | v1.0 |` passes.
-  Replace with explicit changelog-section boundary tracking (the pattern
-  `extract_closed_reason_codes` already uses correctly).
-
-### B7. `gen-rtm.py` / `gen-bc-index.py` will silently wipe a source-of-truth spec file, then report success with a false count
-
-**Files:** `scripts/spec-lint/gen-rtm.py:150, 210, 213`; `scripts/spec-lint/gen-bc-index.py:158`
-
-Neither generator guards against `rows == 0`. If `BC_DIR.rglob("BC-*.md")` returns
-nothing (BC dir renamed, an `ss-*` reorg mid-flight, a partial worktree), `gen-rtm.py`
-emits header + separator + `*0 BCs in traceability matrix.*` and writes it —
-**destroying all 66 hand-curated RTM rows in `prd.md` §7**. `gen-bc-index.py` likewise
-writes `total_bcs: 0`, `subsystems: 0` over the real summary block and exits 0.
-
-Worse, `gen-rtm.py:213` reports `len(priorities)` (read from BC-INDEX) rather than
-`len(rows)` (what it actually wrote), so the operator sees a plausible non-zero count
-after a total wipe:
-
-```
-Updated: .../prd.md
-  §7 RTM regenerated from BC frontmatter + traceability sections
-  2 BCs included          <-- it wrote 0 rows
-```
-
-`gen-ec-registry.py:116-118` already implements the correct guard
-(`ERROR: No EC rows found` → exit 2) — the pattern exists in this very PR and simply was
-not applied to the two destructive writers. Currently latent only because `prd.md` §7
-has no `BEGIN GENERATED` marker yet; `gen-rtm.py:180-188` prints instructions telling the
-operator to add it, which arms the wipe.
-
-**Fix:** copy the `gen-ec-registry.py:116-118` guard into `gen-rtm.py:150` and
-`gen-bc-index.py:158`; report `len(rows)`.
+The cycle-7 delta introduces no new false-pass path in any checker. Two D-027-*class*
+weaknesses do exist — in the harness (S-2, S-3) and in the R-ID registry choice (S-1) —
+and each is documented below with the counterfactual that exposes it.
 
 ---
 
-## WARNING
+## Findings
 
-### W1. The selftest harness overwrites live spec paths with no pre-existence check
-`run-selftests.sh:52` does `cp "$fixture_src" "$fixture_dst"` then `:68` `rm -f
-"$fixture_dst"` — against the **live** tree. Test 8 targets
-`.factory/specs/behavioral-contracts/ss-01/BC-2.01.999.md`, test 5 targets
-`architecture/decisions/ADR-SELFTEST-bad-exit.md`. If a real artifact ever occupies one
-of those paths, the harness silently overwrites and then deletes it. Add
-`if [ -e "$fixture_dst" ]; then echo "ERROR: refusing to overwrite $fixture_dst"; exit 1; fi`.
+### S-2 — SUGGESTION / test-discrimination — `scripts/spec-lint/selftest/run-selftests.sh:102-134`
 
-### W2. The negative-test suite never runs in CI
-`grep -rn selftest .github/` → no matches. `justfile:76` `ci:` includes `spec-lint` but
-not `spec-lint-selftest`. The suite is the only evidence the validators work, yet it is
-manual-only — a future regression that re-vacuums a checker would not be caught. Add it
-to the `spec-lint` job.
+**Selftest 2 passes for the wrong reason, and would keep passing if the check it covers
+regressed to a no-op.**
 
-### W3. `just ci` is now permanently red
-`justfile:76` adds `spec-lint` to `ci`, and `just spec-lint` exits 1 on the 25 known
-Phase 2 placeholders. The justfile header calls `just ci` "the canonical CI gate" with no
-remote. This contradicts D-029's advisory intent and trains the team to ignore the local
-gate. Either hold `spec-lint` out of `ci` until Phase 2, or split advisory vs strict.
+The temp tree declares `total_bcs: 99` (the intended defect) *and* `subsystems: 1` while
+creating zero subsystem directories (an incidental second defect). The harness only
+asserts "exit != 0", so either mismatch satisfies it. Proven by isolating the variables:
 
-### W4. Exit-code-2 convention applied to only 2 of 8 checkers
-`check-adr-consistency` and `check-holdout-boundary` return 2 for infrastructure errors;
-`check-counts`, `check-id-resolution`, `check-placeholders`, `check-index-integrity`, and
-`check-title-sync` return 1 — and `check-counts` can also die with a traceback (also 1).
-So `ci.yml:250-259`'s `case 2)` branch distinguishes a quarter of the suite, and for the
-rest "required input missing" is indistinguishable from "spec violation found". This
-ambiguity is precisely what made B3 vacuous. Standardize on 2.
+| `total_bcs` | `subsystems` | exit | Reported mismatches |
+|---|---|---|---|
+| 0 | 0 | 0 | none — clean baseline |
+| 99 | 0 | 1 | `total_bcs mismatch — declared 99, actual 0` (only) |
+| 99 | 1 (as shipped) | 1 | **both** `total_bcs` *and* `subsystems` |
 
-### W5. `SPEC_LINT_REPO_OVERRIDE` in 2 of 8 checkers and 0 of 4 generators
-`check-id-resolution`, `check-placeholders`, and `check-index-integrity` pin `REPO` from
-`__file__`, which is why tests 3/4 must inject into the live tree (causing B4 and W1). All
-four generators hardcode it too (`gen-bc-index.py:33`, `gen-ec-registry.py:25`,
-`gen-prd-sections.py:29`, `gen-rtm.py:40`), so they cannot be pointed at a fixture tree —
-this is the root cause of W6. Adding the override everywhere is the highest-leverage
-testability fix in the PR.
+Failure scenario: delete the `total_bcs` comparison from `check-counts.py` entirely and
+selftest 2 still reports PASS, because the `subsystems` mismatch alone drives the exit
+code. The negative test therefore provides no regression guarantee for the check it is
+named after. The checker itself is fine — row 2 shows the `total_bcs` comparison working
+in isolation.
 
-### W6. The four generators have zero test coverage
-No test, fixture, or CI step invokes any `gen-*.py`. `justfile:243` has no dry-run
-pre-pass, no `git diff --exit-code` post-check, and no clean-worktree precondition —
-for tooling that writes directly to the spec source of truth. Ordering compounds it:
-`gen-bc-index` writes priorities that `gen-prd-sections` and `gen-rtm` then read as
-authoritative, so one defect propagates into three files in a single `just spec-gen`.
+Fix — one character in the heredoc at line 105:
 
-### W7. No vacuity guards on the "0 items checked" path
-`check-ec-injectivity` prints `Check passed: 0 EC IDs validated` and exits 0 if `BC_DIR`
-or `TV_FILE` is renamed. `check-adr-consistency` exits 0 with `Check passed: 0 ADRs
-checked` on an empty ADR dir. A directory rename silently disables both checks.
-
-### W8. Unescaped `re.sub` replacement corrupts real data — the "LOW" classification looks wrong
-Listed as known/accepted, so **not blocking**, but the evidence contradicts the severity,
-so flagging for re-triage rather than overriding the decision. `gen-ec-registry.py:124-129`
-escapes the *pattern* but passes the generated block as an unescaped *replacement*, where
-Python interprets backslash templates. Minimal reproduction using content already in
-`test-vectors.md:85`:
-
-```
-input row : | EC-015 | `utf8bom.md` with UTF-8 BOM followed by `## Setup\n[x](#setup)` | (clean) |
-after re.sub: | EC-015 | `utf8bom.md` with UTF-8 BOM followed by `## Setup
-              [x](#setup)` | (clean) |            <- table row split, markdown broken
+```diff
+ ---
+ total_bcs: 99
+-subsystems: 1
++subsystems: 0
+ ---
 ```
 
-The corruption appears on the **second** run (first run takes the plain-concat path) and
-is permanent — run 3 reports "already up to date". And `test-vectors.md:120` contains
-`C:\docs\a.md`, which yields `re.error: bad escape \d` — `just spec-gen` crashes. Same
-defect at `gen-bc-index.py:150-151`, `gen-prd-sections.py:130-131`, `gen-rtm.py:170-171`.
-One-line fix per site: pass a callable, `lambda _: replacement`.
+That makes the injected `total_bcs` mismatch the sole cause of failure, and the
+positive-control row above confirms the tree is otherwise clean.
 
-### W9. Further generator data-loss paths (no test coverage on any of them)
-- **`gen-bc-index.py:75-78, 95, 217`** — priorities are parsed out of `BC-INDEX.md`
-  itself, defaulted to `"P0"` on a regex miss, then written back. An escaped pipe in a
-  title (legal GFM; `test-vectors.md:219` shows the project writes `a\|b.md`) silently
-  downgrades P1/P2 → P0 in the source of truth. Same defaulting at
-  `gen-prd-sections.py:82,99` and `gen-rtm.py:95,147`.
-- **`gen-bc-index.py:89-90`, `gen-prd-sections.py:96-98`** — a BC file with a
-  malformed/absent H1 is `continue`d with no warning and exit 0: the row disappears and
-  `total_bcs` is decremented while the table still lists it. The generator manufactures
-  exactly the desync `check-counts.py` exists to catch.
-- **`gen-ec-registry.py:130-133`** — if the markers are stripped, `re.sub` matches
-  nothing and it prints "No changes needed … already up to date. Registry contains 141
-  canonical EC definitions" while writing nothing. The registry can be arbitrarily stale
-  and report green. `gen-rtm.py:180-198` gets this right (explicit marker check, exit 2 on
-  START-without-END) — apply that shape to the other three.
-- **Duplicated markers** → the table is emitted twice, exit 0. **Nested markers** →
-  non-greedy `BEGIN.*?END` matches the inner END, deleting inner content and stranding an
-  orphan `END` permanently.
-- **`gen-rtm.py:101-113, 148`** — `get_existing_test_types()` requires the exact current
-  6-column shape; any deviation drops the BC from the map and `test_types.get(bc_id,
-  "unit")` silently overwrites hand-curated `integration` / `kani-proof` values, despite
-  `:28-31` advertising that column as preserved.
+### S-1 — SUGGESTION / correctness — `scripts/spec-lint/check-id-resolution.py:176-220`
 
-### W10. The two newly-wired index checks have no negative test
-I confirmed the ARCH-shard and HS-duplicate checks work, but neither has a selftest
-fixture — test 8 only covers "unlisted BC file". They are one refactor away from
-regressing silently.
+**The `R-NNN` family is validated against the wrong registry, and the hardcoded seed
+covers the entire live range — so the in-range check cannot fail.**
 
----
+`build_valid_r_ids()` treats `.factory/specs/product-brief.md` as the source of truth, and
+the error message calls these "R requirement reference"s. The brief defines only
+`R1`–`R8`. But the corpus registry for the `R-NNN` shape is `domain-spec/risks.md`, which
+`L2-INDEX.md:150` records as `| R-NNN | 9 (R-001–R-009) | risks.md |`. A third, unrelated
+namespace also exists: `vp-026` uses `R-001..R-009`/`OR-010` as *oracle run* labels. The
+checker collapses all three into one flat allowlist.
 
-## NIT
+I removed the hardcoded seed and re-ran against the real tree to see what it masks — 67
+references become unresolvable:
 
-- `check-placeholders.py:10` docstring says `(73 remain per audit)`; the actual count is 25.
-- `.gitignore` has no `__pycache__/` or `*.pyc` entry. This PR adds the repo's first
-  Python, and running the validators leaves an untracked `scripts/spec-lint/__pycache__/`.
-- `check-index-integrity.py:162` `in_sections` assigned but never used;
-  `get_actual_hs_files()` defined but never called.
-- `check-holdout-boundary.py:85-93` — the `holdout-scenarios` / `cycles` / `planning`
-  guards are unreachable: the walk at `:117` is `SPECS.rglob("*.md")`, which contains none
-  of those. `:70` `ec_id` parameter is unused.
-- `check-ec-injectivity.py:44` `normalize_verdict` accepts `valid` as a legitimate verdict
-  token, contradicting ADR-007 and `check-adr-consistency`'s own rule that `valid` is not
-  a verdict.
-- `gen-bc-index.py:59-65` `get_bc_priority` is dead code returning a hardcoded `"P0"`;
-  `:179-184` builds an `ss_pattern` regex that is never used; `:20-22` claims it "will ADD
-  [markers] on first run", which it does not.
-- `gen-ec-registry.py:49` claims `ec-registry.md` is "for use by check-ec-injectivity.py",
-  but `grep -rn ec-registry scripts/` matches only the generator. The artifact has no consumer.
-- PR body is stale in two places: the Test Evidence table still describes tests 2 and 3 as
-  running against the "real spec tree" (the fix commits moved them to an injected temp
-  tree / fixture), and the row "Advisory spec-lint CI (missing spec tree in CI)" no longer
-  holds — CI now checks out `factory-artifacts` successfully and fails only on the 25
-  placeholders.
-- Six commit subjects exceed 72 characters.
+| Masked ID | Refs | Legitimate? |
+|---|---|---|
+| `R2a` / `R2b` / `R2c` | 55 | **Yes** — `product-brief.md:31-36` really does define R2 sub-items `a.`/`b.`/`c.`; the scraper regex cannot see them because they sit on continuation lines. The hardcode is a reasonable workaround for a scraper limitation. |
+| `R-009` | 12 | **Registry mismatch** — `R-009` is a *risk* defined at `risks.md:41` ("Memory budget corpus-shape-dependent"), not a brief requirement. |
+
+Two consequences:
+
+1. The in-code justification is factually wrong. The comment says `R-009` "is retained
+   here because spec files legitimately cite it as an oracle-run label (VP-026)". It is
+   actually retained because it is a risk ID from a registry the function never reads. A
+   future maintainer will act on the wrong mental model.
+2. Because the seed spans `R-001`–`R-009` in all four forms and `risks.md` contains
+   exactly 9 risks, the seed already covers the whole live registry. Failure scenario:
+   trim `risks.md` to `R-001`–`R-005` and every reference to `R-006`–`R-009` still
+   resolves — the checker reports "all ID references resolve" without ever consulting the
+   registry. Only out-of-range refs (like the `R-99` in selftest 1c) are caught.
+
+Suggested direction — scrape the registry that owns the shape, and keep the families apart
+rather than merging them:
+
+```python
+# Risks (R-NNN) come from risks.md, which L2-INDEX names as their registry.
+for line in RISKS.read_text(encoding="utf-8").splitlines():
+    for m in re.finditer(r"^\|\s*(R-\d{3})\s*\|", line):
+        ids.add(m.group(1))
+```
+
+and keep the brief scraper for the `R1`–`R8` requirement shape, retaining the `R2a/b/c`
+hardcode with a comment stating the real reason (multi-line sub-items defeat the regex).
+This is not a merge blocker — it produces no wrong result on today's tree — but it is the
+same "asserts a property it does not verify" pattern that D-027 exists to eliminate, so it
+should not be left undocumented.
+
+### S-3 — SUGGESTION / test-discrimination — `scripts/spec-lint/selftest/run-selftests.sh:61-66`
+
+**`run_test` treats any non-zero exit as success, conflating "detected the defect" (1) with
+"crashed on missing input" (2).**
+
+```bash
+if python3 "$LINT_DIR/$checker.py" > /dev/null 2>&1; then
+    echo "  FAIL (checker returned 0 ...)"
+```
+
+The checkers deliberately distinguish these — exit 2 is documented as "infrastructure
+error, required input missing", and the CI job switches on it
+(`case $ret in 2) ERROR ...` in `.github/workflows/ci.yml`). The harness throws that
+distinction away. Failure scenario: a future refactor renames `error-taxonomy.md`;
+`check-adr-consistency` then exits 2 on every invocation, selftest 5 reports PASS, and the
+suite claims the checker "can detect defects" when it can no longer read its inputs at
+all.
+
+Two changes make the suite self-validating, and would have caught S-2 automatically:
+
+```bash
+# assert the specific detection exit code
+python3 "$LINT_DIR/$checker.py" >/dev/null 2>&1; rc=$?
+[ "$rc" -eq 1 ] || echo "  FAIL (expected exit 1, got $rc)"
+```
+
+plus a pre-injection baseline assertion (`rc == 0` before `cp`), which is the already-agreed
+positive-control work.
+
+### S-4 — SUGGESTION / test-coverage — `gen-bc-index.py:33`, `gen-ec-registry.py:25`, `gen-prd-sections.py:29`, `gen-rtm.py:40`
+
+**All 4 generators still hardcode `REPO` and have zero selftest coverage.**
+
+```python
+REPO = Path(__file__).resolve().parent.parent.parent
+```
+
+The 8 checkers are now override-able and therefore testable in isolation; the generators
+are not — and they are the components that *write* to `.factory/specs/`. Failure scenario:
+a regression in `gen-bc-index.py`'s row emitter can only be discovered by running it
+against the live spec tree and inspecting the damage, because there is no isolated tree to
+exercise it in, so it cannot be given a negative test. Adding the same one-line override
+to the 4 generators is mechanical and would unblock generator selftests; it also composes
+with the already-tracked non-atomic-write item, since a temp-tree harness is the natural
+place to prove atomicity.
+
+The PR body correctly claims 8/8 *validator* coverage and does not overclaim generator
+coverage, so this is a gap to track rather than a description defect.
+
+### N-1 — NIT — `scripts/spec-lint/check-id-resolution.py:206-218`
+
+Unreachable exception handler. `re.match(r"^(\d+)", num_str)` guarantees the captured group
+is all digits, so `int(numeric_part.group(1))` cannot raise `ValueError`. The
+`try`/`except ValueError: pass` wrapper is dead code that implies a failure mode the
+function does not have. Drop the wrapper.
+
+### N-2 — NIT — `.gitignore`
+
+The repo now ships Python tooling but `.gitignore` has no `__pycache__/` entry. Running
+`just spec-lint` or the selftests leaves `scripts/spec-lint/__pycache__/` as untracked
+files, dirtying `git status` and risking committed `.pyc` artifacts. Add:
+
+```
+# ── Python bytecode ───────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+```
+
+### N-3 — NIT — PR description
+
+Stale baseline pass/fail counts for `check-id-resolution` in the body (now 134 files
+checked, exit 0). Editorial only; already acknowledged.
 
 ---
 
@@ -383,42 +266,22 @@ regressing silently.
 
 | # | Item | Result |
 |---|---|---|
-| 1 | Diff coherence | PASS — 24 files, all spec-lint tooling; the single deletion is the `justfile` `ci:` line, replaced in place |
-| 2 | Description accuracy | PARTIAL — mermaid diagrams and policy mapping accurate; two stale Test Evidence rows (see NIT) |
-| 3 | Test coverage | **FAIL** — 3 of 11 negative tests vacuous (B3, B4); `check-counts` and `check-placeholders` effectively uncovered; `check-ec-injectivity` / `check-holdout-boundary` / `check-adr-consistency` tested with fixtures that do not match corpus formatting (B1, B2, B6); 0 tests for 4 generators (W6) |
-| 4 | Demo evidence | `docs/demo-evidence/` absent. Not blocking: scripts-only tooling with no runtime surface, and the selftest transcript in the PR body is the appropriate evidence form. Worth adding the transcript verbatim. |
-| 5 | Commit quality | PASS — 13 commits, all conventional with scope; subject-length nit only |
-| 6 | Diff size | 3,330 insertions / 24 files, well over the 500-line flag. Justified as one cohesive tooling drop, but it is why three vacuous checkers survived two review cycles. |
-| 7 | Missing changes | R-NNN validation (B5); selftest in CI (W2); generator guards (B7) |
-| 8 | Dependency status | PASS — no upstream story deps; base `develop`; MERGEABLE |
+| 1 | Diff coherence | PASS — 23 files, all spec-lint tooling, CI job, justfile recipes. No unrelated changes. |
+| 2 | Description accuracy | PASS with N-3 — selftest count, validator count, and advisory-CI rationale (D-029/D-032) all match the diff. Only stale baseline counts. |
+| 3 | Test coverage | PASS — 8/8 validators have a negative test; 11/11 pass; discrimination verified per test (S-2 the one exception). Generators uncovered (S-4). |
+| 4 | Demo evidence | N/A — pre-story developer tooling with no user-facing surface. Executable evidence (`just spec-lint-selftest`, reproduced above) is the appropriate substitute. |
+| 5 | Commit quality | PASS — 18 commits, conventional `fix(spec-lint):` / `feat:` format, scoped subjects. |
+| 6 | Diff size | ACCEPTED — ~3.7k lines, but 12 standalone single-purpose scripts + 9 fixtures + 1 harness; not meaningfully splittable, and the cycle-7 delta is only 48 lines. |
+| 7 | Missing changes | PASS — all 4 cycle-6 blocking items present and verified by execution. |
+| 8 | Dependency status | PASS — no upstream PR dependencies. |
 
-**CI:** all 8 required checks pass (fmt, clippy, test ×3, build-release ×3, GitGuardian).
-The advisory `Spec lint` job fails on 25 `[filled by ...]` placeholders only — 7 of 8
-validators PASS in CI and the `factory-artifacts` checkout works. Consistent with D-029/D-032.
+## Merge precondition (not a code finding)
 
----
-
-## Summary
-
-The fix commits genuinely closed a lot: the ARCH-shard and HS-duplicate wiring, the T-NN
-inversion, the CI spec-tree checkout, and the title-sync selftest are all verified working.
-But the cycle-2 verdict was about a specific failure class — validators that look like they
-check something and cannot — and that class is still present in three checkers that were not
-in the fix list:
-
-- `check-ec-injectivity` cannot extract a single row from any real BC file (B1)
-- `check-holdout-boundary` lets complete holdout specs through on whitespace or phrasing (B2)
-- `check-adr-consistency` misses the dominant `exit code N` phrasing and never uses
-  `EXIT_CODE_MEANING` at all (B6)
-
-And for the two checkers the fix list *did* target, the negative tests that are supposed to
-prove the fixes worked assert nothing: selftest 2 passes on a `FileNotFoundError` traceback
-(B3) and selftests 3/4 pass because the checker was already red (B4). I verified both by
-removing the planted defect and watching the tests still report PASS.
-
-The single highest-leverage change is to `run_test`: require a `0 → non-zero` transition and
-match the injected path in the checker's output. That one change turns the suite from
-"the checker exited non-zero for some reason" into a real assertion, and it would have
-caught B1, B2, and B6 on its own.
-
-Happy to re-review promptly on the next push.
+`mergeStateStatus` is `BLOCKED`. The cause is a **GitHub infrastructure flake, not a code
+defect**: on the `pull_request` run (`31115465194`) the `Build release (ubuntu-latest)` job
+never reached the build — it died in *Set up job* with
+`Failed to resolve action download info. Error: Bad Gateway` after two retries. The same
+job passed in 7 seconds on the `push` run (`31115467187`) for the identical SHA `73334c7`.
+Re-run that one job to clear the block. All other required checks are green (Format,
+Clippy, Test ×3, Build release macOS/Windows, GitGuardian). The `Spec lint` failure is
+expected and advisory per D-029 (25 placeholders + 13 EC collisions).

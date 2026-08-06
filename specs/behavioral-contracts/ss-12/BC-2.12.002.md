@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.2: (Task-8) Removed incorrect SS-11 subsystem label from cli.rs secondary module reference; corrected 'effectful' to 'effectful shell'."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -78,4 +79,4 @@ in red, indeterminate findings in yellow, file path in bold.
 | L2 Capability | CAP-012 ("Terminal color: NO_COLOR / CLICOLOR / CLICOLOR_FORCE semantics") per capabilities.md §CAP-012 |
 | Capability Anchor Justification | CAP-012 ("Text Report Generation") per capabilities.md §CAP-012 |
 | Brief Requirement | R6, AMB-130 |
-| Architecture Module | `reporter.rs` (SS-12, pure core, HIGH tier) primary; `cli.rs` (SS-11, effectful, LOW tier) secondary — NO_COLOR / CLICOLOR env vars read by cli to produce CliArgs; reporter uses the flag — ADR-005 |
+| Architecture Module | `reporter.rs` (SS-12, pure core, HIGH tier) primary; `cli.rs` (effectful shell, LOW tier) secondary — NO_COLOR / CLICOLOR env vars read by cli to produce CliArgs; reporter uses the flag — ADR-005 |

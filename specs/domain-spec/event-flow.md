@@ -52,7 +52,7 @@ narrative; the normative processing stage definitions are in `events.md`.
 │    build anchor table per file                           │
 │  ─ Non-UTF-8 ──────────────── I/O error (mark exit-2)   │
 │  ─ ALL anchor tables must complete before Stage 4 ──►   │
-│    (two-pass constraint DI-008)                          │
+│    (three-phase design Pass 1→1.5→2 per DI-008)          │
 └──────┬───────────────────────────────────────────────────┘
        │ links + anchor tables
        ▼
@@ -99,13 +99,14 @@ narrative; the normative processing stage definitions are in `events.md`.
 | any broken AND I/O error | exit code = 1 | FORBIDDEN (must be 2) | DI-011 |
 | Stage 3 parallel | finding emitted before sort | FORBIDDEN | DI-001 |
 
-## Two-Pass Constraint Detail
+## Three-Phase Design Detail
 
-The two-pass constraint (DI-008) is the most architecturally significant domain rule.
+The three-phase design (Pass 1 → Pass 1.5 → Pass 2) per DI-008 is the most architecturally significant domain rule.
 It means:
 
 1. **Pass 1:** Parse all files in the scan set; build ALL anchor tables.
-2. **Pass 2:** Resolve all links (can now look up any anchor table safely).
+2. **Pass 1.5:** (Implicit gate) All anchor tables must be complete before any cross-file anchor lookup.
+3. **Pass 2:** Resolve all links (can now look up any anchor table safely).
 
 These passes may be interleaved at the file level (i.e., parse file A and build its
 anchor table, then immediately start parsing file B) AS LONG AS no anchor lookup

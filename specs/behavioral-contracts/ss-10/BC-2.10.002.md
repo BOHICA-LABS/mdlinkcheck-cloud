@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -24,6 +24,7 @@ modified:
   - "v1.4: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.5: D-014/INCONSISTENCY-002 — separated 'alive' (liveness outcome) from 'clean' (link verdict per DD-022); removed 'alive (clean)' / 'alive → clean' conflation. D-018 — confirmed 400-after-GET is indeterminate (not broken). P2-M01 — made partition truly total: added 0..=99, 1xx, HEAD-400-when-GET-also-400, GET-also-405 cases; aligned range claim to 'all valid HTTP status code values'. P2-M15 — corrected VP-007 proof method to kani and removed two unverifiable attribution rows. P2-m05 — fixed L2 Capability title to verbatim capabilities.md title. P2-m06 — fixed Related BCs swap. D-016 — added sub_reason field documentation."
   - "v1.6: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.7: (EC-collision) EC-087→EC-198 (HTTP 429 case; EC-087 canonical owner is test-vectors.md TV-087 self-signed TLS); new EC-087 row added for self-signed TLS cert. EC-090→EC-201 (HTTP 401 case; EC-090 canonical owner is BC-2.10.009 per test-vectors.md registry). (Task-12) clarified 'configured window' to reference BC-2.10.003."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -96,7 +97,7 @@ VP-021 does NOT check `sub_reason` values.
 
 ### Transport / Pre-HTTP Partition
 
-12. **Timeout (no response within configured window):** `indeterminate` (`http-timeout`).
+12. **Timeout (no response within the fixed 10-second per-URL window per BC-2.10.003):** `indeterminate` (`http-timeout`).
 13. **DNS resolution failure:** `broken` (`dns-failure`) → exit 1. DNS failure is definitively
     broken — the hostname does not exist. See BC-2.10.005.
 14. **TLS handshake failure (certificate error; no `--insecure` bypass — non-goal per D-011):**
@@ -124,10 +125,11 @@ VP-021 does NOT check `sub_reason` values.
 ## Edge Cases
 | EC | Description |
 |----|-------------|
-| EC-087 | HTTP 429 response |
+| EC-087 | Self-signed TLS cert (self-signed, not CA-signed) |
+| EC-198 | HTTP 429 response |
 | EC-088 | HTTP 503 |
 | EC-089 | HTTP 410 Gone |
-| EC-090 | HTTP 401 on GitHub raw content (private repo) |
+| EC-201 | HTTP 401 on GitHub raw content (private repo) |
 | EC-091 | https://example.com redirects to http://example.com |
 | EC-092 | Connection to private IP `http://10.0.0.1/` |
 

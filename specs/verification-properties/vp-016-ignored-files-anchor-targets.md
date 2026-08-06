@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
+version: "1.2"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -9,7 +9,7 @@ phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
-input-hash: "012887b"
+input-hash: "9c1a1a8"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.08.004
 module: anchor_table
@@ -21,6 +21,9 @@ proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
 modified:
+  - version: "1.2"
+    date: 2026-08-06
+    change: "(P4-014) test file path corrected: tests/integration/ignored_file_anchor.rs → tests/integration_ignored_file_anchor.rs (flat Cargo-discoverable layout per tooling-selection.md §Test Target Layout)."
   - version: "1.1"
     date: 2026-08-05
     change: "P2-M05 + P2-M14 remediation: corrected Source Contract title from invented 'BC-2.08.004 — Ignored File Anchor Resolution' to actual BC-2.08.004 H1 'Cross-file anchor into ignored file'. Widened Property Statement from --ignore case only (1 of 4 DI-006 mechanisms) to all 4 mechanisms. Added three new fixture harnesses for .gitignore'd targets, dot-directory targets, and outside-scan-root targets — the three cases that use Pass 1.5 (structurally different from the --ignore case 1 which is handled entirely by Pass 1 anchor-table inclusion)."
@@ -63,7 +66,7 @@ This is DI-006.
 ## Proof Harness Skeleton
 
 ```rust
-// tests/integration/ignored_file_anchor.rs
+// tests/integration_ignored_file_anchor.rs  (flat layout per tooling-selection.md §Test Target Layout)
 
 // Case 1: --ignore pattern (Pass 1 anchor table inclusion)
 #[test]

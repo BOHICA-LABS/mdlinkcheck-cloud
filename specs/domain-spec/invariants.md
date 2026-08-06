@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: invariants
-version: "1.6"
+version: "1.7"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -14,6 +14,9 @@ inputs:
 input-hash: "20e96e1"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.7"
+    date: 2026-08-06
+    change: "P4 remediation: (1) DI-001 sort key updated to four-field (NFC path, line, col, link_target) — ADR-005 v1.2 added link_target as 4th tie-break to make key total; DI-001 is the L2 authority and must lead. (2) DI-012 rule 1 NFC/NFD normalization adjudicated — no normalization before slugging; NFD combining diacritics stripped as non-word chars; macOS NFD scenario documented. (3) DI-012 and DI-013 'Why invariant' sections updated with reciprocal BC citations (BC-2.06.001 and BC-2.06.002 respectively)."
   - version: "1.6"
     date: 2026-08-06
     change: "BI-005 spec-level closure: DI-012 Falsifying method updated to reference VP-026 (differential proptest oracle, all 7 rules) in addition to VP-018. DI-013 Falsifying method updated to reference VP-026 oracle R-001 (≥3-entry repeat run closes FM-002 gap that VP-003 injectivity cannot close). Both DIs now have full VP coverage."
@@ -48,10 +51,15 @@ and ALL time. Violation of any DI-NNN is a bug, not a configuration option.
 
 ## DI-001: Deterministic Output Ordering
 
-All findings are sorted by `(NFC-normalized file path, line number, column number)`
-before emission, regardless of the parallelism order in which files were scanned.
-Two runs over the same inputs and flags — under any thread scheduling — produce
-byte-identical stdout.
+All findings are sorted by `(NFC-normalized file path, line number, column number,
+link target)` before emission, regardless of the parallelism order in which files
+were scanned. Two runs over the same inputs and flags — under any thread scheduling —
+produce byte-identical stdout.
+
+The fourth field `link_target` (the raw link destination string, a field on
+`Finding`) is the tie-break that makes the key total: no two distinct findings
+can share all four fields when findings are reported at use-site positions (see
+ADR-005 for totality argument). `sort_unstable_by` is safe given totality.
 
 **Falsifying method:** Run the command twice on the same corpus under differing scheduler
 conditions (e.g. `RAYON_NUM_THREADS=1` vs `RAYON_NUM_THREADS=16`). Diff the two outputs
@@ -260,7 +268,9 @@ tool gets wrong (market-intelligence T1–T9):
 1. **Input is rendered text content.** Inline-code spans contribute their text
    content. HTML tags contribute nothing (tag tokens are stripped; their visible
    text content, if any, is retained). The heading text is taken after AST
-   rendering, not from raw source bytes.
+   rendering, not from raw source bytes. See ADR-008 for the pulldown-cmark
+   event model rationale: `InlineHtml` events carry raw tag bytes only; text
+   nodes between HTML tags arrive as `Text` events and are collected normally.
 2. **Full Unicode `to_lowercase()`.** Not ASCII-only case folding. Cyrillic, Greek,
    and accented Latin characters are correctly lowercased.
 3. **1:1 space→hyphen substitution.** Each space character becomes exactly one `-`.
@@ -271,6 +281,17 @@ tool gets wrong (market-intelligence T1–T9):
 5. **Leading and trailing hyphens are retained.** There is no trim step.
 6. **CJK, Cyrillic, and accented Latin characters are retained** (all `\p{Word}`).
 7. **Emoji are stripped** (not `\p{Word}`, not `-`, not space; removed in step 3).
+
+**Normalization rule (ADR-008):** The slug algorithm does NOT normalize input to
+NFC or NFD before processing. Input is processed byte-for-byte as received from
+the AST renderer, matching `github-slugger@2.0.0` behavior (byte-for-byte parity
+is the stated goal per DD-015/ASM-008). Consequence: NFD combining diacritical
+marks (U+0300..U+036F, `\p{Mn}`) are not `\p{Word}` characters and are stripped
+in step 3. NFC accented characters (e.g., U+00E9 `é`) are `\p{L}` characters and
+are retained. On macOS (where HFS+/APFS stores filenames in NFD), a heading
+written in NFD form and a link pointing to its NFC equivalent will produce
+different anchor keys and result in `broken`/`anchor-not-found` — this is a known
+asymmetry documented in ADR-008, not a product bug.
 
 **Falsifying method:** Apply CAP-006 to any of the DD-015 worked examples (VP-018
 corpus) or the VP-026 differential oracle corpus. Any heading-to-slug mapping that
@@ -287,7 +308,7 @@ anchor (false negative). DD-015 is the normative *decision* (which algorithm to 
 DI-012 is the *invariant* (the property that must hold for every input on every run).
 Without this invariant the DI→VP coverage matrix has no requirement to demand
 verification of the product's highest-risk correctness surface. CAP-006, CAP-005.
-DD-027.
+DD-027. **Enforced by:** BC-2.06.001 (slug computation algorithm).
 
 ---
 
@@ -328,3 +349,4 @@ or a broken link collides with a valid anchor (false negative). This is a distin
 proof obligation from DI-012: a tool can compute each individual slug correctly
 (DI-012 satisfied) while using a 1-based counter (DI-013 violated), and vice versa.
 VP-003 (Kani injectivity) directly targets DI-013. CAP-006, CAP-005. DD-027.
+**Enforced by:** BC-2.06.002 (duplicate heading disambiguation).

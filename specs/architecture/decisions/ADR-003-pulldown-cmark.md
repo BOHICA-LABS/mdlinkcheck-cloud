@@ -6,6 +6,11 @@ date: 2026-08-05
 subsystems_affected: [SS-02, SS-03, SS-04]
 supersedes: null
 superseded_by: null
+version: "1.0"
+changelog:
+  - version: "1.0"
+    date: 2026-08-05
+    change: "Initial draft — selected pulldown-cmark 0.13.4 over comrak for byte-offset extraction, code-exclusion by construction, and undefined-reference detection."
 ---
 
 # ADR-003: pulldown-cmark 0.13.4 as the Markdown Parser

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (P4-016) Removed incorrect SS-11 subsystem label from cli.rs secondary module reference."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -77,4 +78,4 @@ a usage error.
 | L2 Capability | CAP-012 ("Text Report Generation; --format text explicit alias accepted") per capabilities.md §CAP-012 |
 | Capability Anchor Justification | CAP-012 ("Text Report Generation") per capabilities.md §CAP-012 |
 | Brief Requirement | R6, AMB-092 |
-| Architecture Module | `cli.rs` (SS-11, effectful shell, LOW tier) primary; `reporter.rs` (SS-12, pure core, HIGH tier) secondary — `--format text` flag selects format_text — ADR-005 |
+| Architecture Module | `cli.rs` (effectful shell, LOW tier) primary; `reporter.rs` (SS-12, pure core, HIGH tier) secondary — `--format text` flag selects format_text — ADR-005 |

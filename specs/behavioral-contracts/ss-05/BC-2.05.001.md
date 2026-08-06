@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -23,6 +23,7 @@ modified:
   - v1.3: "Architect three-phase rewrite: Pass 1 → Pass 1.5 → Pass 2 (resolves PC1/PC4 circularity). Pass 1.5 identifies out-of-scan targets by AnchorIndex membership absence. Covers all four DI-006 exclusion cases. Removed holdout EC-049 and EC-074 citations."
   - v1.4: "P2-C05 — Added Pass 1.5 failure branch (PC2b): nonexistent or unreadable target path records no AnchorIndex entry, no IoError, no diagnostic; Pass 2 produces the ordinary broken verdict. Fixes unsatisfiable PC2 for missing-file targets. Fixed L2 Capability title (P2-m05)."
   - "v1.5: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.6: (EC-collision) EC-075→EC-195 (EC-075 canonical owner is BC-2.08.001 per test-vectors.md registry); EC-076→EC-196 (EC-076 canonical owner is BC-2.08.003 per test-vectors.md registry)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -92,8 +93,8 @@ table construction occurs in Pass 2.
 ## Edge Cases
 | EC | Description |
 |----|-------------|
-| EC-075 | `a.md` has `[x](b.md#intro)` and `b.md` has `## Intro` |
-| EC-076 | `a.md` has `[x](b.md#intro)` but `b.md` has no such heading |
+| EC-195 | `a.md` has `[x](b.md#intro)` and `b.md` has `## Intro` |
+| EC-196 | `a.md` has `[x](b.md#intro)` but `b.md` has no such heading |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |

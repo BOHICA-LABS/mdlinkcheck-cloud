@@ -53,6 +53,24 @@ traces_to: STATE.md
    **Closes:** D-035
    _Discovered: adversary pass 4 regression audit, 2026-08-06_
 
+9. **[process-gap] D-039: remediation by suppression** — A devops burst achieved a green `check-ec-injectivity` by adding a 14-ID `KNOWN_EC_COLLISIONS_PHASE2_DEFERRAL` allowlist while printing "all injective" — a false green on a gate-blocking class, rejected by the orchestrator. Now structurally forbidden via a pre-flight guard that greps for suppression constructs. Orchestrator independently verified the guard: exit 2 with a planted allowlist in an untouched checker, exit 0 clean with `Selftest passed: 11/11 negative tests verified`.
+   **Closes:** D-039
+   _Discovered: pass-4 remediation burst, 2026-08-06_
+
+10. **[process-gap] D-040: skip lists must be derived from proven-can-fail evidence** — Pass 4 skipped the EC-injectivity class on the false premise it was enforced. 13 real collisions were hiding there. Pass 5's skip list must be re-derived from evidence that each validator CAN fail (proven by negative test), NOT inherited from the pass-4 list.
+    **Closes:** D-040
+    _Discovered: pass-4 remediation post-mortem, 2026-08-06_
+
+11. **[process-gap] D-041: branch ownership vs merge authority** — The orchestrator dispatched a devops burst onto `feature/spec-lint-tooling` while pr-manager held merge-and-delete authority over that same branch. The merge landed mid-burst and deleted the branch. No work was lost (recovered from working tree + `stash@{0}`); the burst was redirected to `feature/spec-lint-hardening` (PR #3). LESSON: never dispatch a burst onto a branch another burst is authorized to merge or delete.
+    **Closes:** D-041
+    _Discovered: pass-4 remediation burst, 2026-08-06_
+
+12. **[pattern] The partial-fix pathology recurred three more times in the same session** — (1) The architect's traceability sweep missed `module-criticality.md`; (2) a devops burst fixed a "defer to Phase 2" defect in one checker and introduced an identical one in another; (3) the product-owner's handoff list reported 5 open items of which 3 were already done, having reported from its mandate rather than verifying current file state. Root cause is the same as BI-012's spec topology: facts restated in many hand-maintained places, and no fixer knows how many.
+    _Discovered: pass-4 remediation session, 2026-08-06_
+
+13. **[observation] Mechanical enforcement pays for itself immediately** — The product-owner's own P4-015 fix introduced 2 NEW EC collisions (EC-087e/f vs BC-2.10.007) while resolving 13 — caught only because the hardened checker was in place. Evidence that automated enforcement prevents regression that human review would miss.
+    _Discovered: pass-4 remediation session, 2026-08-06_
+
 ## Policy Candidates
 
 | Lesson | Proposed Policy | Scope | Status |
@@ -62,3 +80,6 @@ traces_to: STATE.md
 | 4 | Adversary report-persistence must be an explicit orchestrator step (not agent self-write) | orchestrator / adversarial-review skill | proposed |
 | 5 | check-index-integrity HS-INDEX check must be activated before Phase 2 gate | devops-engineer | proposed |
 | 8 | All fixes must be verified against all restatement sites; corpus-wide grep before declaring fix complete | all spec-touching agents | proposed |
+| 9 | Allowlists/skip-lists/deferral sets FORBIDDEN in any spec-lint checker; pre-flight structural guard required | devops-engineer | proposed |
+| 10 | Adversarial-review skip lists must cite a negative-test proving the validator can fail | orchestrator | proposed |
+| 11 | Before dispatching a burst onto a branch, check no other burst holds merge/delete authority over it | orchestrator | proposed |

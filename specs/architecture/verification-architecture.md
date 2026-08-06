@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: verification-architecture
-version: "1.8"
+version: "1.9"
 status: draft
 producer: architect
 timestamp: 2026-08-06T00:00:00Z
@@ -10,9 +10,12 @@ phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/prd.md
-input-hash: "cbcc9b1"
+input-hash: "80954ae"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.9"
+    date: 2026-08-06
+    change: "P4 remediation: (P4-004) VP-011 sort key 'dest' → 'link_target' to match api-surface.md Finding struct field name. (P4-009) VP-026 proptest coverage claim corrected — removed false claims for NFC/NFD and inline-code+HTML; now names only the 6 rules with enabled proptest arms (rules 2/3/4/5/6/7); Rule 1b rendering fidelity explicitly deferred to Phase 3 integration; oracle corpus NFC/NFD runs (R-009/OR-010) recorded."
   - version: "1.8"
     date: 2026-08-06
     change: "BI-005 spec-level closure: added VP-026 (slug differential fidelity, proptest P1) to Should Prove table. DI→VP Coverage Matrix: DI-012 updated VP-018→VP-018+VP-026 (Yes, proptest oracle); DI-013 updated VP-003→VP-003+VP-026 (Yes, kani+proptest). FM-002 now covered by VP-026 (was unprovable — VP-003 injectivity does not detect 0-based/1-based counter bug). Gap notes removed for DI-012 and DI-013. Phase 3 obligation recorded: VP-026 must be green before Phase 6 hardening."
@@ -65,12 +68,12 @@ changelog:
 | VP-008 | NFC normalization applied: `path_resolver` uses NFC-normalized comparison | path_resolver | DI-002, BC-2.07.003 |
 | VP-009 | NFC normalization idempotent: `nfc(nfc(s)) == nfc(s)` for all path strings | path_resolver | DI-002 |
 | VP-010 | `filter::should_allow` enforces component boundary — `https://a.com` ≠ `https://a.com.evil.tld` | filter | DD-013, BC-2.11.002 |
-| VP-011 | Sort order is deterministic — sort key `(nfc_path, line, col, dest)` is total; same `Vec<Finding>` always produces same sort permutation regardless of rayon scheduling | reporter | DI-001, BC-2.12.001 |
+| VP-011 | Sort order is deterministic — sort key `(nfc_path, line, col, link_target)` is total; same `Vec<Finding>` always produces same sort permutation regardless of rayon scheduling | reporter | DI-001, BC-2.12.001 |
 | VP-019 | Each link in `extract_links` output has exactly one verdict path | link_extractor | DI-005, BC-2.03.001 |
 | VP-023 | `url_classifier::classify_url` is total — no panic on any `&str`; empty string returns `Malformed(_)` not `NonHttp` | url_classifier | BC-2.07.007 |
 | VP-024 | `path_resolver::resolve_path` trailing-slash-on-file invariant — `EntryKind::File` + trailing slash → `broken(file-not-found)`, never `target-is-directory`, never clean | path_resolver | BC-2.07.008 |
 | VP-025 | `anchor_resolver::resolve_anchor` totality and correctness — no panic on any `(fragment, table)` pair; fragment present in table → Hit; fragment absent → Miss; case-sensitive byte-exact lookup; empty fragment handled | anchor_resolver | BC-2.08.001/002/004 |
-| VP-026 | `compute_slug` differential fidelity — byte-identical output to `github-slugger@2.0.0` oracle for all 7 DI-012 rules; oracle corpus MUST include ≥3-entry duplicate run (FM-002 discriminator: 0-based counter `setup-1` vs 1-based `setup-2`); proptest generator covers Unicode, emoji, NFC/NFD, leading/trailing whitespace, inline-code+HTML pre-rendered text | slug | DI-012, DI-013, FM-002, BC-2.06.001/002 |
+| VP-026 | `compute_slug` differential fidelity — byte-identical output to `github-slugger@2.0.0` oracle for all 7 DI-012 rules; oracle corpus MUST include ≥3-entry duplicate run (FM-002 discriminator: 0-based counter `setup-1` vs 1-based `setup-2`) plus NFC (R-009) and NFD (OR-010) runs; proptest generator covers rules 2 (Unicode lowercase), 3 (space→hyphen 1:1), 4 (underscore retained), 5 (leading/trailing whitespace), 6 (Unicode word chars retained), 7 (emoji stripped); Rule 1 rendering fidelity (inline-code+HTML) is a Phase 3 integration obligation (Rule 1b — see VP-026 §Coverage) | slug | DI-012, DI-013, FM-002, BC-2.06.001/002 |
 
 ### Fuzz Targets (P1 — cargo-fuzz, Phase 6)
 

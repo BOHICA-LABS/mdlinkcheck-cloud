@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-009) restated PC1/PC2 as DD-015 key-containment semantics (not value semantics); corrected PC3 to restrict the canonical case to the specific document order where both ## Setup headings precede ## Setup 1; added Setup-1-first test vector and PC4"
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (P4-007/C4-002) Corrected L2 Domain Invariants: DI-008 → DI-013. Added VP-026 to Verification Properties (C4-006)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -88,13 +89,14 @@ bumped to "setup-1-1".
 |--------|----------|-------------|
 | VP-003 | Canonical triple-collision case produces correct slugs | unit test (NFR-006) |
 | VP-003 | Counter reset between files | unit test |
+| VP-026 | Duplicate-counter output matches github-slugger@2.0.0 oracle | differential oracle |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-006 ("duplicate-heading suffix counters (the Setup × 2 + Setup 1 collision-bump case is explicitly in scope)") per capabilities.md §CAP-006 |
 | Capability Anchor Justification | CAP-006 ("Heading Slug Computation") per capabilities.md §CAP-006 |
-| L2 Domain Invariants | DI-008 |
+| L2 Domain Invariants | DI-013 (anchor-key uniqueness; 0-based duplicate counter) |
 | Brief Requirement | R2b, DD-015 |
 | Architecture Module | `slug.rs` (SS-06, pure core, CRITICAL tier) — ADR-006 (NFC strict path model; slug algorithm is the primary differentiator) |
 

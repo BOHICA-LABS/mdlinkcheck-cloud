@@ -1,7 +1,7 @@
 ---
 document_type: architecture-index
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: architect
 timestamp: 2026-08-06T00:00:00Z
@@ -16,6 +16,13 @@ inputs:
 input-hash: "df63811"
 traces_to: .factory/specs/prd.md
 deployment_topology: single-service
+changelog:
+  - version: "1.5"
+    date: 2026-08-06
+    change: "P4 remediation: (1) Document Map system-overview.md description updated from 'two-pass pipeline' to 'three-phase pipeline (Pass 1 → Pass 1.5 → Pass 2)' (P4-003). (2) Added ADR-008 (slug clean-room reimplementation) to Architecture Decisions table; removed SS-06 from ADR-006 subsystems (ADR-006 covers path model only). (3) Version/changelog added to ADR-001/002/003 frontmatter."
+  - version: "1.4"
+    date: 2026-08-06
+    change: "Previous revision"
 ---
 
 # Architecture Index: mdlinkcheck
@@ -27,7 +34,7 @@ deployment_topology: single-service
 
 | Section | File | Primary Consumer | Purpose |
 |---------|------|-----------------|---------|
-| System Overview | system-overview.md | all agents | Architecture vision, two-pass pipeline, concurrency |
+| System Overview | system-overview.md | all agents | Architecture vision, three-phase pipeline (Pass 1 → Pass 1.5 → Pass 2), concurrency |
 | Module Decomposition | module-decomposition.md | story-writer, implementer | Crate/module catalog with boundaries |
 | Dependency Graph | dependency-graph.md | story-writer, implementer | Inter-module deps, verified crate versions |
 | API Surface | api-surface.md | test-writer, implementer | CLI interface, library public API |
@@ -78,5 +85,6 @@ deployment_topology: single-service
 | ADR-003 | pulldown-cmark 0.13.4 Parser Choice | SS-02, SS-03, SS-04 |
 | ADR-004 | ureq 3.3.0 Sync HTTP Client | SS-10 |
 | ADR-005 | rayon Parallelism + Sort-Before-Emit | SS-01, SS-10, SS-12, SS-13 |
-| ADR-006 | Case-Sensitive NFC Strict Path Model | SS-05, SS-06, SS-07 |
+| ADR-006 | Case-Sensitive NFC Strict Path Model | SS-05, SS-07 |
 | ADR-007 | Two-Layer Verdict Model — clean / broken / indeterminate | SS-08, SS-09, SS-10, SS-11, SS-14 |
+| ADR-008 | Clean-Room github-slugger v2 Reimplementation | SS-05, SS-06 |

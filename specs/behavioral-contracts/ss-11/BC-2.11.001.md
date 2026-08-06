@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -23,6 +23,7 @@ modified:
   - v1.3: "DI-006 four-mechanism note added to Invariants: --ignore is one of four source-exclusion mechanisms that share the DI-006 anchor-target carve-out property."
   - v1.5: "Fix 1 (POL-18 holdout boundary): EC-074 citation removed from edge-case table. The anchor-target carve-out property is stated in PC3 and Invariant 4; corpus-fixture holdout details remain hidden. EC-071..EC-073 provide sufficient visible edge coverage."
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.2: (EC-collision) EC-072→EC-192 (EC-072 canonical owner is BC-2.08.002 / test-vectors.md TV-072); EC-073→EC-193 (EC-073 canonical owner is test-vectors.md TV-073)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -63,8 +64,8 @@ crate dialect. `**` crosses directory boundaries. The pattern is anchored at CWD
 | EC | Description |
 |----|-------------|
 | EC-071 | `--ignore 'vendor/**'` excludes all files under `vendor/` |
-| EC-072 | `--ignore '*.md'` excludes all .md files |
-| EC-073 | `--ignore 'docs/a.md'` exact match |
+| EC-192 | `--ignore '*.md'` excludes all .md files |
+| EC-193 | `--ignore 'docs/a.md'` exact match |
 
 ## Canonical Test Vectors
 | --ignore pattern | Files present | Expected |

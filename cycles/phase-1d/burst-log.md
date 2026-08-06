@@ -252,3 +252,38 @@ PRD v1.9 | 66 BCs | 26 VPs (VP-026 added for slug differential fidelity) | 13 DI
 | phase-1d consistency audit pass 3 | consistency-validator | COMPLETE | consistency-audit-phase-1-pass-3.md; FAIL |
 | phase-1d spec-lint tooling built | devops-engineer | COMPLETE | scripts/spec-lint/ (8 validators, 4 generators, selftest); just spec-lint CI job; PR #2 open (feature/spec-lint-tooling) |
 | phase-1d pass-3 remediation | architect/product-owner/spec-steward | COMPLETE | 254→25 violations; D-026/D-027; PRD v1.9; VP-025; DI-012/DI-013; ADR-007 v1.3; bc-module-map.md |
+
+---
+
+## Burst: burst 7 — Pass-4 Remediation Close-Out (STATE.md + Cycle Files) (2026-08-06)
+
+**Parent-commit:** `6c3eb0ff06e0489f85ea36e8eeef4590c835bf42` (docs(spec-lint): update pr-description.md for 11-selftest milestone)
+
+**Adversary verdict:** No new adversary pass in this burst. This is a state-manager close-out burst committing spec artifacts produced by two prior remediation bursts (architect + product-owner) and updating pipeline state. Trajectory unchanged: →0→32→34→39→37. pass count: 0 of 3.
+
+**Files touched (Dim-1): 5 unique files**
+
+- `.factory/STATE.md` — timestamp advanced; D-038..D-042 appended to Decisions Log; BI-006/BI-008/BI-009/BI-011 removed (moved to resolved); BI-010 resolution updated; BI-014/BI-015/BI-016 added; Current Phase Steps evicted 2 oldest + added 2 new; pass-4 fix burst row added to Phase Progress; trajectory-tail added to Last Updated cell; spec snapshot updated (8 ADRs, EC-001..EC-204 205 ids); banner line count corrected
+- `.factory/cycles/phase-1d/blocking-issues-resolved.md` — BI-006/BI-008/BI-009/BI-011/BI-013 appended
+- `.factory/cycles/phase-1d/lessons.md` — lessons 9–13 appended (D-039/D-040/D-041 process-gaps, partial-fix pattern, mechanical-enforcement observation); policy candidates 9–11 added
+- `.factory/cycles/phase-1d/burst-log.md` — this entry; evicted STATE.md phase steps archived
+- `.factory/specs/**` — ~80 spec files modified by prior architect + product-owner bursts (ADR-008, VP-025 rewrite, VP harness path corrections, EC-184..EC-204 additions, BC amendments, etc.); committed without content modification
+
+**Codifications:** D-038 (PR #2 cycle overrun exception), D-039 (remediation-by-suppression forbidden), D-040 (skip lists require proven-can-fail evidence), D-041 (branch ownership vs merge authority), D-042 (independent convergence = strongest evidence). BI-006/BI-008/BI-009/BI-011/BI-013 CLOSED. BI-014/BI-015/BI-016 opened.
+
+**Evicted Current Phase Steps (archived verbatim):**
+
+| Step | Agent | Status | Output |
+|------|-------|--------|--------|
+| session wrap D-030 | state-manager | COMPLETE | SESSION-HANDOFF.md §RESUME SNAPSHOT D-030; sidecar committed |
+| next: WS-1 PR#2 pr-manager review | pr-manager | pending | full review lifecycle per D-028 — review dispatch → triage → fix → convergence → merge |
+
+**Dim-2 Attestation:** spec-lint `just spec-lint` = 7 of 8 checks PASS. Only failure: `check-placeholders` at exactly 25 `[filled by story-writer]` occurrences — legitimate until Phase 2. `check-ec-injectivity` PASSES with 205 EC IDs all injective. `check-index-integrity` reports 79 structural checks with BC (66 entries) / VP (26 entries).
+
+**Dim-5 Attestation:** STATE.md — 189 lines (banner verified post-write), status: draft, producer: state-manager, timestamp: 2026-08-06T22:40:00Z. blocking-issues-resolved.md — 9 resolved entries (BI-001/003/004/006/008/009/011/013 + BI-002 predecessor). lessons.md — 13 lessons. burst-log.md — 7 bursts.
+
+**Dim-6 Attestation:** IN_PROGRESS. Convergence counter 0 of 3 required clean passes. Trajectory →0→32→34→39→37. Not converged. Pass 5 pending BI-012 generators + PR #3 merge per D-036/D-040.
+
+**Dim-7 Attestation:** Agents dispatched in this burst: state-manager (this burst). Spec content produced by prior architect + product-owner bursts committed without dispatch.
+
+**Closes:** BI-006 (PR #2 merged 2290cb0), BI-008 (VP harness paths flattened), BI-009 (ADR-008 + BC-2.06.001 amended), BI-011 (VP-026 oracle assertions added), BI-013 (EC-184..EC-204 + checker hardened).

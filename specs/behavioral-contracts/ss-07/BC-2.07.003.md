@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
+  - "v1.2: (EC-collision) EC-029→EC-186 (EC-029 canonical owner is BC-2.07.005); EC-030→EC-187 (NFC/NFD normalization case); EC-031→EC-188 (Unicode mixed-case case)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -56,9 +57,9 @@ case-sensitivity to the OS filesystem layer.
 ## Edge Cases
 | EC | Description |
 |----|-------------|
-| EC-029 | `[x](readme.md)` but file is `README.md` |
-| EC-030 | NFC vs NFD normalization in filename |
-| EC-031 | Unicode filename with uppercase/lowercase |
+| EC-186 | `[x](readme.md)` but file is `README.md` |
+| EC-187 | NFC vs NFD normalization in filename |
+| EC-188 | Unicode filename with uppercase/lowercase |
 
 ## Canonical Test Vectors
 | Link Target | Actual Filename | Expected Verdict | Notes |

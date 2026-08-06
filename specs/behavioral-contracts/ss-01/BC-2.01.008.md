@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: P2-m04/REGRESSION-003 — removed .markdown extension reference from Description; removed --quiet reference from Invariant 2 (D-011: --quiet is a non-goal; the message is always emitted)"
   - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (EC-collision) EC-009 renamed to EC-184 (EC-009 canonical owner is BC-2.01.004 per test-vectors.md registry)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,7 +54,7 @@ repo or a filtered-out-everything case is a valid state.
 ## Edge Cases
 | EC | Description |
 |----|-------------|
-| EC-009 | Directory exists but has zero .md files |
+| EC-184 | Directory exists but has zero .md files |
 | EC-125 | `--ignore '*.md'` excludes all files |
 
 ## Canonical Test Vectors

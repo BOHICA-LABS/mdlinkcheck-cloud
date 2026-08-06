@@ -4,21 +4,21 @@ level: ops
 version: "2.2"
 status: draft
 producer: state-manager
-timestamp: 2026-08-06T14:16:30Z
+timestamp: 2026-08-06T22:40:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; adversary pass 4 COMPLETE — 37 findings (3C/19M/15m), zero in enforced classes; root cause = spec topology (BI-012); D-chain cite D-421; trajectory-tail →32→34→39→37; next = BI-009 adjudication + BI-008/BI-011 closure + BI-012 generators, THEN pass 5 per D-036"
+current_step: "phase-1d; pass-4 remediation COMPLETE (spec-lint 7/8, only 25 known placeholders); PR #2 merged 2290cb0; PR #3 open for spec-lint hardening; D-chain cite D-421; next = PR #3 review lifecycle + BI-012 generators, THEN pass 5 per D-036/D-040; trajectory-tail →32→34→39→37"
 current_cycle: ""
 dtu_required: false
 ---
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 184 = 316. 184 lines (wc-l).
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 189 = 311. 189 lines (wc-l).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
@@ -37,9 +37,9 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-06 — adversary pass 4 COMPLETE; 37 findings (3C/19M/15m); zero in enforced classes; root cause = spec topology (BI-012); D-035..D-037 (exhaustive) recorded; BI-008..BI-012 (exhaustive) opened; trajectory-tail →32→34→39→37 |
+| **Last Updated** | 2026-08-06 — pass-4 remediation COMPLETE (ADR-008 authored; VP-025 rewritten; 10 VP paths flattened; 13 EC collisions → EC-184..EC-204; spec-lint 7/8 only 25 known placeholders fail); PR #2 squash-merged 2290cb0; D-038..D-042 (exhaustive) recorded; BI-006/BI-008/BI-009/BI-011/BI-013 closed; BI-014/BI-015/BI-016 opened; trajectory-tail →32→34→39→37 |
 | **Current Phase** | phase-1d |
-| **Current Step** | Adversary pass 4 COMPLETE — 37 findings; zero in enforced classes; next = BI-009 adjudication + BI-008/BI-011 closure + BI-012 generators, THEN pass 5 per D-036 |
+| **Current Step** | pass-4 remediation COMPLETE — ADR-008; VP-025 rewritten; 10 VP paths flattened; 13 EC collisions resolved; PR #2 merged 2290cb0; next = PR #3 review lifecycle + BI-012 generators, THEN pass 5 per D-036/D-040 |
 
 ## Phase Progress
 
@@ -58,6 +58,7 @@ dtu_required: false
 | pass-3 adversary | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39 |
 | pass-3 fix burst | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39 |
 | pass-4 adversary | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39→37 |
+| pass-4 fix burst | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39→37 |
 
 ## Current Phase Steps
 
@@ -65,11 +66,11 @@ dtu_required: false
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
-| session wrap D-030 | state-manager | COMPLETE | SESSION-HANDOFF.md §RESUME SNAPSHOT D-030; sidecar committed |
-| next: WS-1 PR#2 pr-manager review | pr-manager | pending | full review lifecycle per D-028 — review dispatch → triage → fix → convergence → merge |
 | merge autonomy D-031 (level 4) | state-manager | COMPLETE | .factory/merge-config.yaml created; autonomy_level 4; D-031/D-032 recorded |
 | WS-3 close BI-005 (VP-026) | architect | COMPLETE | VP-026 authored; VP-018 +3 vectors; VP-INDEX/coverage-matrix/verification-architecture/failure-modes/invariants/module-criticality updated; 25→26 VPs; spec-lint 7/8 (only 25 known placeholders fail) |
 | phase-1d adversary pass 4 | adversary | COMPLETE | cycles/phase-1d/adversary-pass-4.md; 37 findings (3C/19M/15m); FINDINGS_REMAIN; zero in 7 enforced classes; topology root cause named |
+| phase-1d pass-4 remediation | architect + product-owner | COMPLETE | ADR-008 authored; VP-025 rewritten; 10 VP paths flattened; DI-001 4-field key; 13 EC collisions → EC-184..EC-204; spec-lint 7/8 (only 25 known placeholders fail) |
+| PR #2 merged | pr-manager | COMPLETE | 7 review cycles; squash-merged to develop 2290cb0; branch deleted; 9/9 required CI green |
 
 ## Convergence Status
 
@@ -123,6 +124,11 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | D-035 | Adversary pass 4 recorded 37 findings (3C/19M/15m) with ZERO in the 7 mechanically-enforced classes. Enforcement judged SUCCESSFUL on composition, INEFFECTIVE on magnitude. Root cause reclassified from spec-quality to SPEC-TOPOLOGY. | The 32→34→39 escalation was passes 1–3 sampling many instances of a few topological causes; pass 4 read deeply and named the causes. Eight validators cannot fix "is this English sentence true about that artifact" — that check is unbounded. | phase-1d | 2026-08-06 | orchestrator |
 | D-036 | Pass 5 will NOT run against the current spec topology. Remediation sequence is: (1) adjudicate BI-009 (P4-001), (2) close BI-008 (P4-014) and BI-011 (P4-012) as verification-invalidating, (3) land the BI-012 generators + canonical-facts block, (4) THEN run pass 5. | Running pass 5 against unchanged topology would re-sample the same causes and produce another plateau reading, burning a pass. Adopts the D-026/D-027 precedent: make the defect class unrepeatable rather than merely repaired. | phase-1d | 2026-08-06 | orchestrator |
 | D-037 | Adversary agent tool-profile gap: the `adversary` agent is read-only (Read/Grep/Glob) and CANNOT write its own report, so pass-4's findings existed only in its transcript and required orchestrator-side recovery. Recorded as a factory process-gap. | Near-loss of the single most valuable artifact of the session. Either grant the adversary write access scoped to `cycles/**`, or make report-persistence an explicit orchestrator step in the adversarial-review skill. Route to the factory self-improvement backlog. | phase-1d | 2026-08-06 | orchestrator |
+| D-038 | PR #2 review-cycle limit exceeded with recorded exception: 7 cycles against `merge-config.yaml`'s `max_review_cycles: 3`. Operator-approved. Merge permitted because all blocking findings were resolved and the alternative — merging tooling with known false-passing tests — was strictly worse. | Operator directive selected "fix the pattern, not the instances" over splitting or closing the PR. The cycle overrun bought elimination of a recurring false-pass class rather than three point fixes. | phase-1d | 2026-08-06 | human/operator |
+| D-039 | Remediation of a defect class MUST NOT be achieved by suppressing detection. A devops burst made `check-ec-injectivity` pass by adding a 14-ID `KNOWN_EC_COLLISIONS_PHASE2_DEFERRAL` allowlist while printing "all injective" — a false green on a gate-blocking class, rejected by the orchestrator. Allowlists, skip-lists, deferral sets, and known-issues collections are now FORBIDDEN in any spec-lint checker, enforced by a pre-flight structural guard. | Blinding a checker is worse than editing a spec to suit it: it is durable, silent, and survives every future run. The same burst had just fixed P4-021, whose defect was an identical "defer to Phase 2" pattern — deferring a class past the very deadline it protects. | phase-1d | 2026-08-06 | orchestrator |
+| D-040 | A validator earns a place on an adversarial-review SKIP LIST only once it has a negative test proving it CAN fail. Three of eight validators have now been caught false-passing (`check-id-resolution`, `check-placeholders` under D-027; `check-ec-injectivity` under BI-013), and a fourth attempted to pass by suppression (D-039). Pass 5's skip list must be re-derived from proven-can-fail evidence, NOT from the pass-4 list. | Pass 4's skip list was partly built on `check-ec-injectivity`, which could not fail — so an entire defect class was excluded from review on a false premise. "Enforced" must mean "demonstrably able to fail." | phase-1d | 2026-08-06 | orchestrator |
+| D-041 | Orchestrator sequencing error recorded: a devops burst was dispatched onto `feature/spec-lint-tooling` while pr-manager held merge-and-delete authority over that same branch. The merge landed mid-burst and deleted the branch. No work was lost (recovered from working tree + `stash@{0}`); the burst was redirected to `feature/spec-lint-hardening` (PR #3). | LESSON: never dispatch a burst onto a branch another burst is authorized to merge or delete. Check branch ownership against in-flight merge authority before dispatch. | phase-1d | 2026-08-06 | orchestrator |
+| D-042 | Adversary pass 4 and consistency pass 4 INDEPENDENTLY converged on the same defect (`BC-2.06.001`/`BC-2.06.002` citing DI-008 where DI-012/DI-013 belong; P4-007 == C4-001/C4-002). Independent convergence from different methods is adopted as the strongest available evidence a finding is real, and warrants immediate remediation without further verification. | Two fresh contexts, different mandates, same conclusion. | phase-1d | 2026-08-06 | orchestrator |
 
 ## Skip Log
 
@@ -143,14 +149,13 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | ID | Issue | Severity | Blocking Phase | Owner | Resolution |
 |----|-------|----------|----------------|-------|------------|
 | BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 4 COMPLETE (37 findings, 3C/19M/15m); root cause reclassified to SPEC-TOPOLOGY per D-035; remediation per D-036 in progress | HIGH | phase-1 gate | orchestrator | BI-012 generators + canonical-facts block + BI-009 adjudication + BI-008/BI-011 closure, THEN pass 5 per D-036 |
-| ~~BI-005~~ | DI-012 (slug fidelity) VP coverage INSUFFICIENT; DI-013 PARTIAL — VP-018's 16 golden vectors were the only pin on github-slugger parity; 1-based duplicate counter bug (setup→setup-2 vs setup→setup-1) would pass VP-003 injectivity because outputs remain distinct (FM-002 unprovable) | ~~HIGH~~ CLOSED | ~~phase-1 gate~~ RESOLVED | architect | CLOSED at spec level 2026-08-06. VP-026 (slug differential fidelity) authored: differential oracle vs a committed corpus generated from pinned `github-slugger@2.0.0`, covering all 7 DI-012 rules, requiring a >=3-repeat heading sequence so 0-based vs 1-based suffixing is observably different. VP-018 gains a duplicate-heading golden vector (defense in depth) plus an inline-code+HTML-tags vector exercising DI-012's input definition. FM-002 moves from unprovable to covered. Rationale for closure: BI-005's scope was the phase-1 spec gate, and the specification gap is genuinely closed. Residual implementation risk tracked separately as BI-007. |
-| BI-006 | PR #2 (`feature/spec-lint-tooling`) open and unmerged; `spec-lint` CI job advisory only (D-029, NOT in 8 required status checks) — flip to required at Phase 1 approval per D-029, not now | MEDIUM | phase-2 | pr-manager | run full pr-manager review lifecycle on PR #2 per D-028, then merge when it passes (agent-executable at autonomy level 4 per D-031 once pr-manager lifecycle converges); flip spec-lint to required status check at Phase 1 approval per D-029 |
+| ~~BI-005~~ | DI-012 (slug fidelity) VP coverage INSUFFICIENT; DI-013 PARTIAL — VP-018's 16 golden vectors were the only pin on github-slugger parity; 1-based duplicate counter bug (setup→setup-2 vs setup→setup-1) would pass VP-003 injectivity because outputs remain distinct (FM-002 unprovable) | ~~HIGH~~ CLOSED | ~~phase-1 gate~~ RESOLVED | architect | CLOSED at spec level 2026-08-06. VP-026 authored; FM-002 now covered. Residual implementation risk tracked as BI-007. |
 | BI-007 | VP-026 is SPECIFIED but UNIMPLEMENTED — no Rust workspace exists yet (Phase 3 not started). Until the differential proptest and its pinned `github-slugger@2.0.0` oracle corpus are implemented and green, the product can still emit non-GitHub-fidelity slugs (FM-002) behind a fully green verification suite. Successor to BI-005. | HIGH | phase-6 (formal hardening) — NOT phase-1 | implementer | Phase 3 must implement VP-026 per its Phase 3 Implementation Obligation table; VP-026 must be green before Phase 6 hardening can pass. Story decomposition (Phase 2) MUST generate a story traced to VP-026. |
-| BI-008 | P4-014: TEN VP harnesses are specified at `tests/<subdir>/<name>.rs`, which Cargo does NOT auto-discover as test targets. As specified, VP-011, VP-014..018, VP-020, VP-025, VP-026 would compile to nothing and report green while never executing. Verified independently by the orchestrator: Cargo discovers `tests/*.rs` and `tests/<dir>/main.rs` only. | CRITICAL | phase-3 AND phase-6 gate | architect | Choose one test-target convention, record it in `architecture/tooling-selection.md` as a new "Test Target Layout" section, update all 10 VP path comments. Add CI positive-coverage assertion that harness count >= expected. |
-| BI-009 | P4-001: BC-2.06.001 Invariant 2 says HTML element TEXT is DISCARDED (`## <kbd>Ctrl+C</kbd>` -> `""`); DI-012 rule 1 and BOTH new BI-005 golden vectors (VP-018, VP-026) say it is RETAINED. Irreconcilable expected outputs for the same input, on the product's headline differentiator. BC-2.06.001 is the declared source_bc of both VPs. | CRITICAL | phase-2 (blocks story decomposition) | architect | Adjudicate empirically against github-slugger@2.0.0 + pulldown-cmark token stream, amend the losing side, add a discriminating vector to test-vectors.md section 7, record as a DD entry so it cannot silently re-flip. |
-| BI-010 | P4-002: VP-025 was authored against an API that does not exist — `AnchorTable` type, `resolve_anchor` return type, and its central "closed two-variant enum" property all contradict `api-surface.md` (which declares `HashSet<String>` and the THREE-variant `Verdict`). Harness cannot compile (non-exhaustive match, E0004). VP-025 was the closure for INC-MAP-001, which `bc-module-map.md:386` marks RESOLVED. | CRITICAL | phase-3 | architect | Adjudicate the type in api-surface.md (source of truth), decide whether the anchor table carries line numbers, rewrite VP-025 against the adjudicated signature, RE-OPEN INC-MAP-001 until it lands. |
-| BI-011 | P4-012: VP-026's oracle corpus test passes VACUOUSLY on an empty or truncated corpus — no positive-coverage assertion, and the R-001..R-008 requirement is prose-only. A generator bug emitting only 2 of 8 runs yields a green VP-026 and satisfies the Phase 6 gate while 5 of 7 DI-012 rules have zero oracle coverage. | HIGH | phase-6 gate | architect | Add required-run-id assertions, an R-001 >=3-entry assertion, an entries-checked counter, and a POL-11 positive-coverage log line. Record in VP-026's Phase 3 obligation table. |
+| BI-010 | P4-002: VP-025 was authored against an API that does not exist — `AnchorTable` type, `resolve_anchor` return type, and its central "closed two-variant enum" property all contradict `api-surface.md` (which declares `HashSet<String>` and the THREE-variant `Verdict`). Harness cannot compile (non-exhaustive match, E0004). VP-025 was the closure for INC-MAP-001, which `bc-module-map.md:386` marks RESOLVED. | CRITICAL | phase-3 | architect | Architect rewrote VP-025 against the declared API (`AnchorTable(HashSet<String>)`, three-variant `Verdict`); property 4 replaced with 'Indeterminate is never returned'. INC-MAP-001 RE-OPENED in `bc-module-map.md` — closes only when Phase 3 implements it. |
 | BI-012 | Spec-topology defect: ~15 documents hand-maintain restatements of the same canonical facts (DI-001 sort key, AnchorTable/Finding field names, pipeline pass count, module->subsystem, module->ADR, slug golden vectors) with no generated source of truth. Six such facts are currently INCONSISTENT across their restatement sites. Adversary assesses this as the generator of the 32->34->39->37 novelty plateau and of the 8-of-12 partial-fix rate. | HIGH | phase-1 gate | devops-engineer + architect | Land 3 generators (`gen-bc-traceability.py`, `gen-slug-corpus.py`) plus a canonical-facts block + divergence checker. Adversary estimates this structurally eliminates 11 of 22 MAJOR+ findings and makes the class unrepeatable. |
+| BI-014 | C4-008: `VP-022` frontmatter declares `source_bc: "NFR-001"` but the VP validates NFR-008 (the ~500ms Tier A regression gate). Resolves-but-wrong citation class — invisible to `check-id-resolution` because NFR-001 exists. | MEDIUM | phase-1 gate | architect | Correct `source_bc` to NFR-008 after confirming against `nfr-catalog.md`. |
+| BI-015 | P4-017: NFR-006 names `test-vectors.md` §7 as its inputs but VP-018 implements a near-disjoint corpus (overlap 2 of 16). TV-S007 (`😄 emoji` → `-emoji`, leading hyphen) and TV-S010 (`` `--online` flag `` → `--online-flag`) are the hardest registry vectors and have no test anywhere. PO merged VP-018's unique rows into §7; the one-to-one transcription of §7 into VP-018's SLUG_CORPUS remains outstanding. | MEDIUM | phase-1 gate | architect + devops | Land `gen-slug-corpus.py` (part of BI-012) and generate VP-018's corpus from §7 rather than hand-maintaining it. |
+| BI-016 | PR #3 (`feature/spec-lint-hardening` → `develop`) OPEN and unreviewed: eliminates the vacuous-negative-test class (isolated temp trees, clean-pass assertions on all 11 tests, pre-flight + post-test structural guards, POL-11 coverage line) and fixes P4-021 (real bidirectional HS-INDEX↔wave-scenarios check, fence-based frontmatter scan, corrected success line/docstring, 64→66 BC row detection). | MEDIUM | phase-2 | pr-manager | Run the full pr-manager review lifecycle per D-028, then merge at level-4 autonomy per D-031. |
 
 ## Session Resume Checkpoint
 
@@ -159,17 +164,17 @@ Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-030`
 | Field | Value |
 |-------|-------|
 | **Date** | 2026-08-06 |
-| **Position** | phase-1d; adversary pass 4 COMPLETE; 37 findings (3C/19M/15m); FINDINGS_REMAIN; zero in enforced classes; 0 of 3 clean passes; trajectory-tail →32→34→39→37 |
+| **Position** | phase-1d; pass-4 remediation COMPLETE; PR #2 merged 2290cb0; PR #3 open; 0 of 3 clean passes; trajectory-tail →32→34→39→37 |
 | **Convergence counter** | 0 of 3 clean passes |
-| **Next burst** | BI-009 adjudication + BI-008/BI-011 closure + BI-012 generators, THEN pass 5 per D-036 |
+| **Next burst** | PR #3 review lifecycle + BI-012 generators, THEN pass 5 per D-036/D-040 |
 
-Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 7 ADRs | 29 DD decisions | 19 policies | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-031 through D-037 (exhaustive) recorded. BI-005 CLOSED; BI-006/BI-007/BI-008/BI-009/BI-010/BI-011/BI-012 open.
+Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-031..D-042 (exhaustive) recorded. BI-005/BI-006/BI-008/BI-009/BI-011/BI-013 CLOSED; BI-007/BI-010/BI-012/BI-014/BI-015/BI-016 open.
 
 ## Concurrent Cycles
 
 | Cycle | Status | Notes |
 |-------|--------|-------|
-| phase-1d | in-progress | adversarial spec convergence; trajectory-tail →32→34→39→37; pass-4 COMPLETE — 37 findings; zero in enforced classes; next = BI-009/BI-008/BI-011/BI-012 remediation, then pass 5 |
+| phase-1d | in-progress | adversarial spec convergence; trajectory-tail →32→34→39→37; pass-4 remediation COMPLETE — PR #2 merged; next = PR #3 review + BI-012 generators, then pass 5 |
 
 ## Historical Content
 

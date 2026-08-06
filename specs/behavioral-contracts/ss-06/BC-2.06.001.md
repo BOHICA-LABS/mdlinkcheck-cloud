@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -23,6 +23,7 @@ modified:
   - "v1.1: clarified Invariant 2 — code-span TEXT is included in rendered text; HTML element text is NOT included; disambiguates heading title vs rendered text content per NOTE-4 in feasibility-review.md"
   - "v1.2: (F-029) fixed PC2 self-contradiction (split into non-empty and empty-heading cases); added PC3 stating counter is keyed on computed slug; added emoji-collision edge cases EC-059/EC-060"
   - "v1.3: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.4: (P4-001) Corrected Invariant 2: HTML element visible text IS retained (ADR-008 §HTML-Text Rendering Adjudication, DI-012 rule 1). Supersedes v1.1 Invariant-2 entry which stated the opposite. (EC-collision) EC-060→EC-190 (EC-060 canonical owner is BC-2.08.001 per test-vectors.md registry). (C4-003/C4-006) L2 Domain Invariants DI-008→DI-012; VP-026 added to Verification Properties."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -70,10 +71,13 @@ v2 output for all inputs in the test vector corpus.
    - **Code spans (inline code):** the text node inside the backtick span IS included in the
      rendered text; only the backtick markup is discarded. A heading `` ## `foo` bar `` yields
      rendered text `"foo bar"` → slug `"foo-bar"`.
-   - **HTML elements:** NEITHER the tag markup NOR the text content inside HTML elements
-     contributes to the rendered text. A heading `## <kbd>Ctrl+C</kbd>` yields rendered text
-     `""` (empty). This distinction between "code span includes text" and "HTML element excludes
-     text" matches github-slugger v2 / GitHub's rendering behavior.
+   - **HTML elements:** Tag markup tokens (e.g., `<kbd>`, `</kbd>`) are stripped; the
+     visible TEXT CONTENT between the tags IS retained. A heading `## <kbd>Ctrl+C</kbd>`
+     yields rendered text `"ctrlc"` → slug `"ctrlc"`. This matches pulldown-cmark's
+     InlineHtml event model (ADR-003): `InlineHtml("<kbd>")` carries only the tag bytes;
+     the text "Ctrl+C" arrives as a separate `Text` event and is retained.
+     DI-012 rule 1: "HTML tags contribute nothing (tag tokens are stripped; their visible
+     text content, if any, is retained)."
 3. The space→hyphen step is 1:1 (a heading `## A  B` with two spaces produces `"a--b"`, NOT `"a-b"`).
 
 ## Edge Cases
@@ -86,7 +90,7 @@ v2 output for all inputs in the test vector corpus.
 | EC-047 | `## A  B` (two spaces) |
 | EC-048 | `##` (empty heading) |
 | EC-059 | `## 🦀Rust` (emoji directly adjacent to word) |
-| EC-060 | `## 🦀Rust` followed by `## 🎯Rust` |
+| EC-190 | `## 🦀Rust` followed by `## 🎯Rust` |
 
 ## Canonical Test Vectors
 | Input (heading text) | Expected Slug | Source |
@@ -97,7 +101,7 @@ v2 output for all inputs in the test vector corpus.
 | "A  B" (2 spaces) | "a--b" | DD-015 #4 |
 | "" (empty) | "" | DD-015 #5 |
 | "🦀Rust" | "rust" | EC-059 — emoji stripped, remaining word chars slugged |
-| "🦀Rust" then "🎯Rust" | "rust", "rust-1" | EC-060 — emoji-collision; counter keyed on "rust" |
+| "🦀Rust" then "🎯Rust" | "rust", "rust-1" | EC-190 — emoji-collision; counter keyed on "rust" |
 
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
@@ -105,13 +109,14 @@ v2 output for all inputs in the test vector corpus.
 | VP-001, VP-018 | All DD-015 worked examples produce correct slugs | unit test (NFR-006) |
 | VP-002 | Space→hyphen is 1:1 (trap T1) | unit test |
 | VP-002 | Unicode word chars preserved (trap T2) | unit test |
+| VP-026 | Differential oracle against github-slugger@2.0.0 | differential oracle |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
 | L2 Capability | CAP-006 ("Compute heading anchor slugs using the pinned github-slugger v2 algorithm") per capabilities.md §CAP-006 |
 | Capability Anchor Justification | CAP-006 ("Heading Slug Computation") per capabilities.md §CAP-006 — this BC is the core slug algorithm contract |
-| L2 Domain Invariants | DI-008 |
+| L2 Domain Invariants | DI-012 (slug computation fidelity — all 7 rules) |
 | Brief Requirement | R2b, DD-015 |
 | Architecture Module | `slug.rs` (SS-06, pure core, CRITICAL tier) — ADR-006 (NFC strict path model; slug algorithm is the primary differentiator) |
 

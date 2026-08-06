@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: Three-input model alignment — Precondition 4 corrected: nonexistent PATH is an I/O error (recorded in io_errors), not a startup config/usage error. Preconditions 3 and 4 now cite verdict::exit_code parameter names. Invariants updated to name all three inputs."
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (EC-collision) EC-009 renamed to EC-184 (EC-009 canonical owner is BC-2.01.004 per test-vectors.md registry)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -52,7 +53,7 @@ configuration errors occurred. This is the success exit code. In terms of the pu
 ## Invariants
 1. Exit 0 means: the tool found no definitively broken links.
 2. Exit 0 is consistent with having indeterminate findings.
-3. Zero files found → exit 0 (EC-009).
+3. Zero files found → exit 0 (EC-184).
 4. All three inputs to `verdict::exit_code(findings, io_errors, config_error) → u8` must be "empty/false": no broken findings, `io_errors = []`, `config_error = false`. Any non-empty input in `io_errors` or `config_error = true` produces exit 2, not exit 0.
 
 ## Edge Cases
@@ -60,7 +61,7 @@ configuration errors occurred. This is the success exit code. In terms of the pu
 |----|-------------|
 | EC-142 | Scan with 0 findings |
 | EC-143 | Scan with indeterminate findings only |
-| EC-009 | Empty directory (no .md files) |
+| EC-184 | Empty directory (no .md files) |
 
 ## Canonical Test Vectors
 | Scenario | Expected Exit |

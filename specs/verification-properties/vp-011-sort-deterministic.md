@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
+version: "1.2"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -9,7 +9,7 @@ phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
-input-hash: "012887b"
+input-hash: "9c1a1a8"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.12.001
 module: reporter
@@ -21,6 +21,9 @@ proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
 modified:
+  - version: "1.2"
+    date: 2026-08-06
+    change: "P4 remediation: (P4-004) sort key updated from 3-field to 4-field: added link_target as 4th tie-break field in Property Statement and Source Contract. (P4-006) integration harness restructured to implement DI-001's actual falsifying method — baseline captured at RAYON_NUM_THREADS=1, compared against 2/4/8/16; no longer compares same-thread-count twice (which cannot detect rayon scheduling non-determinism); use env!(CARGO_BIN_EXE_mdlinkcheck) instead of cargo run; positive-coverage assertion added (POL-11); --online gap documented as Phase 3 obligation. (P4-014) test file path corrected: tests/integration/determinism.rs → tests/integration_determinism.rs (flat Cargo-discoverable layout)."
   - version: "1.1"
     date: 2026-08-05
     change: "P2-M05 + P2-M16 remediation: corrected source BC title from invented 'BC-2.12.001 — Deterministic Output Ordering' to actual H1 'Text report format — one finding per line'. Added DI-001 binary-output-stable integration harness that runs the binary twice under varying RAYON_NUM_THREADS and byte-compares stdout — the proptest harnesses do not exercise rayon scheduling, which is the actual source of non-determinism DI-001 exists to neutralize."
@@ -38,12 +41,12 @@ removal_reason: null
 
 ## Property Statement
 
-For any `Vec<Finding>` input (regardless of initial order), applying `sort_unstable_by_key(|f| (nfc_normalize(&f.path), f.line, f.col))` twice on two independent copies of the same collection produces byte-identical sequences. Equivalently: the sort key function induces a total order on findings, and the resulting sorted sequence is independent of initial order. This is DI-001.
+For any `Vec<Finding>` input (regardless of initial order), applying `sort_unstable_by_key(|f| (nfc_normalize(&f.path), f.line, f.col, &f.link_target))` twice on two independent copies of the same collection produces byte-identical sequences. Equivalently: the sort key function induces a total order on findings, and the resulting sorted sequence is independent of initial order. This is DI-001.
 
 ## Source Contract
 
 - **BC:** BC-2.12.001 — Text report format — one finding per line
-- **Postcondition/Invariant:** DI-001 — output ordering is deterministic; sort key is (NFC path, line, col).
+- **Postcondition/Invariant:** DI-001 — output ordering is deterministic; sort key is (NFC path, line, col, link_target).
 
 **Coverage note:** The proptest harnesses below verify that `sort_findings` is a
 deterministic total order on `Vec<Finding>`. They do NOT exercise rayon scheduling,
@@ -96,28 +99,41 @@ proptest! {
 ### DI-001 Binary-Output Stable Integration Harness
 
 ```rust
-// tests/integration/determinism.rs  (Phase 3)
-// Runs the mdlinkcheck binary twice on the Tier A corpus under different
-// RAYON_NUM_THREADS values and byte-compares stdout. This is the only harness
-// that can detect rayon-scheduling-induced non-determinism (DI-001).
+// tests/integration_determinism.rs  (Phase 3)
+// Runs the mdlinkcheck binary on the Tier A corpus under DIFFERENT RAYON_NUM_THREADS
+// values and byte-compares stdout across thread counts. This is the ONLY harness that
+// can detect rayon-scheduling-induced non-determinism (DI-001's falsifying method).
+// NOTE: use env!("CARGO_BIN_EXE_mdlinkcheck") — invoking `cargo run` inside `cargo test`
+// can block on the build lock.
+
+fn run_binary(corpus: &str, args: &[&str], threads: &str) -> Vec<u8> {
+    let bin = env!("CARGO_BIN_EXE_mdlinkcheck");
+    std::process::Command::new(bin)
+        .arg(corpus)
+        .args(args)
+        .env("RAYON_NUM_THREADS", threads)
+        .output()
+        .unwrap_or_else(|e| panic!("failed to run mdlinkcheck: {}", e))
+        .stdout
+}
+
 #[test]
 fn vp011_binary_output_stable_text() {
     let corpus = std::env::var("TIER_A_CORPUS")
         .unwrap_or_else(|_| "tests/bench-corpus/tier-a".to_string());
 
-    for threads in &["1", "4", "16"] {
-        let run1 = std::process::Command::new("cargo")
-            .args(&["run", "--", &corpus])
-            .env("RAYON_NUM_THREADS", threads)
-            .output().expect("run1 failed");
-        let run2 = std::process::Command::new("cargo")
-            .args(&["run", "--", &corpus])
-            .env("RAYON_NUM_THREADS", threads)
-            .output().expect("run2 failed");
+    // Capture baseline at RAYON_NUM_THREADS=1, then compare against other thread counts.
+    // DI-001 requires identical output under ANY scheduler conditions — not just two
+    // same-thread runs. Comparing run@1 vs run@16 exercises the rayon ordering variation.
+    let baseline = run_binary(&corpus, &[], "1");
+    assert!(!baseline.is_empty(), "baseline run produced no output");
 
-        assert_eq!(run1.stdout, run2.stdout,
-            "Stdout differs between run 1 and run 2 with RAYON_NUM_THREADS={}", threads);
+    for threads in &["2", "4", "8", "16"] {
+        let out = run_binary(&corpus, &[], threads);
+        assert_eq!(baseline, out,
+            "DI-001: stdout at RAYON_NUM_THREADS={} differs from RAYON_NUM_THREADS=1", threads);
     }
+    eprintln!("VP-011 text: {} bytes validated stable across thread counts 1/2/4/8/16", baseline.len());
 }
 
 #[test]
@@ -125,20 +141,23 @@ fn vp011_binary_output_stable_json() {
     let corpus = std::env::var("TIER_A_CORPUS")
         .unwrap_or_else(|_| "tests/bench-corpus/tier-a".to_string());
 
-    for threads in &["1", "16"] {
-        let run1 = std::process::Command::new("cargo")
-            .args(&["run", "--", "--format", "json", &corpus])
-            .env("RAYON_NUM_THREADS", threads)
-            .output().expect("run1 json failed");
-        let run2 = std::process::Command::new("cargo")
-            .args(&["run", "--", "--format", "json", &corpus])
-            .env("RAYON_NUM_THREADS", threads)
-            .output().expect("run2 json failed");
+    let baseline = run_binary(&corpus, &["--format", "json"], "1");
+    assert!(!baseline.is_empty(), "baseline JSON run produced no output");
 
-        assert_eq!(run1.stdout, run2.stdout,
-            "JSON stdout differs between runs with RAYON_NUM_THREADS={}", threads);
+    for threads in &["2", "4", "16"] {
+        let out = run_binary(&corpus, &["--format", "json"], threads);
+        assert_eq!(baseline, out,
+            "DI-001: JSON stdout at RAYON_NUM_THREADS={} differs from RAYON_NUM_THREADS=1", threads);
     }
+    eprintln!("VP-011 JSON: {} bytes validated stable across thread counts", baseline.len());
 }
+
+// NOTE: RAYON_NUM_THREADS does not affect the 32-thread dedicated HTTP pool
+// (ADR-005:71-72: "fixed and does not scale with CPU count"). An --online variant
+// is required to exercise output determinism of the HTTP path.
+// Phase 3 obligation: add vp011_binary_output_stable_online() that runs
+// against a controlled httpmock fixture server. Omitted here because the
+// httpmock server URL cannot be passed via RAYON_NUM_THREADS.
 ```
 
 ## Feasibility Assessment

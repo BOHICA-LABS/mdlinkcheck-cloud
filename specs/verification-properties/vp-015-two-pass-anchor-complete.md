@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
+version: "1.2"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -9,7 +9,7 @@ phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
-input-hash: "012887b"
+input-hash: "9c1a1a8"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.05.001
 module: anchor_table
@@ -21,6 +21,9 @@ proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
 modified:
+  - version: "1.2"
+    date: 2026-08-06
+    change: "(P4-014) test file path corrected: tests/integration/two_pass_anchor.rs → tests/integration_two_pass_anchor.rs (flat Cargo-discoverable layout per tooling-selection.md §Test Target Layout)."
   - version: "1.1"
     date: 2026-08-05
     change: "P2-M14 remediation: added out-of-scan-target fixture (target outside scan root, handled by Pass 1.5); replaced vacuous reverse-reference fixture (where target lexicographically precedes source — not a meaningful ordering test) with a fixture that explicitly places the target file at a path that sorts AFTER the source file (z_target.md > a_source.md), making the two-pass ordering dependency visible."
@@ -54,7 +57,7 @@ The pipeline builds the complete anchor table for ALL scanned files during Pass 
 ## Proof Harness Skeleton
 
 ```rust
-// tests/integration/two_pass_anchor.rs
+// tests/integration_two_pass_anchor.rs  (flat layout per tooling-selection.md §Test Target Layout)
 
 // Fixture 1: forward reference — source sorts BEFORE target lexicographically.
 // In a single-pass implementation, a.md would be resolved before z_target.md's

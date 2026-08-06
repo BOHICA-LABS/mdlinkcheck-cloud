@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 supplements:
   - prd-supplements/interface-definitions.md
@@ -360,7 +360,7 @@ Nothing may fail with a reason outside this closed set.
 
 > **Supplement:** Canonical test vectors in `prd-supplements/test-vectors.md`.
 
-182 edge cases registered (EC-001..EC-183) and 16 correctness traps (T1–T16) converted to executable test vectors. Includes the self-referential BV-013 vector: `mdlinkcheck BRIEF.md` MUST exit 0 (TV-BV013 is now a visible required test vector per D-010). Holdout vectors **(EC-079, EC-093, EC-094, EC-141, EC-147, EC-148, EC-151, EC-156, EC-165, EC-166, EC-167, EC-168)** reserved for holdout evaluation and NOT in the visible test suite — 12 holdouts total. EC-151 is the BV-013 holdout scenario (D-010). EC-036, EC-049, EC-074, EC-157, EC-158 burned to visible tests (D-020): their holdout designation is retired; they are now normal visible tests in the suite — vectors TV-036, TV-049, TV-074, TV-157, TV-157b, TV-158, TV-158b are present in test-vectors.md v1.6 (P3-005 hotfix). DI-002/D-006/T12 flagship differentiator (KD-004 — case-sensitive filename comparison) now has falsifiable visible coverage via TV-036. EC-165..EC-168 are fresh replacement hidden scenarios (D-020) covering the same risk clusters; concrete inputs and expected outputs are stored ONLY in `.factory/holdout-scenarios/wave-scenarios/` per POL-18.
+203 edge cases registered (EC-001..EC-204) and 16 correctness traps (T1–T16) converted to executable test vectors. Includes the self-referential BV-013 vector: `mdlinkcheck BRIEF.md` MUST exit 0 (TV-BV013 is now a visible required test vector per D-010). Holdout vectors **(EC-079, EC-093, EC-094, EC-141, EC-147, EC-148, EC-151, EC-156, EC-165, EC-166, EC-167, EC-168)** reserved for holdout evaluation and NOT in the visible test suite — 12 holdouts total. EC-151 is the BV-013 holdout scenario (D-010). EC-036, EC-049, EC-074, EC-157, EC-158 burned to visible tests (D-020): their holdout designation is retired; they are now normal visible tests in the suite — vectors TV-036, TV-049, TV-074, TV-157, TV-157b, TV-158, TV-158b are present in test-vectors.md v1.6 (P3-005 hotfix). DI-002/D-006/T12 flagship differentiator (KD-004 — case-sensitive filename comparison) now has falsifiable visible coverage via TV-036. EC-165..EC-168 are fresh replacement hidden scenarios (D-020) covering the same risk clusters; concrete inputs and expected outputs are stored ONLY in `.factory/holdout-scenarios/wave-scenarios/` per POL-18.
 
 ---
 
@@ -441,8 +441,8 @@ Nothing may fail with a reason outside this closed set.
 | BC-2.05.001 | CAP-005 | DI-006,DI-008 | R5 | P0 | integration |
 | BC-2.05.002 | CAP-005 | DI-008 | R5 | P0 | unit |
 | BC-2.05.003 | CAP-005 | DI-008 | R5 | P1 | unit |
-| BC-2.06.001 | CAP-006 | — | R2b | P0 | unit/property |
-| BC-2.06.002 | CAP-006 | — | R2b | P0 | unit |
+| BC-2.06.001 | CAP-006 | DI-012 | R2b | P0 | unit/property |
+| BC-2.06.002 | CAP-006 | DI-013 | R2b | P0 | unit |
 | BC-2.07.001 | CAP-007 | DI-002,DI-003 | R2a | P0 | unit |
 | BC-2.07.002 | CAP-007 | DI-002 | R2a | P1 | integration |
 | BC-2.07.003 | CAP-007 | DI-002 | R2a | P0 | unit/property |

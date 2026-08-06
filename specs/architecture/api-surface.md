@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: api-surface
-version: "1.3"
+version: "1.4"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -11,9 +11,12 @@ inputs:
   - .factory/specs/prd.md
   - .factory/specs/prd-supplements/interface-definitions.md
   - .factory/specs/domain-spec/capabilities.md
-input-hash: "abee7b4"
+input-hash: "f3758cf"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.4"
+    date: 2026-08-06
+    change: "P4 remediation: (P4-022) added format_summary() to reporter API surface — produces the stderr summary line separately from format_text() stdout body. (P4-004) updated JSON sort key comment from 3-field to 4-field (NFC-file, line, column, link_target) per DI-001/ADR-005 v1.3."
   - version: "1.3"
     date: 2026-08-05
     change: "P2-M12 remediation: corrected comment on line 82 from 'DirIndex populated by scanner Pass 1.5' to 'DirIndex populated by app Pass 1.5' — scanner traverses only the scan root in Pass 1; app opens out-of-scan target directories directly in Pass 1.5"
@@ -104,7 +107,8 @@ pub fn should_ignore(path: &Path, patterns: &GlobSet) -> bool;
 pub fn should_allow(url: &str, prefixes: &[AllowPrefix]) -> bool;
 
 // reporter.rs — CAP-012, CAP-013, pure
-pub fn format_text(findings: &[Finding], opts: TextReportOpts) -> String;
+pub fn format_text(findings: &[Finding], opts: TextReportOpts) -> String;   // stdout body
+pub fn format_summary(findings: &[Finding], io_errors: &[IoError]) -> String; // stderr summary line
 pub fn format_json(findings: &[Finding]) -> String;  // schema_version: 1
 
 // verdict.rs — CAP-014, DI-010, DI-011, pure, Kani target
@@ -135,7 +139,7 @@ pub struct ExtractedLink { pub dest: String, pub kind: LinkKind, pub line: u32, 
 ```
 
 `indeterminate` results ARE included. Compact (not pretty-printed). Findings sorted
-by (NFC-file, line, column) before serialization (DI-001).
+by (NFC-file, line, column, link_target) before serialization (DI-001).
 
 ## [Section Content]
 

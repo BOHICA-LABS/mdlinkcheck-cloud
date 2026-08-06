@@ -2,7 +2,7 @@
 document_type: prd-supplement
 supplement_type: nfr-catalog
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/prd.md
 primary_consumers: [architect, performance-engineer]
 ---
@@ -73,9 +73,9 @@ primary_consumers: [architect, performance-engineer]
 | **ID** | NFR-003 |
 | **Category** | Correctness / Determinism |
 | **Status** | active |
-| **Requirement** | Two invocations of `mdlinkcheck` with identical inputs, flags, and environment produce byte-identical stdout |
+| **Requirement** | Two invocations of `mdlinkcheck` with identical inputs and flags, under any thread-scheduling environment, produce byte-identical stdout |
 | **Target** | 100% — zero tolerance for nondeterminism |
-| **Validation method** | Property test: run twice with identical inputs, diff stdout. Integrated into standard test suite. |
+| **Validation method** | Property test: (1) run twice with identical inputs on the same fixture, diff stdout; (2) diff stdout across `RAYON_NUM_THREADS=1` and `RAYON_NUM_THREADS=4` on the same fixture. Both must produce empty diffs. Integrated into standard test suite. |
 | **Source** | DI-001, BV-015, EC-147, DD-012 |
 
 ---
@@ -117,7 +117,7 @@ primary_consumers: [architect, performance-engineer]
 | **Category** | Correctness |
 | **Status** | active |
 | **Requirement** | All worked examples from DD-015 (market-intelligence §4.1) pass as unit tests in the slug module |
-| **Target** | 100% — all 16 worked examples + DEC-001 collision case pass |
+| **Target** | 100% — all 16 worked examples in SLUG_CORPUS pass (TV-S001..TV-S016; TV-S012 is the DEC-001 collision-bump triple, not a separate item) |
 | **Validation method** | Unit test suite for `slug_compute` module; run on every commit |
 | **Source** | R-001, R-002, DD-015, ASM-008 |
 | **Test inputs** | See test-vectors.md §7 (slug algorithm vectors) |

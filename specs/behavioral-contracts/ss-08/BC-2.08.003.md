@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "e860246"
+input-hash: "c3e82ce"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.0.0
 modified:
   - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
+  - "v1.2: (EC-collision) EC-076→EC-197 (double-hash malformed fragment case; EC-076 canonical owner is BC-2.05.001 per test-vectors.md)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -56,7 +57,7 @@ treated as a fragment separator; it is decoded to `#` and is part of the path.
 |----|-------------|
 | EC-032 | `a%23b.md` |
 | EC-035 | `a%20b.md#section` |
-| EC-076 | `a.md##double-hash` |
+| EC-197 | `a.md##double-hash` |
 
 ## Canonical Test Vectors
 | Destination | Path Component | Fragment |

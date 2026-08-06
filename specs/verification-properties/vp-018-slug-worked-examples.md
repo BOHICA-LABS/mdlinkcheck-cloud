@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.2"
+version: "1.3"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -10,7 +10,7 @@ inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
   - .factory/planning/market-intelligence.md
-input-hash: "fecba47"
+input-hash: "acab0d6"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.06.001
 module: slug
@@ -22,6 +22,9 @@ proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
 modified:
+  - version: "1.3"
+    date: 2026-08-06
+    change: "P4 remediation: (P4-032) added 'use mdlinkcheck_core::slug::{compute_slug, DuplicateCounter};' import to harness. (P4-014) test file path corrected: tests/unit/slug_corpus.rs → tests/unit_slug_corpus.rs (flat layout). (P4-013) NFC comment on résumé row expanded to explain NFD asymmetry and reference ADR-008 §NFC/NFD ruling. (P4-010) Rule-1 corpus row re-labeled Rule-1a (pre-rendered only); added NOTE clarifying Rule 1b (rendering fidelity) is deferred to Phase 3 integration test."
   - version: "1.2"
     date: 2026-08-06
     change: "BI-005 spec-level closure: (1) added DI-012 Rule 3 falsifying case (AI & Automation → ai--automation); (2) added DI-012 Rule 7 falsifying case (Hello 🌍 → hello-); (3) added DI-012 Rule 1 pre-rendered golden vector (code text → code-text, sourced from ## `code` <em>text</em>); (4) added vp018_duplicate_heading_counter_0_based() — FM-002 discriminator, three ## Setup repeats → setup / setup-1 / setup-2; (5) added DI-012 Rule 1 end-to-end integration skeleton (Phase 3). VP-026 is the comprehensive differential oracle; these vectors are defense-in-depth."
@@ -66,9 +69,10 @@ separately with a **shared counter** (see below).
 ## Proof Harness Skeleton
 
 ```rust
-// tests/unit/slug_corpus.rs
+// tests/unit_slug_corpus.rs  (Phase 3 — flat layout per tooling-selection.md §Test Target Layout)
 // Reference corpus from market-intelligence §4.1 / gene-transfusion-assessment §1
 // Each row tested with an independent fresh DuplicateCounter.
+use mdlinkcheck_core::slug::{compute_slug, DuplicateCounter};
 
 const SLUG_CORPUS: &[(&str, &str)] = &[
     // Basic ASCII
@@ -93,7 +97,10 @@ const SLUG_CORPUS: &[(&str, &str)] = &[
     ("  Leading spaces  ",  "--leading-spaces--"),
     // ALL CAPS → lowercased
     ("ALL CAPS",            "all-caps"),
-    // Accented preserved (NFC normalization)
+    // Accented preserved — NFC form: U+00E9 (é) is \p{L} (word char), retained as-is.
+    // NFD form "re\u{0301}sume\u{0301}" would produce "resume" (combining diacritics
+    // U+0301 are \p{Mn}, stripped as non-word chars). No normalization is applied before
+    // slugging — see DI-012 Normalization rule and ADR-008 §NFC/NFD ruling.
     ("résumé",              "résumé"),
     // Markdown link syntax: brackets and parentheses stripped
     ("[link text](url)",    "link-texturl"),
@@ -106,13 +113,15 @@ const SLUG_CORPUS: &[(&str, &str)] = &[
     // 🌍 (U+1F30D, EARTH GLOBE EUROPE-AFRICA) is stripped; the space before it → "-".
     // Trailing "-" is retained per Rule 5 (no trim step).
     ("Hello 🌍",               "hello-"),
-    // DI-012 Rule 1 pre-rendered golden vector (BI-005):
+    // DI-012 Rule 1a pre-rendered golden vector (BI-005):
     // Source heading: ## `code` <em>text</em>
     //   inline code span "code" → contributes text "code"
     //   HTML <em> tag stripped; visible text "text" retained
     // Rendered text (after AST processing per DI-012 Rule 1): "code text"
     // Expected slug: "code-text"
-    // End-to-end pipeline trace: vp018_di012_rule1_end_to_end() skeleton below.
+    // NOTE: this row tests the slug function with PRE-RENDERED input — the rendering
+    // step (Rule 1b: AST → text) is bypassed. Rule 1b is deferred to Phase 3 integration
+    // in vp018_di012_rule1_end_to_end() below. This row covers Rule 1a only.
     ("code text",              "code-text"),
 ];
 
