@@ -156,6 +156,10 @@ def main() -> int:
     dry_run = "--dry-run" in sys.argv
 
     bc_data = collect_bc_data()
+    if not bc_data:
+        print("ERROR: gen-bc-index: discovered 0 BC files — refusing to overwrite BC-INDEX.md frontmatter", file=sys.stderr)
+        print("  Check that BC_DIR exists and contains BC-*.md files:", BC_DIR, file=sys.stderr)
+        sys.exit(1)
     all_ss = sorted(set(info["ss"] for info in bc_data.values()),
                     key=lambda s: int(re.search(r"\d+", s).group()))
 

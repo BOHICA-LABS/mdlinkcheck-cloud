@@ -76,7 +76,11 @@ def is_concrete_scenario_row(line: str, ec_id: str) -> bool:
     in addition to an EC ID.
     """
     verdict_pattern = re.compile(
-        r"\b(alive|broken|indeterminate|clean|exit\s+[012]|exit-[012])\b",
+        r"\b(alive|broken|indeterminate|clean|exit\s+code\s+[012]|exit\s+[012]|exit-[012])\b"
+        r"|\b(dns-failure|tls-error|file-not-found|connection-timeout|cert-error|redirect-loop"
+        r"|too-many-redirects|blocked-by-robots|http-error|private-ip|malformed-url"
+        r"|scheme-not-supported|io-error)\b"
+        r"|\breason[-:]",
         re.IGNORECASE,
     )
     return bool(verdict_pattern.search(line))
@@ -135,7 +139,7 @@ def main() -> int:
                 continue
 
             # Check bare holdout IDs in concrete table rows
-            if line.startswith("|"):
+            if re.match(r"^\s*\|", line):
                 # Check bare holdout IDs
                 for m in bare_holdout_pattern.finditer(line):
                     ec_id = f"EC-{m.group(1)}"

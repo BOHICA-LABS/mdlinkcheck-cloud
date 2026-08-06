@@ -6,10 +6,7 @@ No ADR may assert an exit code, verdict class, or reason code that contradicts
 error-taxonomy.md or frozen brief R7.
 
 Checks:
-  1. Exit code claims: only "exit 0/1/2" or "exit code 0/1/2" with correct semantics
-     - exit 0 = no broken findings, no I/O errors
-     - exit 1 = at least one broken finding
-     - exit 2 = I/O error (beats exit 1)
+  1. Exit code 2 misapplied to broken-link outcomes (instead of I/O errors)
   2. Reason codes: every named reason code must exist verbatim in the 13-code
      closed set from error-taxonomy.md
   3. Verdict class: external URLs use alive/broken/indeterminate as liveness outcomes;
@@ -57,13 +54,6 @@ def extract_closed_reason_codes(taxonomy_path: Path) -> set[str]:
     return codes
 
 
-# Known legitimate exit-code semantics
-EXIT_CODE_MEANING = {
-    "0": "no broken findings, no I/O errors",
-    "1": "at least one broken finding",
-    "2": "I/O error",
-}
-
 # Patterns that indicate wrong semantics (exit 2 for broken links)
 def _dns_tls_indeterminate(line: str) -> bool:
     """Return True if line affirmatively classifies dns-failure or tls-error as indeterminate.
@@ -91,12 +81,12 @@ def _dns_tls_indeterminate(line: str) -> bool:
 
 
 WRONG_EXIT_PATTERNS = [
-    # "exit 2" applied to "broken" outcome (not I/O)
-    (re.compile(r"broken[^.]*exit\s+2", re.IGNORECASE),
+    # "exit 2" or "exit code 2" applied to "broken" outcome (not I/O)
+    (re.compile(r"broken[^.]*exit\s+(?:code\s+)?2", re.IGNORECASE),
      "exit 2 applied to broken-link outcome (must be exit 1)"),
-    (re.compile(r"exit\s+2[^.]*broken link", re.IGNORECASE),
+    (re.compile(r"exit\s+(?:code\s+)?2[^.]*broken link", re.IGNORECASE),
      "exit 2 applied to broken-link outcome (must be exit 1)"),
-    # "valid" as a verdict label — but NOT in a negation context ("not valid", "using 'valid' was wrong")
+    # "valid" as a verdict label — but NOT in a negation context
     (re.compile(r"(?<!not )\b(?:verdict|outcome)\s+[`'\"]?valid[`'\"]?\b", re.IGNORECASE),
      "'valid' used as a verdict/outcome label (use 'alive' for liveness or 'clean' for link verdict)"),
 ]

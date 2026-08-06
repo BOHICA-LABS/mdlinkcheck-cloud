@@ -173,8 +173,8 @@ def build_valid_adr_ids() -> set[str]:
 
 def build_valid_r_ids() -> set[str]:
     """Return R-NN requirement IDs from product-brief.md."""
-    ids = {"R1", "R2", "R2a", "R2b", "R2c", "R3", "R4", "R5", "R6", "R7", "R8",
-           "R-001", "R-002", "R-003", "R-004", "R-005", "R-006", "R-007", "R-008"}
+    ids = {"R1", "R2", "R2a", "R2b", "R2c", "R3", "R4", "R5", "R6", "R7", "R8", "R9",
+           "R-001", "R-002", "R-003", "R-004", "R-005", "R-006", "R-007", "R-008", "R-009"}
     if BRIEF.exists():
         for line in BRIEF.read_text(encoding="utf-8").splitlines():
             for m in re.finditer(r"\bR(\d+[a-c]?)\b", line):
@@ -273,7 +273,7 @@ def check_file(path: Path) -> list[str]:
             v(lineno, ref, "POL", VALID_POL)
 
         # R-NN requirement IDs: must be in product-brief.md
-        for m in re.finditer(r"\bR-?(\d{1,2}[a-c]?)\b", line):
+        for m in re.finditer(r"\bR-?(\d{1,3}[a-c]?)\b", line):
             ref = m.group(0)
             # Normalize to R-NNN form for lookup
             normalized = ref if ref.startswith("R-") else f"R-{m.group(1)}"

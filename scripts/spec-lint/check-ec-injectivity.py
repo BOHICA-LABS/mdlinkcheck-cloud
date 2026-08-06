@@ -51,7 +51,7 @@ def extract_ec_rows(path: Path) -> list[tuple[str, str, str, int]]:
     """
     Parse a Markdown file for EC table rows.
     Returns list of (ec_id, description, verdict_raw, lineno).
-    Looks for table rows matching | EC-NNNN... | description... | verdict... |
+    Handles both 2-column (EC-ID | desc) and 3-column (EC-ID | desc | verdict) formats.
     """
     rows = []
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -59,12 +59,19 @@ def extract_ec_rows(path: Path) -> list[tuple[str, str, str, int]]:
 
     for lineno, line in enumerate(lines[start:], start=start + 1):
         # Match table rows starting with EC-NNN (possibly sub-lettered)
-        m = re.match(r"^\|\s*(EC-(\d+[a-z]?))\s*\|\s*(.+?)\s*\|\s*(.+?)\s*\|", line)
-        if m:
-            ec_id = m.group(1)    # e.g. EC-060, EC-079b
-            desc = m.group(3).strip()
-            verdict_raw = m.group(4).strip()
-            rows.append((ec_id, desc, verdict_raw, lineno))
+        # Use flexible match: EC-ID followed by at least one more column
+        m = re.match(r"^\|\s*(EC-(\d+[a-z]?))\s*\|(.+)", line)
+        if not m:
+            continue
+        ec_id = m.group(1)
+        rest = m.group(3)
+        # Split remaining columns, skip separator rows (e.g. |---|---|)
+        cols = [c.strip() for c in rest.split("|") if c.strip() and not re.match(r"^-+$", c.strip())]
+        if not cols:
+            continue
+        desc = cols[0]
+        verdict_raw = cols[1] if len(cols) > 1 else ""
+        rows.append((ec_id, desc, verdict_raw, lineno))
     return rows
 
 

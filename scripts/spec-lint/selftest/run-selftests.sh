@@ -111,9 +111,12 @@ BCIX
 touch "$COUNTS_TEMP/.factory/specs/verification-properties/VP-INDEX.md"
 touch "$COUNTS_TEMP/.factory/specs/prd-supplements/nfr-catalog.md"
 touch "$COUNTS_TEMP/.factory/specs/prd-supplements/test-vectors.md"
+mkdir -p "$COUNTS_TEMP/.factory/specs/domain-spec"
 touch "$COUNTS_TEMP/.factory/specs/domain-spec/L2-INDEX.md"
 touch "$COUNTS_TEMP/.factory/specs/architecture/verification-coverage-matrix.md"
 touch "$COUNTS_TEMP/.factory/specs/architecture/ARCH-INDEX.md"
+touch "$COUNTS_TEMP/.factory/specs/module-criticality.md"
+touch "$COUNTS_TEMP/.factory/specs/domain-spec/decisions.md"
 cat > "$COUNTS_TEMP/.factory/specs/prd.md" <<'PRDSTUB'
 ---
 ---
@@ -131,17 +134,34 @@ else
 fi
 rm -rf "$COUNTS_TEMP"
 
-# ── 3. check-placeholders: test-sufficient in VP-NNN column (injected) ──────
-run_test "check-placeholders: test-sufficient in VP-NNN col (injected)" \
-    "check-placeholders" \
-    "$FIXTURE_DIR/bad-placeholder-test-sufficient.md" \
-    "$BC_DIR/SELFTEST-bad-placeholder-ts.md"
+# ── 3. check-placeholders: test-sufficient in VP-NNN column (isolated temp tree) ────
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest: check-placeholders: test-sufficient in VP-NNN col (isolated) ──"
+PH3_TEMP=$(mktemp -d)
+mkdir -p "$PH3_TEMP/.factory/specs/behavioral-contracts/ss-01"
+# Inject ONLY the bad fixture — clean tree with no other placeholder violations
+cp "$FIXTURE_DIR/bad-placeholder-test-sufficient.md" "$PH3_TEMP/.factory/specs/behavioral-contracts/ss-01/SELFTEST-placeholder-ts.md"
+if SPEC_LINT_REPO_OVERRIDE="$PH3_TEMP" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    echo "  FAIL (checker returned 0 — did NOT catch test-sufficient in VP-NNN col)"
+    FAILURES=$((FAILURES + 1))
+else
+    echo "  PASS (checker correctly returned non-zero on test-sufficient in VP-NNN col)"
+fi
+rm -rf "$PH3_TEMP"
 
-# ── 4. check-placeholders: injected VP-TBD in a live table row ────────────
-run_test "check-placeholders: injected live VP-TBD" \
-    "check-placeholders" \
-    "$FIXTURE_DIR/bad-live-vp-tbd.md" \
-    "$BC_DIR/SELFTEST-bad-vp-tbd.md"
+# ── 4. check-placeholders: VP-TBD in live table row (isolated temp tree) ────
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest: check-placeholders: injected live VP-TBD (isolated) ──"
+PH4_TEMP=$(mktemp -d)
+mkdir -p "$PH4_TEMP/.factory/specs/behavioral-contracts/ss-01"
+cp "$FIXTURE_DIR/bad-live-vp-tbd.md" "$PH4_TEMP/.factory/specs/behavioral-contracts/ss-01/SELFTEST-vp-tbd.md"
+if SPEC_LINT_REPO_OVERRIDE="$PH4_TEMP" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    echo "  FAIL (checker returned 0 — did NOT catch VP-TBD in live table row)"
+    FAILURES=$((FAILURES + 1))
+else
+    echo "  PASS (checker correctly returned non-zero on VP-TBD in live table row)"
+fi
+rm -rf "$PH4_TEMP"
 
 # ── 5. check-adr-consistency: wrong exit code semantics ───────────────────
 run_test "check-adr-consistency: exit 2 for broken link" \

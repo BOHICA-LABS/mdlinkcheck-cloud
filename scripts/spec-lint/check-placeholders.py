@@ -31,11 +31,12 @@ Scoping rule for VP-TBD / SS-TBD:
 
 Exit 1 if any placeholder found.
 """
+import os
 import re
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent.parent
+REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 SPECS = REPO / ".factory" / "specs"
 
 # Patterns and their policy origins

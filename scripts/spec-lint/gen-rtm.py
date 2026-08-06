@@ -149,6 +149,11 @@ def build_rtm_table(priorities: dict[str, str], test_types: dict[str, str]) -> s
 
         rows.append((bc_id, cap_clean, inv, req, priority, test_type))
 
+    if not rows:
+        print("ERROR: gen-rtm: discovered 0 BC files — refusing to overwrite prd.md §7 with empty table", file=sys.stderr)
+        print("  Check that BC_DIR exists and contains BC-*.md files:", BC_DIR, file=sys.stderr)
+        sys.exit(1)
+
     lines = [
         "| BC ID | Source (L2 CAP) | L2 Invariants | Brief Req | Priority | Test Type |",
         "|-------|----------------|---------------|-----------|----------|-----------|",
@@ -190,6 +195,8 @@ def main() -> int:
     priorities = get_bc_priorities()
     test_types = get_existing_test_types()
     rtm_table = build_rtm_table(priorities, test_types)
+    # Count actual BC rows in the built table (for accurate reporting)
+    actual_row_count = sum(1 for line in rtm_table.splitlines() if re.match(r"^\|\s*BC-", line))
 
     new_content, injected = inject_generated_region(content, rtm_table)
 
@@ -203,14 +210,13 @@ def main() -> int:
 
     if dry_run:
         print(f"-- DRY RUN: would update {PRD} §7 RTM --")
-        bc_count = len(priorities)
-        print(f"  {bc_count} BCs in RTM")
+        print(f"  {actual_row_count} BCs in RTM")
         return 0
 
     PRD.write_text(new_content, encoding="utf-8")
     print(f"Updated: {PRD}")
     print(f"  §7 RTM regenerated from BC frontmatter + traceability sections")
-    print(f"  {len(priorities)} BCs included")
+    print(f"  {actual_row_count} BCs included")
     return 0
 
 
