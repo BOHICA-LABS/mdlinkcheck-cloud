@@ -348,7 +348,9 @@ def main() -> int:
         hs_mapping = get_hs_ec_mapping()
         wave_ec_ids = get_actual_wave_scenario_ec_ids()
 
-        # Forward check: each authored HS entry's EC-NNN -> file exists in wave-scenarios
+        # Malformed-cell check: HS entries whose EC column is unrecognized format.
+        # Kept in its own checks+=1 block so a mutation targeting ONLY this block
+        # makes test 10d flip independently of the forward check.
         checks += 1
         for hs_id, ec_id in sorted(hs_mapping.items()):
             if ec_id == "MALFORMED":
@@ -356,7 +358,11 @@ def main() -> int:
                     f"{hs_index_path}: HS entry '{hs_id}' has a malformed or unrecognized EC cell "
                     f"(expected 'EC-NNN' or '~~EC-NNN~~')"
                 )
-            elif ec_id not in wave_ec_ids:
+
+        # Forward check: each authored (non-malformed) HS entry's EC-NNN -> file exists
+        checks += 1
+        for hs_id, ec_id in sorted(hs_mapping.items()):
+            if ec_id != "MALFORMED" and ec_id not in wave_ec_ids:
                 violations.append(
                     f"{hs_index_path}: HS entry '{hs_id}' maps to '{ec_id}' — "
                     f"no wave-scenarios file found for this EC ID"

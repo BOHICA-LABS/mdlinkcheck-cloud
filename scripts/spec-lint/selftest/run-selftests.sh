@@ -22,7 +22,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=15
+EXPECTED_TEST_COUNT=17
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -225,11 +225,13 @@ else
 fi
 
 if [ "$CLEAN_PASS" = "1" ]; then
-    # Defect: change total_bcs to 99 (mismatch with 0 actual rows)
+    # Defect: change total_bcs to 99 (mismatch with 0 actual rows).
+    # subsystems stays 0 (matching actual) so ONLY the total_bcs check fires —
+    # prevents over-determination via the subsystems check.
     cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX_BAD'
 ---
 total_bcs: 99
-subsystems: 1
+subsystems: 0
 ---
 | BC ID | Title | Priority | File |
 |-------|-------|----------|------|
@@ -521,7 +523,9 @@ else
 fi
 
 if [ "$CLEAN_PASS" = "1" ]; then
-    # Overwrite BC file with a WRONG H1 (different from BC-INDEX title)
+    # Overwrite BC file with a WRONG H1 (different from BC-INDEX title).
+    # Also update prd.md §2 to match the new H1 so ONLY the BC-INDEX check fires —
+    # prevents over-determination via the PRD §2 title check.
     cat > "$TITLE_BC_DIR/BC-2.01.001.md" <<'BCFILE_BAD'
 ---
 bc_id: BC-2.01.001
@@ -538,6 +542,16 @@ deprecated: null
 
 This title intentionally mismatches BC-INDEX to trigger check-title-sync.
 BCFILE_BAD
+    # prd.md updated to match the bad H1 so the PRD check does NOT fire
+    cat > "$T/.factory/specs/prd.md" <<'PRDFILE_BAD'
+---
+---
+## 2. Behavioral Contracts
+
+### 2.1 File Discovery
+
+| BC-2.01.001 | Wrong Title That Differs From Index | P0 |
+PRDFILE_BAD
     if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-title-sync.py" > /dev/null 2>&1; then
         echo "  FAIL (checker returned 0 — did NOT catch H1 vs BC-INDEX title mismatch)"
         FAILURES=$((FAILURES + 1))
@@ -752,6 +766,79 @@ if [ "$CLEAN_PASS" = "1" ]; then
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; malformed EC cell in HS-002 correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Guard test G1: SPEC_LINT_REPO_OVERRIDE pre-flight guard logic ──────────
+# D-040 applies recursively: the pre-flight guard that verifies checkers have
+# SPEC_LINT_REPO_OVERRIDE must itself be proven to fire for a bad checker.
+# This test validates the guard's grep pattern directly against stub files.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── guard selftest G1: SPEC_LINT_REPO_OVERRIDE pre-flight guard fires ──"
+T=$(make_temp)
+
+# Clean pass: guard correctly does NOT fire for a valid checker stub
+cat > "$T/good-checker.py" <<'GOODSTUB'
+REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
+GOODSTUB
+
+CLEAN_PASS=0
+if grep -qE "^REPO[[:space:]]*=.*SPEC_LINT_REPO_OVERRIDE" "$T/good-checker.py"; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: guard pattern fires on a valid SPEC_LINT_REPO_OVERRIDE assignment"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: bad checker lacks SPEC_LINT_REPO_OVERRIDE entirely
+    cat > "$T/bad-checker.py" <<'BADSTUB'
+REPO = Path("/hardcoded/path/without/override")
+BADSTUB
+    if grep -qE "^REPO[[:space:]]*=.*SPEC_LINT_REPO_OVERRIDE" "$T/bad-checker.py"; then
+        echo "  FAIL (guard did NOT detect missing SPEC_LINT_REPO_OVERRIDE in bad checker stub)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; guard correctly detects checker lacking SPEC_LINT_REPO_OVERRIDE)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Guard test G2: suppression-allowlist pre-flight guard logic ────────────
+# D-040 applies recursively: the suppression-allowlist guard must itself be proven
+# to fire for a checker that introduces KNOWN_COLLISIONS or similar constructs.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── guard selftest G2: suppression-allowlist pre-flight guard fires ──"
+T=$(make_temp)
+G2_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET)[[:space:]]*[=:]'
+
+# Clean pass: guard correctly does NOT fire for a checker with no suppression allowlists
+cat > "$T/clean-checker.py" <<'CLEANSTUB'
+REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
+# This checker has no suppression allowlists — all violations are reported
+CLEANSTUB
+
+CLEAN_PASS=0
+if ! grep -qE "$G2_PATTERN" "$T/clean-checker.py"; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: guard pattern fires on a clean checker with no suppression allowlists"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: bad checker introduces a KNOWN_COLLISIONS suppression allowlist
+    cat > "$T/bad-checker.py" <<'BADSTUB'
+KNOWN_COLLISIONS = {"EC-001", "EC-002"}  # hardcoded suppression allowlist
+BADSTUB
+    if ! grep -qE "$G2_PATTERN" "$T/bad-checker.py"; then
+        echo "  FAIL (guard did NOT detect KNOWN_COLLISIONS suppression allowlist in bad checker stub)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; guard correctly detects KNOWN_COLLISIONS suppression allowlist)"
     fi
 fi
 rm -rf "$T"

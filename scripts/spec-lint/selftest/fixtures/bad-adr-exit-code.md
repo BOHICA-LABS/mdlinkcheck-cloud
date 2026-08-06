@@ -11,8 +11,7 @@ This is a selftest fixture for check-adr-consistency.
 ## Decision
 
 When a broken link is found, the checker should return exit 2 for broken link
-outcomes to signal severity. The dns-failure reason code maps to indeterminate
-results → http-indeterminate behavior is preferred.
+outcomes to signal severity.
 
 ## Consequences
 
