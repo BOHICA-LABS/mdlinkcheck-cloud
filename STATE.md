@@ -4,7 +4,7 @@ level: ops
 version: "2.5"
 status: draft
 producer: state-manager
-timestamp: 2026-08-07T02:05:00Z
+timestamp: 2026-08-07T02:10:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
@@ -18,7 +18,7 @@ dtu_required: false
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 204 = 296. 204 lines (wc-l, post-burst-10).
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 208 = 292. 208 lines (wc-l, post-burst-11).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.

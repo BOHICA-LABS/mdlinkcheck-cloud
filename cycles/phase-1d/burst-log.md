@@ -445,3 +445,41 @@ PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001.
 **Dim-7 Attestation:** Agents dispatched: state-manager (this burst). Spec corrections applied from verified generator output (gen-bc-traceability.py, gen-slug-corpus.py, check-canonical-facts.py — orchestrator-run, not a separate agent dispatch).
 
 **Closes:** BI-012 (spec-topology generators built+verified; 14 divergent sites corrected). BI-015 (VP-018 SLUG_CORPUS generated from §7). **Opens:** BI-020 (PR #5 pending merge), BI-021 (check-canonical-facts.py worktree resolution), BI-022 (nightly toolchain unpin). **Updates:** BI-002 (pass 5 armed). D-051..D-053 recorded.
+
+---
+
+## Burst: burst 11 — Perimeter Sweep Shards 1,2,3,5 + Cross-Shard Synthesis (2026-08-07)
+
+**Parent-commit:** `af54a65` (factory-artifacts HEAD at pass-5 arm; BI-012/BI-015 CLOSED per burst-10)
+
+**Adversary verdict:** No new formal adversary pass in this burst. This is a parallel deep-perimeter scan of 46 BC bodies across 4 shards (1,2,3,5) producing 111 findings (19C/47H/45M). Trajectory unchanged: →0→32→34→39→37. pass count: 0 of 3. Shards 4,6,7,8 still running.
+
+**Files touched (Dim-1): 4 unique files**
+
+- `.factory/cycles/phase-1d/perimeter-sweep-shard-2.md` (NEW — shard 2: SS-03 + SS-04 + BC-2.06.002, 10 BC bodies, 4C/7H/13M = 24 findings; input-hash 43040b3)
+- `.factory/cycles/phase-1d/perimeter-sweep-shard-5.md` (NEW — shard 5: SS-11/12/13/14, 15 BC bodies, 6C/15H/11M = 32 findings; verdict: exit-code input domain not complete; input-hash c39268f)
+- `.factory/cycles/phase-1d/perimeter-sweep-synthesis.md` (NEW — cross-shard synthesis: shards 1,2,3,5 complete, 111 findings 19C, shards 4,6,7,8 pending; SKIP LIST UNSOUND finding; three unguarded axes; input-hash 6c1c123)
+- `.factory/STATE.md` — timestamp advanced; current_step updated; 5th row added to Current Phase Steps; BI-023/BI-024 opened in Blocking Issues; Concurrent Cycles updated; banner updated (204→208 lines, post-burst-11); Last Updated advanced to 2026-08-07
+
+**Key findings (governance-level):**
+
+1. **SKIP LIST UNSOUND (BI-023):** `check-placeholders.py` greps literal `VP-TBD` — em-dash `—` in VP-NNN column is a complete bypass (8/15 SS-11..14 BCs, 4/6 SS-03 BCs pass clean with zero VP coverage). `check-id-resolution.py` auto-synthesises `EC-NNNa..z` from base EC with no description check, AND matches only `EC-\d+` — silently skipping EC-NEW-NNN and EC-073b. Found independently by shards 1, 3, and 5. D-050's mutation-verification criterion is necessary but not sufficient.
+
+2. **THREE UNGUARDED AXES (BI-024):** (A) VP proof-method/tool mismatch — BC body says "unit test", VP-INDEX says Kani P0; 14+ instances, coverage matrix reports Yes; (B) fabricated quoted excerpts — 40% in SS-11..14, FM-002 guards silently dropped via CAP-006 fabrication in shard 2; (C) third-party library semantics claims — unverifiable, 3 of 4 shard-2 CRITICALs.
+
+3. **CORROBORATED findings (near-certain):** E-IO-002/E-CLI-001 phantom codes (3 independent shards), `sub_reason` absent from Finding struct, `format_json` cannot emit `errors[]`, `fs::canonicalize` forbidden but mandated, I/O errors as stdout findings, missing L2 Domain Invariants rows (~25% of BCs systemic).
+
+**Codifications:** BI-023 OPENED (skip-list soundness gap). BI-024 OPENED (three unguarded axes). No new D-NNN decisions — governance recommendations recorded in synthesis, requiring orchestrator adjudication.
+
+**Artifact state at burst close:**
+PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-053 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/019. Open: BI-007/010/016/017/018/020/021/022/023/024.
+
+**Dim-2 Attestation:** Shard counts verified: shard-2 frontmatter `counts: "4 CRITICAL / 7 HIGH / 13 MEDIUM = 24"` matches body finding count (P6-S2-001..024). Shard-5 frontmatter `counts: "6 CRITICAL / 15 HIGH / 11 MEDIUM = 32"` matches body (P6-S5-001..032). Synthesis frontmatter `findings_so_far: 111` = 27+24+28+32 confirmed.
+
+**Dim-5 Attestation:** STATE.md — 208 lines, timestamp 2026-08-07T02:10:00Z, version 2.5, status: draft, producer: state-manager. New cycle files: perimeter-sweep-shard-2.md (input-hash 43040b3), perimeter-sweep-shard-5.md (input-hash c39268f), perimeter-sweep-synthesis.md (input-hash 6c1c123). burst-log.md — 11 bursts.
+
+**Dim-6 Attestation:** IN_PROGRESS. Convergence counter 0 of 3 required clean passes. Trajectory →0→32→34→39→37. Not converged. Perimeter sweep still running (shards 4,6,7,8 pending). Pass 5 armed against frozen HEAD per BC-5.39.001/D-040/D-051.
+
+**Dim-7 Attestation:** Agents dispatched in this burst: adversary (perimeter shards 1,2,3,5 — parallel shard runs at frozen HEAD 1d3ed17), state-manager (this burst: files, STATE.md, burst-log). Total: 2 agent roles.
+
+**Opens:** BI-023 (skip-list soundness gap), BI-024 (three unguarded axes). **Closes:** nothing. **Updates:** BI-002 (perimeter sweep in progress, shards 4,6,7,8 pending).
