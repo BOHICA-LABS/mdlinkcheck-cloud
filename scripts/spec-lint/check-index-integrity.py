@@ -284,6 +284,27 @@ def main() -> int:
             f"{l2_index_path}: domain-spec file '{shard}' exists but is NOT in L2-INDEX"
         )
 
+    # ── HS-INDEX duplicate entry check ──────────────────────────────────────
+    # Full bidirectional HS-INDEX <-> wave-scenarios file check requires EC<->HS
+    # format mapping not yet implemented — deferred to Phase 2.
+    # For now: verify HS-INDEX is readable and contains no duplicate HS-NNN IDs.
+    if hs_index_path.exists():
+        checks += 1
+        all_hs_ids: list[str] = []
+        for line in hs_index_path.read_text(encoding="utf-8").splitlines():
+            if "~~" in line:
+                continue
+            m_hs = re.match(r"^\|\s*(HS-\d+)\s*\|", line)
+            if m_hs:
+                all_hs_ids.append(m_hs.group(1))
+        seen: set[str] = set()
+        for hs_id in all_hs_ids:
+            if hs_id in seen:
+                violations.append(
+                    f"{hs_index_path}: duplicate HS-INDEX entry '{hs_id}'"
+                )
+            seen.add(hs_id)
+
     if violations:
         for v in violations:
             print(v)
