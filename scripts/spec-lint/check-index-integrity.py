@@ -201,6 +201,14 @@ def main() -> int:
     hs_index_path = FACTORY / "holdout-scenarios" / "HS-INDEX.md"
     l2_index_path = SPECS / "domain-spec" / "L2-INDEX.md"
 
+    # Guard: verify required index files exist before proceeding
+    required_files = [bc_index_path, vp_index_path, arch_index_path, l2_index_path]
+    missing = [str(f) for f in required_files if not f.exists()]
+    if missing:
+        for m in missing:
+            print(f"ERROR: Required index file not found: {m}", file=sys.stderr)
+        return 1
+
     # ── BC-INDEX <-> BC files ────────────────────────────────────────────
     bc_entries = get_bc_index_entries()
     bc_files = get_actual_bc_files()

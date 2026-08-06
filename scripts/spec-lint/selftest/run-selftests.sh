@@ -87,20 +87,49 @@ run_test "check-id-resolution: unregistered R-99 requirement reference" \
     "$FIXTURE_DIR/bad-r-ref-unregistered.md" \
     "$BC_DIR/SELFTEST-bad-r-ref.md"
 
-# ── 2. check-counts: prd.md EC count mismatch ─────────────────────────────
-# The prd.md §5b EC count claim is live in the real tree; we verify the
-# checker already detects it (it reports "168 declared, 161 actual").
-# We confirm the checker exits 1 on the unmodified tree:
+# ── 2. check-counts: BC count mismatch (injected temp tree) ───────────────
 TESTS_RUN=$((TESTS_RUN + 1))
-echo "── selftest: check-counts: prd.md §5b EC count mismatch (real-tree) ──"
-echo "  NOTE: This selftest relies on known-bad real-tree state."
-echo "  It will need replacement with injection fixture when §5b is fixed in Phase 2."
-if python3 "$LINT_DIR/check-counts.py" > /dev/null 2>&1; then
-    echo "  FAIL (checker returned 0 — did NOT catch EC count mismatch in prd.md §5b)"
+echo "── selftest: check-counts: BC frontmatter count mismatch (injected) ──"
+COUNTS_TEMP=$(mktemp -d)
+# Build a minimal spec tree with a deliberate count mismatch:
+# BC-INDEX.md declares total_bcs: 99 but has 0 rows
+mkdir -p "$COUNTS_TEMP/.factory/specs/behavioral-contracts"
+mkdir -p "$COUNTS_TEMP/.factory/specs/prd-supplements"
+mkdir -p "$COUNTS_TEMP/.factory/specs/verification-properties"
+mkdir -p "$COUNTS_TEMP/.factory/specs/architecture"
+mkdir -p "$COUNTS_TEMP/.factory/specs/domain-spec"
+mkdir -p "$COUNTS_TEMP/.factory"
+cat > "$COUNTS_TEMP/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 99
+subsystems: 1
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+# Create stub files for other required paths (empty or minimal)
+touch "$COUNTS_TEMP/.factory/specs/verification-properties/VP-INDEX.md"
+touch "$COUNTS_TEMP/.factory/specs/prd-supplements/nfr-catalog.md"
+touch "$COUNTS_TEMP/.factory/specs/prd-supplements/test-vectors.md"
+touch "$COUNTS_TEMP/.factory/specs/domain-spec/L2-INDEX.md"
+touch "$COUNTS_TEMP/.factory/specs/architecture/verification-coverage-matrix.md"
+touch "$COUNTS_TEMP/.factory/specs/architecture/ARCH-INDEX.md"
+cat > "$COUNTS_TEMP/.factory/specs/prd.md" <<'PRDSTUB'
+---
+---
+## 7. Requirements Traceability Matrix
+
+PRDSTUB
+cat > "$COUNTS_TEMP/.factory/policies.yaml" <<'POLSTUB'
+policies: []
+POLSTUB
+if SPEC_LINT_REPO_OVERRIDE="$COUNTS_TEMP" python3 "$LINT_DIR/check-counts.py" > /dev/null 2>&1; then
+    echo "  FAIL (checker returned 0 — did NOT catch BC count mismatch)"
     FAILURES=$((FAILURES + 1))
 else
-    echo "  PASS (checker correctly returns non-zero on EC count mismatch)"
+    echo "  PASS (checker correctly returned non-zero on BC count mismatch)"
 fi
+rm -rf "$COUNTS_TEMP"
 
 # ── 3. check-placeholders: test-sufficient in VP-NNN column (injected) ──────
 run_test "check-placeholders: test-sufficient in VP-NNN col (injected)" \

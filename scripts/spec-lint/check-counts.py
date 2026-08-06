@@ -18,11 +18,12 @@ Recomputes the following counts from actual artifacts and compares to stated val
 
 Exit 1 if any count is wrong.
 """
+import os
 import re
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent.parent
+REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 SPECS = REPO / ".factory" / "specs"
 FACTORY = REPO / ".factory"
 
