@@ -1,0 +1,76 @@
+---
+document_type: behavioral-contract
+level: L3
+version: "1.1"
+status: draft
+producer: vsdd-factory:product-owner
+timestamp: 2026-08-05T00:00:00Z
+phase: 1a
+inputs:
+  - .factory/specs/product-brief.md
+  - .factory/specs/domain-spec/L2-INDEX.md
+  - .factory/planning/brief-validation.md
+  - .factory/planning/market-intelligence.md
+input-hash: "a53c532"
+traces_to: .factory/specs/domain-spec/L2-INDEX.md
+origin: greenfield
+extracted_from: null
+subsystem: "SS-01"
+capability: "CAP-001"
+lifecycle_status: active
+introduced: v1.0.0
+modified:
+  - "v1.1: P2-m04/REGRESSION-003 — removed .markdown extension reference from Description; removed --quiet reference from Invariant 2 (D-011: --quiet is a non-goal; the message is always emitted)"
+deprecated: null
+deprecated_by: null
+replacement: null
+retired: null
+removed: null
+removal_reason: null
+---
+
+# BC-2.01.008: Zero Markdown Files Found Yields Exit 0 with Stderr Message
+
+## Description
+When traversal completes and no `.md` files were found (after all filters applied),
+the tool exits 0 and emits an informational message on stderr. This is not an error — an empty
+repo or a filtered-out-everything case is a valid state.
+
+## Preconditions
+1. Traversal has completed.
+2. The scan set is empty (zero files).
+
+## Postconditions
+1. Exit code is 0.
+2. Stdout is empty (no findings).
+3. Stderr contains an informational message: `No markdown files found.`
+
+## Invariants
+1. Exit 0 does not change if no files are found — the tool has not observed any broken links.
+2. The stderr message is always emitted; there is no `--quiet` flag (D-011). The message is informational, not a warning.
+
+## Edge Cases
+| ID | Description | Expected Behavior |
+|----|-------------|-------------------|
+| EC-009 | Directory exists but has zero .md files | Exit 0; "No markdown files found." on stderr |
+| EC-125 | `--ignore '*.md'` excludes all files | Exit 0; warning on stderr |
+
+## Canonical Test Vectors
+| Input | Expected Output | Category |
+|-------|----------------|----------|
+| `mdlinkcheck` in empty directory | Exit 0; stderr: "No markdown files found." | happy-path |
+
+## Verification Properties
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| test-sufficient | Exit 0 when scan set is empty | unit test |
+
+## Traceability
+| Field | Value |
+|-------|-------|
+| L2 Capability | CAP-001 ("File Discovery") per capabilities.md §CAP-001 |
+| Capability Anchor Justification | CAP-001 ("File Discovery") per capabilities.md §CAP-001 |
+| L2 Domain Invariants | DI-009 |
+| Brief Requirement | R1, R7, AMB-009 |
+| Architecture Module | [filled by architect] |
+| Stories | [filled by story-writer] |

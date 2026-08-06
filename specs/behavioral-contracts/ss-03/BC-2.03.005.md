@@ -1,0 +1,78 @@
+---
+document_type: behavioral-contract
+level: L3
+version: "1.1"
+status: draft
+producer: vsdd-factory:product-owner
+timestamp: 2026-08-05T00:00:00Z
+phase: 1a
+inputs:
+  - .factory/specs/product-brief.md
+  - .factory/specs/domain-spec/L2-INDEX.md
+  - .factory/planning/brief-validation.md
+  - .factory/planning/market-intelligence.md
+input-hash: "19b62d8"
+traces_to: .factory/specs/domain-spec/L2-INDEX.md
+origin: greenfield
+extracted_from: null
+subsystem: "SS-03"
+capability: "CAP-003"
+lifecycle_status: active
+introduced: v1.0.0
+modified:
+  - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+deprecated: null
+deprecated_by: null
+replacement: null
+retired: null
+removed: null
+removal_reason: null
+---
+
+# BC-2.03.005: Non-http(s) Schemes Silently Skipped with `clean` Verdict
+
+## Description
+Link destinations with non-http(s) schemes (mailto:, ftp:, tel:, data:, vscode:, 
+protocol-relative //host/path) are silently skipped. They receive a `clean` verdict 
+and are not emitted in output. This is intentional scope-boundary behavior (DD-009).
+
+## Preconditions
+1. An extracted link has a destination that begins with a non-http(s) scheme.
+
+## Postconditions
+1. The link is NOT checked (no filesystem lookup, no URL fetch).
+2. The link is NOT emitted in output (neither text nor JSON).
+3. Effective verdict: `clean`.
+
+## Invariants
+1. Non-http(s) schemes are silently skipped, not warned about. No diagnostic is emitted.
+2. `--allow` has no effect on non-http(s) links (they're already skipped).
+
+## Edge Cases
+| ID | Description | Expected Behavior |
+|----|-------------|-------------------|
+| EC-094a | `mailto:a@b.com` | Silently skipped; no findings |
+| EC-094b | `ftp://x/y` | Silently skipped; no findings |
+| EC-094c | `tel:+15551234` | Silently skipped; no findings |
+| EC-094d | `javascript:void(0)` | Silently skipped; no findings |
+| EC-094e | `//example.com/x` (protocol-relative) | Silently skipped; no findings |
+
+## Canonical Test Vectors
+| Input | Expected Output | Category |
+|-------|----------------|----------|
+| `[email](mailto:user@example.com)` | Exit 0; no findings | happy-path |
+| `[ftp](ftp://files.example.com/file.zip)` | Exit 0; no findings | edge-case |
+
+## Verification Properties
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| test-sufficient | All non-http(s) schemes produce no findings | unit test |
+
+## Traceability
+| Field | Value |
+|-------|-------|
+| L2 Capability | CAP-003 ("non-http (silently skipped per DD-009)") per capabilities.md §CAP-003 |
+| Capability Anchor Justification | CAP-003 ("Link Extraction") per capabilities.md §CAP-003 |
+| Brief Requirement | R2c, DD-009 |
+| Architecture Module | [filled by architect] |
+| Stories | [filled by story-writer] |

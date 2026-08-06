@@ -1,0 +1,74 @@
+---
+document_type: behavioral-contract
+level: L3
+version: "1.1"
+status: draft
+producer: vsdd-factory:product-owner
+timestamp: 2026-08-05T00:00:00Z
+phase: 1a
+inputs:
+  - .factory/specs/product-brief.md
+  - .factory/specs/domain-spec/L2-INDEX.md
+  - .factory/planning/brief-validation.md
+  - .factory/planning/market-intelligence.md
+input-hash: "19b62d8"
+traces_to: .factory/specs/domain-spec/L2-INDEX.md
+origin: greenfield
+extracted_from: null
+subsystem: "SS-10"
+capability: "CAP-010"
+lifecycle_status: active
+introduced: v1.0.0
+modified:
+  - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+deprecated: null
+deprecated_by: null
+replacement: null
+retired: null
+removed: null
+removal_reason: null
+---
+
+# BC-2.10.005: DNS Resolution Failure Yields `broken` Verdict
+
+## Description
+If the DNS lookup for an external URL's hostname fails (NXDOMAIN or resolver error), the verdict
+is `broken` with reason `dns-failure`. DNS failure is definitively broken — unlike HTTP errors,
+a non-existent hostname is unlikely to be transient.
+
+## Preconditions
+1. `--online` mode is active.
+2. An HTTP request is being initiated for an external URL.
+3. DNS resolution for the hostname fails.
+
+## Postconditions
+1. Verdict: `broken`.
+2. Reason: `dns-failure`.
+3. Contributes to exit 1.
+4. The hostname that failed is reported in the message: `DNS resolution failed: <host>`.
+
+## Invariants
+1. DNS failure is `broken`, not `indeterminate` (unlike timeout or 5xx).
+2. A resolver connectivity failure (can't reach resolver) MAY be indeterminate; implementer judgement — default to broken.
+
+## Edge Cases
+| ID | Description | Expected Behavior |
+|----|-------------|-------------------|
+| EC-081 | URL to non-existent hostname `https://this-domain-does-not-exist-xyz-123.com` | broken (dns-failure) |
+
+## Canonical Test Vectors
+| Scenario | Expected |
+|----------|---------|
+| Request to NXDOMAIN hostname | broken (dns-failure) |
+
+## Verification Properties
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| VP-007 | DNS failure → broken (dns-failure) | unit test with mock DNS resolver |
+
+## Traceability
+| Field | Value |
+|-------|-------|
+| L2 Capability | CAP-010 ("DNS failure: broken (dns-failure)") per capabilities.md §CAP-010 |
+| Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
+| Brief Requirement | R2c |

@@ -1,0 +1,78 @@
+---
+document_type: behavioral-contract
+level: L3
+version: "1.0"
+status: draft
+producer: vsdd-factory:product-owner
+timestamp: 2026-08-05T00:00:00Z
+phase: 1a
+inputs:
+  - .factory/specs/product-brief.md
+  - .factory/specs/domain-spec/L2-INDEX.md
+  - .factory/planning/brief-validation.md
+  - .factory/planning/market-intelligence.md
+input-hash: "19b62d8"
+traces_to: .factory/specs/domain-spec/L2-INDEX.md
+origin: greenfield
+extracted_from: null
+subsystem: "SS-12"
+capability: "CAP-012"
+lifecycle_status: active
+introduced: v1.0.0
+modified: []
+deprecated: null
+deprecated_by: null
+replacement: null
+retired: null
+removed: null
+removal_reason: null
+---
+
+# BC-2.12.004: `--format text` Explicit Alias Is Accepted
+
+## Description
+The default output format is text. `--format text` is an explicit alias that produces identical
+output to the default. Any value other than `text` or `json` for `--format` causes exit 2 with
+a usage error.
+
+## Preconditions
+1. `--format <value>` has been provided on the command line.
+
+## Postconditions
+1. `--format text` (or no `--format` flag): text output.
+2. `--format json`: JSON output (see BC-2.13.001).
+3. Any other value (e.g., `--format xml`, `--format TEXT`): exit 2; usage error on stderr.
+4. `--format` is case-sensitive: `text` and `json` are lowercase only.
+
+## Invariants
+1. Exactly two valid values: `text` and `json`.
+2. Invalid value triggers exit 2 immediately, before any scanning begins.
+
+## Edge Cases
+| ID | Description | Expected Behavior |
+|----|-------------|-------------------|
+| EC-134 | `--format text` | Same as default |
+| EC-135 | `--format xml` | Exit 2; usage error |
+| EC-136 | `--format TEXT` (uppercase) | Exit 2; usage error |
+| EC-137 | `--format json --format text` | Last value wins: text output |
+
+## Canonical Test Vectors
+| Flag | Expected |
+|------|---------|
+| (no --format) | text output |
+| `--format text` | text output |
+| `--format json` | JSON output |
+| `--format xml` | exit 2; usage error |
+
+## Verification Properties
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| test-sufficient | Invalid --format value → exit 2 | unit test |
+| test-sufficient | Last --format wins when repeated | unit test |
+
+## Traceability
+| Field | Value |
+|-------|-------|
+| L2 Capability | CAP-012 ("Text Report Generation; --format text explicit alias accepted") per capabilities.md §CAP-012 |
+| Capability Anchor Justification | CAP-012 ("Text Report Generation") per capabilities.md §CAP-012 |
+| Brief Requirement | R6, AMB-092 |

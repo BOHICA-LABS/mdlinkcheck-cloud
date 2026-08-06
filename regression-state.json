@@ -1,0 +1,1 @@
+{"status":"pass","timestamp":"2026-08-05T19:09:07Z","command":"cargo nextest --version 2>&1; echo \"---FUZZ---\"; cargo fuzz --version 2>&1; echo \"---MUTANTS---\"; cargo mutants --version 2>&1; echo \"---KANI---\"; cargo kani --version 2>&1"}

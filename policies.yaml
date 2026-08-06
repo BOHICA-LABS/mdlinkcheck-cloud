@@ -1,0 +1,339 @@
+# .factory/policies.yaml — Declarative governance policy registry
+#
+# Schema per entry:
+#   id: <integer>              # Sequential policy number
+#   name: <string>             # snake_case policy flag name
+#   description: <string>      # One-line human-readable description
+#   adopted: <string>          # Context where adopted (burst, pass, or date)
+#   severity: <HIGH|MEDIUM>    # Severity floor for violations
+#   enforced_by: [<string>]    # Enforcement mechanisms
+#   scope: [<string>]          # Artifact types this policy covers
+#   lint_hook: <string|null>   # Path to automated hook (relative to plugin root)
+#   codified_at: <string|null> # ISO date when codified (null for baselines pre-D-472)
+#   verification_steps: [<string>]  # Check procedure for the adversary
+#
+# CHANGELOG
+# ---------
+# 1.2 (2026-08-05): POL-12..POL-19 added — project-specific policies derived
+#                   from Phase 1d gate reviews (adversary-pass-1.md F-001,
+#                   F-004, F-007, F-008, F-011, F-020, F-024 and
+#                   consistency-audit-phase-1.md INC-006, INC-010).
+# 1.1 (2026-05-06): POL-11 ci_positive_coverage_assertion added.
+# 1.0 (baseline):   Initial 10 baseline policies (POL-1..POL-10).
+
+document_type: governance-policy-registry
+version: "1.2"
+last_amended: "2026-08-05"
+
+metadata:
+  last_updated: "2026-08-05"
+
+policies:
+  - id: 1
+    name: append_only_numbering
+    description: "All VSDD identifiers are never renumbered or reused. Retired IDs stay in indexes. Filename slugs are immutable."
+    adopted: baseline
+    severity: HIGH
+    enforced_by: [adversary-prompt, consistency-validator]
+    scope: [bc, vp, di, cap, story, hs]
+    lint_hook: null
+    codified_at: null
+    verification_steps:
+      - "Scan all index files for retired/removed IDs — verify no active artifact reuses a retired ID"
+      - "Verify retired entries have replaced_by or removal justification"
+      - "Check that filename slugs match original creation (compare git log if available)"
+
+  - id: 2
+    name: lift_invariants_to_bcs
+    description: "Every domain invariant (DI-NNN) must be cited by at least one BC's Traceability L2 Invariants field. Orphan invariants are drift."
+    adopted: baseline
+    severity: MEDIUM
+    enforced_by: [adversary-prompt, consistency-validator]
+    scope: [di, bc]
+    lint_hook: null
+    codified_at: null
+    verification_steps:
+      - "Read domain-spec/invariants.md — extract all DI-NNN IDs"
+      - "For each DI-NNN, search BC files for citations in Traceability/L2 Invariants fields"
+      - "Report orphan invariants (DI declared but no BC enforces it)"
+      - "Verify invariant Scope/enforcer column names BCs that cite it back (bidirectional)"
+
+  - id: 3
+    name: state_manager_runs_last
+    description: "State-manager agent must be the last to commit in every burst, preventing version-race regressions."
+    adopted: baseline
+    severity: HIGH
+    enforced_by: [orchestrator-rule]
+    scope: [story, bc, vp, architecture]
+    lint_hook: null
+    codified_at: null
+    verification_steps:
+      - "Review burst commit history — state-manager commits must come after all other agents"
+      - "Check for citation staleness — STORY-INDEX/BC-INDEX versions must match latest story-writer/PO output"
+
+  - id: 4
+    name: semantic_anchoring_integrity
+    description: "Every anchor claim must be semantically correct, not just syntactically valid. Mis-anchoring always blocks convergence."
+    adopted: baseline
+    severity: MEDIUM
+    enforced_by: [adversary-prompt, consistency-validator]
+    scope: [bc, vp, story, architecture]
+    lint_hook: null
+    codified_at: null
+    verification_steps:
+      - "For each BC, verify declared capability actually describes the BC's purpose per capabilities.md"
+      - "For each story, verify subsystems: field references subsystems that own the story's scope per ARCH-INDEX"
+      - "For each VP, verify anchor_story builds the test vehicle (not an architectural ancestor)"
+      - "For traceability table rows, verify descriptions match target artifact's actual title"
+
+  - id: 5
+    name: creators_justify_anchors
+    description: "Agents creating anchors must justify each choice against the source-of-truth artifact. Stop and ask rather than guess."
+    adopted: baseline
+    severity: MEDIUM
+    enforced_by: [adversary-prompt]
+    scope: [bc, vp, story, cap, architecture]
+    lint_hook: null
+    codified_at: null
+    verification_steps:
+      - "Check that BC→CAP anchors include justification citing capabilities.md"
+      - "Check that story→subsystem anchors include justification citing ARCH-INDEX"
+      - "Check that VP→anchor_story assignments justify why that story builds the test vehicle"
+      - "Flag mechanical citations without body substantiation"
+
+  - id: 6
+    name: architecture_is_subsystem_name_source_of_truth
+    description: "ARCH-INDEX Subsystem Registry is the canonical source for subsystem names. All references must match verbatim."
+    adopted: baseline
+    severity: HIGH
+    enforced_by: [adversary-prompt, consistency-validator]
+    scope: [bc, story, prd, architecture]
+    lint_hook: null
+    codified_at: null
+    verification_steps:
+      - "Read ARCH-INDEX Subsystem Registry for canonical subsystem names"
+      - "For sampled BCs, verify subsystem: frontmatter matches registry exactly"
+      - "For sampled stories, verify subsystems: field uses registry names"
+      - "Check BC-INDEX subsystem column matches ARCH-INDEX"
+
+  - id: 7
+    name: bc_h1_is_title_source_of_truth
+    description: "BC file H1 heading is the authoritative BC title. All downstream references must match. Enrichment goes INTO the H1."
+    adopted: baseline
+    severity: HIGH
+    enforced_by: [adversary-prompt, consistency-validator]
+    scope: [bc, story, prd]
+    lint_hook: null
+    codified_at: null
+    verification_steps:
+      - "Sample 10+ BCs — read H1 heading and compare to BC-INDEX title column"
+      - "Check for downstream-only enrichment not present in H1"
+      - "Verify H1 accurately describes what the BC's postconditions specify"
+
+  - id: 8
+    name: bc_array_changes_propagate_to_body_and_acs
+    description: "When a story bcs: frontmatter changes, the same commit must update body BC table, ACs, and Token Budget count."
+    adopted: baseline
+    severity: HIGH
+    enforced_by: [adversary-prompt, consistency-validator]
+    scope: [story, bc]
+    lint_hook: null
+    codified_at: null
+    verification_steps:
+      - "Sample 5+ stories — for each BC in bcs: frontmatter, verify it appears in body BC table"
+      - "For each BC in bcs: frontmatter, verify at least one AC traces to it"
+      - "For each BC in body BC table or AC traces, verify it appears in bcs: frontmatter"
+      - "Verify Token Budget BC count matches len(bcs)"
+
+  - id: 9
+    name: vp_index_is_vp_catalog_source_of_truth
+    description: "VP-INDEX.md is authoritative. Changes must propagate same-burst to verification-architecture.md and verification-coverage-matrix.md."
+    adopted: baseline
+    severity: HIGH
+    enforced_by: [adversary-prompt, consistency-validator]
+    scope: [vp, architecture]
+    lint_hook: null
+    codified_at: null
+    verification_steps:
+      - "Verify VP-INDEX arithmetic: total = sum of per-tool counts = row count"
+      - "For each VP in VP-INDEX, verify it appears in verification-architecture.md Provable Properties Catalog"
+      - "For each VP in VP-INDEX, verify it appears in verification-coverage-matrix.md VP-to-Module table"
+      - "Sum coverage matrix per-tool columns — must equal VP-INDEX per-tool totals"
+      - "Reverse check: every VP in arch docs must exist in VP-INDEX"
+
+  - id: 10
+    name: demo_evidence_story_scoped
+    description: "All demo-recorder output MUST live under docs/demo-evidence/<STORY-ID>/. No flat files at docs/demo-evidence/*.md."
+    adopted: baseline
+    severity: HIGH
+    enforced_by: [adversary-prompt, consistency-validator, pr-reviewer]
+    scope: [story, demo-evidence, pr]
+    lint_hook: null
+    codified_at: null
+    verification_steps:
+      - "For each story's feature branch, verify docs/demo-evidence/<STORY-ID>/ exists"
+      - "Verify NO files exist at docs/demo-evidence/*.md — only subfolders"
+      - "Cross-check: subfolder name matches the story's frontmatter story_id"
+
+  - id: 11
+    name: ci_positive_coverage_assertion
+    description: "Security-critical CI jobs (regression detectors) MUST emit a positive-coverage assertion in their log on every successful run, not just an exit code."
+    adopted: "2026-05-06"
+    severity: MEDIUM
+    enforced_by: [adversary-prompt, ci-author-review]
+    scope: [ci-workflow]
+    lint_hook: null
+    codified_at: null
+    verification_steps:
+      - "Identify CI jobs whose value is regression detection (compile-fail, lint-as-test, fuzz-smoke, perimeter-violation, schema-drift)"
+      - "For each, verify the job's log contains a positive-coverage assertion of the form 'Check passed: N items validated'"
+      - "Verify the count N is computed at runtime, not hardcoded"
+      - "If the job uses text-parsing (regex extraction), verify the parsing is exercised by non-empty inputs"
+      - "Verify the job's timeout-minutes is generous enough to not kill the assertion phase before it runs"
+      - "Reject CI jobs whose only success indicator is exit-0 + green checkmark"
+
+  # ── Project-specific policies (POL-12..POL-19) ───────────────────────────
+  # All adopted in phase-1d. Each policy originated from a defect that a
+  # human or adversary had to catch manually during the Phase 1 gate review.
+  # Enforcement is currently manual for all 8 — see verification_steps.
+  # These policies address gaps in the factory engine (consistency-validator,
+  # gate scripts in vsdd-factory), not in this product's source code.
+
+  - id: 12
+    name: bc_adr_verdict_exit_code_consistency
+    description: "No ADR may assert an exit code or verdict class that contradicts error-taxonomy.md or frozen brief R7 (exit 1=broken, exit 2=I/O error, exit 0=clean)."
+    adopted: phase-1d
+    severity: HIGH
+    enforced_by: [adversary-prompt, manual-gate-review]
+    scope: [adr, error-taxonomy]
+    lint_hook: null
+    codified_at: "2026-08-05"
+    verification_steps:
+      - "Read error-taxonomy.md exit-code table: exit 0=no broken, exit 1=at least one broken, exit 2=I/O error (overrides exit 1)"
+      - "Read BRIEF.md R7 for the frozen exit-code contract"
+      - "For each accepted ADR, grep for 'exit 0', 'exit 1', 'exit 2' — verify each claim matches error-taxonomy.md and R7"
+      - "For each accepted ADR, extract all reason code strings; verify each exists verbatim in error-taxonomy.md's closed reason code set"
+      - "Verify verdict labels: external URLs use alive/broken/indeterminate; internal links use clean/broken/indeterminate — never 'valid'"
+      - "Flag ADRs that: (a) assign exit 2 to broken links, (b) invent phantom reason codes, or (c) place dns-failure/tls-error in indeterminate (both are broken per error-taxonomy.md)"
+      - "Origin: F-001 — ADR-007 had exit codes inverted, invented 5 phantom reason codes, mis-classified dns-failure/tls-error, while marked status: accepted"
+
+  - id: 13
+    name: prd_section_title_bc_h1_sync
+    description: "PRD section 2.x summary table titles must exactly match the BC file H1 heading character-for-character. The BC H1 is the sole source of truth."
+    adopted: phase-1d
+    severity: HIGH
+    enforced_by: [adversary-prompt, consistency-validator]
+    scope: [prd, bc]
+    lint_hook: null
+    codified_at: "2026-08-05"
+    verification_steps:
+      - "For every row in PRD section 2.x subsystem summary tables, extract the BC ID and its title string"
+      - "Open the referenced BC file and read its H1 heading (first # heading after frontmatter)"
+      - "Assert PRD title == BC H1 exactly — including backticks, hyphens, parentheses, and punctuation"
+      - "Repeat the same check for PRD section 7 RTM rows"
+      - "Do NOT accept paraphrasing, abbreviation, or reordering as equivalent"
+      - "Note: consistency-validator already detects this; ensure the gate treats it as BLOCKING, not advisory"
+      - "Origin: F-004 — PRD v1.1 SF-002 fixed 2 of 14 drifted titles; 12 survived a full revision cycle causing story-writers to implement the wrong feature"
+
+  - id: 14
+    name: no_vp_tbd_after_phase_1b
+    description: "BC Verification Properties tables must contain no VP-TBD placeholders after the Phase 1b gate has passed."
+    adopted: phase-1d
+    severity: MEDIUM
+    enforced_by: [adversary-prompt, lint-hook]
+    scope: [bc, vp]
+    lint_hook: null
+    codified_at: "2026-08-05"
+    verification_steps:
+      - "Run: grep -r 'VP-TBD' .factory/specs/behavioral-contracts/ — must return zero results after Phase 1b"
+      - "For each BC Verification Properties table, verify every row references a real VP-NNN ID from VP-INDEX.md"
+      - "Cross-check: each VP-NNN cited in a BC must exist in VP-INDEX.md as an active entry"
+      - "Flag any BC with VP-TBD, blank verification obligations, or VP citations not in VP-INDEX"
+      - "Origin: F-007 — 99 VP-TBD occurrences across all 59 BC files after Phase 1b completed"
+
+  - id: 15
+    name: no_ss_tbd_after_phase_1b
+    description: "BC frontmatter subsystem field must not contain SS-TBD after the Phase 1b gate has passed."
+    adopted: phase-1d
+    severity: MEDIUM
+    enforced_by: [adversary-prompt, lint-hook]
+    scope: [bc]
+    lint_hook: null
+    codified_at: "2026-08-05"
+    verification_steps:
+      - "Run: grep -r 'subsystem: \"SS-TBD\"' .factory/specs/behavioral-contracts/ — must return zero results after Phase 1b"
+      - "For each BC file, verify subsystem: frontmatter contains a real SS-NN identifier matching ARCH-INDEX"
+      - "Flag any BC where subsystem is SS-TBD, empty, or missing"
+      - "Origin: F-011 — 12 BCs in SS-11..SS-14 (all exit-code and output-format contracts, all P0) carried SS-TBD after Phase 1b completed"
+
+  - id: 16
+    name: bc_traceability_id_resolution
+    description: "All ID references in BC Traceability fields (EC-*, T-*, R-*, DD-*, DI-*, AMB-*, CAP-*, VP-*, ADR-*, NFR-*) must resolve to real entries in their authoritative registries."
+    adopted: phase-1d
+    severity: HIGH
+    enforced_by: [adversary-prompt, consistency-validator]
+    scope: [bc, vp, adr, architecture]
+    lint_hook: null
+    codified_at: "2026-08-05"
+    verification_steps:
+      - "For each BC Traceability section, extract all ID references across every ID family"
+      - "T-NN: verify against test-vectors.md section 8 T1-T16 canonical trap map — BC description must match the T entry's actual meaning"
+      - "EC-NNN: verify the EC ID exists in test-vectors.md; verify the BC's scenario description matches the canonical row for that EC ID"
+      - "R-NN: verify against BRIEF.md R1-R8 labels — link validation is R2a/R2b/R2c, not R5/R6"
+      - "DD-NNN: verify against domain-spec/decisions.md DD-NNN entries — description must match"
+      - "DI-NNN, CAP-NNN, VP-NNN, ADR-NNN, NFR-NNN: verify each exists in its respective registry"
+      - "Flag any reference where the ID does not exist OR the BC's description contradicts the authoritative entry"
+      - "Origin: F-020 (R/KD/DI relabelling throughout BC-INDEX) and F-024 (100% of sampled T-citations wrong, 11 EC-NNN collisions across different BC families)"
+
+  - id: 17
+    name: derived_tables_must_be_regenerated
+    description: "BC-INDEX summary statistics and derived DI/KD/R/priority sections must be computed from source artifacts, never hand-maintained."
+    adopted: phase-1d
+    severity: MEDIUM
+    enforced_by: [adversary-prompt, consistency-validator]
+    scope: [bc]
+    lint_hook: null
+    codified_at: "2026-08-05"
+    verification_steps:
+      - "Count P0 and P1 rows across all BC-INDEX subsystem tables — compare totals to the declared P0/P1/Total in the summary statistics block"
+      - "For each KD-NNN entry in BC-INDEX, verify the description matches prd.md section 1.3 exactly"
+      - "For each R-NN entry in BC-INDEX Requirements section, verify it matches BRIEF.md R1-R8 labels"
+      - "For each DI-NNN entry in BC-INDEX DI Coverage section, verify description matches domain-spec/invariants.md"
+      - "For each BC-INDEX priority column value, verify it matches the BC file's own frontmatter priority field"
+      - "Flag any discrepancy — the fix is regeneration from source, not manual correction of BC-INDEX alone"
+      - "Origin: F-020 — P0=45/P1=14 declared when actual rows showed P0=46/P1=13; KD labels differed from prd.md; R labels differed from BRIEF.md"
+
+  - id: 18
+    name: holdout_boundary_enforcement
+    description: "No visible artifact may contain the full scenario specification (input + expected output) for a reserved holdout EC ID."
+    adopted: phase-1d
+    severity: HIGH
+    enforced_by: [adversary-prompt]
+    scope: [bc, edge-cases, test-vectors, assumptions]
+    lint_hook: null
+    codified_at: "2026-08-05"
+    verification_steps:
+      - "Read prd.md holdout-reserved EC ID list (marked 'NOT in the visible test suite')"
+      - "For each reserved EC ID, grep .factory/specs/behavioral-contracts/, .factory/specs/prd-supplements/, and .factory/specs/domain-spec/"
+      - "A bare mention of the EC ID is permitted; a full scenario specification (concrete input + expected verdict/exit-code) in a visible artifact is a violation"
+      - "Check assumptions.md holdout-candidate ASM IDs — verify their validation methods do not appear in any suite triggered by NFR-006 'on every commit'"
+      - "This check must pass before Phase 2 story decomposition begins — contamination cannot be fixed retroactively"
+      - "Origin: F-008 (6 of 10 holdout ECs fully specified in visible BCs) and F-025 (ASM-005/ASM-008 validation harnesses in the standard suite)"
+
+  - id: 19
+    name: closed_taxonomy_enforcement
+    description: "All reason codes in spec artifacts (ADRs, BCs, test vectors) must exist verbatim in the closed set in error-taxonomy.md."
+    adopted: phase-1d
+    severity: MEDIUM
+    enforced_by: [adversary-prompt, consistency-validator]
+    scope: [adr, bc, test-vectors, error-taxonomy]
+    lint_hook: null
+    codified_at: "2026-08-05"
+    verification_steps:
+      - "Read error-taxonomy.md to extract the complete closed reason code set"
+      - "For each accepted ADR, extract all reason code strings and verify each is in the closed set"
+      - "For each BC postcondition 'Reason:' field, verify the value is in the closed set"
+      - "For each test vector row with a reason column, verify the reason value is in the closed set"
+      - "Flag any reason code not in the closed set — do not accept similar-sounding codes or prefixed variants"
+      - "Note: error-taxonomy.md states these codes 'must not be modified without an ADR update'; that ADR must also pass policy 12"
+      - "Origin: F-001 (ADR-007 invented 5 phantom reason codes while marked accepted) and NFR-007 (closed-taxonomy conformance requirement absent from PRD section 4)"
