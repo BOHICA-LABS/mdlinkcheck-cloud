@@ -221,6 +221,17 @@ spec-lint:
     echo "spec-lint passed: all ${#CHECKS[@]} checks clean"
 
 # ─────────────────────────────────────────────────────────────────
+# spec-lint-selftest — prove each checker can actually detect defects
+#
+# Injects known-bad fixtures and asserts each checker exits non-zero.
+# A checker that has never been observed failing provides no guarantee.
+# ─────────────────────────────────────────────────────────────────
+spec-lint-selftest:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    bash scripts/spec-lint/selftest/run-selftests.sh
+
+# ─────────────────────────────────────────────────────────────────
 # spec-gen — regenerate derived spec artifacts from sources
 #
 # Generators are idempotent. Run after hotfixes to ensure derived

@@ -13,8 +13,14 @@ ID families and their registries:
   VP-NNN    -> verification-properties/VP-INDEX.md (| VP-NNN |)
   ADR-NNN   -> architecture/decisions/ADR-NNN-*.md (file existence by prefix)
   NFR-NNN   -> prd-supplements/nfr-catalog.md (| NFR-NNN | headings)
-  EC-NNN    -> prd-supplements/test-vectors.md (EC-NNN rows) OR holdout pool
+  EC-NNN    -> prd-supplements/test-vectors.md (TABLE ROWS only) OR holdout pool
+              Sub-lettered EC-NNNx valid if base EC-NNN is registered.
+              NOTE: prose/changelog mentions of EC IDs in test-vectors.md or
+              prd.md are NOT registrations — only table rows count.
   T-NN      -> prd-supplements/test-vectors.md (section 8 T1-T16 trap map)
+              NOTE: existence check only. Semantic correctness (whether the
+              cited trap is topically relevant to the citing row) is NOT
+              mechanically automatable — requires human review.
   R-NN      -> product-brief.md (R1..R8 requirement IDs)
   HS-NNN    -> holdout-scenarios/HS-INDEX.md (| HS-NNN |)
   POL-NN    -> .factory/policies.yaml (- id: NN)
@@ -104,19 +110,52 @@ def build_valid_bc_ids() -> set[str]:
 
 
 def build_valid_ec_ids() -> set[str]:
-    """Return all EC-NNN IDs defined in test-vectors.md (canonical) or holdout pool (prd.md)."""
-    ids: set[str] = set()
-    # From test-vectors.md: bare EC-NNN columns
+    """Return all registered EC-NNN and EC-NNNx IDs.
+
+    POL-16: the EC registry is test-vectors.md TABLE ROWS only.
+    Prose mentions in test-vectors.md or prd.md (e.g. changelog entries
+    like 'EC-102 was replaced by EC-151') are NOT registrations.
+
+    Sub-lettered variants EC-NNNx (e.g. EC-015b, EC-094a) are valid if
+    their base EC-NNN is registered. This matches how test-vectors.md
+    references them: TV-015b → EC-015 (not EC-015b).
+
+    The holdout pool declared in prd.md §5b is also a valid source:
+    those IDs are registered even though they have no visible TV row.
+    """
+    base_nums: set[int] = set()  # numeric parts of registered base IDs
+
+    # From test-vectors.md: scan TABLE ROWS ONLY (lines starting with |).
+    # Any EC-NNN that appears in a table row is registered.
     if TEST_VECTORS.exists():
         for line in TEST_VECTORS.read_text(encoding="utf-8").splitlines():
-            for m in re.finditer(r"\bEC-(\d+)([a-z]?)\b", line):
-                ids.add(f"EC-{m.group(1)}{m.group(2)}")
-    # From prd.md holdout list
+            if not line.startswith("|"):
+                continue  # skip prose, blockquotes, section headers
+            for m in re.finditer(r"\bEC-(\d+)\b", line):
+                base_nums.add(int(m.group(1)))
+
+    # From prd.md: holdout pool only — the canonical declaration line.
+    # Pattern: "Holdout vectors **(EC-079, EC-093, ...)**"
     prd = SPECS / "prd.md"
     if prd.exists():
-        for line in prd.read_text(encoding="utf-8").splitlines():
-            for m in re.finditer(r"\bEC-(\d+)([a-z]?)\b", line):
-                ids.add(f"EC-{m.group(1)}{m.group(2)}")
+        text = prd.read_text(encoding="utf-8")
+        holdout_m = re.search(r"Holdout vectors\s+\*\*\(([^)]+)\)\*\*", text)
+        if holdout_m:
+            for m in re.finditer(r"\bEC-(\d+)\b", holdout_m.group(1)):
+                base_nums.add(int(m.group(1)))
+
+    # Build the full valid set: base IDs + sub-lettered variants
+    ids: set[str] = set()
+    for n in base_nums:
+        base = f"EC-{n:03d}" if n < 1000 else f"EC-{n}"
+        # Also accept zero-padded and unpadded forms
+        ids.add(f"EC-{n}")
+        ids.add(f"EC-{n:03d}")
+        # Sub-lettered: EC-NNNa through EC-NNNz
+        for c in "abcdefghijklmnopqrstuvwxyz":
+            ids.add(f"EC-{n}{c}")
+            ids.add(f"EC-{n:03d}{c}")
+
     return ids
 
 
@@ -168,6 +207,7 @@ VALID_ADR = build_valid_adr_ids()
 VALID_R = build_valid_r_ids()
 VALID_POL = build_valid_pol_ids()
 # T-NN trap map: T1..T16 per test-vectors.md section 8
+# Both "T1" and "T-1" forms are accepted (both appear in specs).
 VALID_T = {f"T-{i}" for i in range(1, 17)} | {f"T{i}" for i in range(1, 17)}
 
 # Files to skip (the registries themselves to avoid circular validation)
@@ -192,10 +232,6 @@ def check_file(path: Path) -> list[str]:
             )
 
     for lineno, line in enumerate(lines, 1):
-        # Skip YAML frontmatter and comment lines
-        if lineno <= 20 and (line.startswith("  ") or line.startswith("-") or ":" in line[:30]):
-            pass  # Check these too — frontmatter can have bad IDs
-
         for m in re.finditer(r"\bCAP-(\d+)\b", line):
             ref = f"CAP-{m.group(1)}"
             v(lineno, ref, "CAP", VALID_CAP)
@@ -209,7 +245,6 @@ def check_file(path: Path) -> list[str]:
             v(lineno, ref, "DD", VALID_DD)
 
         for m in re.finditer(r"\bVP-(\d+)\b", line):
-            ref_num = int(m.group(1))
             ref = f"VP-{m.group(1)}"
             if ref != "VP-TBD":
                 v(lineno, ref, "VP", VALID_VP)
@@ -236,6 +271,29 @@ def check_file(path: Path) -> list[str]:
         for m in re.finditer(r"\b(POL-\d+)\b", line):
             ref = m.group(1)
             v(lineno, ref, "POL", VALID_POL)
+
+        # EC-NNN and EC-NNNx: must be registered in test-vectors.md table rows
+        # or holdout pool. Prose mentions and changelog entries are NOT registrations.
+        for m in re.finditer(r"\bEC-(\d+)([a-z]?)\b", line):
+            ref = f"EC-{m.group(1)}{m.group(2)}"
+            if ref not in VALID_EC:
+                violations.append(
+                    f"{path}:{lineno}: unresolvable EC reference '{ref}' "
+                    f"(not in test-vectors.md table rows or holdout pool)"
+                )
+
+        # T-NN trap citations: existence check only (T1..T16).
+        # NOTE: semantic correctness (whether the cited trap is topically relevant
+        # to the citing row) is NOT mechanically automatable and requires human review.
+        for m in re.finditer(r"\bT-?(\d{1,2})\b", line):
+            num = int(m.group(1))
+            if 1 <= num <= 16:
+                ref = m.group(0)  # T1 or T-1 form as written
+                if ref not in VALID_T:
+                    violations.append(
+                        f"{path}:{lineno}: trap reference '{ref}' not in T1..T16 range"
+                    )
+            # T numbers > 16 are not trap IDs — skip silently
 
     return violations
 

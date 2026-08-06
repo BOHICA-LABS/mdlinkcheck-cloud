@@ -368,6 +368,101 @@ def main() -> int:
         if vcm_unit != actual_vp["unit"]:
             violations.append(f"{vcm_path}: coverage matrix unit={vcm_unit} != VP-INDEX unit={actual_vp['unit']}")
 
+    # ── prd.md §5b EC count claim vs actual registered ECs ───────────────
+    # POL-16: EC registry = test-vectors.md table rows + holdout pool.
+    # Any stated count must match the registered EC count exactly.
+    prd_text = prd_path.read_text(encoding="utf-8")
+    ec_count_m = re.search(r"(\d+)\s+edge cases registered\s+\(EC-001\.\.EC-\d+\)", prd_text)
+    if ec_count_m:
+        checks += 1
+        declared_ec_count = int(ec_count_m.group(1))
+        # Count unique base EC nums from test-vectors.md table rows
+        tv_path = SPECS / "prd-supplements" / "test-vectors.md"
+        ec_base_nums: set[int] = set()
+        for line in tv_path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("|"):
+                for m in re.finditer(r"\bEC-(\d+)\b", line):
+                    ec_base_nums.add(int(m.group(1)))
+        # Plus holdout pool
+        holdout_m = re.search(r"Holdout vectors\s+\*\*\(([^)]+)\)\*\*", prd_text)
+        if holdout_m:
+            for m in re.finditer(r"\bEC-(\d+)\b", holdout_m.group(1)):
+                ec_base_nums.add(int(m.group(1)))
+        actual_ec_count = len(ec_base_nums)
+        if actual_ec_count != declared_ec_count:
+            violations.append(
+                f"{prd_path}:§5b: EC count claim mismatch — declared {declared_ec_count}, "
+                f"actual registered (TV table rows + holdout pool) = {actual_ec_count}. "
+                f"Unregistered IDs in declared range: "
+                f"{sorted(n for n in range(1, declared_ec_count + 1) if n not in ec_base_nums)}"
+            )
+
+    # ── nfr-catalog.md NFR-006 worked-examples count vs test-vectors.md §7 ─
+    # NFR-006 states a target count of worked examples. §7 of test-vectors.md
+    # is the authoritative list. They must agree.
+    nfr_path = SPECS / "prd-supplements" / "nfr-catalog.md"
+    nfr_text = nfr_path.read_text(encoding="utf-8")
+    worked_ex_m = re.search(r"all\s+(\d+)\s+worked examples?", nfr_text)
+    if worked_ex_m:
+        checks += 1
+        declared_ex_count = int(worked_ex_m.group(1))
+        # Count TV-S entries in test-vectors.md §7
+        tv_text = tv_path.read_text(encoding="utf-8")
+        tvs_ids: set[str] = set()
+        in_s7 = False
+        for line in tv_text.splitlines():
+            if "## §7." in line:
+                in_s7 = True
+                continue
+            if in_s7 and line.startswith("## "):
+                in_s7 = False
+            if in_s7 and line.startswith("|"):
+                m = re.match(r"^\|\s*(TV-S\d+)\s*\|", line)
+                if m:
+                    tvs_ids.add(m.group(1))
+        actual_ex_count = len(tvs_ids)
+        if actual_ex_count != declared_ex_count:
+            violations.append(
+                f"{nfr_path}: NFR-006 states 'all {declared_ex_count} worked examples' "
+                f"but test-vectors.md §7 has {actual_ex_count} TV-S entries "
+                f"({sorted(tvs_ids)})"
+            )
+
+    # ── test-vectors.md §4 section-header ID range vs actual table contents ─
+    # The §4 header declares a range (e.g. "EC-077 through EC-094"). Check that
+    # all EC IDs in the §4 table fall within that declared range.
+    tv_text = tv_path.read_text(encoding="utf-8")
+    s4_header_m = re.search(
+        r"## §4\.[^\n]*EC-(\d+)\s+through\s+EC-(\d+)", tv_text
+    )
+    if s4_header_m:
+        checks += 1
+        s4_lo = int(s4_header_m.group(1))
+        s4_hi = int(s4_header_m.group(2))
+        # Collect EC IDs from §4 table rows that are outside the declared range.
+        # The header may note exclusions (holdouts) — those are in-range but
+        # absent from the table; that is expected. The violation is IDs that
+        # are PRESENT in the table but OUTSIDE the declared range.
+        s4_out_of_range: list[tuple[int, int]] = []  # (ec_num, lineno)
+        in_s4 = False
+        for lineno, line in enumerate(tv_text.splitlines(), 1):
+            if "## §4." in line:
+                in_s4 = True
+                continue
+            if in_s4 and re.match(r"^## §[5-9]", line):
+                in_s4 = False
+            if in_s4 and line.startswith("|"):
+                for m in re.finditer(r"\bEC-(\d+)\b", line):
+                    ec_num = int(m.group(1))
+                    if ec_num < s4_lo or ec_num > s4_hi:
+                        s4_out_of_range.append((ec_num, lineno))
+        if s4_out_of_range:
+            out_strs = [f"EC-{n} (line {l})" for n, l in s4_out_of_range]
+            violations.append(
+                f"{tv_path}:§4: section header declares EC-{s4_lo:03d}..EC-{s4_hi:03d} "
+                f"but table contains out-of-range IDs: {out_strs}"
+            )
+
     if violations:
         for v in violations:
             print(v)
