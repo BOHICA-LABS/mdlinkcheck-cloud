@@ -7,7 +7,7 @@ Checks that every index is consistent with the files it indexes, in both directi
   BC-INDEX   <-> BC files   (no phantom entries, no unlisted files)
   VP-INDEX   <-> VP files   (no phantom entries, no unlisted files)
   ARCH-INDEX <-> ADR files + architecture shard files
-  HS-INDEX   <-> holdout scenario files
+  HS-INDEX   <-> wave-scenarios/ EC files (bidirectional; active + retired entries)
   L2-INDEX   <-> domain spec shard files
 
 Exit 1 if any phantom index entry or unlisted file found.
@@ -144,29 +144,67 @@ def get_hs_index_entries() -> set[str]:
     return ids
 
 
-def get_actual_hs_files() -> set[str]:
-    """Return set of HS-NNN IDs for actual scenario files."""
+def get_hs_ec_mapping() -> dict[str, str]:
+    """Return {hs_id: ec_id} for all authored HS entries (active + retired).
+
+    Parses both active rows (| HS-NNN | EC-NNN | ...) and retired rows
+    (| ~~HS-NNN~~ | ~~EC-NNN~~ | ...) from HS-INDEX.md. Reserved IDs in the
+    "not-yet-authored" section have no wave-scenarios file and are NOT included.
+    """
+    hs_index = FACTORY / "holdout-scenarios" / "HS-INDEX.md"
+    mapping: dict[str, str] = {}
+    for line in hs_index.read_text(encoding="utf-8").splitlines():
+        # Active entry: | HS-001 | EC-156 | ...
+        m = re.match(r"^\|\s*(HS-\d+)\s*\|\s*(EC-\d+)\s*\|", line)
+        if m:
+            mapping[m.group(1)] = m.group(2)
+            continue
+        # Retired entry: | ~~HS-002~~ | ~~EC-157~~ | ...
+        m = re.match(r"^\|\s*~~(HS-\d+)~~\s*\|\s*~~(EC-\d+)~~\s*\|", line)
+        if m:
+            mapping[m.group(1)] = m.group(2)
+    return mapping
+
+
+def get_actual_wave_scenario_ec_ids() -> set[str]:
+    """Return set of EC-NNN IDs extracted from wave-scenarios/*.md filenames."""
     hs_dir = FACTORY / "holdout-scenarios" / "wave-scenarios"
     ids: set[str] = set()
     if hs_dir.exists():
         for f in hs_dir.glob("*.md"):
-            # File names start with EC-NNN, but HS-INDEX links HS-NNN to EC-NNN
-            # Just check they exist at all for now
-            ids.add(f.stem)
+            m = re.match(r"^(EC-\d+)", f.name)
+            if m:
+                ids.add(m.group(1))
     return ids
 
 
 def get_l2_index_sections() -> set[str]:
-    """Return set of section filenames declared in L2-INDEX.md."""
+    """Return set of section filenames declared in L2-INDEX.md.
+
+    Parses YAML frontmatter (between the opening and closing --- fences) for
+    list items that name .md files, and also scans the Document Map table for
+    backtick-quoted filenames.
+    """
     l2_index = SPECS / "domain-spec" / "L2-INDEX.md"
     sections: set[str] = set()
-    in_sections = False
     lines = l2_index.read_text(encoding="utf-8").splitlines()
-    for lineno, line in enumerate(lines, 1):
-        # The sections: field in YAML frontmatter
+
+    # Detect frontmatter end by scanning for the closing --- fence
+    frontmatter_end = 0  # line index (0-based) of closing ---; 0 = no frontmatter
+    if lines and lines[0].rstrip() == "---":
+        for i in range(1, len(lines)):
+            if lines[i].rstrip() == "---":
+                frontmatter_end = i
+                break
+
+    # Parse sections: list items from YAML frontmatter only
+    for lineno, line in enumerate(lines):
+        if lineno == 0 or lineno >= frontmatter_end:
+            break
         m = re.match(r"^\s*-\s*([\w-]+\.md)\s*$", line)
-        if m and lineno < 60:  # Only in frontmatter section
+        if m:
             sections.add(m.group(1))
+
     # Also check Document Map table
     in_doc_map = False
     for line in lines:
@@ -313,17 +351,35 @@ def main() -> int:
             f"{l2_index_path}: domain-spec file '{shard}' exists but is NOT in L2-INDEX"
         )
 
-    # ── HS-INDEX duplicate entry check ──────────────────────────────────────
-    # Full bidirectional HS-INDEX <-> wave-scenarios file check requires EC<->HS
-    # format mapping not yet implemented — deferred to Phase 2.
-    # For now: verify HS-INDEX is readable and contains no duplicate HS-NNN IDs.
+    # ── HS-INDEX <-> wave-scenarios files (bidirectional) ───────────────────
     if hs_index_path.exists():
+        hs_mapping = get_hs_ec_mapping()
+        wave_ec_ids = get_actual_wave_scenario_ec_ids()
+
+        # Forward check: each authored HS entry's EC-NNN -> file exists in wave-scenarios
+        checks += 1
+        for hs_id, ec_id in sorted(hs_mapping.items()):
+            if ec_id not in wave_ec_ids:
+                violations.append(
+                    f"{hs_index_path}: HS entry '{hs_id}' maps to '{ec_id}' — "
+                    f"no wave-scenarios file found for this EC ID"
+                )
+
+        # Reverse check: each wave-scenarios file -> has corresponding HS entry
+        checks += 1
+        hs_ec_ids = set(hs_mapping.values())
+        for ec_id in sorted(wave_ec_ids):
+            if ec_id not in hs_ec_ids:
+                violations.append(
+                    f"{hs_index_path}: wave-scenarios file for '{ec_id}' has no "
+                    f"corresponding HS-INDEX entry"
+                )
+
+        # Duplicate HS-ID check (scan both active and retired rows)
         checks += 1
         all_hs_ids: list[str] = []
         for line in hs_index_path.read_text(encoding="utf-8").splitlines():
-            if "~~" in line:
-                continue
-            m_hs = re.match(r"^\|\s*(HS-\d+)\s*\|", line)
+            m_hs = re.match(r"^\|\s*(?:~~)?(HS-\d+)(?:~~)?\s*\|", line)
             if m_hs:
                 all_hs_ids.append(m_hs.group(1))
         seen: set[str] = set()
@@ -337,10 +393,16 @@ def main() -> int:
     if violations:
         for v in violations:
             print(v)
-        print(f"\nCheck FAILED: {len(violations)} index integrity violations found ({checks} bidirectional checks)")
+        print(
+            f"\nCheck FAILED: {len(violations)} index integrity violations found "
+            f"({checks} structural checks)"
+        )
         return 1
 
-    print(f"Check passed: {checks} bidirectional index checks passed")
+    print(
+        f"Check passed: {checks} structural checks — BC ({len(bc_entries)} entries), "
+        f"VP ({len(vp_entries)} entries), ADR, ARCH, L2, HS all consistent"
+    )
     return 0
 
 
