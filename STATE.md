@@ -4,21 +4,21 @@ level: ops
 version: "2.5"
 status: draft
 producer: state-manager
-timestamp: 2026-08-07T06:24:00Z
+timestamp: 2026-08-06T23:30:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; session wrap — GitHub Actions RECOVERED; merge queue PR #4→#3→#5 UNBLOCKED; stash CLOSED all 4 worktrees; D-050 correction (mutation verification NECESSARY BUT NOT SUFFICIENT); SS-10 descope DENIED; 4 sweep shards committed; trajectory-tail →34→39→37→259; D-046..D-057 (exhaustive)"
+current_step: "phase-1d; shards 4,6,7,8 persisted; BI-025..BI-031 opened (vacuous VPs, proof-method join, POLICY 5, code-fence symbols, SS-07 block, exit-code domain, D-043 survivors); trajectory-tail →34→39→37→259; GitHub Actions RECOVERED; merge queue PR #4→#3→#5 UNBLOCKED; D-046..D-057 (exhaustive)"
 current_cycle: ""
 dtu_required: false
 ---
 
 <!--
   STATE.md SIZE BUDGET:
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 212 = 288. 212 lines (wc-l, post-session-wrap).
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 219 = 281. 219 lines (wc-l, post-burst-13).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
@@ -37,9 +37,9 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-07 — session wrap: GitHub Actions RECOVERED; merge queue PR #4→#3→#5 UNBLOCKED; stash CLOSED all 4 worktrees; D-054..D-057 (exhaustive); trajectory-tail →34→39→37→259 |
+| **Last Updated** | 2026-08-07 — shards 4,6,7,8 persisted; BI-025..BI-031 opened; trajectory-tail →34→39→37→259; GitHub Actions RECOVERED; merge queue PR #4→#3→#5 UNBLOCKED; D-054..D-057 (exhaustive) |
 | **Current Phase** | phase-1d |
-| **Current Step** | Session wrap complete. GitHub Actions RECOVERED (D-055); merge queue PR #4→PR #3→PR #5 UNBLOCKED. Stash EMPTY in all 4 worktrees (D-056). SS-10 descope DENIED (D-054). D-050 correction recorded (D-057). 4 untracked sweep shards committed (shards 4/6/7/8). All 9 sweep records tracked. FIRST ACTION ON RESUME: execute merge queue. |
+| **Current Step** | Pass-5 perimeter sweep COMPLETE (8 shards, 259 findings ~42C). BI-025..BI-031 opened. GitHub Actions RECOVERED (D-055); merge queue PR #4→PR #3→PR #5 UNBLOCKED. FIRST ACTION ON RESUME: execute merge queue, then remediation burst. |
 
 ## Phase Progress
 
@@ -66,11 +66,11 @@ dtu_required: false
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
-| PR #4 APPROVE + PR #3 mutation audit COMPLETE + D-050 | pr-manager + state-manager | COMPLETE | PR #4: APPROVE on 6503d3b (CI blocked: GitHub Actions outage 2026-08-06T15:22Z); PR #3: audit COMPLETE (6d954ab, 15→17 tests, 4/15 over-determined); BI-019 RESOLVED; BI-014 closed; D-046..D-050 (exhaustive); trajectory-tail →32→34→39→37; bc-module-map.md v1.4 |
 | BI-012/BI-015 CLOSED + PR #5 + D-051..D-053 + pass-5 HEAD freeze | state-manager | COMPLETE | BI-012: 14 divergent sites corrected; canonical-facts.toml 7 facts/16 bindings; check-canonical-facts.py exit 0; 18/18 suite; D-040 negative test confirmed. BI-015: SLUG_CORPUS generated from §7; TV-S007+TV-S010 first test coverage. PR #5 APPROVE 0-blocking (b054694, 2 cycles, D-052 waiver). D-051..D-053 (exhaustive). HEAD frozen for pass 5. |
 | perimeter sweep shard 3 | state-manager | COMPLETE | 28 findings (7C/12H/9M) recorded at cycles/phase-1d/perimeter-sweep-shard-3.md; verdict SS-07 NOT adequately specified for macOS-only/APFS — must NOT enter Phase 2; corroborates pass-5 P5-003 (DirIndex scope) and shard 1 fs::canonicalize finding |
 | perimeter sweep shards 1,2,3,5 + synthesis (partial) | adversary/state-manager | COMPLETE | 111 findings (19C, 47H, 45M, 46 BC bodies); shard-2: 4C/7H/13M SS-03+SS-04+BC-2.06.002; shard-5: 6C/15H/11M SS-11..14; synthesis at perimeter-sweep-synthesis.md; SKIP LIST UNSOUND (BI-023); three unguarded axes (BI-024) |
 | perimeter sweep ALL 8 shards COMPLETE | adversary/state-manager | COMPLETE | 259 findings (~42C); shard-4: 7C SS-08/09+3xSS-10 (DI-005 NOT airtight); shard-6: 2C ADRs+arch-shards (ADR-004 inadequate); shard-7: 6C VPs (5 vacuous); shard-8: 6C domain-spec+prd (R5 not defensible); synthesis FINAL at perimeter-sweep-synthesis.md; perimeter CLOSED |
+| perimeter sweep shards 4,6,7,8 persisted + BI-025..BI-031 opened | state-manager | COMPLETE | shard-4 (32 findings), shard-6 (32), shard-7 (44), shard-8 (40) committed; 7 new blocking issues: BI-025 (5 vacuous VPs), BI-026 (proof-method join), BI-027 (POLICY 5), BI-028 (code-fence symbols), BI-029 (SS-07 Phase-2 block), BI-030 (exit-code domain), BI-031 (D-043 survivors 6 sites) |
 
 ## Convergence Status
 
@@ -179,6 +179,13 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | BI-022 | MINOR: `rustup toolchain install nightly` in `fuzz-smoke` job still UNPINNED — frozen fuzz driver against rolling nightly is a known drift pair. Recommend pinning nightly date before Phase 6. | LOW | phase-6 | devops-engineer | Track as follow-up; pin nightly date in hardening.yml before Phase 6. |
 | BI-023 | SKIP LIST UNSOUND — perimeter sweep found structural bypasses in two pass-5 skip-list checkers: (a) `check-placeholders.py` greps literal `VP-TBD`; em-dash `—` defeats it (12+ BCs with zero VP coverage passing clean); (b) `check-id-resolution.py` auto-synthesises `EC-NNNa..z` without description comparison AND silently skips EC-NEW-NNN and EC-073b shapes. D-050's mutation-verification criterion is necessary but NOT sufficient (see D-057). | HIGH | phase-1 gate | devops-engineer | (a) Narrow skip to "ID EXISTENCE for conforming shapes"; (b) require POSITIVE COVERAGE count; (c) add meta-check for non-conforming shapes. Blocker for pass-6 skip-list trust. |
 | BI-024 | FOUR UNGUARDED AXES (perimeter sweep, all 8 shards confirmed): (A) VP proof-method/tool mismatch BC body vs VP-INDEX — 14+ instances, highest-leverage fix available (one-line join); (B) quoted-excerpt fabrication in per-section citations (POLICY 5 lint_hook null, 40% rate); (C) symbols in rust code fences + 4 undefined types; (D) ~10 stale discharged directives that cause actively harmful story-writer guidance. | HIGH | phase-1 gate | devops-engineer | (A) Mechanically join BC VP rows against VP-INDEX tool column; (B) substring-presence check on quoted excerpts; (C) code-fence symbol resolver; (D) machine-checkable target references on all open directive strings. |
+| BI-025 | FIVE VPs OUTRIGHT VACUOUS — VP-015/016/017/019/023 each satisfied by a no-op/constant implementation (`run_scan(_)->vec![]` passes VP-015/016; `scan(_,_)->Ok(vec![])` passes VP-017; `extract_links(_)->vec![]` passes VP-019; `classify_url(_)->Malformed(String::new())` passes VP-023). SOLE VP coverage for DI-008/DI-006/DI-009/DI-005; VP-INDEX:93-96 marks first three "All Covered: Yes". Phase 6 formal-hardening gate could pass while 4 domain invariants are unverified. VP-022 partially vacuous (perf gate permanently false-green under bash -e without pipefail). | CRITICAL | phase-6 | formal-verifier | Every VP harness must contain at least 1 assertion that fails on empty/constant output. Make VP-025 Non-Vacuousness Analysis a required VP-template section. Grep-level heuristic flags all five instantly. |
+| BI-026 | BC-VP PROOF-METHOD/PROPERTY JOIN BROKEN — shard-7 quantified: at least 12 BC VP-table rows attribute properties the cited VP provably lacks (VP-002 credited with DI-012 rules 3+6 though it only asserts slug1==slug2; VP-013 credited with "first # split point" though last-# splitter passes; VP-015 credited with same-file+case-mismatch though all fixtures are cross-file). 30+ rows declare the wrong Proof Method. Expands BI-024-A with shard-7 quantified data and the property-text gap. HIGHEST-LEVERAGE mechanical fix in the session. | HIGH | phase-1d fix burst | product-owner + architect | Automated join: BC VP-rows x VP-INDEX rows; assert property text matches VP summary; assert proof-method token matches VP-INDEX tool field. One-pass script closes at least 42 defects. |
+| BI-027 | POLICY 5 QUOTED-EXCERPT FABRICATION — ~40% fabrication rate in shard-5 SS-11..14 BCs confirmed by shards 2, 4, 8. Quoted text inside per-section citations does not match the actual source text — in some cases inverts the meaning (CAP-006 fabrication in shard 2 drops FM-002 guards; CAP-009 fabrication in shard 4 inverts offline-only scope). POLICY 5 lint_hook returns null. Expands BI-024-B with cross-shard confirmation. | HIGH | phase-1d fix burst | product-owner | Substring-presence assertion: for every quoted string in a per-section citation, assert the quoted text appears verbatim in the named section. One-pass grep check. |
+| BI-028 | VP CODE-FENCE SYMBOL VALIDATION + FOUR UNDEFINED TYPES — symbols in VP Rust harnesses that resolve to nothing: `VerdictKind`, `.kind`, `Alive`, `HttpAttempt::Get`, `with_count`, `AllowPrefix::parse`, `ReasonCode`, `AnchorTable(entries)`. Four types with NO definition anywhere: `PathVerdict`, `FailureReason`, `IoError`, `AllowPrefix`. api-surface.md and module-decomposition.md disagree on three function names. All five VP-007 harnesses fail to compile. Expands BI-024-C with the full symbol inventory. | HIGH | phase-1d fix burst | architect | Symbol-extraction linter over VP rust code fences; reconcile api-surface.md vs module-decomposition.md naming; add missing type definitions. |
+| BI-029 | SS-07 PHASE-2 BLOCK — DirIndex population scope CONTRADICTORY: purity-boundary-map.md:107-110 (every extracted-link destination) vs system-overview.md:126-128 (only parents of .md targets NOT in AnchorIndex). BC-2.07.002 postconditions, BC-2.07.003 preconditions, BC-2.07.005/006 routing, and DI-009 termination bound ALL depend on the adjudication. SS-07 MUST NOT enter Phase 2 story decomposition before an architect/human ruling. | HIGH | phase-2 | architect (requires human adjudication) | Ruling required: narrow DirIndex (parents of .md targets not in AnchorIndex only) OR wide (parents of every extracted destination). All dependent BCs and DI-009 must be updated atomically. |
+| BI-030 | EXIT-CODE INPUT-DOMAIN ADJUDICATION — `verdict::exit_code` numeric precedence converged (shard 5) but the DOMAIN of inputs is not: (a) io_errors/config_error partition contested between CAP-014 and all three SS-14 BCs; (b) `config_error` membership enumerated three different ways; (c) `--help`/`--version` sits outside the lattice and collides with it; (d) standalone exit 2 has no owning contract. | HIGH | phase-2 | architect | Unambiguous enumeration of `config_error` members; `--help`/`--version` placement in the exit-code lattice; dedicated owning contract for standalone exit 2. Must complete before Phase 2 SS-14 story decomposition. |
+| BI-031 | D-043 SURVIVOR LIST — 6 sites missed by the D-043 sweep: (1) product-brief.md:82 "macOS, Linux, Windows" — CRITICAL L1 root, editable per own line 78; (2) risks.md:40 "NFR-002 (15s p95, Linux CI)" — stale reference AND stale value; (3) prd.md:746 "fails in Linux CI"; (4) prd.md:402 "on ALL platforms"; (5) BC-2.10.003.md:77 T13 cited as LIVE; (6) risks.md:34 "T1-T16" + differentiators.md:32 "T9-T15" sweeping in retired T13. Legitimate negative-constraint Linux references MUST NOT be edited. | CRITICAL | phase-1d fix burst | product-owner + architect | Surgical fix at 6 specific line references. Preserve all legitimate negative-constraint Linux references in tooling/vp/nfr files. |
 
 ## Session Resume Checkpoint
 
@@ -187,17 +194,17 @@ Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-057`
 | Field | Value |
 |-------|-------|
 | **Date** | 2026-08-07 |
-| **Position** | phase-1d; pass-5 perimeter sweep COMPLETE (8 shards, 259 findings ~42C); all 66 BC bodies + all 8 ADRs + all spec shards read in full; 0 of 3 clean passes; perimeter CLOSED; GitHub Actions RECOVERED (D-055); merge queue PR #4→#3→#5 UNBLOCKED; stash EMPTY all 4 worktrees (D-056) |
+| **Position** | phase-1d; pass-5 perimeter sweep COMPLETE (8 shards, 259 findings ~42C); BI-025..BI-031 opened; 0 of 3 clean passes; perimeter CLOSED; GitHub Actions RECOVERED (D-055); merge queue PR #4→#3→#5 UNBLOCKED; stash EMPTY all 4 worktrees (D-056) |
 | **Convergence counter** | 0 of 3 clean passes; pass 5 COMPLETE (scope expansion sweep); merge queue then remediation burst then pass 6 |
-| **Next burst** | (1) Execute merge queue: PR #4 first (re-trigger if needed), then PR #3 (update covered_sha to 6d954ab first), then PR #5; (2) remediation burst: four unguarded axes (BI-024), stale directives, vacuous VPs, ADR-001/ADR-004 revisions, checker bypasses (BI-023); (3) pass 6 with rebuilt skip list |
+| **Next burst** | (1) Execute merge queue: PR #4 first (re-trigger if needed), then PR #3 (update covered_sha to 6d954ab first), then PR #5; (2) remediation burst: four unguarded axes (BI-024), stale directives, vacuous VPs (BI-025), SS-07 adjudication (BI-029), exit-code domain (BI-030), D-043 survivors (BI-031), checker bypasses (BI-023); (3) pass 6 with rebuilt skip list |
 
-Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-057 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/019. Open: BI-007/010/016/017/018/020/021/022/023/024.
+Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-057 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/019. Open: BI-007/010/016/017/018/020/021/022/023/024/025/026/027/028/029/030/031.
 
 ## Concurrent Cycles
 
 | Cycle | Status | Notes |
 |-------|--------|-------|
-| phase-1d | in-progress | adversarial spec convergence; trajectory-tail →34→39→37→259; perimeter sweep COMPLETE (8 shards, 259 findings ~42C); BI-023 skip list unsound; BI-024 four unguarded axes; 0 of 3 clean passes; GitHub Actions RECOVERED (D-055); merge queue PR #4→#3→#5 UNBLOCKED; FIRST ACTION ON RESUME: execute merge queue; then remediation burst then pass 6 |
+| phase-1d | in-progress | adversarial spec convergence; trajectory-tail →34→39→37→259; perimeter sweep COMPLETE (8 shards, 259 findings ~42C); BI-023..BI-031 open; 0 of 3 clean passes; GitHub Actions RECOVERED (D-055); merge queue PR #4→#3→#5 UNBLOCKED; FIRST ACTION ON RESUME: execute merge queue; then remediation burst then pass 6 |
 
 ## Historical Content
 
@@ -209,4 +216,4 @@ Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC r
 | Lessons learned | `cycles/phase-1d/lessons.md` |
 | Resolved blockers | `cycles/phase-1d/blocking-issues-resolved.md` |
 
-Last Updated: 2026-08-07 — session wrap: GitHub Actions RECOVERED; merge queue PR #4→#3→#5 UNBLOCKED; stash CLOSED all 4 worktrees; D-054..D-057 (exhaustive); trajectory-tail →34→39→37→259
+Last Updated: 2026-08-07 — shards 4,6,7,8 persisted; BI-025..BI-031 opened; GitHub Actions RECOVERED; merge queue PR #4→#3→#5 UNBLOCKED; D-054..D-057 (exhaustive); trajectory-tail →34→39→37→259
