@@ -64,7 +64,9 @@ run_test "check-id-resolution: unregistered EC-999" \
 # checker already detects it (it reports "168 declared, 161 actual").
 # We confirm the checker exits 1 on the unmodified tree:
 TESTS_RUN=$((TESTS_RUN + 1))
-echo "── selftest: check-counts: EC count mismatch (real tree) ──"
+echo "── selftest: check-counts: prd.md §5b EC count mismatch (real-tree) ──"
+echo "  NOTE: This selftest relies on known-bad real-tree state."
+echo "  It will need replacement with injection fixture when §5b is fixed in Phase 2."
 if python3 "$LINT_DIR/check-counts.py" > /dev/null 2>&1; then
     echo "  FAIL (checker returned 0 — did NOT catch EC count mismatch in prd.md §5b)"
     FAILURES=$((FAILURES + 1))
@@ -72,16 +74,11 @@ else
     echo "  PASS (checker correctly returns non-zero on EC count mismatch)"
 fi
 
-# ── 3. check-placeholders: test-sufficient in VP-NNN column ───────────────
-# The real tree already has test-sufficient rows; verify checker exits 1:
-TESTS_RUN=$((TESTS_RUN + 1))
-echo "── selftest: check-placeholders: test-sufficient in VP-NNN col (real tree) ──"
-if python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
-    echo "  FAIL (checker returned 0 — did NOT catch test-sufficient violations)"
-    FAILURES=$((FAILURES + 1))
-else
-    echo "  PASS (checker correctly returns non-zero on test-sufficient violations)"
-fi
+# ── 3. check-placeholders: test-sufficient in VP-NNN column (injected) ──────
+run_test "check-placeholders: test-sufficient in VP-NNN col (injected)" \
+    "check-placeholders" \
+    "$FIXTURE_DIR/bad-placeholder-test-sufficient.md" \
+    "$BC_DIR/SELFTEST-bad-placeholder-ts.md"
 
 # ── 4. check-placeholders: injected VP-TBD in a live table row ────────────
 run_test "check-placeholders: injected live VP-TBD" \
