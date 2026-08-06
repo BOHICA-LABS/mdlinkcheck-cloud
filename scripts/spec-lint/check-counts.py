@@ -20,7 +20,6 @@ Exit 1 if any count is wrong.
 """
 import re
 import sys
-import yaml  # stdlib fallback: parse YAML frontmatter manually
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent
@@ -43,7 +42,7 @@ def parse_yaml_frontmatter(path: Path) -> dict:
         return {}
     fm_text = "\n".join(lines[1:end])
     try:
-        import yaml as _yaml
+        import yaml as _yaml  # PyYAML is optional; fallback manual parser handles simple key: value frontmatter
         return _yaml.safe_load(fm_text) or {}
     except ImportError:
         # Manual parse of simple key: value pairs
@@ -200,6 +199,7 @@ def count_policies() -> int:
 def main() -> int:
     violations: list[str] = []
     checks = 0
+    tv_path = SPECS / "prd-supplements" / "test-vectors.md"
 
     # ── BC-INDEX counts ──────────────────────────────────────────────────
     bc_index_path = SPECS / "behavioral-contracts" / "BC-INDEX.md"
@@ -380,7 +380,6 @@ def main() -> int:
         checks += 1
         declared_ec_count = int(ec_count_m.group(1))
         # Count unique base EC nums from test-vectors.md table rows
-        tv_path = SPECS / "prd-supplements" / "test-vectors.md"
         ec_base_nums: set[int] = set()
         for line in tv_path.read_text(encoding="utf-8").splitlines():
             if line.startswith("|"):
