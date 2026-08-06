@@ -1,7 +1,7 @@
 ---
 document_type: bc-index
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z

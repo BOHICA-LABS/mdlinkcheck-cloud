@@ -1,7 +1,7 @@
 ---
 document_type: module-criticality
 level: ops
-version: "1.2"
+version: "1.3"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -11,9 +11,12 @@ inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
   - .factory/specs/architecture/verification-architecture.md
-input-hash: "b59a54f"
+input-hash: "10e878f"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 changelog:
+  - version: "1.3"
+    date: 2026-08-05
+    change: "REGRESSION-004 remediation: corrected VP counts to match VP-INDEX v1.2 actual catalog — url_classifier 0→1 (VP-023), path_resolver 2→3 (VP-024), reporter 1→2 (VP-021), app 0→1 (VP-022)"
   - version: "1.2"
     date: 2026-08-05
     change: "INC-008 remediation: upgraded link_extractor from HIGH to CRITICAL (missed-link = false negative; VCM CRITICAL view was correct); declared module-criticality.md as source of truth for tier conflicts; fixed types inventory to list DirIndex/DirEntryInfo/EntryKind instead of stale DirEntries; fixed http_verdict description to say 13 reason codes not 9"
@@ -66,14 +69,14 @@ changelog:
 | `http_verdict` | `crates/mdlinkcheck-core/src/http_verdict.rs` | CRITICAL | Misclassifying alive as broken is a false positive; misclassifying broken as alive is silent failure; VP-007 | >= 95% | 1 |
 | `anchor_table` | `crates/mdlinkcheck-core/src/anchor_table.rs` | CRITICAL | Incorrect anchor table causes false positives/negatives on all heading links; VP-015..016, VP-020 | >= 95% | 3 |
 | `anchor_resolver` | `crates/mdlinkcheck-core/src/anchor_resolver.rs` | CRITICAL | Direct consumer of anchor_table; incorrect lookup produces wrong verdicts for all heading links | >= 95% | 0 |
-| `path_resolver` | `crates/mdlinkcheck-core/src/path_resolver.rs` | CRITICAL | Case-sensitive NFC comparison is the correctness anchor for all local file links (DI-002); VP-008, VP-009 | >= 95% | 2 |
+| `path_resolver` | `crates/mdlinkcheck-core/src/path_resolver.rs` | CRITICAL | Case-sensitive NFC comparison is the correctness anchor for all local file links (DI-002); VP-008, VP-009, VP-024 | >= 95% | 3 |
 | `link_extractor` | `crates/mdlinkcheck-core/src/link_extractor.rs` | CRITICAL | Missed link extraction = false negative (silent failure); over-extraction from code = false positive; VP-014, VP-019 | >= 95% | 2 |
 | `filter` | `crates/mdlinkcheck-core/src/filter.rs` | HIGH | Incorrect --ignore / --allow behavior silently suppresses findings; VP-010 | >= 90% | 1 |
-| `reporter` | `crates/mdlinkcheck-core/src/reporter.rs` | HIGH | Output format correctness; sort determines VP-011 determinism guarantee | >= 90% | 1 |
-| `url_classifier` | `crates/mdlinkcheck-core/src/url_classifier.rs` | HIGH | Misclassifying URL kind routes links to wrong resolver path; no VP (integration-tested) | >= 90% | 0 |
+| `reporter` | `crates/mdlinkcheck-core/src/reporter.rs` | HIGH | Output format correctness; sort determines VP-011 determinism guarantee; VP-011, VP-021 | >= 90% | 2 |
+| `url_classifier` | `crates/mdlinkcheck-core/src/url_classifier.rs` | HIGH | Misclassifying URL kind routes links to wrong resolver path; VP-023 (proptest totality) | >= 90% | 1 |
 | `scanner` | `crates/mdlinkcheck/src/scanner.rs` | HIGH | Scan termination and .gitignore compliance directly affect correctness (DI-009); VP-017 | >= 90% | 1 |
 | `http_client` | `crates/mdlinkcheck/src/http_client.rs` | MEDIUM | Effectful; hermetically tested via httpmock; behavior governed by http_verdict (pure) | >= 80% | 0 |
-| `app` | `crates/mdlinkcheck/src/app.rs` | MEDIUM | Two-pass orchestration; correctness verified by integration tests; no pure-logic VPs | >= 80% | 0 |
+| `app` | `crates/mdlinkcheck/src/app.rs` | MEDIUM | Two-pass orchestration; correctness verified by integration tests; VP-022 (regression gate) | >= 80% | 1 |
 | `cli` | `crates/mdlinkcheck/src/cli.rs` | LOW | Argument parsing only; clap handles most validation; no business logic | >= 70% | 0 |
 | `main` | `crates/mdlinkcheck/src/main.rs` | LOW | Thin glue; no business logic | >= 70% | 0 |
 | `types` | `crates/mdlinkcheck-core/src/types.rs` | LOW | Shared data types; structural only; no executable logic to mutate | >= 70% | 0 |
@@ -167,5 +170,5 @@ cli.rs   main.rs
 | Mutation testing | >= 95% kill rate; use cargo-mutants --strict | >= 90% kill rate | >= 80% / >= 70% |
 | Code exclusions | No I/O; violations are CI failures | No I/O (pure modules) | I/O allowed (effectful only) |
 
-**CRITICAL modules (v1.2):** slug, fragment, verdict, http_verdict, anchor_table, anchor_resolver, path_resolver, link_extractor
-**HIGH modules (v1.2):** filter, reporter, url_classifier, scanner
+**CRITICAL modules (v1.3):** slug, fragment, verdict, http_verdict, anchor_table, anchor_resolver, path_resolver, link_extractor
+**HIGH modules (v1.3):** filter, reporter, url_classifier, scanner

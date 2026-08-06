@@ -52,7 +52,7 @@ Coverage NOT reached in pass 2: 56 of 66 BC files unread; nfr-catalog.md, test-v
 
 Consistency audit pass 2 result: FAIL — 3 critical / 7 major / 3 minor. 11 of 13 pass-1 findings confirmed FIXED. Regressions introduced by concurrent multi-agent editing noted.
 
-Remediation after pass 2: pending (awaiting 4 human rulings per BI-003).
+Remediation after pass 2: COMPLETE (burst 4, 2026-08-05). BI-003 resolved — all 4 human spec decisions ruled. D-021..D-025 recorded. PRD v1.7. Holdout pool reconciled to 12 (HS-004..HS-007 authored, EC-165..EC-168 authored, HS-002/003 retired, EC-036/049/074/157/158 burned to visible tests). Delivery model updated: full PR-based delivery restored (D-021/D-022/D-023). Exit-code model codified as three-input function (D-025). PATH arg error model codified as runtime I/O error (D-024). Skip log corrected: phase-1-cicd-setup → COMPLETE; pr steps un-skipped.
 
 ---
 

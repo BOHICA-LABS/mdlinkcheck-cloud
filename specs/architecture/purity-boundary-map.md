@@ -2,17 +2,20 @@
 document_type: architecture-section
 level: L3
 section: purity-boundary-map
-version: "1.2"
+version: "1.3"
 status: draft
 producer: architect
-timestamp: 2026-08-05T20:00:00Z
+timestamp: 2026-08-05T22:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/domain-spec/capabilities.md
   - .factory/specs/domain-spec/invariants.md
-input-hash: "5762d02"
+input-hash: "920d165"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.3"
+    date: 2026-08-05
+    change: "Pass-2 remediation: corrected verdict API — compute_exit_code(findings, io_errors) → exit_code(findings, io_errors, config_error) in pure-core table and Phase 6 Scope list; clarified slug P0 targets — slugify for totality (VP-001), compute_slug for determinism/uniqueness (VP-002/003)"
   - version: "1.2"
     date: 2026-08-05
     change: "SR-016 remediation: path_resolver now receives DirIndex (not DirEntries); removed fs escape hatch from path_resolver description; updated ParsedFile seam to remove dir_entries; scanner now feeds DirIndex via Pass 1.5 in app"
@@ -52,7 +55,7 @@ The boundary is architectural, not advisory. Violating it invalidates Kani proof
 | `http_verdict` | `classify_response(status, attempt) → Verdict`. Pattern-match on integers. | Yes |
 | `filter` | `should_ignore(path, patterns) → bool` + `should_allow(url, prefixes) → bool`. Pure predicate over input data. | Yes |
 | `reporter` | `format_text(findings, opts) → String` + `format_json(findings) → String`. Formatting only; no stdout. | Limited (string output, not side-effect-critical) |
-| `verdict` | `compute_exit_code(findings, io_errors) → u8`. Pure aggregation over slices. | Yes |
+| `verdict` | `exit_code(findings, io_errors, config_error) → u8`. Pure aggregation over slices and a boolean flag. | Yes |
 
 **path_resolver purity guarantee (SR-016 resolution):** `path_resolver` receives a
 `DirIndex: HashMap<PathBuf, Vec<DirEntryInfo>>` built by `app` during Pass 1.5. It never
@@ -111,9 +114,9 @@ Kani proofs are valid for all `pub fn` signatures in `mdlinkcheck-core` that tak
 only `&str`, `&Path`, `&[T]`, or newtype wrappers around those. The following are
 P0 Kani targets (proof harnesses defined in VP-001..007):
 
-- `slug::compute_slug` — totality, determinism
+- `slug::slugify` — totality (VP-001); `slug::compute_slug` — determinism (VP-002), output-uniqueness (VP-003)
 - `fragment::split_fragment` — split correctness
-- `verdict::compute_exit_code` — exit-2-beats-1, indeterminate-clean-exit-0
+- `verdict::exit_code` — exit-2-beats-1, indeterminate-clean-exit-0, config-error-exits-2
 - `http_verdict::classify_response` — totality
 
 Fuzz targets (VP-012, VP-013) live in `fuzz/fuzz_targets/` under the binary crate.

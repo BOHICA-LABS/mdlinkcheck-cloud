@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: api-surface
-version: "1.2"
+version: "1.3"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -11,9 +11,12 @@ inputs:
   - .factory/specs/prd.md
   - .factory/specs/prd-supplements/interface-definitions.md
   - .factory/specs/domain-spec/capabilities.md
-input-hash: "1738a8f"
+input-hash: "abee7b4"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.3"
+    date: 2026-08-05
+    change: "P2-M12 remediation: corrected comment on line 82 from 'DirIndex populated by scanner Pass 1.5' to 'DirIndex populated by app Pass 1.5' — scanner traverses only the scan root in Pass 1; app opens out-of-scan target directories directly in Pass 1.5"
   - version: "1.2"
     date: 2026-08-05
     change: "Phase 1d D-011 remediation: removed --quiet, --hidden, --insecure, --offline from CLI surface (all four are explicit non-goals per D-011); F-018 remediation: DuplicateCounter now BTreeMap<String,u32> (HashMap<String,u32> is not Kani-feasible); added slugify() pure core to library API"
@@ -79,7 +82,7 @@ pub fn build_with_html(headings: &[ParsedHeading], html_anchors: &[String]) -> A
 pub fn extract_links(events: &[OffsetEvent]) -> Vec<ExtractedLink>;
 
 // path_resolver.rs — CAP-007, DI-002, pure
-// DirIndex populated by scanner Pass 1.5 — never by path_resolver itself
+// DirIndex populated by app Pass 1.5 — never by path_resolver itself (scanner only traverses the scan root)
 pub fn resolve_path(dest: &str, src_dir: &Path, index: &DirIndex) -> PathVerdict;
 pub type DirIndex = HashMap<PathBuf, Vec<DirEntryInfo>>;
 pub enum EntryKind { File, Dir, Symlink { dangling: bool } }
@@ -105,7 +108,7 @@ pub fn format_text(findings: &[Finding], opts: TextReportOpts) -> String;
 pub fn format_json(findings: &[Finding]) -> String;  // schema_version: 1
 
 // verdict.rs — CAP-014, DI-010, DI-011, pure, Kani target
-pub fn compute_exit_code(findings: &[Finding], io_errors: &[IoError]) -> u8;
+pub fn exit_code(findings: &[Finding], io_errors: &[IoError], config_error: bool) -> u8;
 ```
 
 ## Key Shared Types

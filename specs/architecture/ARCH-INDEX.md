@@ -1,7 +1,7 @@
 ---
 document_type: architecture-index
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -13,7 +13,7 @@ inputs:
   - .factory/specs/dtu-assessment.md
   - .factory/specs/gene-transfusion-assessment.md
   - .factory/planning/market-intelligence.md
-input-hash: "a84515b"
+input-hash: "4e83a61"
 traces_to: .factory/specs/prd.md
 deployment_topology: single-service
 ---
@@ -35,6 +35,7 @@ deployment_topology: single-service
 | Purity Boundary Map | purity-boundary-map.md | implementer, formal-verifier | Pure-core vs effectful-shell classification |
 | Tooling Selection | tooling-selection.md | formal-verifier, dx-engineer | Kani, cargo-fuzz, cargo-mutants, proptest config |
 | Verification Coverage Matrix | verification-coverage-matrix.md | consistency-validator | VP-to-module mapping, coverage totals |
+| Architecture Feasibility Review | feasibility-review.md | product-owner, architect | PRD subsystem grouping feasibility verdict and rationale |
 
 ## Cross-References
 

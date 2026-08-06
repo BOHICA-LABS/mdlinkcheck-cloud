@@ -1,18 +1,17 @@
 ---
 document_type: cicd-setup-report
 level: ops
-version: "1.0"
+version: "1.1"
 phase: 1-cicd
 step: phase-1-cicd-setup
 producer: devops-engineer
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-06T02:35:00Z
 project: mdlinkcheck
 status: complete
-deferred: true
-deferred_reason: LOCAL-ONLY repo (D-002) — no remote at time of creation
+deferred: false
 inputs:
   - .factory/STATE.md
-input-hash: "4b1d9c6"
+input-hash: "1636936"
 traces_to: .factory/STATE.md
 ---
 
@@ -20,14 +19,27 @@ traces_to: .factory/STATE.md
 
 ## Summary
 
-Greenfield Phase-1 CI/CD setup complete.  Six artifacts created for a
-LOCAL-ONLY repository (decision D-002: no `origin` remote).  Workflows are
-remote-ready; branch protection and required status checks are deferred until
-a remote is configured.
+Phase-1 CI/CD setup complete. Remote activated (D-002 superseded). Full
+PR-based delivery model live. Six infrastructure artifacts plus branch
+protection on both `main` and `develop`. Required status checks confirmed from
+a live CI run.
 
 ---
 
-## Files Created
+## Branch Topology
+
+| Branch | Role | Story PRs target? |
+|--------|------|--------------------|
+| `develop` | Integration branch | YES — all story PRs target develop |
+| `main` | Releases only | NO — only receives merges from develop |
+| `feature/STORY-NNN` | Per-story work | Created per-story in Phase 3 |
+
+Story PRs: `feature/STORY-NNN` → `develop`
+Release merges: `develop` → `main` (via PR)
+
+---
+
+## Files Created / Configured
 
 | File | Purpose |
 |------|---------|
@@ -36,7 +48,56 @@ a remote is configured.
 | `justfile` | Local task runner — `just ci` reproduces the full pipeline locally |
 | `lefthook.yml` | Git hooks — pre-commit: fmt+clippy; pre-push: nextest |
 | `deny.toml` | cargo-deny policy (licenses, advisories, bans, sources) |
-| `.gitignore` | Updated with standard Rust entries; `.factory/` worktree line preserved |
+| `.gitignore` | Updated: Rust entries, `.factory/` worktree, `.worktrees/` for Phase-3 story worktrees |
+
+---
+
+## Branch Protection — Applied Settings
+
+### `develop` branch
+
+| Setting | Value |
+|---------|-------|
+| Required PR reviews | 0 (dismiss stale: yes) |
+| enforce_admins | false |
+| required_linear_history | true |
+| allow_force_pushes | false |
+| allow_deletions | false |
+| required_status_checks strict | true |
+| Required contexts | 8 (see table below) |
+
+### `main` branch
+
+| Setting | Value |
+|---------|-------|
+| Required PR reviews | 0 (dismiss stale: yes) |
+| enforce_admins | **true** (admins subject to all rules) |
+| required_linear_history | true |
+| allow_force_pushes | false |
+| allow_deletions | false |
+| required_status_checks strict | true |
+| Required contexts | 8 (see table below) |
+
+### Verified Required Status Check Names
+
+These were captured from a live CI run on `develop` push
+(run ID 31065845669, completed 2026-08-06 with `success` on all jobs).
+GitHub Actions app_id confirmed as 15368.
+
+| Context string (exact) | Job in ci.yml | Platform |
+|------------------------|---------------|----------|
+| `Format check` | `fmt` | ubuntu |
+| `Clippy (deny warnings)` | `lint` | ubuntu |
+| `Test (ubuntu-latest)` | `test` | ubuntu |
+| `Test (macos-latest)` | `test` | macos |
+| `Test (windows-latest)` | `test` | windows |
+| `Build release (ubuntu-latest)` | `build-release` | ubuntu |
+| `Build release (macos-latest)` | `build-release` | macos |
+| `Build release (windows-latest)` | `build-release` | windows |
+
+Note: The original deferred section predicted context strings prefixed with
+"CI / " (e.g. "CI / Format check"). The actual names from GitHub are
+unprefixed. This was verified from the live run — do NOT use the prefixed form.
 
 ---
 
@@ -44,30 +105,118 @@ a remote is configured.
 
 ### ci.yml jobs
 
-| Job | Runner | Timeout | Local equivalent |
-|-----|--------|---------|-----------------|
-| `fmt` | ubuntu-latest | 10 min | `just fmt-check` |
-| `lint` | ubuntu-latest | 20 min | `just lint` |
-| `test` | ubuntu × macos × windows | 30 min each | `just test` |
-| `build-release` | ubuntu × macos × windows | 30 min each | `just build-release` |
+| Job | Runner | Timeout | Guard | Local equivalent |
+|-----|--------|---------|-------|-----------------|
+| `fmt` | ubuntu-latest | 10 min | yes | `just fmt-check` |
+| `lint` | ubuntu-latest | 20 min | yes | `just lint` |
+| `test` | ubuntu × macos × windows | 30 min each | yes | `just test` |
+| `build-release` | ubuntu × macos × windows | 30 min each | yes | `just build-release` |
 
 ### hardening.yml jobs
 
-| Job | Runner | Timeout | Local equivalent |
-|-----|--------|---------|-----------------|
-| `audit` | ubuntu-latest | 15 min | `just audit` |
-| `deny` | ubuntu-latest | 15 min | `just deny` |
-| `semgrep` | ubuntu-latest | 20 min | `just semgrep` |
-| `mutants` | ubuntu-latest | 60 min | `just mutants` |
-| `fuzz-smoke` | ubuntu-latest | 30 min | `just fuzz-smoke` |
-| `kani` | ubuntu-latest | 60 min | `just kani` |
+| Job | Runner | Timeout | Guard | Local equivalent |
+|-----|--------|---------|-------|-----------------|
+| `audit` | ubuntu-latest | 15 min | yes | `just audit` |
+| `deny` | ubuntu-latest | 15 min | yes | `just deny` |
+| `semgrep` | ubuntu-latest | 20 min | no (semgrep scans any dir) | `just semgrep` |
+| `mutants` | ubuntu-latest | 60 min | yes | `just mutants` |
+| `fuzz-smoke` | ubuntu-latest | 30 min | yes (existing) | `just fuzz-smoke` |
+| `kani` | ubuntu-latest | 60 min | yes (existing) | `just kani` |
+
+**Guard pattern**: All Cargo-dependent jobs check for `Cargo.toml` existence and
+exit 0 gracefully if not found. This prevents deadlock on pre-workspace PRs
+(spec deliveries, CI setup itself). After Phase 3 scaffolds the workspace, the
+guards are transparent no-ops.
+
+---
+
+## Anti-Deadlock Sequencing Decision
+
+**Decision**: Graceful no-op guards + immediate required-check configuration.
+
+No `Cargo.toml` exists before Phase 3. Without guards, CI would fail on any PR
+opened before the workspace lands (spec-only PRs, CI setup PRs). The fuzz-smoke
+and kani jobs already use this pattern; it was extended to all Cargo-dependent
+steps in both workflows. This allows branch protection with required status
+checks to be fully configured from day one — there is no "unprotected window"
+and no staged-activation complexity.
+
+Implementation: each Cargo-dependent job has a guard step that writes
+`skip=true` to `$GITHUB_OUTPUT` when `Cargo.toml` is absent. All subsequent
+steps in the job use `if: steps.guard.outputs.skip != 'true'`. The guard step
+uses `shell: bash` for cross-platform compatibility (Git Bash on Windows).
+
+---
+
+## Action SHA Pins — Verified
+
+| Action | Pinned SHA | Version | Verification method |
+|--------|-----------|---------|---------------------|
+| `actions/checkout` | `11bd71901bbe5b1630ceea73d27597364c9af683` | v4.2.2 | `gh api repos/actions/checkout/git/refs/tags/v4.2.2` → `type: commit` ✓ |
+| `Swatinem/rust-cache` | `82a92a6e8fbeee089604da2575dc567ae9ddeaab` | v2.7.5 | Annotated tag `5cb072d...` dereferences to this commit ✓ |
+| `actions/upload-artifact` | `1746f4ab65b179e0ea60a494b83293b640dd5bba` | v4.3.2 | `gh api repos/actions/upload-artifact/git/refs/tags/v4.3.2` → `type: commit` ✓ |
+
+Note: `Swatinem/rust-cache` v2.7.5 is an annotated tag (tag object SHA
+`5cb072d7354962be830356aa6b146f7612846014`). The dereferenced commit SHA
+`82a92a6e8fbeee089604da2575dc567ae9ddeaab` is correct — verified 2026-08-06.
+
+---
+
+## Semgrep Authentication
+
+`semgrep --config=auto --error --metrics=off` in `hardening.yml` does NOT
+require `SEMGREP_APP_TOKEN`. The `--config=auto` flag pulls rules from the
+public Semgrep registry; `--metrics=off` disables telemetry. No secret is
+needed or missing. The `hardening.yml` `permissions` block is least-privilege
+(`contents: read` only) and no SEMGREP_APP_TOKEN secret needs to be configured.
+
+---
+
+## `.factory/` Worktree State
+
+- Worktree path: `.factory/` (on `factory-artifacts` branch)
+- Remote: `origin/factory-artifacts`
+- Upstream tracking: SET (confirmed 2026-08-06 — was missing, now configured)
+- `.gitignore` entry on `main`: `.factory/` ✓
+- State-manager owns all commits to `factory-artifacts`. Do NOT commit from here.
+
+---
+
+## Git Hooks Setup
+
+```bash
+# Install lefthook hooks into .git/hooks/
+lefthook install
+
+# Test the pre-commit hook manually
+lefthook run pre-commit
+
+# Test the pre-push hook manually
+lefthook run pre-push
+
+# Skip hooks for a single commit (emergency only)
+LEFTHOOK=0 git commit -m "..."
+```
+
+---
+
+## Open PR
+
+**PR #1**: `develop` → `main` (CI infrastructure activation)
+URL: https://github.com/BOHICA-LABS/mdlinkcheck-cloud/pull/1
+
+This PR adds all workflow and toolchain files to `main`. It must be merged
+by a human (auto-mode cannot self-merge authored PRs). CI checks on the PR
+should be green (guards fire, no Cargo.toml). Required checks on `main` are
+now configured, so the PR must pass all 8 CI checks before merge.
+
+After merging:
+- `main` will have CI workflows
+- Future `develop` → `main` release PRs will have full CI coverage
 
 ---
 
 ## Local Equivalents (exact commands)
-
-Every CI job maps to a `just` recipe.  With no remote, `just ci` IS the
-canonical CI gate.
 
 ```bash
 # Run the full CI pipeline locally
@@ -96,182 +245,70 @@ just install-tools
 The test and build-release jobs run on ubuntu-latest, macos-latest, AND
 windows-latest.  This is a **correctness requirement**, not portability
 nicety.  The domain spec (DI-002) requires path case-sensitivity and NFC
-normalization behavior to be identical on all three platforms.  macOS uses a
-case-insensitive HFS+ filesystem by default; Windows uses NTFS (case-
-insensitive); Linux uses ext4 (case-sensitive).  Tests that verify anchor
-resolution and file-path checking must be exercised on all three or the
-behavior is undefined on two of the three supported platforms.
+normalization behavior to be identical on all three platforms.
 
 ---
 
 ## Pinned Toolchain
 
-The repo pins `rust-toolchain.toml` to `1.97.0` with components:
+Pinned to `1.97.0` via `rust-toolchain.toml` with components:
 `rustfmt`, `clippy`, `llvm-tools-preview`, `rust-src`.
 
-All CI jobs rely on the toolchain file being picked up automatically by
-`rustup` / `cargo` on first invocation.  No explicit toolchain-install action
-is used — `rust-toolchain.toml` is the single source of truth.
+---
 
-The fuzzing job installs `nightly` alongside the pinned toolchain (only nightly
-supports `cargo fuzz`).
+## Tool Versions Pinned
+
+| Tool | Pinned version |
+|------|---------------|
+| cargo-nextest | 0.9.98 |
+| cargo-audit | 0.21.2 |
+| cargo-deny | 0.17.0 |
+| cargo-mutants | 24.11.2 |
+| semgrep | 1.75.0 |
 
 ---
 
-## Action SHA Pinning
+## Residual Deferred Items
 
-All `uses:` references are pinned to full 40-character commit SHAs per
-supply-chain security requirements.  Mutable version tags (e.g. `@v4`) are
-not used.
+These items genuinely must wait — they are not blocking and have clear
+activation triggers.
 
-### Verified SHAs in use
-
-| Action | Pinned SHA | Version tag |
-|--------|-----------|-------------|
-| `actions/checkout` | `11bd71901bbe5b1630ceea73d27597364c9af683` | v4.2.2 |
-| `Swatinem/rust-cache` | `82a92a6e8fbeee089604da2575dc567ae9ddeaab` | v2.7.5 |
-| `actions/upload-artifact` | `1746f4ab65b179e0ea60a494b83293b640dd5bba` | v4.3.2 |
-
-### SHA verification command
-
-Before enabling remote CI, verify all SHAs:
+### 1. Merge PR #1 (human action required)
 
 ```bash
-# Verify a tag SHA
-gh api repos/actions/checkout/git/refs/tags/v4.2.2 \
-  --jq '.object.sha'
-
-# Or use the GitHub UI: Releases → tag → commit SHA
+# After PR CI checks pass (should be green now):
+gh pr merge 1 --repo BOHICA-LABS/mdlinkcheck-cloud --rebase
 ```
 
----
+Trigger: human reviews and merges PR #1.
 
-## Tool Versions Pinned in Workflows and justfile
+### 2. `issues: write` permission in hardening.yml
 
-| Tool | Pinned version | Install |
-|------|---------------|---------|
-| cargo-nextest | 0.9.98 | `cargo install cargo-nextest --locked --version 0.9.98` |
-| cargo-audit | 0.21.2 | `cargo install cargo-audit --locked --version 0.21.2` |
-| cargo-deny | 0.17.0 | `cargo install cargo-deny --locked --version 0.17.0` |
-| cargo-mutants | 24.11.2 | `cargo install cargo-mutants --locked --version 24.11.2` |
-| semgrep | 1.75.0 | `pip install semgrep==1.75.0` |
-| cargo-fuzz | latest nightly | `cargo +nightly install cargo-fuzz --locked` |
-| hyperfine | latest | `brew install hyperfine` (bench recipe only) |
-
-Versions should be bumped when a vulnerability is disclosed or when the
-toolchain is upgraded.
-
----
-
-## Git Hooks Setup
-
-```bash
-# Install lefthook hooks into .git/hooks/
-lefthook install
-
-# Test the pre-commit hook manually
-lefthook run pre-commit
-
-# Test the pre-push hook manually
-lefthook run pre-push
-
-# Skip hooks for a single commit (emergency only)
-LEFTHOOK=0 git commit -m "..."
+```yaml
+# Uncomment in hardening.yml permissions block:
+issues: write
 ```
 
----
+Also add the actual step that creates a GitHub Issue when a hardening job
+fails (the permission without the step is inert). This is a Phase-6 concern.
 
-## Deferred Until a Remote Exists
+Trigger: Phase-6 hardening is being actively used and issue creation for
+failed hardening runs is desired.
 
-The following items CANNOT be completed until `git remote add origin <url>` is
-configured (decision D-002).  They are documented here for a future devops-
-engineer run.
+### 3. `.worktrees/` — per-story worktrees
 
-### 1. Branch protection on `develop`
-
-```bash
-gh api repos/ORG/REPO/branches/develop/protection -X PUT \
-  --input - <<'EOF'
-{
-  "required_status_checks": {
-    "strict": true,
-    "contexts": [
-      "CI / Format check",
-      "CI / Clippy (deny warnings)",
-      "CI / Test (ubuntu-latest)",
-      "CI / Test (macos-latest)",
-      "CI / Test (windows-latest)",
-      "CI / Build release (ubuntu-latest)",
-      "CI / Build release (macos-latest)",
-      "CI / Build release (windows-latest)"
-    ]
-  },
-  "required_pull_request_reviews": {
-    "required_approving_review_count": 0,
-    "dismiss_stale_reviews": true
-  },
-  "enforce_admins": false,
-  "restrictions": null,
-  "allow_force_pushes": false,
-  "allow_deletions": false
-}
-EOF
-```
-
-### 2. Required status checks
-
-The eight context strings above must match the exact job names that appear in
-GitHub's Checks UI after the first successful CI run.  Verify with:
-
-```bash
-gh api repos/ORG/REPO/commits/HEAD/check-runs --jq '.[].name'
-```
-
-If the names differ from the strings listed, update the protection rule.
-
-### 3. `.factory/` worktree on orphan branch
-
-When a remote exists, promote `.factory/` to a git worktree on the
-`factory-artifacts` orphan branch:
-
-```bash
-git checkout --orphan factory-artifacts
-git rm -rf .
-git commit --allow-empty -m "chore: initialize factory artifacts branch"
-git push origin factory-artifacts
-git checkout develop
-git worktree add .factory factory-artifacts
-```
-
-### 4. PR gates and merge queue
-
-After branch protection is active, configure the merge queue:
-
-```bash
-gh api repos/ORG/REPO/branches/develop/protection \
-  -X PATCH \
-  -F required_linear_history=true
-```
-
-### 5. `.worktrees/` — story worktrees
-
-After Phase 2 story decomposition, create per-story worktrees:
+After Phase-2 story decomposition, create per-story worktrees:
 
 ```bash
 git worktree add .worktrees/STORY-NNN -b feature/STORY-NNN develop
 ```
 
-`.worktrees/` is in `.gitignore` and is never committed.
+`.worktrees/` is in `.gitignore`. Never committed.
 
----
+Trigger: Phase-3 story delivery begins.
 
-## Notes
+### 4. Release workflow
 
-- `CARGO_INCREMENTAL=0` is set in all CI jobs to prevent non-reproducible
-  builds from causing cache-poisoning false-negatives.
-- `RUST_BACKTRACE=1` is set globally so test failures include stack traces.
-- `CARGO_TERM_COLOR=always` ensures log output is readable in GitHub's CI UI.
-- The `fuzz-smoke` and `kani` jobs exit 0 gracefully when no harnesses exist
-  yet, so the hardening workflow passes during early development phases.
-- `fail-fast: false` on all matrix jobs ensures all platforms are tested even
-  if one fails — critical for D-006 cross-platform correctness diagnosis.
+A dedicated `release.yml` workflow (tagged releases, binary uploads, crates.io
+publish) is deferred until Phase 7. The devops-engineer creates it during the
+release phase.

@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: verification-coverage-matrix
-version: "1.3"
+version: "1.4"
 status: draft
 producer: architect
 timestamp: 2026-08-05T21:00:00Z
@@ -10,9 +10,12 @@ phase: 1b
 inputs:
   - .factory/specs/prd.md
   - .factory/specs/architecture/ARCH-INDEX.md
-input-hash: "01c9963"
+input-hash: "56af608"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.4"
+    date: 2026-08-05
+    change: "P2-m07 remediation: removed erroneous VP-014 reference from url_classifier coverage note — VP-014 is a link_extractor test (code-context exclusion); url_classifier coverage flows from VP-023 and BC-2.09.001 acceptance tests only"
   - version: "1.3"
     date: 2026-08-05
     change: "BC coverage gap closure: added VP-023 (url_classifier/proptest/P1, BC-2.07.007) and VP-024 (path_resolver/proptest/P1, BC-2.07.008); updated url_classifier and path_resolver module rows; updated Totals row (proptest 5→7, total 22→24)"
@@ -85,7 +88,7 @@ Source of truth: VP-INDEX.md. Total VPs: **24**.
 
 **Note:** `anchor_resolver`, `http_client` have zero dedicated VPs; `app` has one. Coverage flows through:
 - `anchor_resolver`: covered by `anchor_table` integration tests (VP-015..016) and BC acceptance corpus
-- `url_classifier`: VP-023 (proptest totality); additional coverage via `link_extractor` integration tests (VP-014) + BC-2.09.001 tests
+- `url_classifier`: VP-023 (proptest totality); additional coverage via BC-2.09.001 acceptance tests (VP-014 is a link_extractor test — it does not cover url_classifier)
 - `http_client`: covered by `--online` httpmock integration tests (DTU assessment strategy)
 - `app`: VP-022 (regression gate benchmark) + end-to-end acceptance corpus tests (Phase 3)
 

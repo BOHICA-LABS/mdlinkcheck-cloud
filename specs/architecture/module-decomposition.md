@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: module-decomposition
-version: "1.1"
+version: "1.2"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -11,9 +11,12 @@ inputs:
   - .factory/specs/domain-spec/capabilities.md
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/prd.md
-input-hash: "d5cfa52"
+input-hash: "f0555db"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.2"
+    date: 2026-08-05
+    change: "Signature consistency fix: verdict::exit_code updated to three-input form (findings, io_errors, config_error: bool) in module table and data-flow summary, matching api-surface.md authoritative signature. config_error carries the R7 usage-error half of exit 2 (P2-M19)."
   - version: "1.1"
     date: 2026-08-05
     change: "SR-016/SR-034 remediation: replaced DirEntries with DirIndex type; path_resolver now receives directory-keyed index; added Pass 1.5 (shell-only) phase that populates DirIndex; ParsedFile no longer carries dir_entries"
@@ -53,7 +56,7 @@ call I/O. Kani proof harnesses operate directly on these functions.
 | `http_verdict` | `http_verdict.rs` | CAP-010 (logic) | `fn classify_response(status: u16, attempt: Attempt) -> Verdict` | **Yes** |
 | `filter` | `filter.rs` | CAP-011 | `fn ignore_match(path: &Path, gs: &GlobSet) -> bool`, `fn allow_match(url: &str, prefixes: &[Prefix]) -> bool` | **Yes** |
 | `reporter` | `reporter.rs` | CAP-012, CAP-013 | `fn format_text(findings: &[Finding], opts: ReportOpts) -> String`, `fn format_json(findings: &[Finding]) -> String` | No |
-| `verdict` | `verdict.rs` | CAP-014, DI-010, DI-011 | `fn exit_code(findings: &[Finding], io_errors: &[IoError]) -> u8` | **Yes** |
+| `verdict` | `verdict.rs` | CAP-014, DI-010, DI-011 | `fn exit_code(findings: &[Finding], io_errors: &[IoError], config_error: bool) -> u8` | **Yes** |
 | `types` | `types.rs` | — | `Link`, `ExtractedLink`, `Finding`, `Verdict`, `AnchorTable`, `DirIndex`, `DirEntryInfo`, `EntryKind` | — |
 
 **Slug module note (gene-transfusion):** `slug::compute` is a clean-room reimplementation
@@ -130,7 +133,7 @@ Pass 2  (pure only, parallel via rayon):
 
 Sort:   findings.sort_unstable_by_key(|f| (nfc(&f.path), f.line, f.col))  [pure]
 Report: reporter::format_*(sorted_findings)  [pure]
-Exit:   verdict::exit_code(sorted_findings, io_errors)  [pure]
+Exit:   verdict::exit_code(sorted_findings, io_errors, config_error)  [pure]
 ```
 
 ## [Section Content]

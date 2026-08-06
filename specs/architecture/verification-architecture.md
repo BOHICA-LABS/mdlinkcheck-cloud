@@ -2,17 +2,20 @@
 document_type: architecture-section
 level: L3
 section: verification-architecture
-version: "1.3"
+version: "1.4"
 status: draft
 producer: architect
-timestamp: 2026-08-05T21:00:00Z
+timestamp: 2026-08-05T22:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/prd.md
-input-hash: "80ad606"
+input-hash: "5df5c68"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.4"
+    date: 2026-08-05
+    change: "Pass-2 remediation: VP-001 corrected to slug::slugify (pure core, no counter); VP-002/003 confirmed as slug::compute_slug (counter-wrapping function); VP-003 description de-qualified — 'distinct' qualifier removed (property holds for all pairs); VP-005/006 corrected to verdict::exit_code (not compute_exit_code); P0 harness example updated to exit_code_symbolic with config_error third argument; VP-012 confirmed as compute_slug fuzz (consistent with VP-012 file)"
   - version: "1.3"
     date: 2026-08-05
     change: "BC coverage gap closure: added VP-023 (url_classifier totality / empty-dest, proptest P1, BC-2.07.007) and VP-024 (path_resolver trailing-slash-on-file, proptest P1, BC-2.07.008) to P1 Should Prove table"
@@ -35,12 +38,12 @@ changelog:
 
 | VP | Property | Module | Invariant |
 |----|----------|--------|-----------|
-| VP-001 | `slug::compute_slug` is total — no panic for any `&str` input | slug | CAP-006 PC1 |
-| VP-002 | `slug::compute_slug` is deterministic — same input → same output | slug | CAP-006, NFR-003 |
-| VP-003 | `DuplicateCounter` injectivity — for any two **distinct** heading strings, `compute_slug` with a shared counter returns distinct slugs; same heading repeated N times also produces N distinct slugs (bound 10) | slug | BC-2.06.002 |
+| VP-001 | `slug::slugify` is total — no panic for any `&str` input | slug | CAP-006 PC1 |
+| VP-002 | `slug::compute_slug` is deterministic — same input + same counter state → same output | slug | CAP-006, NFR-003 |
+| VP-003 | `DuplicateCounter` output-uniqueness — for any two heading strings, `compute_slug` with a shared counter returns distinct slugs; same heading repeated N times also produces N distinct slugs (bound 10) | slug | BC-2.06.002 |
 | VP-004 | `fragment::split_fragment` splits at first unescaped `#` — `%23` never splits | fragment | DI-003, BC-2.08.003 |
-| VP-005 | `verdict::compute_exit_code` returns 2 when any `IoError` present — regardless of findings | verdict | DI-011, BC-2.14.002 |
-| VP-006 | `verdict::compute_exit_code` returns 0 when all findings are `clean` or `indeterminate` | verdict | DI-010, BC-2.14.001 |
+| VP-005 | `verdict::exit_code` returns 2 when any `IoError` present — regardless of findings | verdict | DI-011, BC-2.14.002 |
+| VP-006 | `verdict::exit_code` returns 0 when all findings are `clean` or `indeterminate` | verdict | DI-010, BC-2.14.001 |
 | VP-007 | `http_verdict::classify_response` is total and correct: no panic on any `(u16, HttpAttempt)`; 429/5xx/timeout never produce `broken`; 404/410 produce `broken`; `dns-failure` and `tls-error` produce `broken` | http_verdict | BC-2.10.002, DI-010, D-008 |
 
 ### Should Prove (P1 — proptest, Phase 3)
@@ -100,8 +103,9 @@ fn verify_vp001_slug_total() {
 fn verify_exit2_beats_exit1() {
     let has_broken: bool = kani::any();
     let has_io_error: bool = kani::any();
-    let exit = compute_exit_code_symbolic(has_broken, has_io_error);
-    if has_io_error { assert_eq!(exit, 2); }          // DI-011
+    let config_error: bool = kani::any();
+    let exit = exit_code_symbolic(has_broken, has_io_error, config_error);
+    if has_io_error || config_error { assert_eq!(exit, 2); }   // DI-011
     else if has_broken { assert_eq!(exit, 1); }
     else { assert_eq!(exit, 0); }
 }

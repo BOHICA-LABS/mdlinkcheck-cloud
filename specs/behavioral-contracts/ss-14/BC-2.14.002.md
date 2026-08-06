@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "79b9564"
+input-hash: "2860da8"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-14"
 capability: "CAP-014"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: Three-input model alignment — Description, Precondition 2, and Invariant 3 updated to name verdict::exit_code(findings, io_errors, config_error). Nonexistent PATH explicitly classified as io_errors (not config_error). Mixed-case test vector added (good_dir + nonexistent_dir + broken link → exit 2). Architect v1.4 reconciliation."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -31,13 +32,16 @@ removal_reason: null
 # BC-2.14.002: Exit Code 2 Takes Precedence Over Exit Code 1
 
 ## Description
-Exit code 2 (usage error or I/O error) takes strict precedence over exit code 1 (broken links).
-If a run produces both broken links AND an I/O error, the process exits 2. This is DI-011.
+Exit code 2 takes strict precedence over exit code 1 (DI-011). If a run produces both broken
+links AND an I/O error (or startup config error), the process exits 2. The exit code is computed
+by the pure-core function `verdict::exit_code(findings, io_errors, config_error) → u8`: exit 2
+if `io_errors` is non-empty OR `config_error = true`; exit 1 if any finding has verdict `broken`
+and no 2-triggering condition; exit 0 otherwise. `indeterminate` findings never raise the exit code.
 
 ## Preconditions
 1. All scanning and reporting is complete.
-2. At least one I/O error or usage error occurred (would set exit 2).
-3. At least one broken link was also found (would set exit 1).
+2. At least one condition that triggers exit 2 has occurred: `io_errors` is non-empty (I/O error during scan OR a nonexistent PATH argument — both are recorded into `Vec<IoError>`) OR `config_error = true` (startup configuration error, e.g., invalid `--ignore` glob pattern).
+3. At least one broken link was also found (would independently set exit 1).
 
 ## Postconditions
 1. Process exit code: 2.
@@ -46,8 +50,8 @@ If a run produces both broken links AND an I/O error, the process exits 2. This 
 
 ## Invariants
 1. Exit 2 ALWAYS beats exit 1. No exception. (DI-011)
-2. No fail-fast: even with I/O errors, the scan continues for all other files.
-3. The final exit code is the maximum of (0, any 1-triggering events, any 2-triggering events).
+2. No fail-fast: even with I/O errors, the scan continues for all remaining valid paths (DD-007). Broken links from successfully scanned paths are still reported.
+3. The exit code is the deterministic output of `verdict::exit_code(findings, io_errors, config_error) → u8`. Precedence: if `io_errors` non-empty OR `config_error = true` → 2; elif any `broken` finding → 1; else → 0. `indeterminate` never raises the exit code.
 
 ## Edge Cases
 | ID | Description | Expected Behavior |
@@ -61,6 +65,7 @@ If a run produces both broken links AND an I/O error, the process exits 2. This 
 | 1 broken link, no I/O errors | 1 |
 | 1 unreadable file, no broken links | 2 |
 | All clean | 0 |
+| `mdlinkcheck good_dir/ nonexistent_dir/` — good_dir has 1 broken link; nonexistent_dir does not exist (io_errors non-empty; findings has broken) | 2 (exit 2 beats exit 1; good_dir IS fully scanned and its broken finding IS reported) |
 
 ## Verification Properties
 | VP-NNN | Property | Proof Method |

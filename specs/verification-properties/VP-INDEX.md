@@ -75,7 +75,7 @@ Phase check: p0 (7) + p1 (9) + test_sufficient (8) = 24. Check before editing.
 | DI-002 | Case-sensitive NFC path comparison | VP-008, VP-009 | proptest x 2 | Yes |
 | DI-003 | Fragment split before percent-decode | VP-004, VP-013 | kani + fuzz | Yes |
 | DI-004 | Code context exclusion structural | VP-014 | integration | Yes |
-| DI-005 | Exactly one verdict per link | VP-019 | proptest | Yes |
+| DI-005 | Exactly one verdict per link | VP-019 | proptest | Partial — VP-019 proves extract_links is duplicate-free within one file (extraction precondition); full pipeline guarantee (no-verdict and two-verdict cases, e.g. path_resolver AND anchor_resolver both firing on the same link) requires a Phase 3 integration test |
 | DI-006 | Excluded files (--ignore, .gitignore, dot-dirs, outside-root) are valid anchor targets | VP-016 | integration | Yes |
 | DI-007 | HTML anchor extraction narrow scope | VP-020 | integration | Yes |
 | DI-008 | Anchor table built before any link resolution (two-pass + Pass 1.5) | VP-015 | integration | Yes |

@@ -94,8 +94,10 @@ normalization above.
 ## Non-UTF-8 Filename Verdict
 
 A directory entry whose name is not valid UTF-8 (possible on Linux — `OsStr` is
-arbitrary bytes on Unix) cannot be NFC-normalized. When `scanner` encounters such
-an entry during Pass 1.5 directory reads, it is silently skipped in the comparison
+arbitrary bytes on Unix) cannot be NFC-normalized. When `app` encounters such
+an entry during Pass 1.5 directory reads (scanner traverses only the scan root
+in Pass 1; app opens out-of-scan target directories directly in Pass 1.5), it is
+silently skipped in the comparison
 pool for that directory. Any link whose destination would match that entry produces
 **`broken` (reason: `file-not-found`)** — the same verdict as a genuinely absent file.
 
@@ -110,7 +112,7 @@ code 2 (DI-011).
 ## Consequences
 
 ### Positive
-- VP-008 proptest verifies NFC normalization is applied in path comparison (no stubs needed)
+- VP-008 proptest verifies both NFC normalization and case-sensitivity: real NFD/NFC combining-character pairs must match, and `files_match(s, s.to_uppercase())` must be false (D-006)
 - DI-002 case-sensitive invariant is enforceable
 - Consistent behavior on macOS/Linux/Windows
 - macOS NFD false-positive eliminated (DEC-004, FM-007)

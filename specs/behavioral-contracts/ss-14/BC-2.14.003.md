@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "2860da8"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-14"
 capability: "CAP-014"
 lifecycle_status: active
 introduced: v1.0.0
-modified: []
+modified:
+  - "v1.1: Three-input model alignment — Preconditions 3 and 4 now cite verdict::exit_code parameter names (io_errors and config_error). Precondition 3 clarifies that nonexistent PATH arguments count as I/O errors. Architect v1.4 reconciliation."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -38,8 +39,8 @@ links; the calling script should treat this as a CI failure.
 ## Preconditions
 1. All scanning and reporting is complete.
 2. At least one link received verdict `broken`.
-3. No I/O errors occurred.
-4. No usage errors occurred.
+3. No I/O errors occurred — no unreadable files and no nonexistent PATH arguments. (Corresponds to `io_errors = []` in `verdict::exit_code`. A nonexistent PATH argument is an I/O error, not a startup config error.)
+4. No startup configuration errors occurred — no unrecognized flags and no invalid `--ignore` glob pattern. (Corresponds to `config_error = false` in `verdict::exit_code`.)
 
 ## Postconditions
 1. Process exit code: 1.

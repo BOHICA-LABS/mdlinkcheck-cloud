@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: system-overview
-version: "1.3"
+version: "1.5"
 status: draft
 producer: architect
 timestamp: 2026-08-05T21:00:00Z
@@ -11,9 +11,15 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/specs/prd.md
   - .factory/specs/prd-supplements/nfr-catalog.md
-input-hash: "e10d77b"
+input-hash: "9376be7"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.5"
+    date: 2026-08-05
+    change: "Signature consistency fix: pipeline diagram exit-code call updated from verdict::exit_code(&findings, &io_errors) to verdict::exit_code(&findings, &io_errors, config_error), matching api-surface.md authoritative three-input signature. config_error is the bool that carries the R7 usage-error half of exit 2 (P2-M19)."
+  - version: "1.4"
+    date: 2026-08-05
+    change: "P2-C05/P2-C06/P2-M13/P2-M18 remediation: (C05) added Pass 1.5 failure branch — unreadable/missing out-of-scan targets produce no IoError, no diagnostic, Pass 2 emits normal broken verdict; (C06) corrected nonexistent PATH behavior from 'exit immediately' to runtime I/O error recorded into Vec<IoError> per DD-007 and interface-definitions.md; (M13) replaced 'absolute canonical path' visited-set key with non-canonicalizing NFC-normalized lexically-normalized key to avoid fs::canonicalize case-folding conflict with D-006; (M18) clarified Pass 1.5 iterates scan-set LinkMap only (not --ignore'd sources)"
   - version: "1.3"
     date: 2026-08-05
     change: "BC-2.11.004 reconciliation: Error Handling section now explicitly distinguishes startup configuration errors (invalid --ignore glob, non-existent PATH — exit 2 immediately, NOT subject to no-fail-fast) from runtime I/O errors (collected, no-fail-fast per DD-007)"
@@ -102,20 +108,36 @@ Pass 1.5 (shell only, sequential — app):
   membership is the single authoritative gate. This means any future exclusion
   mechanism automatically becomes part of Pass 1.5 scope without code changes.
 
-  For each .md destination path not in AnchorIndex:
+  Pass 1.5 iterates scan-set LinkMap only — link destinations from --ignore'd
+  source files are excluded. This prevents an ignored file's broken .md reference
+  from driving a Pass 1.5 read attempt and potentially contributing to io_errors.
+  (An --ignore'd file is excluded as a SOURCE; its anchor table may still be built
+  if it appears as a TARGET of a scan-set link.)
+
+  For each .md destination path (from scan-set sources) not in AnchorIndex:
   a. Collect unique parent directories of all such missing paths
   b. fs::read_dir each parent directory -> Vec<DirEntryInfo { name: OsString, kind: EntryKind }>
      EntryKind distinguishes File / Dir / Symlink { dangling: bool }
-  c. Parse each missing .md file for its anchor table and add to AnchorIndex
+  c. For each missing .md file:
+     - If the file does not exist, is not a regular file, or cannot be read:
+       skip silently. No AnchorIndex entry is created. No IoError is recorded.
+       No diagnostic is emitted. Pass 2 will produce the normal verdict for that
+       destination (e.g., broken(file-not-found), broken(broken-symlink)).
+       Only I/O failures reading files IN the scan set contribute to io_errors.
+     - If the file exists and is readable: parse for its anchor table and add to AnchorIndex.
   Result: DirIndex extended; AnchorIndex extended with out-of-scan entries
 
   Bootstrapping order: Pass 1.5 runs after Pass 1 completes and before Pass 2 begins.
     This guarantees AnchorIndex and DirIndex cover every path that Pass 2 will look up.
-  Termination / cycle safety (DI-009): each directory is visited by its absolute
-    canonical path; the set of visited paths is checked before each read_dir call.
-    A symlink cycle cannot cause repeated visits because the second encounter of
-    any canonical path is skipped. No recursion into sub-directories occurs — only
-    the immediate parent of each link destination is read (DI-006 one-level bound).
+  Termination / cycle safety (DI-009): each directory is visited at most once.
+    Deduplication key: NFC-normalized, lexically-normalized (`.`/`..` collapsed),
+    NON-canonicalized (no `fs::canonicalize` — canonicalize case-folds on macOS
+    and Windows, violating D-006 case-sensitivity), scan-root-relative `PathBuf`.
+    The set of visited keys is checked before each `fs::read_dir` call; the second
+    encounter of any key is skipped. No recursion into sub-directories occurs —
+    only the immediate parent of each link destination is read (DI-006 one-level bound).
+    Note: this key form is the same canonical key form used for AnchorIndex and
+    DirIndex entries throughout the pipeline.
 
 Pass 2 (pure only, parallel, rayon):  For each file in the scan set (NOT --ignore'd):
   a. For each extracted link, call the appropriate resolver:
@@ -128,7 +150,7 @@ Pass 2 (pure only, parallel, rayon):  For each file in the scan set (NOT --ignor
 Sort:   sort_unstable_by(NFC-path, line, col) — enforces DI-001 determinism (app)
 
 Emit:   reporter formats and writes to stdout (effectful)
-        exit code = verdict::exit_code(&findings, &io_errors) (pure)
+        exit code = verdict::exit_code(&findings, &io_errors, config_error) (pure)
 ```
 
 For `--online`, between Pass 2 and Sort, HTTP checks dispatch via a DEDICATED rayon
@@ -206,14 +228,20 @@ The final exit code is computed as a pure function over both collections.
 
 **Startup configuration errors are distinct from runtime I/O errors and are NOT subject
 to no-fail-fast.** If the tool detects a configuration problem before scanning begins —
-an invalid `--ignore` glob pattern that `globset` cannot compile (BC-2.11.004), or a
-`PATH` argument that does not exist or is unreadable (BC-2.01.009) — it exits immediately
-with code 2 and an error message on stderr. No file traversal occurs. These are `E-CLI-001`
-usage errors, not runtime I/O errors. The distinction:
+specifically, an invalid `--ignore` glob pattern that `globset` cannot compile
+(BC-2.11.004) — it exits immediately with code 2 and an error message on stderr.
+No file traversal occurs.
+
+A `PATH` argument that does not exist or cannot be read is NOT a startup configuration
+error. Per DD-007 and interface-definitions.md, it is recorded into `Vec<IoError>` and
+scanning continues with any remaining valid paths. (Note: BC-2.01.009 requires
+reconciliation — if it prescribes immediate exit for a bad PATH, that BC conflicts with
+DD-007 and must be updated by the product owner.)
 
 | Error class | When detected | Behaviour | DD rule |
 |-------------|--------------|-----------|---------|
-| Usage/config error (invalid glob, bad PATH) | Startup, before any traversal | Exit 2 immediately | BC-2.11.004, BC-2.01.009 |
+| Usage/config error (invalid --ignore glob) | Startup, before any traversal | Exit 2 immediately | BC-2.11.004 |
+| Non-existent or unreadable PATH argument | Startup or first access | Record into `Vec<IoError>`; scan continues with valid paths | DD-007 no-fail-fast |
 | Runtime I/O error (unreadable file, non-UTF-8) | During scan | Collect into `Vec<IoError>`; scan continues | DD-007 no-fail-fast |
 
 ## Cross-Platform Path Handling

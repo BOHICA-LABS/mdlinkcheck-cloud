@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T15:00:00Z
+timestamp: 2026-08-05T22:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
