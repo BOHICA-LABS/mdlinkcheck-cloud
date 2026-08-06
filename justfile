@@ -73,7 +73,7 @@ build-release:
 # Gate order matters: fmt-check and lint must pass before test/build
 # so slow jobs don't run on obviously broken code.
 # ─────────────────────────────────────────────────────────────────
-ci: fmt-check lint test build-release
+ci: fmt-check lint test build-release spec-lint
     @echo ""
     @echo "CI pipeline passed."
 
@@ -228,7 +228,7 @@ spec-lint:
 # ─────────────────────────────────────────────────────────────────
 spec-lint-selftest:
     #!/usr/bin/env bash
-    set -uo pipefail
+    set -euo pipefail
     bash scripts/spec-lint/selftest/run-selftests.sh
 
 # ─────────────────────────────────────────────────────────────────
