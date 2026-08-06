@@ -73,7 +73,7 @@ build-release:
 # Gate order matters: fmt-check and lint must pass before test/build
 # so slow jobs don't run on obviously broken code.
 # ─────────────────────────────────────────────────────────────────
-ci: fmt-check lint test build-release
+ci: fmt-check lint test build-release spec-lint
     @echo ""
     @echo "CI pipeline passed."
 
@@ -180,6 +180,82 @@ doc:
 # ─────────────────────────────────────────────────────────────────
 clean:
     cargo clean
+
+# ─────────────────────────────────────────────────────────────────
+# spec-lint — run all spec integrity validators (no Cargo required)
+#
+# Validates cross-references, ID uniqueness, counts, placeholder
+# removal, holdout boundaries, and index integrity across the
+# .factory/specs/ artifact package.
+#
+# All validators must exit 0 before Phase 1 gate passes.
+# ─────────────────────────────────────────────────────────────────
+spec-lint:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CHECKS=(
+        "check-title-sync"
+        "check-ec-injectivity"
+        "check-id-resolution"
+        "check-counts"
+        "check-placeholders"
+        "check-holdout-boundary"
+        "check-adr-consistency"
+        "check-index-integrity"
+    )
+    FAILURES=0
+    for check in "${CHECKS[@]}"; do
+        echo "── ${check} ──"
+        if python3 "scripts/spec-lint/${check}.py"; then
+            echo "  PASS"
+        else
+            echo "  FAIL"
+            FAILURES=$((FAILURES + 1))
+        fi
+        echo ""
+    done
+    if [ "${FAILURES}" -gt 0 ]; then
+        echo "spec-lint FAILED: ${FAILURES}/${#CHECKS[@]} checks failed"
+        exit 1
+    fi
+    echo "spec-lint passed: all ${#CHECKS[@]} checks clean"
+
+# ─────────────────────────────────────────────────────────────────
+# spec-lint-selftest — prove each checker can actually detect defects
+#
+# Injects known-bad fixtures and asserts each checker exits non-zero.
+# A checker that has never been observed failing provides no guarantee.
+# ─────────────────────────────────────────────────────────────────
+spec-lint-selftest:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    bash scripts/spec-lint/selftest/run-selftests.sh
+
+# ─────────────────────────────────────────────────────────────────
+# spec-gen — regenerate derived spec artifacts from sources
+#
+# Generators are idempotent. Run after hotfixes to ensure derived
+# content stays in sync with authoritative sources.
+#
+# NOTE: generators use BEGIN/END GENERATED markers. Add markers
+# to target files first (see each generator's docstring).
+# ─────────────────────────────────────────────────────────────────
+spec-gen:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "── gen-ec-registry ──"
+    python3 scripts/spec-lint/gen-ec-registry.py
+    echo ""
+    echo "── gen-bc-index ──"
+    python3 scripts/spec-lint/gen-bc-index.py
+    echo ""
+    echo "── gen-prd-sections ──"
+    python3 scripts/spec-lint/gen-prd-sections.py
+    echo ""
+    echo "── gen-rtm ──"
+    python3 scripts/spec-lint/gen-rtm.py
+    echo ""
+    echo "spec-gen complete"
 
 # ─────────────────────────────────────────────────────────────────
 # install-tools — install all required dev tools
