@@ -1,0 +1,46 @@
+# lefthook.yml — git hook configuration for mdlinkcheck
+#
+# Hooks run locally before commits and pushes to catch issues before CI.
+# They mirror the CI jobs exactly — the same commands, the same flags.
+#
+# Install: lefthook install
+# Skip a hook: LEFTHOOK=0 git commit
+# Skip one hook: lefthook run pre-push --skip lint
+#
+# Prerequisites: lefthook, cargo, cargo-nextest
+#   brew install lefthook
+#   or: cargo install lefthook --locked
+
+# ─────────────────────────────────────────────────────────────────
+# pre-commit: fast checks (< 30 seconds)
+#   - Format check
+#   - Clippy lint
+#
+# These run on every commit to catch trivial issues early.
+# They do NOT run the full test suite (that's pre-push).
+# ─────────────────────────────────────────────────────────────────
+pre-commit:
+  parallel: false
+  commands:
+    fmt:
+      name: Format check
+      run: cargo fmt --all --check
+      stage_fixed: false
+
+    clippy:
+      name: Clippy (deny warnings)
+      run: cargo clippy --all-targets --all-features -- -D warnings
+      stage_fixed: false
+
+# ─────────────────────────────────────────────────────────────────
+# pre-push: full test suite
+#
+# Runs cargo nextest before any push.  This is the final local gate
+# before code reaches CI.  Takes ~1 minute for a clean build.
+# ─────────────────────────────────────────────────────────────────
+pre-push:
+  parallel: false
+  commands:
+    test:
+      name: Test suite (nextest)
+      run: cargo nextest run --all-targets

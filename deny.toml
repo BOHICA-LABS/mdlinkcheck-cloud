@@ -1,0 +1,114 @@
+# cargo-deny configuration for mdlinkcheck
+#
+# Enforces: license policy, security advisories, crate bans, and source policy.
+# Run locally: cargo deny check
+# Run in CI:   just deny  (hardening pipeline)
+#
+# Reference: https://embarkstudios.github.io/cargo-deny/
+
+[graph]
+# Check all features and targets to catch transitive deps that only appear
+# under specific feature flags or platform conditions.
+all-features = true
+
+# ─────────────────────────────────────────────────────────────────
+# Licenses
+# ─────────────────────────────────────────────────────────────────
+[licenses]
+# Confidence threshold for license detection (SPDX matching).
+confidence-threshold = 0.8
+
+# Allow these SPDX license expressions.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-DFS-2016",
+    "Unicode-3.0",
+    "CC0-1.0",
+    "Zlib",
+    "OpenSSL",
+]
+
+# Deny these SPDX expressions outright.
+deny = [
+    "GPL-2.0",
+    "GPL-3.0",
+    "AGPL-3.0",
+    "LGPL-2.0",
+    "LGPL-2.1",
+    "LGPL-3.0",
+    "SSPL-1.0",
+    "BSL-1.1",
+]
+
+# Some crates have multiple license options; require all to be in the allow
+# list (rather than accepting any one option).
+exceptions = []
+
+# ─────────────────────────────────────────────────────────────────
+# Security advisories (RustSec database)
+# ─────────────────────────────────────────────────────────────────
+[advisories]
+# Path to a local clone of the advisory database.
+# If empty, cargo-deny fetches it from GitHub.
+db-path = "~/.cargo/advisory-db"
+db-urls = ["https://github.com/rustsec/advisory-db"]
+
+# Deny crates with known vulnerabilities.
+vulnerability = "deny"
+
+# Warn on unmaintained crates (upgrade to deny when ready).
+unmaintained = "warn"
+
+# Deny crates that have been yanked from crates.io.
+yanked = "deny"
+
+# Warn on crates explicitly flagged as security-sensitive notices.
+notice = "warn"
+
+# Known acceptable advisories (empty — deny all unless explicitly noted here).
+ignore = []
+
+# ─────────────────────────────────────────────────────────────────
+# Crate bans
+# ─────────────────────────────────────────────────────────────────
+[bans]
+# Warn on multiple versions of the same crate.  Deny when the project
+# matures and the dependency graph stabilizes.
+multiple-versions = "warn"
+
+# Deny wildcard dependencies (security risk).
+wildcards = "deny"
+
+# Ban these crates entirely.
+deny = [
+    # Avoid old openssl-based crates in favor of rustls.
+    { name = "openssl-sys" },
+    # Avoid unmaintained chrono; use time or jiff instead.
+    # (Uncomment if chrono appears transitively.)
+    # { name = "chrono" },
+]
+
+# Allow specific duplicate version pairs that can't be resolved yet.
+skip = []
+skip-tree = []
+
+# ─────────────────────────────────────────────────────────────────
+# Source policy
+# ─────────────────────────────────────────────────────────────────
+[sources]
+# Deny crates from unknown registries.
+unknown-registry = "deny"
+
+# Deny crates from unknown git sources.
+unknown-git = "deny"
+
+# Only allow crates from crates.io.
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+
+# Explicitly allow git sources only if needed (empty = none allowed).
+allow-git = []
