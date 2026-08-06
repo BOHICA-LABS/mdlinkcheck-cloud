@@ -59,6 +59,12 @@ run_test "check-id-resolution: unregistered EC-999" \
     "$FIXTURE_DIR/bad-ec-unregistered.md" \
     "$BC_DIR/SELFTEST-bad-ec.md"
 
+# ── 1b. check-id-resolution: out-of-range T reference ─────────────────────
+run_test "check-id-resolution: out-of-range T-17 reference" \
+    "check-id-resolution" \
+    "$FIXTURE_DIR/bad-trap-ref.md" \
+    "$BC_DIR/SELFTEST-bad-trap-ref.md"
+
 # ── 2. check-counts: prd.md EC count mismatch ─────────────────────────────
 # The prd.md §5b EC count claim is live in the real tree; we verify the
 # checker already detects it (it reports "168 declared, 161 actual").

@@ -282,18 +282,18 @@ def check_file(path: Path) -> list[str]:
                     f"(not in test-vectors.md table rows or holdout pool)"
                 )
 
-        # T-NN trap citations: existence check only (T1..T16).
+        # T-NN trap citations: out-of-range values are violations.
+        # Valid range is T1..T16 (both "T1" and "T-1" forms accepted).
         # NOTE: semantic correctness (whether the cited trap is topically relevant
         # to the citing row) is NOT mechanically automatable and requires human review.
         for m in re.finditer(r"\bT-?(\d{1,2})\b", line):
+            ref = m.group(0)
             num = int(m.group(1))
-            if 1 <= num <= 16:
-                ref = m.group(0)  # T1 or T-1 form as written
-                if ref not in VALID_T:
-                    violations.append(
-                        f"{path}:{lineno}: trap reference '{ref}' not in T1..T16 range"
-                    )
-            # T numbers > 16 are not trap IDs — skip silently
+            if num < 1 or num > 16:
+                violations.append(
+                    f"{path}:{lineno}: trap reference '{ref}' out of range (valid range T1..T16)"
+                )
+            # T references within T1..T16 are valid — no action needed
 
     return violations
 
