@@ -26,11 +26,12 @@ Holdout-only artifacts (NOT checked):
 
 Exit 1 if any violation found.
 """
+import os
 import re
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent.parent
+REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 SPECS = REPO / ".factory" / "specs"
 FACTORY = REPO / ".factory"
 PRD = SPECS / "prd.md"

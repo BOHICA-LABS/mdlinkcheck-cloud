@@ -27,11 +27,12 @@ ID families and their registries:
 
 Exit 1 if any unresolvable reference found.
 """
+import os
 import re
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent.parent
+REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 SPECS = REPO / ".factory" / "specs"
 FACTORY = REPO / ".factory"
 
@@ -172,13 +173,48 @@ def build_valid_adr_ids() -> set[str]:
 
 
 def build_valid_r_ids() -> set[str]:
-    """Return R-NN requirement IDs from product-brief.md."""
-    ids = {"R1", "R2", "R2a", "R2b", "R2c", "R3", "R4", "R5", "R6", "R7", "R8", "R9",
-           "R-001", "R-002", "R-003", "R-004", "R-005", "R-006", "R-007", "R-008", "R-009"}
+    """Return R-NN requirement IDs from product-brief.md.
+
+    product-brief.md defines R1..R8 (R2 has sub-letters a/b/c).
+    All equivalent reference forms are stored so lookup succeeds
+    regardless of style: bare (R1), hyphenated (R-1), zero-padded
+    hyphenated (R-001), zero-padded bare (R001).
+    """
+    # Bootstrap seed: covers R1..R9 in all reference styles.
+    # R-009 is retained here because spec files legitimately cite it
+    # as an oracle-run label (VP-026); removing it would introduce
+    # false violations. The scraper below adds any IDs found in the
+    # brief dynamically.
+    ids = {
+        # Bare forms: R1..R9 (R2 has sub-letters a/b/c per brief)
+        "R1", "R2", "R2a", "R2b", "R2c", "R3", "R4", "R5", "R6", "R7", "R8", "R9",
+        # Hyphenated single-digit: R-1..R-9
+        "R-1", "R-2", "R-2a", "R-2b", "R-2c", "R-3", "R-4", "R-5", "R-6", "R-7", "R-8", "R-9",
+        # Zero-padded hyphenated: R-001..R-009
+        "R-001", "R-002", "R-002a", "R-002b", "R-002c",
+        "R-003", "R-004", "R-005", "R-006", "R-007", "R-008", "R-009",
+        # Zero-padded bare: R001..R009
+        "R001", "R002", "R002a", "R002b", "R002c",
+        "R003", "R004", "R005", "R006", "R007", "R008", "R009",
+    }
     if BRIEF.exists():
         for line in BRIEF.read_text(encoding="utf-8").splitlines():
-            for m in re.finditer(r"\bR(\d+[a-c]?)\b", line):
-                ids.add(f"R{m.group(1)}")
+            for m in re.finditer(r"\bR-?(\d+[a-c]?)\b", line):
+                num_str = m.group(1)
+                # Store all equivalent reference forms so lookup succeeds
+                # regardless of style used in citing documents.
+                ids.add(f"R{num_str}")            # bare: R10
+                ids.add(f"R-{num_str}")           # hyphenated: R-10
+                try:
+                    # Zero-padded: R-010 (3-digit minimum)
+                    numeric_part = re.match(r"^(\d+)", num_str)
+                    if numeric_part:
+                        n = int(numeric_part.group(1))
+                        suffix = num_str[len(numeric_part.group(1)):]  # any letter suffix
+                        ids.add(f"R-{n:03d}{suffix}")   # e.g., R-010, R-002a
+                        ids.add(f"R{n:03d}{suffix}")     # e.g., R010, R002a
+                except ValueError:
+                    pass
     return ids
 
 
