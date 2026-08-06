@@ -19,3 +19,14 @@
 {"type":"hook.block","hook":"validate-vp-consistency","reason":"policy_9_violation","ts":"2026-08-06T07:59:27-0500","ts_epoch":1786021167,"schema_version":1}
 {"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_drift","ts":"2026-08-06T08:07:16-0500","ts_epoch":1786021636,"schema_version":1}
 {"type":"hook.block","hook":"validate-template-compliance","reason":"template_drift","ts":"2026-08-06T08:13:00-0500","ts_epoch":1786021980,"schema_version":1}
+{"type":"hook.block","hook":"destructive-command-guard","reason":"protected_path_delete","ts":"2026-08-06T08:30:28-0500","ts_epoch":1786023028,"schema_version":1}
+{"type":"hook.block","hook":"destructive-command-guard","reason":"protected_path_delete","ts":"2026-08-06T08:35:51-0500","ts_epoch":1786023351,"schema_version":1}
+{"type":"hook.block","hook":"validate-template-compliance","reason":"template_drift","ts":"2026-08-06T08:36:22-0500","ts_epoch":1786023382,"schema_version":1}
+{"type":"hook.block","hook":"destructive-command-guard","reason":"sot_delete","ts":"2026-08-06T08:37:04-0500","ts_epoch":1786023424,"schema_version":1}
+{"type":"hook.block","hook":"validate-template-compliance","reason":"template_drift","ts":"2026-08-06T08:45:36-0500","ts_epoch":1786023936,"schema_version":1}
+{"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_format","ts":"2026-08-06T08:54:25-0500","ts_epoch":1786024465,"schema_version":1}
+{"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_format","ts":"2026-08-06T09:09:05-0500","ts_epoch":1786025345,"schema_version":1}
+{"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_drift","ts":"2026-08-06T09:09:23-0500","ts_epoch":1786025363,"schema_version":1}
+{"type":"hook.block","hook":"destructive-command-guard","reason":"protected_path_delete","ts":"2026-08-06T09:17:30-0500","ts_epoch":1786025850,"schema_version":1}
+{"type":"hook.block","hook":"destructive-command-guard","reason":"protected_path_delete","ts":"2026-08-06T09:18:45-0500","ts_epoch":1786025925,"schema_version":1}
+{"type":"hook.block","hook":"destructive-command-guard","reason":"protected_path_delete","ts":"2026-08-06T09:18:57-0500","ts_epoch":1786025937,"schema_version":1}

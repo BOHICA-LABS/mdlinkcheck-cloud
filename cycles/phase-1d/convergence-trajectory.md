@@ -4,12 +4,14 @@ level: ops
 version: "1.0"
 status: in-progress
 producer: state-manager
-timestamp: 2026-08-05T20:00:00Z
+timestamp: 2026-08-06T14:05:00Z
 cycle: phase-1d
 inputs:
   - .factory/cycles/phase-1d/adversary-pass-1.md
   - .factory/cycles/phase-1d/adversary-pass-2.md
-input-hash: "5f91f02"
+  - .factory/cycles/phase-1d/adversary-pass-3.md
+  - .factory/cycles/phase-1d/adversary-pass-4.md
+input-hash: "66bb18e"
 traces_to: STATE.md
 ---
 
@@ -22,10 +24,11 @@ traces_to: STATE.md
 | 1 | 2026-08-05 | 32 | 6 | 21 | 5 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN — REMEDIATED |
 | 2 | 2026-08-05 | 34 | 7 | 19 | 8 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN (REGRESSION: novelty increased) — REMEDIATED |
 | 3 | 2026-08-06 | 39 | 5 | 26 | 8 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN (REGRESSION: novelty increased) — REMEDIATED (mechanical enforcement) |
+| 4 | 2026-08-06 | 37 | 3 | 19 | 15 | 0 | ZERO in enforced classes | — | 0/3 | FINDINGS_REMAIN — composition changed; root cause = SPEC-TOPOLOGY (BI-012) |
 
 ## Trajectory Shorthand
 
-`→32→34→39`
+`→0→32→34→39→37`
 
 ## Per-Pass Details
 
@@ -72,6 +75,20 @@ Consistency audit pass 3 result: FAIL.
 Strategy response: Novelty increasing for 3 consecutive passes under manual remediation (32→34→39). Strategy pivoted to mechanical enforcement + generation. Built spec-lint validator/generator suite (8 validators, 4 generators, negative-test selftest) on branch `feature/spec-lint-tooling` (open PR #2). Running `just spec-lint` cleared 254 → 25 mechanical violations. 7 of 8 checkers now PASS. Remaining 25 are check-placeholders `[filled by story-writer]` — legitimately unresolvable until Phase 2 story-writer runs.
 
 Remediation after pass 3: COMPLETE (burst 5, 2026-08-06). D-026/D-027 recorded. PRD v1.9. 25 VPs (VP-025 added for anchor_resolver totality). 13 DIs (DI-012/DI-013 added). All 66 BCs carry owning module/criticality/VP anchor from new `architecture/bc-module-map.md`. ADR-007 rewritten to v1.3 (two-layer verdict model). Mechanical violations 254 → 25 (25 expected-pending placeholders). BI-004 resolved. BI-005/006 opened.
+
+---
+
+### Pass 4 (2026-08-06)
+
+**Findings:** 37 (3 CRIT, 19 HIGH, 15 MED, 0 LOW)
+**Novelty:** ZERO in 7 mechanically-enforced classes (title-sync, EC-injectivity, id-resolution, counts, holdout-boundary, ADR-consistency, index-integrity)
+**Convergence counter:** 0 of 3
+
+Pass 4 performed deep reads of: VP-025, VP-026, VP-018, BC-2.06.001, api-surface.md, ADR-001..ADR-007, architecture/tooling-selection.md, bc-module-map.md, test-vectors.md, interface-definitions.md, domain-interfaces.md (DI-012 rules). Full regression audit of 12 prior fixes — found 8 of 12 applied to primary artifact only, not siblings/dependents. Key finding clusters: VP test-path Cargo non-discovery (P4-014, 10 VPs), BC/DI/VP contradiction on HTML element slug behavior (P4-001, BI-009), VP-025 authored against non-existent API types (P4-002, BI-010), VP-026 vacuous-pass risk on empty corpus (P4-012, BI-011), spec-topology defect (~15 documents hand-maintaining restatements with no generator, BI-012). ZERO findings in any of the 7 mechanically-enforced classes — enforcement judged SUCCESSFUL on composition. Root cause reclassified from spec-quality to SPEC-TOPOLOGY per D-035.
+
+NOTE: adversary agent tool-profile is read-only; report was recovered by orchestrator from JSONL transcript (D-037). Full report: cycles/phase-1d/adversary-pass-4.md (784 lines, 104,916 bytes, P4-001..P4-038).
+
+Strategy response per D-036: pass 5 will NOT run against current topology. Pre-pass-5 sequence: (1) adjudicate BI-009 (P4-001 HTML-strip contradiction), (2) close BI-008/BI-011 as verification-invalidating, (3) land BI-012 generators + canonical-facts block. Then pass 5.
 
 ---
 
