@@ -828,6 +828,68 @@ if [ "$CLEAN_PASS" = "1" ]; then
 fi
 rm -rf "$T"
 
+# ── Test 18: check-canonical-facts — binding site divergence ──────────────
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 18: check-canonical-facts: binding site value divergence ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+
+# Clean tree: one fact with one binding whose FLEXIBLE pattern captures the value.
+# Using a flexible pattern (not literal canonical) means the defect hits the
+# m.group(1) != canonical branch — the specific branch mutation-verify targets.
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOMLCLEAN'
+[[fact]]
+id              = "FACT-ST18"
+description     = "selftest fact — canonical value is selftest-canonical"
+canonical_value = "selftest-canonical"
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-ST18"
+file    = ".factory/specs/selftest-binding.md"
+note    = "selftest binding"
+pattern = "canonical value: ([a-z-]+)"
+TOMLCLEAN
+
+cat > "$T/.factory/specs/selftest-binding.md" <<'MDCLEAN'
+# Selftest Binding File
+The canonical value: selftest-canonical
+MDCLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (fact and binding match)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: overwrite binding file with a DIFFERENT value that the flexible pattern
+    # still matches — this forces the m.group(1) != canonical comparison branch to fire.
+    # (Using a literal pattern would test "pattern did not match" instead — not the != branch.)
+    cat > "$T/.factory/specs/selftest-binding.md" <<'MDBAD'
+# Selftest Binding File (defect — wrong value)
+The canonical value: wrong-diverging
+MDBAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch canonical-facts value divergence)"
+        FAILURES=$((FAILURES + 1))
+    else
+        # D-040: assert on specific violation message, not just exit code
+        CF_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF_OUTPUT" | grep -q "DIVERGE \[FACT-ST18\]"; then
+            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-ST18] correctly reported for value mismatch)"
+        else
+            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-ST18]' not in output)"
+            echo "  Actual output: $CF_OUTPUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
 # ── Guard test G1: run_override_guard fires on a checker lacking SPEC_LINT_REPO_OVERRIDE ──
 # D-040 applies recursively: run_override_guard must itself be proven to fire.
 # This test calls the REAL function (defined above). OVERRIDE_PATTERN has one
