@@ -203,6 +203,9 @@ def main() -> int:
 
     # ── BC-INDEX counts ──────────────────────────────────────────────────
     bc_index_path = SPECS / "behavioral-contracts" / "BC-INDEX.md"
+    if not bc_index_path.exists():
+        print(f"ERROR: Required file not found: {bc_index_path}", file=sys.stderr)
+        return 1
     bc_fm = parse_yaml_frontmatter(bc_index_path)
     actual_total, actual_p0, actual_p1, actual_ss = count_bc_index_rows()
 

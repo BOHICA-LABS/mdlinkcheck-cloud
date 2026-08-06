@@ -91,6 +91,13 @@ def find_bc_file(bc_id: str) -> Path | None:
 def main() -> int:
     violations: list[str] = []
 
+    if not BC_INDEX.exists():
+        print(f"ERROR: Required file not found: {BC_INDEX}", file=sys.stderr)
+        return 1
+    if not PRD.exists():
+        print(f"ERROR: Required file not found: {PRD}", file=sys.stderr)
+        return 1
+
     bc_index_rows = parse_bc_index_rows()
     prd_rows = parse_prd_bc_rows()
 
