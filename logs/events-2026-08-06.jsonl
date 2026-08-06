@@ -73,3 +73,7 @@
 {"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_drift","ts":"2026-08-06T12:23:22-0500","ts_epoch":1786037002,"schema_version":1}
 {"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_drift","ts":"2026-08-06T12:23:44-0500","ts_epoch":1786037024,"schema_version":1}
 {"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_drift","ts":"2026-08-06T12:27:08-0500","ts_epoch":1786037228,"schema_version":1}
+{"type":"hook.block","hook":"destructive-command-guard","reason":"protected_path_delete","ts":"2026-08-06T14:07:25-0500","ts_epoch":1786043245,"schema_version":1}
+{"type":"hook.block","hook":"destructive-command-guard","reason":"protected_path_delete","ts":"2026-08-06T14:23:08-0500","ts_epoch":1786044188,"schema_version":1}
+{"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_drift","ts":"2026-08-06T14:27:44-0500","ts_epoch":1786044464,"schema_version":1}
+{"type":"hook.block","hook":"destructive-command-guard","reason":"git_worktree_force","ts":"2026-08-06T14:33:48-0500","ts_epoch":1786044828,"schema_version":1}

@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: bc-module-map
-version: "1.3"
+version: "1.4"
 status: draft
 producer: architect
 timestamp: 2026-08-06T00:00:00Z
@@ -13,9 +13,12 @@ inputs:
   - .factory/specs/architecture/purity-boundary-map.md
   - .factory/specs/module-criticality.md
   - .factory/specs/verification-properties/VP-INDEX.md
-input-hash: "a0075f8"
+input-hash: "c1efbb5"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.4"
+    date: 2026-08-06
+    change: "INC-MAP-001 status updated to SPEC-RESOLVED / IMPL-PENDING per D-033 two-event discipline: VP-025 v1.1 discharges the spec-level API misalignment (AnchorTable(HashSet<String>), three-variant Verdict, corrected import path, property 4 replaced); Phase 3 implementation obligation remains open (BI-010). Heading updated from RE-OPENED. Anchor_resolver VP note label corrected from stale 'resolved' claim."
   - version: "1.3"
     date: 2026-08-06
     change: "P4 remediation: (P4-008) SS-06 Key ADRs corrected from ADR-006 → ADR-008 (slug clean-room reimplementation); BC-2.06.001/002 Key ADRs likewise corrected. BC-2.05.003 Key ADRs corrected from ADR-006 → ADR-003 (pulldown-cmark governs HTML event stream). (C4-005) VP-026 added to SS-06 Formal VPs for BC-2.06.001/002. (P4-002) INC-MAP-001 re-opened — VP-025 was written against non-existent API (HashMap<String,usize>); AnchorTable is HashSet<String> per api-surface.md; VP-025 rewrite required."
@@ -205,9 +208,9 @@ Key ADRs: ADR-007 (two-layer verdict model).
 | BC-2.08.003 | `fragment` | `anchor_resolver` (receives the split fragment for lookup) | Pure | CRITICAL | ADR-007 | VP-004, VP-013 | VP-004, VP-013 |
 | BC-2.08.004 | `anchor_resolver` | — | Pure | CRITICAL | ADR-007 | VP-016, VP-025 | VP-016, VP-025 |
 
-**anchor_resolver VP note (v1.1 — INC-MAP-001 resolved):** VP-025 directly exercises
-`anchor_resolver::resolve_anchor` with proptest (totality + Hit/Miss correctness +
-case-sensitivity + empty-fragment). VP-015 and VP-016 remain assigned to `anchor_table`
+**anchor_resolver VP note (VP-025 v1.1 — INC-MAP-001 spec-resolved; impl pending):** VP-025 directly exercises
+`anchor_resolver::resolve_anchor` with proptest (totality + lookup-hit correctness +
+case-sensitivity + Indeterminate-exclusion). VP-015 and VP-016 remain assigned to `anchor_table`
 in VP-INDEX — they verify the two-pass design that makes anchor_resolver's inputs complete.
 Together VP-015/016 (table completeness) and VP-025 (lookup correctness) form a full
 verification chain for the anchor resolution subsystem.
@@ -384,27 +387,29 @@ Key ADRs: ADR-007 (two-layer verdict model — clean / broken / indeterminate fe
 The following inconsistencies were observed while building this map. They are logged here for
 the architect/product-owner to resolve; no BC file was modified.
 
-### INC-MAP-001: anchor_resolver has 0 formal VPs despite CRITICAL tier — RE-OPENED
+### INC-MAP-001: anchor_resolver — VP-025 spec aligned (v1.1); Phase 3 implementation obligation outstanding
 
-**Status: RE-OPENED (2026-08-06, P4-002).** VP-025 (added in VP-INDEX v1.3) was written against
-a non-existent API. `api-surface.md` (the authoritative source) declares:
-```rust
-pub struct AnchorTable(HashSet<String>);
-pub fn resolve_anchor(fragment: &str, table: &AnchorTable) -> Verdict;
-```
-VP-025 was authored against `AnchorTable = HashMap<String, usize>` (which does not exist), an
-`AnchorVerdict` return type (which does not exist), and a two-variant closed enum (but `Verdict`
-has three variants: `Clean`, `Broken(FailureReason)`, `Indeterminate(FailureReason)`). The VP-025
-harness will not compile and its central correctness claim (property 4: "closed enum Hit|Miss") is
-false against the declared API.
+**Status: SPEC-RESOLVED / IMPL-PENDING.**
 
-**Required fix (VP-025 rewrite):** rewrite VP-025 to:
-- Use `AnchorTable(HashSet<String>)` and `resolve_anchor(...) -> Verdict`
-- Replace property 4 with: "Indeterminate is never returned from anchor resolution"
-- Fix the Kani infeasibility rationale (HashSet, not HashMap — the old SipHash bucket argument was wrong)
-- Fix the import (`use mdlinkcheck_core::anchor_table::AnchorTable`, not `types`)
+*Spec-level event (discharged 2026-08-06, VP-025 v1.1):* VP-025 has been rewritten to align
+with `api-surface.md`. All API misalignments are corrected:
+- Type: `AnchorTable(HashSet<String>)` (was `HashMap<String, usize>`, which does not exist)
+- Return type: `Verdict` — three variants `Clean`, `Broken(FailureReason)`,
+  `Indeterminate(FailureReason)` (was `AnchorVerdict`, a non-existent two-variant enum)
+- Import path: `use mdlinkcheck_core::anchor_table::AnchorTable` (was `types`)
+- Property 4: "Indeterminate is never returned from anchor resolution"
+  (was "closed enum Hit|Miss", which was false against the declared API)
 
-**Status restores to RESOLVED when VP-025 rewrite lands and VP-INDEX reflects the corrected spec.**
+The spec-level defect — VP-025 harness non-compilable due to API mismatch (E0004
+non-exhaustive match, BI-010 CRITICAL) — is discharged. VP-INDEX reflects the corrected spec.
+
+*Implementation obligation (NOT yet discharged, BI-010):* Phase 3 must implement
+`anchor_resolver`, make VP-025 green, and pass all related proofs before Phase 6 formal
+hardening can proceed. No Rust workspace exists; Phase 3 has not started.
+
+**This is NOT full closure.** Per D-033, closing a spec gap and discharging an implementation
+obligation are separate events (precedent: BI-005 → BI-007 split). INC-MAP-001 fully closes
+only when Phase 3 delivers a passing VP-025.
 
 ### INC-MAP-002: BC-2.03.005 spans SS-03 and SS-09 subsystem boundary
 
