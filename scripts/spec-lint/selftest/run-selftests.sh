@@ -169,12 +169,44 @@ run_test "check-adr-consistency: exit 2 for broken link" \
     "$FIXTURE_DIR/bad-adr-exit-code.md" \
     "$ADR_DIR/ADR-SELFTEST-bad-exit.md"
 
-# ── 6. check-ec-injectivity: same EC ID with conflicting verdicts ──────────
-# Inject a BC file that uses an EC ID already in the tree with a different verdict
-run_test "check-ec-injectivity: EC verdict collision" \
-    "check-ec-injectivity" \
-    "$FIXTURE_DIR/bad-ec-injectivity.md" \
-    "$BC_DIR/BC-SELFTEST-injectivity.md"
+# ── 6. check-ec-injectivity: EC description collision (2-column, isolated) ─
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest: check-ec-injectivity: 2-column EC description collision (isolated) ──"
+INJECT_TEMP=$(mktemp -d)
+INJECT_BC_DIR="$INJECT_TEMP/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$INJECT_BC_DIR"
+mkdir -p "$INJECT_TEMP/.factory/specs/prd-supplements"
+# Register EC-001 in test-vectors.md so it is recognized as a valid EC
+cat > "$INJECT_TEMP/.factory/specs/prd-supplements/test-vectors.md" <<'TVSTUB'
+| TV-001 | EC-001 | `a.md` | clean | 0 | clean | no-reason |
+TVSTUB
+# BC file 1: cites EC-001 for a symlink scenario (2-column, corpus-native format)
+cat > "$INJECT_BC_DIR/BC-SELFTEST-001.md" <<'BC1'
+---
+bc_id: BC-SELFTEST-001
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-001 | Symlink target outside root directory traversal boundary |
+BC1
+# BC file 2: cites same EC-001 for a completely different scenario (zero token overlap)
+cat > "$INJECT_BC_DIR/BC-SELFTEST-002.md" <<'BC2'
+---
+bc_id: BC-SELFTEST-002
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-001 | Binary garbage injected into stdin while TLS handshake pending |
+BC2
+if SPEC_LINT_REPO_OVERRIDE="$INJECT_TEMP" python3 "$LINT_DIR/check-ec-injectivity.py" > /dev/null 2>&1; then
+    echo "  FAIL (checker returned 0 — did NOT catch 2-column EC description collision)"
+    FAILURES=$((FAILURES + 1))
+else
+    echo "  PASS (checker correctly returned non-zero on 2-column EC description collision)"
+fi
+rm -rf "$INJECT_TEMP"
 
 # ── 7. check-holdout-boundary: concrete holdout scenario leaked ───────────
 run_test "check-holdout-boundary: leaked holdout EC-079 concrete scenario" \
