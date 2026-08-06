@@ -28,9 +28,6 @@ concurrency:
 
 permissions:
   contents: read
-  # issues: write is needed for the schedule path to open a tracking issue
-  # when a job fails.  Uncomment when the repo has a remote and issues enabled.
-  # issues: write
 
 env:
   CARGO_TERM_COLOR: always
@@ -136,13 +133,14 @@ jobs:
   mutants:
     name: cargo-mutants (smoke)
     # D-043/D-044: mutation testing MUST run on macos-latest, not ubuntu.
-    # cargo-mutants drives the actual test suite; that suite is APFS-sensitive
-    # (VP-008 case-insensitivity, VP-009 NFC normalization).  A mutation that
-    # breaks macOS path-handling would pass on ubuntu (case-sensitive ext4)
-    # and give a false-green survivor signal.  Cost premium (10x) is accepted
-    # for correctness; see D-043 rationale.
+    # cargo-mutants requires a passing unmutated baseline before it can mutate.
+    # Per D-043, the test suite's required CI contexts are macos-latest only
+    # (branch protection: "Test (macos-latest)").  On ubuntu, the baseline
+    # would fail — ubuntu is not a valid platform for this suite, not merely
+    # "less sensitive".  Running mutants on an invalid baseline produces no
+    # useful mutation signal.  Cost premium (~10x) accepted; see D-043/D-045.
     runs-on: macos-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     permissions:
       contents: read
     steps:
@@ -234,7 +232,10 @@ jobs:
             echo "No fuzz/ directory found — skipping smoke run."
             exit 0
           fi
-          for target in $(cargo +nightly fuzz list 2>/dev/null); do
+          # Capture target list first — this IS covered by set -e, unlike
+          # a command substitution directly in the for-loop word list.
+          targets="$(cargo +nightly fuzz list)"
+          for target in $targets; do
             echo "Fuzzing target: ${target} (30s)"
             cargo +nightly fuzz run "${target}" -- -max_total_time=30 -max_len=65536
           done
@@ -275,7 +276,7 @@ jobs:
         # Exits 0 if no proof harnesses exist.
         run: |
           set -euo pipefail
-          if ! grep -rq '#\[kani::proof\]' src/ 2>/dev/null; then
+          if ! grep -rq '#\[kani::proof\]' . --include='*.rs' 2>/dev/null; then
             echo "No Kani proof harnesses found — skipping."
             exit 0
           fi
