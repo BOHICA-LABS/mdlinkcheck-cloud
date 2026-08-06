@@ -198,9 +198,7 @@ def get_l2_index_sections() -> set[str]:
                 break
 
     # Parse sections: list items from YAML frontmatter only
-    for lineno, line in enumerate(lines):
-        if lineno == 0 or lineno >= frontmatter_end:
-            break
+    for line in lines[1:frontmatter_end]:
         m = re.match(r"^\s*-\s*([\w-]+\.md)\s*$", line)
         if m:
             sections.add(m.group(1))
