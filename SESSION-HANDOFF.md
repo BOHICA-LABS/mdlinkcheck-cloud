@@ -147,11 +147,11 @@ All heads verified at wrap time. Everything is pushed; nothing is local-only.
 |---|---|---|
 | `origin/main` | `78a9f77` | CI workflows live (PR #1 merged by operator, 17/17 green) |
 | `origin/develop` | `2290cb0` | PR #2 squash-merged; integration branch; story PRs target this |
-| `feature/spec-lint-hardening` local | current | PR #3 head (spec-lint hardening + P4-021 fix); OPEN, unreviewed |
-| `chore/macos-only-ci` | current | PR #4 head (ci.yml matrices → macos-latest); OPEN, unreviewed |
-| `.factory` / `factory-artifacts` local == remote | this burst's SHA | single-commit wrap; see `git -C .factory log -1` |
+| `origin/feature/spec-lint-hardening` | `edc903f` | PR #3 head (spec-lint hardening + P4-021 fix); OPEN, unreviewed |
+| `origin/chore/macos-only-ci` | `af54a65` | PR #4 head (ci.yml matrices → macos-latest); OPEN, unreviewed |
+| `.factory` / `factory-artifacts` local == remote | see `git -C .factory log -1` | single-commit wrap; all pushed; nothing local-only |
 
-- Main repo working tree: branch checked out: `feature/spec-lint-hardening`.
+- Main repo working tree: branch checked out: **`chore/macos-only-ci`** (`af54a65`, PR #4). All remote heads are pushed; nothing is local-only.
 - `stash@{0}` ("pre-merge stash for PR #2") exists and is redundant with committed work. Needs an explicit user-space `git stash drop`; NOT dropped automatically.
 - `.factory` worktree: all spec files, STATE.md, SESSION-HANDOFF.md, cycle files committed in this burst.
 - `git worktree list`: exactly two — repo root, `.factory`.
@@ -188,6 +188,8 @@ RESUME NEXT-ACTION: After WS-A, dispatch `vsdd-factory:devops-engineer` and `vsd
 
 Per D-040, the skip list MUST be re-derived from proven-can-fail evidence, NOT reused from pass 4. Pass 4's skip list wrongly included `check-ec-injectivity` (false-passing, hiding 13 real EC collisions). Re-freeze HEAD at post-WS-B develop. Remaining unread perimeter: 54 BC bodies, ADR bodies, interaction clusters (32-thread HTTP pool × rayon pool × DI-001; URL dedup × per-occurrence file:line × 429 pausing).
 
+**Adversarial streak warning (BC-5.39.001 / DRIFT-ORCH-PRLEVEL-PUSH-001):** The 0/3 clean-pass streak was accumulated against HEADs that have since moved (working tree is now on `chore/macos-only-ci`, `af54a65`). Per the frozen-HEAD rule, the streak MUST be re-counted against whatever HEAD is frozen when pass 5 runs. No pre-wrap streak count may be carried forward. Do NOT treat the 0/3 counter as portable across this session boundary.
+
 RESUME NEXT-ACTION: After WS-B complete and generators green, dispatch `vsdd-factory:adversary` for pass 5 with frozen HEAD, re-derived skip list, and semantic-perimeter focus; simultaneously dispatch `vsdd-factory:consistency-validator`.
 
 ---
@@ -219,11 +221,11 @@ Never yet presented. Gated on: 3 clean adversarial passes. On approval, flip `sp
 
 | Path | Branch | SHA | Status |
 |------|--------|-----|--------|
-| `/Users/jmagady/Dev/mdlinkcheck-cloud` (root) | `feature/spec-lint-hardening` | current | active; PR #3 open |
-| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | this burst | active |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` (root) | `chore/macos-only-ci` | `af54a65` | active; PR #4 open (main working tree) |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | see `git -C .factory log -1` | active |
 | `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/` | — | — | empty; Phase 3 not started |
 
-Nothing stale. No Phase 3 story worktrees exist.
+Nothing stale. No Phase 3 story worktrees exist. `.worktrees/` is empty because Phase 3 has not started; no story worktrees exist.
 
 ### DECISION DELTA
 
@@ -245,7 +247,7 @@ c. `required_approving_review_count` is 0 on both branches because all PRs are a
 
 d. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).** This happened once: a devops burst was working on `feature/spec-lint-tooling` when pr-manager merged and deleted it. Work was recovered from the working tree + stash.
 
-e. `verify-sha-currency.sh` is absent from this project — post-push hook verification could not be run. Known gap; do not assert it passed.
+e. `.factory/hooks/verify-sha-currency.sh` does not exist in this project — the post-push SHA-currency hook verification could NOT be run during this wrap. Known gap; do not treat it as a pass.
 
 f. `stash@{0}` ("pre-merge stash for PR #2") is redundant with committed work. Needs an explicit user-space `git stash drop`; NOT dropped automatically.
 
@@ -253,6 +255,6 @@ g. `prd.md` versioned changelog entries are IMMUTABLE (D-034). Do not update the
 
 h. **BI-007 remains open:** VP-026 is SPECIFIED but UNIMPLEMENTED (Phase 3 hasn't started). Blocks Phase 6, not Phase 1. Phase 2 MUST generate a story traced to VP-026.
 
-i. Main repo working tree is on `feature/spec-lint-hardening`, not `develop`. Check out deliberately before new work.
+i. Main repo working tree is on **`chore/macos-only-ci`** (`af54a65`, PR #4), NOT `develop`. Check out deliberately before new work. `feature/spec-lint-hardening` (`edc903f`) is PR #3's branch and also still exists.
 
 j. **D-045 consequence:** macOS APFS is case-insensitive and NFD-storing; on a macOS-only matrix it is the only filesystem. Nothing incidentally catches a missing NFC normalization call. VP-008/VP-009 are the sole gatekeepers. Phase 6 formal hardening of BC-2.07.003 is RAISED in priority.

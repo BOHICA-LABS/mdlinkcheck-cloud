@@ -1,17 +1,17 @@
 ---
 document_type: pipeline-state
 level: ops
-version: "2.2"
+version: "2.3"
 status: draft
 producer: state-manager
-timestamp: 2026-08-07T00:30:00Z
+timestamp: 2026-08-06T09:05:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; D-043 macOS-only applied across CI + specs; spec-lint 7/8 (only 25 known placeholders); PR #3 and PR #4 open awaiting pr-manager review; next = review/merge both PRs, then BI-012 generators, THEN pass 5 per D-036/D-040; trajectory-tail →32→34→39→37; D-chain cite D-045 D-421"
+current_step: "phase-1d; working tree: chore/macos-only-ci (af54a65, PR #4); PR #3 + PR #4 open awaiting review; next = review/merge both PRs (WS-A), BI-012 generators (WS-B), THEN pass 5 per D-036/D-040 (WS-C); trajectory-tail →32→34→39→37; D-chain cite D-045 D-421"
 current_cycle: ""
 dtu_required: false
 ---
@@ -37,7 +37,7 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-06 — D-043 macOS-only platform narrowing applied across CI + specs; branch protection 8→4 contexts both branches; NFR-002 re-targeted 10s p95; NFR-004/T13 retired; unicode-normalization pinned 0.1.24; D-043..D-045 (exhaustive) recorded; BI-017/BI-018 opened; spec-lint 7/8; PR #3 and PR #4 open; trajectory-tail →32→34→39→37 |
+| **Last Updated** | 2026-08-06 — D-043 macOS-only platform narrowing applied across CI + specs; branch protection 8→4 contexts both branches; NFR-002 re-targeted 10s p95; NFR-004/T13 retired; unicode-normalization pinned 0.1.24; D-043..D-045 (exhaustive) recorded; BI-017/BI-018 opened; spec-lint 7/8; PR #3 and PR #4 open; trajectory-tail →32→34→39→37; wrap correction: HEADS/WORKTREE/caveat-i corrected to chore/macos-only-ci (af54a65); D-045 snapshot accurate |
 | **Current Phase** | phase-1d |
 | **Current Step** | D-043 macOS-only COMPLETE — branch protection 8→4 contexts; ci.yml matrices → macos-latest (PR #4 open); NFR-002 re-targeted 10s; NFR-004/T13 retired; unicode-normalization pinned 0.1.24; C4-008 fixed; PR #3 + PR #4 open; next = review/merge both PRs, then BI-012 generators, THEN pass 5 per D-036/D-040 |
 
@@ -169,7 +169,7 @@ Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-045`
 | Field | Value |
 |-------|-------|
 | **Date** | 2026-08-06 |
-| **Position** | phase-1d; D-043 macOS-only COMPLETE; PR #3 + PR #4 open awaiting review; 0 of 3 clean passes; trajectory-tail →32→34→39→37 |
+| **Position** | phase-1d; working tree on chore/macos-only-ci (af54a65, PR #4); D-043 macOS-only COMPLETE; PR #3 + PR #4 open awaiting review; 0 of 3 clean passes (streak on prior HEAD — re-count required per BC-5.39.001 when pass 5 runs); trajectory-tail →32→34→39→37 |
 | **Convergence counter** | 0 of 3 clean passes |
 | **Next burst** | PR #3 + PR #4 review lifecycles (WS-A), then BI-012 generators (WS-B), THEN pass 5 per D-036/D-040 (WS-C) |
 
@@ -191,4 +191,4 @@ Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC r
 | Lessons learned | `cycles/phase-1d/lessons.md` |
 | Resolved blockers | `cycles/phase-1d/blocking-issues-resolved.md` |
 
-Last Updated: 2026-08-06
+Last Updated: 2026-08-06 — wrap correction: HEADS/WORKTREE/caveat-i corrected to chore/macos-only-ci (af54a65); D-045 snapshot accurate
