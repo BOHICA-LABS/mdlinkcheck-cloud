@@ -64,7 +64,7 @@ def is_historical_changelog_line(line: str, matched_text: str) -> bool:
       - v1.4: "D-019/P2-M08 — ..."
 
     We detect this by checking if the match is bracketed by double-quotes
-    on the same line AND the line looks like a changelog item (contains v\d.\d).
+    on the same line AND the line looks like a changelog item (contains v\\d.\\d).
     """
     # Find the position of matched_text in the line
     pos = line.find(matched_text)
