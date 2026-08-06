@@ -99,6 +99,9 @@ def should_check(path: Path) -> bool:
 
 
 def main() -> int:
+    if not SPECS.exists():
+        print(f"ERROR: Spec tree not found at {SPECS} — cannot run check (no spec files to validate)", file=sys.stderr)
+        sys.exit(1)
     violations: list[tuple[str, int, str, str]] = []  # (filepath, lineno, matched, pattern_name)
     files_checked = 0
 

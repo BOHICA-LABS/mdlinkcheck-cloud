@@ -299,6 +299,9 @@ def check_file(path: Path) -> list[str]:
 
 
 def main() -> int:
+    if not SPECS.exists():
+        print(f"ERROR: Spec tree not found at {SPECS} — cannot run check (no spec files to validate)", file=sys.stderr)
+        sys.exit(1)
     all_violations: list[str] = []
     files_checked = 0
 
