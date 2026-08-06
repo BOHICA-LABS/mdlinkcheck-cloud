@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
+version: "1.2"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -10,7 +10,7 @@ inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
   - .factory/planning/market-intelligence.md
-input-hash: "da42fbb"
+input-hash: "fecba47"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.06.001
 module: slug
@@ -22,6 +22,9 @@ proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
 modified:
+  - version: "1.2"
+    date: 2026-08-06
+    change: "BI-005 spec-level closure: (1) added DI-012 Rule 3 falsifying case (AI & Automation → ai--automation); (2) added DI-012 Rule 7 falsifying case (Hello 🌍 → hello-); (3) added DI-012 Rule 1 pre-rendered golden vector (code text → code-text, sourced from ## `code` <em>text</em>); (4) added vp018_duplicate_heading_counter_0_based() — FM-002 discriminator, three ## Setup repeats → setup / setup-1 / setup-2; (5) added DI-012 Rule 1 end-to-end integration skeleton (Phase 3). VP-026 is the comprehensive differential oracle; these vectors are defense-in-depth."
   - version: "1.1"
     date: 2026-08-05
     change: "SR-020 remediation: (1) fixed Hello,World! expected from hello-world-1 to hello-world (fresh counter; comma/bang stripped; no prior registration); (2) fixed leading-spaces expected from leading-spaces to --leading-spaces-- (market-intelligence §4.1 rule 4: 1:1 space→hyphen, no trimming); (3) removed duplicate Hello World row; (4) added DEC-001 triple collision-bump test function; (5) noted SR-021 generated oracle recommendation"
@@ -94,6 +97,23 @@ const SLUG_CORPUS: &[(&str, &str)] = &[
     ("résumé",              "résumé"),
     // Markdown link syntax: brackets and parentheses stripped
     ("[link text](url)",    "link-texturl"),
+    // DI-012 Rule 3 falsifying case (BI-005): & stripped; flanking spaces → "--"
+    // "AI & Automation": lowercase → "ai & automation"; strip "&" → "ai  automation";
+    // 1:1 space→hyphen on both spaces → "ai--automation" (NOT "ai-automation").
+    // FM-001 shape: a v1 hyphen-collapser would produce "ai-automation" here.
+    ("AI & Automation",        "ai--automation"),
+    // DI-012 Rule 7 falsifying case (BI-005): emoji is not \p{Word}, not space, not hyphen.
+    // 🌍 (U+1F30D, EARTH GLOBE EUROPE-AFRICA) is stripped; the space before it → "-".
+    // Trailing "-" is retained per Rule 5 (no trim step).
+    ("Hello 🌍",               "hello-"),
+    // DI-012 Rule 1 pre-rendered golden vector (BI-005):
+    // Source heading: ## `code` <em>text</em>
+    //   inline code span "code" → contributes text "code"
+    //   HTML <em> tag stripped; visible text "text" retained
+    // Rendered text (after AST processing per DI-012 Rule 1): "code text"
+    // Expected slug: "code-text"
+    // End-to-end pipeline trace: vp018_di012_rule1_end_to_end() skeleton below.
+    ("code text",              "code-text"),
 ];
 
 #[test]
@@ -125,11 +145,61 @@ fn vp018_dec001_collision_bump() {
 }
 ```
 
+**Duplicate-heading counter test — FM-002 discriminator (BI-005):**
+
+```rust
+#[test]
+fn vp018_duplicate_heading_counter_0_based() {
+    // DI-013 / FM-002 discriminator: three ## Setup headings MUST produce
+    // "setup", "setup-1", "setup-2" — the 0-based counter scheme.
+    // A 1-based counter produces "setup", "setup-2", "setup-3" — wrong.
+    //
+    // WHY THIS TEST CLOSES FM-002 WHEN VP-003 CANNOT:
+    // VP-003 (Kani injectivity) proves the three outputs are distinct (≠).
+    // Both ("setup","setup-1","setup-2") and ("setup","setup-2","setup-3")
+    // satisfy injectivity. Only an exact-value comparison catches the off-by-one.
+    // VP-026 is the comprehensive oracle; this test is defense-in-depth.
+    let mut counter = DuplicateCounter::new();
+    assert_eq!(compute_slug("Setup", &mut counter), "setup",
+        "1st occurrence: bare slug, no suffix");
+    assert_eq!(compute_slug("Setup", &mut counter), "setup-1",
+        "2nd occurrence: suffix -1 (0-based counter slot 1, NOT -2)");
+    assert_eq!(compute_slug("Setup", &mut counter), "setup-2",
+        "3rd occurrence: suffix -2 (0-based counter slot 2, NOT -3)");
+}
+```
+
+**DI-012 Rule 1 end-to-end integration skeleton (Phase 3 — CAP-005/CAP-006 required):**
+
+```rust
+// This test validates the full pipeline: raw markdown heading → anchor table builder
+// (CAP-005) renders heading text → compute_slug (CAP-006) → final anchor key.
+// It cannot run until anchor_table::build_for_test() exists (Phase 3).
+//
+// #[test]  // integration — enable in Phase 3
+// fn vp018_di012_rule1_end_to_end() {
+//     // Source: ## `code` <em>text</em>
+//     // DI-012 Rule 1:
+//     //   - Inline code span `code` → contributes text content "code"
+//     //   - HTML <em> tag stripped; visible text "text" retained
+//     // Rendered text: "code text"
+//     // Expected anchor key: "code-text"
+//     let md = "## `code` <em>text</em>\n";
+//     let table = anchor_table::build_for_test(md);
+//     assert!(
+//         table.contains("code-text"),
+//         "DI-012 Rule 1: expected anchor 'code-text' from '## `code` <em>text</em>'; \
+//          got {:?}. Check that inline code contributes text and HTML tags are stripped.",
+//         table
+//     );
+// }
+```
+
 ## Feasibility Assessment
 
 | Factor | Assessment | Notes |
 |--------|-----------|-------|
-| Input space size | Exact fixtures | Corpus items + DEC-001 triple; deterministic |
+| Input space size | Exact fixtures | Corpus items (15) + DEC-001 triple + FM-002 discriminator; deterministic |
 | Proof complexity | Low | Exact match test; no fuzzy logic |
 | Tool support | Full | Standard nextest unit test |
 | Estimated proof time | < 100ms | |
@@ -140,9 +210,10 @@ SR-021 recommends a generated differential oracle: a committed Node.js script th
 `require('github-slugger')` over a sweep of inputs and emits `slug-vectors.json`, with a CI
 check that regeneration is a no-op. This VP-018 corpus is a static hand-curated subset; the
 generated oracle would cover a much larger sweep and would catch github-slugger v2 version
-changes automatically. **This is deferred to Phase 3** as a story task — it requires Node.js
-tooling at vector-generation time and a `just regen-slug-vectors` target. The VP-018 static
-corpus remains the Phase 1 baseline requirement and is unaffected by the Phase 3 oracle.
+changes automatically. **This is now specified as VP-026** (slug differential fidelity,
+Phase 3) — it formalises the SR-021 recommendation into a full verification property with
+oracle corpus format, provenance requirements, and proptest generator strategy. The VP-018
+static corpus remains the Phase 1 baseline requirement and is unaffected by VP-026.
 
 ## Lifecycle
 
@@ -150,6 +221,7 @@ corpus remains the Phase 1 baseline requirement and is unaffected by the Phase 3
 |-------|------|-------|
 | Created | 2026-08-05 | architect |
 | v1.1 — SR-020 corpus corrections | 2026-08-05 | architect |
+| v1.2 — BI-005 vectors + FM-002 discriminator | 2026-08-06 | architect |
 | Proof harness committed | — | formal-verifier |
 | Proof first passed | — | formal-verifier |
 | Locked (VERIFIED) | — | formal-verifier |

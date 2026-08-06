@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: verification-coverage-matrix
-version: "1.6"
+version: "1.7"
 status: draft
 producer: architect
 timestamp: 2026-08-06T00:00:00Z
@@ -13,6 +13,9 @@ inputs:
 input-hash: "31deb21"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.7"
+    date: 2026-08-06
+    change: "BI-005 spec-level closure: added VP-026 row (slug/proptest/P1/Phase-3, DI-012+DI-013+FM-002). Updated header Total VPs 25→26. slug module proptest 0→1, total 5→6. Totals row proptest 8→9, total 25→26. DI Coverage Summary: DI-012 and DI-013 upgraded from partial to covered."
   - version: "1.6"
     date: 2026-08-06
     change: "DI-012/DI-013 coverage: VP-003 DI column updated BC-2.06.002→DI-013,BC-2.06.002; VP-018 DI column updated NFR-006→DI-012 partial,NFR-006. Fixed stale header 'Total VPs: 24' → 25 (VP-025 was added in v1.5 but prose header was not updated)."
@@ -40,7 +43,7 @@ changelog:
 
 ## VP-to-Module Mapping
 
-Source of truth: VP-INDEX.md. Total VPs: **25**.
+Source of truth: VP-INDEX.md. Total VPs: **26**.
 
 | VP | Module | Method | Pipeline Phase | Tier | DI Discharged |
 |----|--------|--------|---------------|------|--------------|
@@ -69,12 +72,13 @@ Source of truth: VP-INDEX.md. Total VPs: **25**.
 | VP-023 | url_classifier | proptest | 3 | P1 | — (BC-2.07.007 empty-dest) |
 | VP-024 | path_resolver | proptest | 3 | P1 | — (BC-2.07.008 trailing-slash) |
 | VP-025 | anchor_resolver | proptest | 3 | P1 | — (BC-2.08.001/002/004 totality + correctness) |
+| VP-026 | slug | proptest | 3 | P1 | DI-012, DI-013, FM-002 |
 
 ## Per-Module Coverage Totals
 
 | Module | Kani | Proptest | Fuzz | Integration | Unit | Total |
 |--------|------|---------|------|------------|------|-------|
-| slug | 3 | 0 | 1 | 0 | 1 | **5** |
+| slug | 3 | 1 | 1 | 0 | 1 | **6** |
 | fragment | 1 | 0 | 1 | 0 | 0 | **2** |
 | verdict | 2 | 0 | 0 | 0 | 0 | **2** |
 | http_verdict | 1 | 0 | 0 | 0 | 0 | **1** |
@@ -91,7 +95,7 @@ Source of truth: VP-INDEX.md. Total VPs: **25**.
 | http_client | 0 | 0 | 0 | 0 | 0 | 0 |
 | main | 0 | 0 | 0 | 0 | 0 | 0 |
 | types | 0 | 0 | 0 | 0 | 0 | 0 |
-| **Totals** | **7** | **8** | **2** | **7** | **1** | **25** |
+| **Totals** | **7** | **9** | **2** | **7** | **1** | **26** |
 
 **Note:** `http_client` has zero dedicated VPs; `app` has one. Coverage notes:
 - `anchor_resolver`: VP-025 (proptest totality + correctness, P1); also transitively covered by `anchor_table` integration tests (VP-015..016)
@@ -101,7 +105,7 @@ Source of truth: VP-INDEX.md. Total VPs: **25**.
 
 ## DI Coverage Summary
 
-All 13 DIs have at least partial VP coverage (11/13 fully proved, 2/13 partial — DI-012 and DI-013). See verification-architecture.md §DI→VP Coverage Matrix for gap analysis.
+All 13 DIs have VP coverage (13/13). DI-012 covered by VP-018 (unit) + VP-026 (proptest oracle); DI-013 covered by VP-003 (Kani injectivity) + VP-026 (0-based counter oracle). FM-002 closed by VP-026. See verification-architecture.md §DI→VP Coverage Matrix for detail.
 
 ## Mutation Kill Rate Targets (module-criticality.md)
 

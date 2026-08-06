@@ -1,7 +1,7 @@
 ---
 document_type: module-criticality
 level: ops
-version: "1.4"
+version: "1.5"
 status: draft
 producer: architect
 timestamp: 2026-08-06T00:00:00Z
@@ -11,9 +11,12 @@ inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
   - .factory/specs/architecture/verification-architecture.md
-input-hash: "7481a1d"
+input-hash: "03cd0a2"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 changelog:
+  - version: "1.5"
+    date: 2026-08-06
+    change: "BI-005 spec-level closure: slug VP Count 5→6 (VP-026 proptest differential oracle added). Rationale updated to cite VP-026 and DI-012/DI-013 (replaces stale DI-003 reference — DI-003 is the fragment invariant; slug invariants are DI-012 and DI-013 per DD-027)."
   - version: "1.4"
     date: 2026-08-06
     change: "INC-MAP-001 closure: anchor_resolver VP Count 0→1 (VP-025 proptest totality+correctness)"
@@ -66,7 +69,7 @@ changelog:
 
 | Module | Path | Tier | Rationale | Kill Rate Target | VP Count |
 |--------|------|------|-----------|-----------------|----------|
-| `slug` | `crates/mdlinkcheck-core/src/slug.rs` | CRITICAL | Primary differentiator (R-001, R-002); formal proofs VP-001..003; fuzz VP-012; DI-003 | >= 95% | 5 |
+| `slug` | `crates/mdlinkcheck-core/src/slug.rs` | CRITICAL | Primary differentiator (R-001, R-002); formal proofs VP-001..003; unit corpus VP-018; fuzz VP-012; differential oracle VP-026 (DI-012, DI-013) | >= 95% | 6 |
 | `fragment` | `crates/mdlinkcheck-core/src/fragment.rs` | CRITICAL | Incorrect split produces wrong anchor lookups and silent mismatch bugs; VP-004, VP-013 | >= 95% | 2 |
 | `verdict` | `crates/mdlinkcheck-core/src/verdict.rs` | CRITICAL | Incorrect exit code silently ignores broken links in CI (DI-010, DI-011); VP-005, VP-006 | >= 95% | 2 |
 | `http_verdict` | `crates/mdlinkcheck-core/src/http_verdict.rs` | CRITICAL | Misclassifying alive as broken is a false positive; misclassifying broken as alive is silent failure; VP-007 | >= 95% | 1 |

@@ -4,21 +4,21 @@ level: ops
 version: "2.2"
 status: draft
 producer: state-manager
-timestamp: 2026-08-06T14:30:00Z
+timestamp: 2026-08-06T19:30:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; D-031/D-032 autonomy_level 4 + spec-lint advisory recorded; D-421 size policy; trajectory-tail →0→32→34→39; next = WS-1 PR#2 full pr-manager review lifecycle then agent merge"
+current_step: "phase-1d; BI-005 closed at spec level (VP-026); BI-007 opened blocking phase-6; D-chain cite D-421 latest brownfield; spec-lint 7/8 green; next = adversary pass 4 + consistency pass 4 against frozen HEAD; trajectory-tail →0→32→34→39"
 current_cycle: ""
 dtu_required: false
 ---
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 171 = 329. 171 lines (wc-l).
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 174 = 326. 174 lines (wc-l).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
@@ -37,9 +37,9 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-06 — D-031 merge autonomy level 4; D-032 spec-lint advisory reaffirmed; 0 of 3 clean passes; trajectory-tail →0→32→34→39 |
+| **Last Updated** | 2026-08-06 — BI-005 closed at spec level (VP-026); BI-007 opened blocking phase-6; D-033/D-034 recorded; spec-lint 7/8 green; 26 VPs; trajectory-tail →0→32→34→39 |
 | **Current Phase** | phase-1d |
-| **Current Step** | D-031 autonomy_level 4 recorded; next = WS-1 PR#2 full pr-manager review lifecycle then agent merge |
+| **Current Step** | WS-3 complete: VP-026 authored; BI-005 closed; BI-007 opened; next = adversary pass 4 + consistency pass 4 against frozen HEAD |
 
 ## Phase Progress
 
@@ -64,11 +64,11 @@ dtu_required: false
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
-| phase-1d spec-lint tooling built | devops-engineer | COMPLETE | scripts/spec-lint/ (8 validators, 4 generators, selftest); just spec-lint CI job; PR #2 open (feature/spec-lint-tooling) |
 | phase-1d pass-3 remediation | architect/product-owner/spec-steward | COMPLETE | 254→25 violations; D-026/D-027; PRD v1.9; VP-025; DI-012/DI-013; ADR-007 v1.3; bc-module-map.md |
 | session wrap D-030 | state-manager | COMPLETE | SESSION-HANDOFF.md §RESUME SNAPSHOT D-030; sidecar committed |
 | next: WS-1 PR#2 pr-manager review | pr-manager | pending | full review lifecycle per D-028 — review dispatch → triage → fix → convergence → merge |
 | merge autonomy D-031 (level 4) | state-manager | COMPLETE | .factory/merge-config.yaml created; autonomy_level 4; D-031/D-032 recorded |
+| WS-3 close BI-005 (VP-026) | architect | COMPLETE | VP-026 authored; VP-018 +3 vectors; VP-INDEX/coverage-matrix/verification-architecture/failure-modes/invariants/module-criticality updated; 25→26 VPs; spec-lint 7/8 (only 25 known placeholders fail) |
 
 ## Convergence Status
 
@@ -116,6 +116,8 @@ REGRESSION: novelty increased across all 3 passes (32→34→39). Strategy chang
 | D-030 | Session wrap — durable RESUME SNAPSHOT D-030 committed to factory-artifacts | Zero-context resume; single-commit burst TD-VSDD-053; wrap at end of session before context clear | phase-1d | 2026-08-06 | state-manager |
 | D-031 | Merge autonomy set to level 4 — agents (orchestrator + pr-manager) merge PRs themselves with no human merge gate, ONLY after the full pr-manager review lifecycle passes. Recorded in `.factory/merge-config.yaml` (`autonomy_level: 4`). Direct unreviewed merges remain FORBIDDEN. Reinforces D-028; does not supersede it. | Operator directive to remove human blocking on routine merges while preserving full review rigor. No `merge-config.yaml` existed previously, so autonomy was implicit and unauditable; this makes it explicit and machine-readable. | phase-1d | 2026-08-06 | human/operator |
 | D-032 | `spec-lint` CI job remains ADVISORY through adversary pass 4; flip to REQUIRED status check at the Phase 1 human approval gate. Reaffirms and time-boxes D-029 against the pass-4 convergence checkpoint. | Operator directive. The 25 outstanding `[filled by story-writer]` placeholder violations are legitimate until Phase 2 story decomposition; making spec-lint blocking now would deadlock every PR on a non-defect. Pass 4 is the checkpoint that decides. | phase-1d | 2026-08-06 | human/operator |
+| D-033 | BI-005 closed at spec level; residual implementation risk re-scoped to new BI-007 blocking phase-6, not phase-1. Closing a spec gap and discharging an implementation obligation are recorded as SEPARATE events. | The architect recommended straight closure. Collapsing the two events is precisely how FM-002 became invisible: VP-003's injectivity proof passed while fidelity was unverified. A closed spec gap must not silently absorb an undischarged implementation obligation. | phase-1d | 2026-08-06 | orchestrator |
+| D-034 | `prd.md:720` ("BC→VP count (post-v1.5): 66 BCs total; 33 with a real VP (VP-001..VP-024)") is a HISTORICAL CHANGELOG ENTRY and MUST NOT be retroactively updated to reference VP-025/VP-026. Versioned changelog entries are immutable audit records of what was true at that version. Ruling applies generally to all `prd.md` changelog sections. | The architect flagged this line as stale and recommended updating it. Editing it would falsify the audit trail rather than fix a defect. Recorded as a standing ruling so future passes and the adversary do not re-raise it as a finding. | phase-1d | 2026-08-06 | orchestrator |
 
 ## Skip Log
 
@@ -136,8 +138,9 @@ REGRESSION: novelty increased across all 3 passes (32→34→39). Strategy chang
 | ID | Issue | Severity | Blocking Phase | Owner | Resolution |
 |----|-------|----------|----------------|-------|------------|
 | BI-002 | phase-1d not converged: novelty increasing across 3 passes (32→34→39); 0 of 3 clean passes; pass 4 not yet run | HIGH | phase-1 gate | orchestrator | mechanical enforcement built; pass 4 is next action and first test of curve-bending |
-| BI-005 | DI-012 (slug fidelity) VP coverage INSUFFICIENT; DI-013 PARTIAL — VP-018's 16 golden vectors are the only pin on github-slugger parity; 1-based duplicate counter bug (setup→setup-2 vs setup→setup-1) would pass VP-003 injectivity because outputs remain distinct (FM-002 unprovable) | HIGH | phase-1 gate | architect | needs differential proptest against canonical reference oracle covering all 7 DI-012 rules + duplicate-heading golden vector |
+| ~~BI-005~~ | DI-012 (slug fidelity) VP coverage INSUFFICIENT; DI-013 PARTIAL — VP-018's 16 golden vectors were the only pin on github-slugger parity; 1-based duplicate counter bug (setup→setup-2 vs setup→setup-1) would pass VP-003 injectivity because outputs remain distinct (FM-002 unprovable) | ~~HIGH~~ CLOSED | ~~phase-1 gate~~ RESOLVED | architect | CLOSED at spec level 2026-08-06. VP-026 (slug differential fidelity) authored: differential oracle vs a committed corpus generated from pinned `github-slugger@2.0.0`, covering all 7 DI-012 rules, requiring a >=3-repeat heading sequence so 0-based vs 1-based suffixing is observably different. VP-018 gains a duplicate-heading golden vector (defense in depth) plus an inline-code+HTML-tags vector exercising DI-012's input definition. FM-002 moves from unprovable to covered. Rationale for closure: BI-005's scope was the phase-1 spec gate, and the specification gap is genuinely closed. Residual implementation risk tracked separately as BI-007. |
 | BI-006 | PR #2 (`feature/spec-lint-tooling`) open and unmerged; `spec-lint` CI job advisory only (D-029, NOT in 8 required status checks) — flip to required at Phase 1 approval per D-029, not now | MEDIUM | phase-2 | pr-manager | run full pr-manager review lifecycle on PR #2 per D-028, then merge when it passes (agent-executable at autonomy level 4 per D-031 once pr-manager lifecycle converges); flip spec-lint to required status check at Phase 1 approval per D-029 |
+| BI-007 | VP-026 is SPECIFIED but UNIMPLEMENTED — no Rust workspace exists yet (Phase 3 not started). Until the differential proptest and its pinned `github-slugger@2.0.0` oracle corpus are implemented and green, the product can still emit non-GitHub-fidelity slugs (FM-002) behind a fully green verification suite. Successor to BI-005. | HIGH | phase-6 (formal hardening) — NOT phase-1 | implementer | Phase 3 must implement VP-026 per its Phase 3 Implementation Obligation table; VP-026 must be green before Phase 6 hardening can pass. Story decomposition (Phase 2) MUST generate a story traced to VP-026. |
 
 ## Session Resume Checkpoint
 
@@ -146,17 +149,17 @@ Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-030`
 | Field | Value |
 |-------|-------|
 | **Date** | 2026-08-06 |
-| **Position** | phase-1d; session wrap D-030; 0 of 3 clean passes; trajectory →0→32→34→39 |
+| **Position** | phase-1d; WS-3 complete (VP-026 authored); BI-005 closed; BI-007 opened; 0 of 3 clean passes; trajectory →0→32→34→39 |
 | **Convergence counter** | 0 of 3 clean passes |
-| **Next burst** | WS-1: pr-manager full review lifecycle on PR #2 (feature/spec-lint-tooling → develop) |
+| **Next burst** | Adversary pass 4 + consistency pass 4 against frozen HEAD |
 
-Spec snapshot: PRD v1.9 | 66 BCs | 25 VPs | 13 DIs | 7 ADRs | 29 DD decisions | 19 policies | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-028/D-029/D-030 recorded. BI-005/006 open.
+Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 7 ADRs | 29 DD decisions | 19 policies | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-031 through D-034 recorded. BI-005 CLOSED; BI-006 open; BI-007 open.
 
 ## Concurrent Cycles
 
 | Cycle | Status | Notes |
 |-------|--------|-------|
-| phase-1d | in-progress | adversarial spec convergence; trajectory →0→32→34→39; pass-3 remediation COMPLETE |
+| phase-1d | in-progress | adversarial spec convergence; trajectory →0→32→34→39; pass-3 remediation COMPLETE; WS-3 COMPLETE (VP-026) |
 
 ## Historical Content
 

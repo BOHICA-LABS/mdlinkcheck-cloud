@@ -1,22 +1,25 @@
 ---
 document_type: vp-index
 level: L4
-version: "1.4"
+version: "1.5"
 status: draft
 producer: architect
 timestamp: 2026-08-06T00:00:00Z
 phase: 1b
-total_vps: 25
+total_vps: 26
 kani_count: 7
-proptest_count: 8
+proptest_count: 9
 fuzz_count: 2
 integration_count: 7
 unit_count: 1
 p0_count: 7
-p1_count: 10
+p1_count: 11
 test_sufficient_count: 8
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 changelog:
+  - version: "1.5"
+    date: 2026-08-06
+    change: "BI-005 spec-level closure: added VP-026 (slug differential fidelity, proptest P1, BC-2.06.001/BC-2.06.002, DI-012/DI-013/FM-002). Updated total_vps 25→26, proptest_count 8→9, p1_count 10→11. DI-012 coverage upgraded from Partial to Yes (proptest oracle); DI-013 coverage upgraded from Partial to Yes (kani+proptest). BC-to-VP table updated for BC-2.06.001/BC-2.06.002. Slug module proptest count 0→1, total 5→6. FM-002 now covered-by-VP-026 (was unprovable: VP-003 injectivity + VP-018 without duplicate-heading vectors could not detect the 0-based/1-based counter bug). Arithmetic invariant: 7+9+2+7+1=26; 7+11+8=26."
   - version: "1.4"
     date: 2026-08-06
     change: "DI-012/DI-013 coverage mapping: new domain invariants landed (invariants.md v1.5). VP-003 assigned to DI-013 (Kani injectivity; partial — proves distinct slugs, not suffix numbering). VP-018 assigned to DI-012 (partial — 16 worked examples; no formal proof for all inputs). DI Coverage Summary extended: DI-012 Partial, DI-013 Partial. Coverage line updated 11/11→13/13-partial. No new VPs added; gap analysis recorded: DI-012 needs a new VP for differential-testing correctness, DI-013 needs VP-018 duplicate-heading vectors to close suffix-numbering gap."
@@ -41,8 +44,8 @@ phase tier MUST propagate to:
 2. `architecture/verification-coverage-matrix.md` — VP-to-Module table + Totals row
 3. Any `architecture/*.md` file with a `VP-NNN` reference
 
-**Arithmetic invariant:** total_vps (25) = kani (7) + proptest (8) + fuzz (2) + integration (7) + unit (1) = 25.
-Phase check: p0 (7) + p1 (10) + test_sufficient (8) = 25. Check before editing.
+**Arithmetic invariant:** total_vps (26) = kani (7) + proptest (9) + fuzz (2) + integration (7) + unit (1) = 26.
+Phase check: p0 (7) + p1 (11) + test_sufficient (8) = 26. Check before editing.
 
 ## VP Catalog
 
@@ -73,6 +76,7 @@ Phase check: p0 (7) + p1 (10) + test_sufficient (8) = 25. Check before editing.
 | VP-023 | vp-023-url-classifier-totality.md | url_classifier | proptest | P1 | — (BC-2.07.007 empty-dest) | draft |
 | VP-024 | vp-024-path-resolver-trailing-slash.md | path_resolver | proptest | P1 | — (BC-2.07.008 trailing-slash) | draft |
 | VP-025 | vp-025-anchor-resolver-totality.md | anchor_resolver | proptest | P1 | — (BC-2.08.001/002/004 totality+correctness) | draft |
+| VP-026 | vp-026-slug-differential-fidelity.md | slug | proptest | P1 | DI-012, DI-013, FM-002 (BC-2.06.001/002) | draft |
 
 ## DI Coverage Summary
 
@@ -89,16 +93,16 @@ Phase check: p0 (7) + p1 (10) + test_sufficient (8) = 25. Check before editing.
 | DI-009 | Scan terminates for any input | VP-017 | integration | Yes |
 | DI-010 | Indeterminate does not cause exit 1 | VP-006 | kani | Yes |
 | DI-011 | Exit 2 takes precedence over exit 1 | VP-005 | kani | Yes |
-| DI-012 | Slug computation fidelity (github-slugger v2 algorithm) | VP-018 | unit | Partial — VP-018's 16 worked examples must include the 3 DI-012 falsifying cases (AI & Automation, my_heading, emoji); no formal property proves algorithm correctness for all inputs; new VP recommended (differential proptest against reference table) |
-| DI-013 | Anchor-key uniqueness / injectivity within a file | VP-003 | kani | Partial — VP-003 (Kani P0) proves injectivity (no two headings share a slug); 0-based suffix numbering correctness (second heading = `-1`, not `-2`) is not proved by VP-003; closing this gap requires VP-018 to include duplicate-heading golden vectors |
+| DI-012 | Slug computation fidelity (github-slugger v2 algorithm) | VP-018, VP-026 | unit + proptest | Yes — VP-018 (15 worked examples incl. AI & Automation rule-3 and emoji rule-7 falsifying cases); VP-026 (proptest differential oracle, all 7 DI-012 rules independently falsifiable, committed github-slugger@2.0.0 corpus) |
+| DI-013 | Anchor-key uniqueness / injectivity within a file | VP-003, VP-026 | kani + proptest | Yes — VP-003 (Kani P0 injectivity); VP-026 oracle R-001 (≥3-entry repeat run proves exact 0-based counter: setup/setup-1/setup-2; closes FM-002 which injectivity alone cannot detect) |
 
-All 13 domain invariants have at least partial VP coverage. Coverage: 11/13 fully proved, 2/13 partial (DI-012, DI-013 — gap analysis above).
+All 13 domain invariants have VP coverage. Coverage: 13/13 (DI-012 and DI-013 fully covered by VP-018+VP-026 and VP-003+VP-026 respectively; FM-002 closed).
 
 ## Per-Module VP Count
 
 | Module | Kani | Proptest | Fuzz | Integration | Unit | Total |
 |--------|------|---------|------|-------------|------|-------|
-| slug | 3 | 0 | 1 | 0 | 1 | 5 |
+| slug | 3 | 1 | 1 | 0 | 1 | 6 |
 | fragment | 1 | 0 | 1 | 0 | 0 | 2 |
 | verdict | 2 | 0 | 0 | 0 | 0 | 2 |
 | http_verdict | 1 | 0 | 0 | 0 | 0 | 1 |
@@ -111,7 +115,7 @@ All 13 domain invariants have at least partial VP coverage. Coverage: 11/13 full
 | scanner | 0 | 0 | 0 | 1 | 0 | 1 |
 | app | 0 | 0 | 0 | 1 | 0 | 1 |
 | url_classifier | 0 | 1 | 0 | 0 | 0 | 1 |
-| **Totals** | **7** | **8** | **2** | **7** | **1** | **25** |
+| **Totals** | **7** | **9** | **2** | **7** | **1** | **26** |
 
 ## BC-to-VP Coverage Table
 
@@ -176,8 +180,8 @@ BCs with a real VP: **33**. BCs test-sufficient only: **33**.
 
 | BC | Title (abbreviated) | VP(s) | Notes |
 |----|---------------------|-------|-------|
-| BC-2.06.001 | github-slugger v2 core algorithm | VP-001, VP-002, VP-012, VP-018 | totality + determinism + fuzz + worked examples |
-| BC-2.06.002 | Duplicate-heading counter | VP-003 | BTreeMap-keyed counter Kani proof |
+| BC-2.06.001 | github-slugger v2 core algorithm | VP-001, VP-002, VP-012, VP-018, VP-026 | totality + determinism + fuzz + worked examples + differential oracle |
+| BC-2.06.002 | Duplicate-heading counter | VP-003, VP-026 | Kani injectivity + proptest 0-based counter oracle (FM-002 discriminator) |
 
 ### SS-07: Path Resolver (8 BCs)
 
@@ -267,4 +271,4 @@ BCs with a real VP: **33**. BCs test-sufficient only: **33**.
 | BCs test-sufficient only | 33 |
 | Dropped flags (D-011): --quiet, --offline, --insecure, --hidden | none of these have BCs in scope |
 
-All 66 BCs covered (33 with VP + 33 test-sufficient). All 11 DIs covered by at least one VP (11/11).
+All 66 BCs covered (33 with VP + 33 test-sufficient). All 13 DIs covered by at least one VP (13/13).

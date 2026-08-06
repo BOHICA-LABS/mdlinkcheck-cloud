@@ -201,8 +201,53 @@ PRD v1.9 | 66 BCs (all carry owning module, criticality tier, VP anchor) | 25 VP
 
 **Closes:** BI-004 (pass 3 covered unreached perimeter from pass 2). Opens: BI-005 (slug-fidelity VP gap insufficient), BI-006 (PR #2 unmerged, spec-lint not in required status checks). D-026/D-027 recorded.
 
+---
+
+## Burst: burst 6 — WS-3 close BI-005 via VP-026 (2026-08-06)
+
+**Parent-commit:** (factory-artifacts HEAD after burst 5 / D-031 merge autonomy commit)
+
+**Adversary verdict:** No new adversary pass this burst. This burst is spec-authoring only (VP-026 + traceability updates).
+
+**Files touched (Dim-1): 10 unique files**
+
+- `.factory/specs/verification-properties/vp-026-slug-differential-fidelity.md` (NEW — VP-026: slug differential fidelity; differential proptest oracle vs pinned `github-slugger@2.0.0` corpus; covers all 7 DI-012 rules)
+- `.factory/specs/verification-properties/vp-018-slug-worked-examples.md` (UPDATED — +3 vectors: duplicate-heading golden vector, inline-code+HTML-tags vector)
+- `.factory/specs/verification-properties/VP-INDEX.md` (UPDATED — VP-026 registered; count 25→26)
+- `.factory/specs/architecture/verification-coverage-matrix.md` (UPDATED — VP-026 row; FM-002 coverage)
+- `.factory/specs/architecture/verification-architecture.md` (UPDATED — slug differential fidelity coverage)
+- `.factory/specs/domain-spec/failure-modes.md` (UPDATED — FM-002 status: unprovable → covered by VP-026)
+- `.factory/specs/domain-spec/invariants.md` (UPDATED — DI-012/DI-013 VP coverage updated)
+- `.factory/specs/module-criticality.md` (UPDATED — slug row: DI-003 → DI-012/DI-013 governing invariant; VP count updated)
+- `.factory/logs/dispatcher-internal-2026-08-06.jsonl` (UPDATED — dispatcher log)
+- `.factory/logs/events-2026-08-06.jsonl` (UPDATED — events log)
+
+**Codifications:**
+- D-033: BI-005 closed at spec level; residual implementation risk re-scoped to BI-007 (blocking phase-6, not phase-1). Closing a spec gap and discharging an implementation obligation are SEPARATE events.
+- D-034: `prd.md:720` changelog entry is a HISTORICAL RECORD — must NOT be retroactively updated to reference VP-025/VP-026. Versioned changelog entries are immutable audit records.
+
+**BI-005 closed:** VP-026 authored with differential oracle vs pinned `github-slugger@2.0.0` corpus, covering all 7 DI-012 rules, requiring >=3-repeat heading sequence. FM-002 moves from unprovable to covered. Specification gap is genuinely closed.
+
+**BI-007 opened:** VP-026 is specified but unimplemented (no Rust workspace; Phase 3 not started). Successor to BI-005, blocking phase-6 formal hardening.
+
+**Artifact state at burst close:**
+PRD v1.9 | 66 BCs | 26 VPs (VP-026 added for slug differential fidelity) | 13 DIs | 27 DD decisions | 7 ADRs | 19 policies | spec-lint 7/8 PASS (25 `[filled by story-writer]` expected-pending until Phase 2)
+
+**Dim-2 Attestation:** `just spec-lint` confirmed 7 of 8 checks PASSING. Single failure: `check-placeholders` at exactly 25 occurrences — legitimate and outstanding until Phase 2 story decomposition.
+
+**Dim-5 Attestation:** VP-INDEX count 25→26. VP-026 registered. FM-002 coverage status updated in failure-modes.md. Producer: architect (VP-026 authoring), state-manager (checkpoint). Status: final.
+
+**Dim-6 Attestation:** IN_PROGRESS. Convergence counter 0 of 3 required clean passes. Awaiting adversary pass 4 + consistency pass 4 against frozen HEAD.
+
+**Dim-7 Attestation:** Agents dispatched in this burst: architect (VP-026 authoring, traceability updates), state-manager (this checkpoint). Total: 2 agents.
+
+**Closes:** BI-005 (slug fidelity VP gap — closed at spec level). **Opens:** BI-007 (VP-026 unimplemented — successor to BI-005, blocking phase-6).
+
+---
+
 ## Archived STATE.md Steps (overflow — evicted from Current Phase Steps table 2026-08-06)
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
 | phase-1d consistency audit pass 3 | consistency-validator | COMPLETE | consistency-audit-phase-1-pass-3.md; FAIL |
+| phase-1d spec-lint tooling built | devops-engineer | COMPLETE | scripts/spec-lint/ (8 validators, 4 generators, selftest); just spec-lint CI job; PR #2 open (feature/spec-lint-tooling) |

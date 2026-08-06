@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: verification-architecture
-version: "1.7"
+version: "1.8"
 status: draft
 producer: architect
 timestamp: 2026-08-06T00:00:00Z
@@ -13,6 +13,9 @@ inputs:
 input-hash: "cbcc9b1"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.8"
+    date: 2026-08-06
+    change: "BI-005 spec-level closure: added VP-026 (slug differential fidelity, proptest P1) to Should Prove table. DI→VP Coverage Matrix: DI-012 updated VP-018→VP-018+VP-026 (Yes, proptest oracle); DI-013 updated VP-003→VP-003+VP-026 (Yes, kani+proptest). FM-002 now covered by VP-026 (was unprovable — VP-003 injectivity does not detect 0-based/1-based counter bug). Gap notes removed for DI-012 and DI-013. Phase 3 obligation recorded: VP-026 must be green before Phase 6 hardening."
   - version: "1.7"
     date: 2026-08-06
     change: "DI-012/DI-013 coverage: new domain invariants landed (invariants.md v1.5). DI→VP Coverage Matrix extended with DI-012 (VP-018, test-sufficient/partial) and DI-013 (VP-003, P0 Kani/partial). Coverage summary updated 11→13. Gap analysis: DI-012 needs a new differential-proptest VP for full coverage; DI-013 suffix-numbering correctness needs duplicate-heading golden vectors in VP-018."
@@ -67,6 +70,7 @@ changelog:
 | VP-023 | `url_classifier::classify_url` is total — no panic on any `&str`; empty string returns `Malformed(_)` not `NonHttp` | url_classifier | BC-2.07.007 |
 | VP-024 | `path_resolver::resolve_path` trailing-slash-on-file invariant — `EntryKind::File` + trailing slash → `broken(file-not-found)`, never `target-is-directory`, never clean | path_resolver | BC-2.07.008 |
 | VP-025 | `anchor_resolver::resolve_anchor` totality and correctness — no panic on any `(fragment, table)` pair; fragment present in table → Hit; fragment absent → Miss; case-sensitive byte-exact lookup; empty fragment handled | anchor_resolver | BC-2.08.001/002/004 |
+| VP-026 | `compute_slug` differential fidelity — byte-identical output to `github-slugger@2.0.0` oracle for all 7 DI-012 rules; oracle corpus MUST include ≥3-entry duplicate run (FM-002 discriminator: 0-based counter `setup-1` vs 1-based `setup-2`); proptest generator covers Unicode, emoji, NFC/NFD, leading/trailing whitespace, inline-code+HTML pre-rendered text | slug | DI-012, DI-013, FM-002, BC-2.06.001/002 |
 
 ### Fuzz Targets (P1 — cargo-fuzz, Phase 6)
 
@@ -136,12 +140,12 @@ fn verify_exit2_beats_exit1() {
 | DI-009 | Scan terminates for any input | VP-017 | integration |
 | DI-010 | Indeterminate does not cause exit 1 | VP-006 | P0 Kani |
 | DI-011 | Exit 2 takes precedence over exit 1 | VP-005 | P0 Kani |
-| DI-012 | Slug computation fidelity (github-slugger v2 algorithm) | VP-018 | test-sufficient (partial) |
-| DI-013 | Anchor-key uniqueness / injectivity within a file | VP-003 | P0 Kani (partial) |
+| DI-012 | Slug computation fidelity (github-slugger v2 algorithm) | VP-018, VP-026 | test-sufficient + P1 proptest |
+| DI-013 | Anchor-key uniqueness / injectivity within a file | VP-003, VP-026 | P0 Kani + P1 proptest |
 
-**DI-012 gap note:** VP-018's 16 worked examples provide the only fidelity pin. This is insufficient for a formal invariant: the 3 DI-012 falsifying cases (`AI & Automation` → `ai--automation`, `my_heading` → `my_heading`, emoji stripped) must be present in VP-018's corpus; additionally a new differential-proptest VP is recommended to achieve full coverage — VP-018 alone cannot exclude subtle edge cases in Unicode lowercasing, hyphen non-collapse, and emoji handling.
+**DI-012 coverage (BI-005 closed):** VP-018 (v1.2) adds the three DI-012 falsifying cases (`AI & Automation` → `ai--automation`, emoji stripped, and inline-code+HTML pre-rendered form). VP-026 provides a comprehensive differential oracle against `github-slugger@2.0.0` covering all 7 rules independently via a committed corpus + proptest generator. VP-026 must pass before Phase 6 hardening.
 
-**DI-013 gap note:** VP-003 (Kani injectivity proof) proves no two heading strings produce the same slug with a shared counter, but does not prove the specific 0-based suffix scheme (second occurrence = `-1`, not `-2` — the FM-002 bug shape). Closing this gap requires VP-018 to include at least one duplicate-heading golden vector (e.g., two `## Setup` headings → `setup`, `setup-1`).
+**DI-013 / FM-002 coverage (BI-005 closed):** VP-003 (Kani P0) proves injectivity. VP-026 oracle R-001 (≥3-entry repeat run) closes the FM-002 gap: `github-slugger@2.0.0` emits `setup`, `setup-1`, `setup-2`; a 1-based counter emits `setup`, `setup-2`, `setup-3`; injectivity holds for both; only the oracle comparison catches the off-by-one. VP-018 `vp018_duplicate_heading_counter_0_based()` provides defense-in-depth.
 
 ## [Section Content]
 

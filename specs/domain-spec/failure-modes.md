@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: failure-modes
-version: "1.4"
+version: "1.5"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -14,6 +14,9 @@ inputs:
 input-hash: "20e96e1"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.5"
+    date: 2026-08-06
+    change: "BI-005 spec-level closure: FM-002 Notes section updated — VP-026 (slug differential fidelity, proptest, Phase 3) closes FM-002 with oracle run R-001 (≥3-entry repeat heading sequence). FM-002 was previously unprovable: VP-003 injectivity proves uniqueness but not the 0-based suffix values; VP-018 lacked duplicate-heading vectors. Both gaps are now closed. Phase 3 cannot skip VP-026."
   - version: "1.4"
     date: 2026-08-06
     change: "P3-010 governance gap closure (DD-027): FM-001 and FM-003 Invariant Violated updated from '— (no governing DI; DD-015)' to DI-012 (slug computation fidelity); FM-002 updated to DI-013 (anchor-key uniqueness). Notes section first bullet updated to reflect closed gap; recommendation for a DI removed now that DI-012/DI-013 exist."
@@ -79,9 +82,16 @@ to one or more corpus fixtures.
 
 - FM-001 through FM-003 are all slug-algorithm compliance failures. FM-001 and FM-003
   are character-level transformation failures governed by DI-012 (slug computation
-  fidelity). FM-002 is a duplicate-counter failure governed by DI-013 (anchor-key
-  uniqueness). Their shared mitigation is unit tests against all DD-015 worked examples
-  run as part of CAP-006's story. See DD-027 for the two-invariant model rationale.
+  fidelity); their mitigation is VP-018 (worked examples) and VP-026 (differential
+  oracle, all 7 DI-012 rules). FM-002 is a duplicate-counter failure governed by
+  DI-013 (anchor-key uniqueness). **FM-002 is now covered by VP-026** (Phase 3,
+  proptest P1): oracle run R-001 contains ≥3 identical headings; the expected values
+  are `setup`, `setup-1`, `setup-2` (0-based); a 1-based implementation produces
+  `setup-2` for the second entry and fails the oracle comparison. VP-003 (Kani
+  injectivity) proved the outputs are distinct but could not distinguish the
+  0-based from the 1-based counter; VP-018 `vp018_duplicate_heading_counter_0_based()`
+  adds defense-in-depth. VP-026 must be green before Phase 6 hardening. See DD-027
+  for the two-invariant model rationale.
 - FM-004 (code-span extraction) is the highest-probability false-positive source;
   DEC-006 (BRIEF.md self-test) catches it trivially.
 - FM-005 (fragment-before-decode) is the subtlest correctness trap — it only

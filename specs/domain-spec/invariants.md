@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: invariants
-version: "1.5"
+version: "1.6"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -14,6 +14,9 @@ inputs:
 input-hash: "20e96e1"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.6"
+    date: 2026-08-06
+    change: "BI-005 spec-level closure: DI-012 Falsifying method updated to reference VP-026 (differential proptest oracle, all 7 rules) in addition to VP-018. DI-013 Falsifying method updated to reference VP-026 oracle R-001 (≥3-entry repeat run closes FM-002 gap that VP-003 injectivity cannot close). Both DIs now have full VP coverage."
   - version: "1.5"
     date: 2026-08-06
     change: "P3-010 governance gap closure (DD-027): added DI-012 (slug computation fidelity — per-heading character-level transformation must be exact per DD-015) and DI-013 (anchor-key uniqueness — per-file duplicate-counter must produce an injective mapping). Two invariants rather than one because they are logically independent (a wrong counter violates DI-013 without violating DI-012, and vice versa) and have different proof obligations (individual transformation vs. global injectivity). FM-001/003 now cite DI-012; FM-002 now cites DI-013."
@@ -270,9 +273,13 @@ tool gets wrong (market-intelligence T1–T9):
 7. **Emoji are stripped** (not `\p{Word}`, not `-`, not space; removed in step 3).
 
 **Falsifying method:** Apply CAP-006 to any of the DD-015 worked examples (VP-018
-corpus). Any heading-to-slug mapping that diverges from the expected output is a
-violation. Minimum falsifying cases: `AI & Automation` → `ai--automation`;
-`my_heading` → `my_heading`; any emoji-containing heading → emoji stripped.
+corpus) or the VP-026 differential oracle corpus. Any heading-to-slug mapping that
+diverges from the expected output is a violation. Minimum falsifying cases:
+`AI & Automation` → `ai--automation` (rule 3 — now in VP-018 v1.2 corpus);
+`my_heading` → `my_heading` (rule 4); any emoji-containing heading → emoji stripped
+(rule 7 — now in VP-018 v1.2 corpus). VP-026 (proptest differential oracle,
+`github-slugger@2.0.0`) covers all 7 rules independently with a committed corpus
+and proptest generator; it is the authoritative coverage vehicle for DI-012.
 
 **Why invariant:** A wrong slug produces a wrong anchor key, which produces either a
 false `anchor-not-found` verdict (false positive on a valid link) or a missed broken
@@ -304,9 +311,15 @@ anchor keys `setup`, `setup-1`, `setup-2` in order.
 
 **Falsifying method:** Create a file with two headings producing identical base slugs
 (e.g., two `## Setup` headings). The anchor keys must be `setup` and `setup-1`. If
-the second key is `setup-2`, the counter is 1-based (FM-002 violation). Run VP-003
-(Kani injectivity proof) against any file with duplicate headings; any counterexample
-is a violation.
+the second key is `setup-2`, the counter is 1-based (FM-002 violation). VP-003
+(Kani injectivity proof) proves no two outputs are equal but CANNOT detect the
+1-based vs 0-based counter bug — injectivity is satisfied by both
+(`setup`, `setup-1`, `setup-2`) and (`setup`, `setup-2`, `setup-3`). VP-026
+oracle R-001 (≥3-entry repeat heading run, committed `github-slugger@2.0.0` fixture)
+closes this gap: the oracle's expected values for entries 2 and 3 are `setup-1`
+and `setup-2`; a 1-based counter fails the comparison. VP-018 v1.2
+`vp018_duplicate_heading_counter_0_based()` provides defense-in-depth with an
+explicit three-repeat golden vector.
 
 **Why invariant:** Injectivity ensures every incoming link like `[text](#setup-1)` has
 a unique, predictable anchor to match against. Without it, two valid headings may
