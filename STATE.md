@@ -1,24 +1,24 @@
 ---
 document_type: pipeline-state
 level: ops
-version: "2.1"
+version: "2.2"
 status: draft
 producer: state-manager
-timestamp: 2026-08-06T12:08:00Z
+timestamp: 2026-08-06T12:40:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; pre-restart checkpoint; D-028/D-029 recorded; D-421 latest; trajectory-tail →0→32→34→39; next=PR#2 pr-manager review + pass4"
+current_step: "phase-1d; session wrap D-030 committed; D-421 latest; trajectory-tail →0→32→34→39; next burst = WS-1 PR#2 pr-manager full review lifecycle"
 current_cycle: ""
 dtu_required: false
 ---
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 180 = 320. 180 lines (wc-l).
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 169 = 331. 169 lines (wc-l).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
@@ -37,9 +37,9 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-06 — pre-restart checkpoint; D-028/D-029 recorded; 0 of 3 clean passes; trajectory-tail →0→32→34→39 |
+| **Last Updated** | 2026-08-06 — session wrap D-030; RESUME SNAPSHOT in SESSION-HANDOFF.md; 0 of 3 clean passes; trajectory-tail →0→32→34→39 |
 | **Current Phase** | phase-1d |
-| **Current Step** | pre-restart checkpoint at 410K context; D-028/D-029 recorded; next=PR #2 pr-manager review + pass 4 |
+| **Current Step** | session wrap D-030 committed; next burst = WS-1 PR #2 pr-manager full review lifecycle per D-028 |
 
 ## Phase Progress
 
@@ -64,11 +64,11 @@ dtu_required: false
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
-| phase-1d adversary pass 3 | adversary | COMPLETE | adversary-pass-3.md; 39 novel (5 CRIT); consistency FAIL; record 29/39 stored as stubs — pass 4 supersedes |
 | phase-1d consistency audit pass 3 | consistency-validator | COMPLETE | consistency-audit-phase-1-pass-3.md; FAIL |
 | phase-1d spec-lint tooling built | devops-engineer | COMPLETE | scripts/spec-lint/ (8 validators, 4 generators, selftest); just spec-lint CI job; PR #2 open (feature/spec-lint-tooling) |
 | phase-1d pass-3 remediation | architect/product-owner/spec-steward | COMPLETE | 254→25 violations; D-026/D-027; PRD v1.9; VP-025; DI-012/DI-013; ADR-007 v1.3; bc-module-map.md |
-| next: adversary pass 4 + consistency pass 4 | adversary + consistency-validator | pending | first test of mechanical enforcement — target: novelty decays |
+| session wrap D-030 | state-manager | COMPLETE | SESSION-HANDOFF.md §RESUME SNAPSHOT D-030; sidecar committed |
+| next: WS-1 PR#2 pr-manager review | pr-manager | pending | full review lifecycle per D-028 — review dispatch → triage → fix → convergence → merge |
 
 ## Convergence Status
 
@@ -113,6 +113,7 @@ REGRESSION: novelty increased across all 3 passes (32→34→39). Strategy chang
 | D-027 | Validator hardening is mandatory before trusting any validator result | `check-id-resolution` initially returned PASS while never checking EC IDs (`VALID_EC` built but unused); `check-counts` missing 3 checks; `check-placeholders` had 23 false positives + missed 55 real defects. All 8 checkers now have negative tests proving they can fail | phase-1d | 2026-08-06 | devops-engineer/orchestrator |
 | D-028 | Merge policy REVISED — agents MAY merge PRs, but ONLY after the full vsdd-factory PR review process (pr-manager lifecycle: review dispatch, finding triage, fix delegation, convergence tracking). Direct unreviewed merges remain FORBIDDEN. SUPERSEDES the "agents NEVER merge" clause of D-021; remainder of D-021 stands. CI checks + factory AI review are a precondition, not the ceiling — passing the full pr-manager process is the explicit merge precondition. | Operator directive. D-021 origin: devops-engineer self-merge blocked by security guard. D-028 unlocks agent-merge post-review to remove human-blocking of routine story PRs. | phase-1d | 2026-08-06 | human/operator |
 | D-029 | `spec-lint` CI job remains ADVISORY (NOT in required status checks) until adversary pass 4 demonstrates convergence; flip to REQUIRED at Phase 1 approval | Operator directive. 25 known `[filled by story-writer]` violations legitimately outstanding until Phase 2; making spec-lint blocking now would deadlock PRs for a non-defect | phase-1d | 2026-08-06 | human/operator |
+| D-030 | Session wrap — durable RESUME SNAPSHOT D-030 committed to factory-artifacts | Zero-context resume; single-commit burst TD-VSDD-053; wrap at end of session before context clear | phase-1d | 2026-08-06 | state-manager |
 
 ## Skip Log
 
@@ -138,28 +139,16 @@ REGRESSION: novelty increased across all 3 passes (32→34→39). Strategy chang
 
 ## Session Resume Checkpoint
 
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-030`
+
 | Field | Value |
 |-------|-------|
 | **Date** | 2026-08-06 |
-| **Position** | phase-1d; mechanical enforcement built; violations 254→25; 7/8 checkers green; 0 of 3 clean adversarial passes; pre-restart checkpoint at orchestrator 410K |
+| **Position** | phase-1d; session wrap D-030; 0 of 3 clean passes; trajectory →0→32→34→39 |
 | **Convergence counter** | 0 of 3 clean passes |
-| **Trajectory** | →0→32→34→39 (REGRESSION all 3 passes; strategy: mechanical enforcement) |
+| **Next burst** | WS-1: pr-manager full review lifecycle on PR #2 (feature/spec-lint-tooling → develop) |
 
-**Next actions (in order):**
-
-1. PR #2 (`feature/spec-lint-tooling` → `develop`, OPEN) — run full pr-manager review lifecycle per D-028, then merge when it passes
-2. Adversary pass 4 + consistency pass 4 — skip mechanically-enforced classes; concentrate on 54 unread BC bodies, 24 VP files, ADR bodies, 8 unread arch shards, `dtu-assessment.md`, `gene-transfusion-assessment.md`, `prd.md §1`, `interface-definitions.md`, and interaction clusters: DI-001 (32-thread HTTP pool × rayon scan), URL dedup BC-2.10.009 × per-occurrence × 429 pausing, unbounded `Retry-After` pause (P3-017)
-3. Close BI-005 — slug-fidelity VP gap: differential proptest against canonical reference oracle (all 7 DI-012 rules) + duplicate-heading golden vector in VP-018 + DI-012 input exercising inline code and HTML tags through to final anchor key
-4. At Phase 1 approval: flip `spec-lint` CI job to required status check per D-029
-5. Phase 1 human approval gate — present only when 3 clean passes achieved and BI-005 closed
-
-**Caveats:**
-- `cycles/phase-1d/adversary-pass-3.md`: 29 of 39 findings stored as stubs — pass 4 supersedes this record
-- Branch protection: 8 required checks, strict, linear history; `enforce_admins=true` on `main`; `required_approving_review_count=0` (GitHub forbids self-approval — review rigor lives in D-028 process)
-- `L2-INDEX.md` lacks DD-027 → DI-012/DI-013 cross-refs; INC-MAP-004 (no VP for scanner `.gitignore` isolation) accepted gap with recorded rationale
-- `spec-lint` advisory until Phase 1 approval (D-029); 25 `[filled by story-writer]` violations are expected-pending until Phase 2
-
-PRD v1.9 | 66 BCs (all carry owning module, criticality tier, VP anchor) | 25 VPs | 13 DIs | 7 ADRs | 29 DD decisions | 19 policies | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). spec-lint tooling on PR #2 (feature/spec-lint-tooling, unmerged). D-028/D-029 recorded (D-021 partially superseded). BI-004 resolved. BI-005/006 open.
+Spec snapshot: PRD v1.9 | 66 BCs | 25 VPs | 13 DIs | 7 ADRs | 29 DD decisions | 19 policies | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-028/D-029/D-030 recorded. BI-005/006 open.
 
 ## Concurrent Cycles
 
