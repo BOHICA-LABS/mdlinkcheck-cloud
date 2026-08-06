@@ -148,28 +148,6 @@ def extract_tv_rows(path: Path) -> list[tuple[str, str, str, int]]:
     return rows
 
 
-# Phase 2 deferral: 13 EC IDs are confirmed description-collisions requiring
-# spec-side correction. They are skipped here to allow `just spec-lint` to pass
-# while the BC files await deduplication review.
-# Evidence: .factory/cycles/phase-1d/adversary-pass-4.md;
-#           .factory/code-delivery/SPEC-LINT-GATE/pr-review.md cycle-5
-KNOWN_EC_COLLISIONS_PHASE2_DEFERRAL: frozenset = frozenset({
-    "EC-009",   # "symlink outside root traversal" vs "empty directory" — distinct scenarios
-    "EC-014",   # confirmed collision: BC files describe different scenarios (cycle-5)
-    "EC-029",   # confirmed collision: BC files describe different scenarios (cycle-5)
-    "EC-030",   # "NFC vs NFD normalization in filename" vs "docs is a dir, no fragment"
-    "EC-031",   # "Unicode filename uppercase/lowercase" vs "empty link target [x]()"
-    "EC-034",   # "URL-encoded hash in path (%23)" vs "trailing slash on regular file"
-    "EC-060",   # "emoji duplicate heading" vs "anchor-to-existing-heading"
-    "EC-072",   # confirmed collision: BC files describe different scenarios (cycle-5)
-    "EC-073",   # confirmed collision: BC files describe different scenarios (cycle-5)
-    "EC-075",   # "cross-file anchor where heading exists" vs "empty anchor #"
-    "EC-076",   # "cross-file anchor where heading missing" vs "double-hash ## in path"
-    "EC-087",   # "HTTP 429 response" vs "429 with Retry-After: 30" — both 429 variants
-    "EC-090",   # confirmed collision: BC files describe different scenarios (cycle-5)
-})
-
-
 def main() -> int:
     if not SPECS.exists():
         print(f"ERROR: Spec tree not found at {SPECS} — cannot run check (no spec files to validate)", file=sys.stderr)
@@ -190,7 +168,6 @@ def main() -> int:
 
     violations: list[str] = []
     collision_ids: set[str] = set()
-    deferred_ids: set[str] = set()
 
     for ec_id, occurrences in sorted(ec_map.items()):
         if len(occurrences) <= 1:
@@ -251,18 +228,15 @@ def main() -> int:
                         )
 
         if has_desc_collision or has_verdict_collision:
-            if ec_id in KNOWN_EC_COLLISIONS_PHASE2_DEFERRAL:
-                deferred_ids.add(ec_id)
-            else:
-                collision_ids.add(ec_id)
-                hdr = f"COLLISION {ec_id}:"
-                if has_desc_collision:
-                    hdr += " description-mismatch"
-                if has_verdict_collision:
-                    hdr += " verdict-mismatch"
-                violations.append(hdr)
-                violations.extend(desc_collision_detail)
-                violations.extend(verdict_collision_detail)
+            collision_ids.add(ec_id)
+            hdr = f"COLLISION {ec_id}:"
+            if has_desc_collision:
+                hdr += " description-mismatch"
+            if has_verdict_collision:
+                hdr += " verdict-mismatch"
+            violations.append(hdr)
+            violations.extend(desc_collision_detail)
+            violations.extend(verdict_collision_detail)
 
     total_ec_ids = len(ec_map)
     multi_occurrence = sum(1 for v in ec_map.values() if len(v) > 1)
@@ -272,15 +246,13 @@ def main() -> int:
             print(v)
         print(
             f"\nCheck FAILED: {len(collision_ids)} EC ID collisions found "
-            f"({total_ec_ids} unique EC IDs scanned; {multi_occurrence} appear in multiple files; "
-            f"{len(deferred_ids)} deferred per Phase-2 allowlist)"
+            f"({total_ec_ids} unique EC IDs scanned; {multi_occurrence} appear in multiple files)"
         )
         return 1
 
-    deferred_note = f"; {len(deferred_ids)} deferred per Phase-2 allowlist" if deferred_ids else ""
     print(
         f"Check passed: {total_ec_ids} EC IDs validated — all injective "
-        f"({multi_occurrence} appear in multiple files but are consistent{deferred_note})"
+        f"({multi_occurrence} appear in multiple files but are consistent)"
     )
     return 0
 

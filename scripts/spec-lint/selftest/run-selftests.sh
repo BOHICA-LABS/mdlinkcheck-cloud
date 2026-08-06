@@ -59,6 +59,31 @@ done
 echo "Pre-flight guard passed: all $CHECKER_COUNT checkers support SPEC_LINT_REPO_OVERRIDE"
 echo ""
 
+# ── Pre-flight guard 2: no hardcoded suppression allowlists ───────────────
+# Checkers must not contain allowlists, skip-lists, or deferral sets that
+# silently suppress real findings. The same Phase-2-deferral defect caught in
+# P4-021 (check-index-integrity) re-emerged in check-ec-injectivity; this
+# guard closes the class structurally. Suppression-pattern keywords below are
+# chosen to match common names for these constructs (ALLOWLIST, DEFERRAL,
+# SKIP_LIST, KNOWN_COLLISIONS, etc.) when used as variable assignments.
+echo "Pre-flight structural guard: checking for hardcoded suppression allowlists in all checkers..."
+SUPPRESSION_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET)[[:space:]]*[=:]'
+for checker in check-adr-consistency check-counts check-ec-injectivity \
+               check-holdout-boundary check-id-resolution check-index-integrity \
+               check-placeholders check-title-sync; do
+    if grep -qE "$SUPPRESSION_PATTERN" "$LINT_DIR/$checker.py" 2>/dev/null; then
+        echo ""
+        echo "STRUCTURAL GUARD FAILED: $checker.py contains a hardcoded suppression allowlist"
+        echo "  Checkers must not silently suppress real findings via allowlists, skip-lists,"
+        echo "  deferral sets, or known-issues collections — fix the spec, not the checker."
+        echo "  Remove any variable matching: ALLOWLIST | _DEFERRAL | SKIP_LIST | SKIP_SET |"
+        echo "    KNOWN_COLLISIONS | KNOWN_VIOLATIONS | KNOWN_ISSUES | WHITELIST | SUPPRESS_SET"
+        exit 2
+    fi
+done
+echo "Pre-flight guard passed: no suppression allowlists found in any checker"
+echo ""
+
 # ── Helper: make_temp ──────────────────────────────────────────────────────
 make_temp() {
     local d
