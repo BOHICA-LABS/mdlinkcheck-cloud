@@ -195,3 +195,58 @@ jobs:
       - name: Build
         if: steps.guard.outputs.skip != 'true'
         run: cargo build --release
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 5: Spec lint — validate spec artifact integrity (no Cargo needed)
+  # Local equivalent: just spec-lint
+  #
+  # Pure-Python validators that require only the .factory/specs/ tree.
+  # Runs independently of all Rust jobs so it works before the
+  # workspace is scaffolded.  Failures are violations that MUST be
+  # fixed before the Phase 1 gate passes.
+  #
+  # Covered policies: POL-7, POL-12, POL-13, POL-14, POL-15,
+  #                   POL-16, POL-17, POL-18, POL-19
+  # ─────────────────────────────────────────────────────────────────
+  spec-lint:
+    name: Spec lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Job-level permissions: read-only source tree access.
+    # Overrides workflow default to make the grant explicit per POL-11.
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Run spec validators
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHECKS=(
+            "check-title-sync"
+            "check-ec-injectivity"
+            "check-id-resolution"
+            "check-counts"
+            "check-placeholders"
+            "check-holdout-boundary"
+            "check-adr-consistency"
+            "check-index-integrity"
+          )
+          FAILURES=0
+          for check in "${CHECKS[@]}"; do
+            echo "── ${check} ──"
+            if python3 "scripts/spec-lint/${check}.py"; then
+              echo "  PASS"
+            else
+              echo "  FAIL"
+              FAILURES=$((FAILURES + 1))
+            fi
+            echo ""
+          done
+          if [ "${FAILURES}" -gt 0 ]; then
+            echo "spec-lint FAILED: ${FAILURES}/${#CHECKS[@]} checks failed"
+            exit 1
+          fi
+          echo "spec-lint passed: all ${#CHECKS[@]} checks clean"
