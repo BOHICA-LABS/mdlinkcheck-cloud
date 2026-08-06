@@ -92,3 +92,7 @@
 {"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_drift","ts":"2026-08-06T16:11:32-0500","ts_epoch":1786050692,"schema_version":1}
 {"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_drift","ts":"2026-08-06T16:12:03-0500","ts_epoch":1786050723,"schema_version":1}
 {"type":"hook.block","hook":"destructive-command-guard","reason":"protected_path_delete","ts":"2026-08-06T16:12:23-0500","ts_epoch":1786050743,"schema_version":1}
+{"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_drift","ts":"2026-08-06T17:37:36-0500","ts_epoch":1786055856,"schema_version":1}
+{"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_drift","ts":"2026-08-06T17:40:02-0500","ts_epoch":1786056002,"schema_version":1}
+{"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_drift","ts":"2026-08-06T17:41:16-0500","ts_epoch":1786056076,"schema_version":1}
+{"type":"hook.block","hook":"validate-input-hash","reason":"input_hash_missing","ts":"2026-08-06T17:45:40-0500","ts_epoch":1786056340,"schema_version":1}

@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-053
+  Latest: §RESUME SNAPSHOT D-057
 -->
 
 ---
@@ -403,7 +403,7 @@ j. **Allowlists / skip-lists in checkers are FORBIDDEN (D-039).** Suppression is
 
 ---
 
-## §RESUME SNAPSHOT D-053
+## §RESUME SNAPSHOT D-053 [SUPERSEDED by D-057 — retained for audit]
 
 *Written: 2026-08-06 — state-manager burst. Single-commit burst TD-VSDD-053. Supersedes D-050.*
 
@@ -550,3 +550,190 @@ k. **Allowlists / skip-lists in checkers are FORBIDDEN (D-039).** Suppression is
 l. **`prd.md` versioned changelog entries are IMMUTABLE (D-034).** Do not update them to reference newer VP/EC/BC ids.
 
 m. **True divergence count for BI-012 was 5, not 6.** FACT-4 (module→subsystem) AGREES at all checked sites and was correctly left alone.
+
+---
+
+## §RESUME SNAPSHOT D-057
+
+*Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-053.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d, still 0 of 3 clean adversarial passes. Pass 5 (36 findings) plus an 8-shard perimeter-closing sweep (259 findings, ~42 CRITICAL) together CLOSED the unread perimeter that survived five prior passes — all 66 of 66 BC bodies, 21 of 26 VP bodies, all 8 ADRs, all 11 architecture shards, all 11 domain-spec shards, product-brief, prd and test-vectors have now been read in full. GitHub Actions has RECOVERED and the merge queue PR #4 → PR #3 → PR #5 is UNBLOCKED. **FIRST ACTION ON RESUME: execute that merge queue. THEN begin single-shot remediation of the 259+36+11 findings.**
+
+### HEADS
+
+Verify each at resume before taking action.
+
+| Ref | SHA | Note |
+|-----|-----|------|
+| `origin/main` | `78a9f77` | CI workflows live; PR #1 merged |
+| `origin/develop` | `2290cb0` | integration branch; story PRs target this |
+| PR #4 `chore/macos-only-ci` | `6503d3baacaa7aef2b9e6fe44f27aadb13d239ae` | APPROVE 1 cycle; all 4 required contexts GREEN on CI run 31122163633; NO rebase needed |
+| PR #3 `feature/spec-lint-hardening` | `6d954ab88f52795bd1cd1c3bf22b5cba31dec495` | 17/17 mutation-verified suite; `covered_sha` MUST be updated to `6d954ab` before merge — pr-reviewer APPROVE covered superseded `a9b9be0` and `check-stale-verdict.sh` will correctly refuse it; rebase OPTIONAL not blocking |
+| PR #5 `fix/hardening-pins` | `b054694ef565cb9a95f59858ee7bee75d74df045` | APPROVE 2 cycles; D-052 restricted-path waiver |
+| `.factory` / `factory-artifacts` | `git -C .factory log -1 --format='%H'` | this session-wrap commit |
+| Frozen pass-5 HEAD | `1d3ed17` | reference HEAD for the 36-finding pass-5 report |
+
+- Main repo working tree: branch checked out: `feature/spec-lint-hardening`.
+- `.worktrees/ws-b-generators`: `feature/bi-012-generators` at `78ef3a4` (active; stacked on PR #3).
+- `.worktrees/sec-hardening`: `fix/hardening-pins` at `b054694` (active; PR #5).
+- Stash list: **EMPTY in all four worktrees** (confirmed by operator, D-056). No stash caveats carry forward.
+- `.factory/hooks/verify-sha-currency.sh`: NOT present — post-push hook verification gap (record only, not an implied pass).
+
+### MERGE PROCEDURE
+
+Wrappers live at `.factory/bin/` — NOT at `plugins/vsdd-factory/bin/`, which is where pr-manager agents look and report a phantom exit-127 blocker; pass the explicit path.
+
+- `check-stale-verdict.sh <pr> <sha>` — returned exit 0 on all three current heads; correctly REFUSED superseded `a9b9be0` for PR #3 with "re-run the PR review against HEAD 6d954ab".
+- `enforce-merge-strategy.sh <pr> --squash --delete-branch --dry-run` — emits exactly `gh pr merge <pr> --squash --delete-branch` and refuses contradicting strategies. Both are D-039 clean (no bypass flags) and fail closed.
+
+**Order: #4, then #3 (update covered_sha first), then #5.**
+
+If a head has no runs, `gh pr close N && gh pr reopen N` re-fires `pull_request` while PRESERVING the SHA — NEVER push an empty commit, which changes the SHA and voids the review verdict. Note `ci.yml`'s `on.push.branches` omits `chore/**`, so `pull_request` is the ONLY trigger for PR #4's branch.
+
+For PR #3: update `covered_sha` to `6d954ab88f52795bd1cd1c3bf22b5cba31dec495` in the pr-manager delivery record before running `check-stale-verdict.sh`. The `6d954ab` delta from `a9b9be0` is covered by the orchestrator's independent mutation verification (D-050).
+
+### THE FOUR TOP-LEVEL FINDINGS
+
+1. **THE VERIFICATION LAYER IS SUBSTANTIALLY NOTIONAL.** VP-015, VP-016, VP-017, VP-019 and VP-023 are each fully satisfied by a no-op implementation, and they are the SOLE VP coverage for DI-008, DI-006, DI-009 and DI-005 — three of which VP-INDEX reports "All Covered? Yes". Only 9 of 21 audited VPs are non-vacuous. Phase 6 formal hardening could pass with four domain invariants unverified.
+
+2. **THE PASS-5 SKIP LIST WAS UNSOUND (BI-023).** `check-placeholders` greps the literal `VP-TBD` and is defeated by an em-dash (12+ BCs with zero VP coverage passed clean); `check-id-resolution` auto-synthesises `EC-NNNa..z` without comparing descriptions and silently SKIPS non-conforming shapes (`EC-NEW-NN`, `EC-073b`). See the D-057 correction to D-050.
+
+3. **FOUR UNGUARDED AXES (BI-024 covers three). HIGHEST LEVERAGE:** nothing compares a BC VP-table's `Proof Method` and property text against VP-INDEX — one mechanical join closes 12+ mis-described rows and 30+ wrong proof methods found in EVERY shard. Also POLICY 5 quoted-excerpt substantiation (40% fabrication rate in one shard, lint_hook null); symbols inside rust code fences plus four types (PathVerdict, FailureReason, IoError, AllowPrefix) declared only in signatures with NO definition anywhere; and ~10 stale discharged directives ("status: open", "must be updated", "action required") several of which would make a story-writer do actively HARMFUL work.
+
+4. **REMEDIATIONS HAVE THEMSELVES INTRODUCED DEFECTS.** ADR-006 v1.1's changelog claims it "corrected T12 -> T8" — T8 is the wrong trap. BC-2.07.003 v1.3's D-043 edit REGRESSED VP-008 from proptest to "integration test". prd.md:563's range fix created the EC §4/§5/§6 overlap. prd.md:804-805's "R2b -> R5 throughout" created the 18-BC R5 scramble. prd.md:545's D-043 replacement text put a false NEGATIVE inside a false-POSITIVE list. prd.md:647 and :651 both CLAIM classes were fixed that demonstrably were not. **CONSEQUENCE FOR REMEDIATION: do NOT accept any "fix applied" claim in this project at face value — verify against the artifact.**
+
+### TWO SUBSYSTEM-LEVEL BLOCKS
+
+(a) **SS-07 must NOT enter Phase 2** until the DirIndex population scope is adjudicated by architect/human — BC-2.07.002's postconditions, BC-2.07.003's preconditions, BC-2.07.005/006's routing and DI-009's termination bound ALL depend on the answer, and purity-boundary-map.md:107-110 contradicts system-overview.md:126-128.
+
+(b) **The exit-code input domain needs ONE adjudicating decision:** the io_errors/config_error partition for a nonexistent PATH (CAP-014 says usage error, all three SS-14 BCs say I/O error), a single canonical config_error membership list (currently enumerated three different ways), --help/--version precedence plus its enforcement point (verdict::exit_code has no fourth input so it must live in cli.rs, which no BC states), and an owner for standalone exit 2 (no SS-14 BC has satisfiable preconditions for it).
+
+### FINDINGS INVENTORY
+
+- 259 sweep findings: `cycles/phase-1d/perimeter-sweep-shard-{1..8}.md` with cross-shard analysis at `perimeter-sweep-synthesis.md`
+- 36 pass-5 findings: prior session (frozen pass-5 HEAD 1d3ed17)
+- 11 consistency-audit findings (CV5-001..011); CV5-001 CRITICAL — product-brief.md:82 still declares "macOS, Linux, Windows" at the L1 ROOT of the trace chain, and canonical-facts.toml has NO platform-matrix fact so the checker structurally cannot catch it
+- Complete D-043 survivor list (6 sites) is in shard 8's record
+- **Total ~306 findings to remediate**
+
+### REMEDIATION SEQUENCING GUIDANCE
+
+The operator chose perimeter-first specifically so remediation is single-shot and the 3-clean-pass streak is not restarted by newly-read territory. Per the frozen-HEAD rule (BC-5.39.001) the streak re-counts from ZERO against whatever HEAD is frozen when the next pass runs.
+
+**Adjudicate the two subsystem blocks BEFORE fixing anything in SS-07 or SS-14.**
+
+Add PLATFORM_MATRIX and the DI-001 sort key as canonical facts, and adopt the standing rule that any new cross-cutting decision registers a canonical fact in the SAME burst — otherwise the registry permanently lags one decision behind, which is exactly how CV5-001 survived.
+
+### OPEN BLOCKING ISSUES
+
+BI-002 (phase-1d not converged), BI-007 (VP-026 unimplemented), BI-010 (VP-025 API mismatch), BI-016 (PR #3 covered_sha stale), BI-017 (Phase 3 CI perf-gate), BI-018 (PR #4 merge — now unblocked), BI-020 (PR #5 merge — now unblocked), BI-021 (check-canonical-facts.py worktree resolution), BI-022 (nightly toolchain unpin), BI-023 (skip list unsound), BI-024 (four unguarded axes). Plus new blockers for: five vacuous VPs, BC-VP proof-method join, POLICY 5 substantiation, code-fence symbol validation, stale-directive class, ADR-001/ADR-004 revision.
+
+### WORKTREE INVENTORY
+
+| Path | Branch | SHA | Status |
+|------|--------|-----|--------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` (root) | `feature/spec-lint-hardening` | `6d954ab` | active; PR #3 open |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | `git -C .factory log -1` | active |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/ws-b-generators` | `feature/bi-012-generators` | `78ef3a4` | active; stacked on PR #3 |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/sec-hardening` | `fix/hardening-pins` | `b054694` | active; PR #5 open |
+
+Stash list EMPTY in all four worktrees (D-056). No Phase 3 story worktrees exist.
+
+### PROCESS LESSON
+
+Do not fan out a sweep whose combined output exceeds one context window without arranging durable per-shard capture BEFORE dispatch. Persistence had to be improvised under context pressure while reports were still arriving, leaving four records untracked at session end. Correct pattern: bounded fan-out with write-as-you-go, or a workflow that persists each shard before dispatching the next.
+
+### PENDING USER-APPROVED WORK
+
+| Decision | Approval | Status |
+|----------|----------|--------|
+| D-028: Agents MAY merge PRs after full pr-manager review lifecycle | Granted by operator | In force — applies to PR #3, PR #4, PR #5 |
+| D-029/D-032: Flip `spec-lint` to required status check at Phase 1 approval | Granted by operator | Not started — gated on 3 clean passes |
+| D-031: Autonomy level 4 | Granted by operator | In force |
+| D-043: macOS-only platform narrowing | Granted by operator | APPLIED |
+| D-046: Restricted-path waiver PR #3 + PR #4 | Granted by operator | In force for those two PRs |
+| D-051: Pass-5 gate interpretation (committed spec artifacts suffice) | Granted by operator | APPLIED |
+| D-052: Restricted-path waiver PR #5 | Granted by operator | In force for PR #5 |
+| D-053: cargo-mutants on macos-latest | Granted by operator | APPLIED in PR #5 |
+| D-054: SS-10 descope DENIED | Operator ruling | RECORDED — do not re-propose |
+| D-055: GitHub Actions recovered; merge queue unblocked | Operator confirmation | RECORDED — queue is live |
+| D-056: Stash EMPTY in all 4 worktrees | Operator verification | RESOLVED — no stash caveats carry forward |
+| D-057: D-050 correction (mutation verification NECESSARY BUT NOT SUFFICIENT) | Operator ruling | RECORDED — positive-coverage count required |
+
+### DECISION DELTA
+
+Decisions D-001 through D-053 were committed in prior bursts. This wrap adds D-054..D-057 (exhaustive).
+
+| ID | Decision | Rationale | Phase | Date |
+|----|----------|-----------|-------|------|
+| D-054 | SS-10 `--online` descope DENIED. `--online` is a BRIEFED SURFACE; removing it requires a brief change, not a pipeline scope decision. Gate #12 precedent stands. Difficulty is not grounds for a brief change. | `--online` is in the brief; brief changes require human authorization. | phase-1d | 2026-08-07 |
+| D-055 | GITHUB ACTIONS RECOVERED. PR #4 CI run 31122163633 GREEN (Format/Clippy/Test/Build macos-latest). Outage-era failures CONFIRMED cancellation artifacts. Merge queue PR #4→#3→#5 UNBLOCKED under D-046/D-052/D-028/D-031. | Cancellation artifacts confirmed; actual code is green. | phase-1d | 2026-08-07 |
+| D-056 | Stash list EMPTY confirmed in all four worktrees. "Needs user-space git stash drop" caveat RESOLVED. | Operator verified stash lists directly. Pre-merge stash for PR #2 is gone. | phase-1d | 2026-08-07 |
+| D-057 | CORRECTION TO D-050: mutation verification is NECESSARY BUT NOT SUFFICIENT. Positive-coverage counts (runtime-computed "N validated, 0 non-conforming") is the durable admission criterion for skip-list entries. Evidence: BI-023. D-050's "mutation verification required" standard was correct; this decision adds the positive-coverage gate on top. | Mutation tests only exercise known-bad inputs. BI-023 is the existence proof. | phase-1d | 2026-08-07 |
+
+### WORKSTREAMS
+
+**WS-A (FIRST — do immediately on resume) — Execute merge queue**
+
+All three PRs are review-complete. GitHub Actions has recovered (D-055). Merge order: #4, then #3, then #5.
+
+- **PR #4** = `chore/macos-only-ci` → develop. Head `6503d3b`. APPROVE (1 cycle). CI GREEN run 31122163633. `on.push.branches` omits `chore/**` — `pull_request` is the only trigger. If CI head stale: `gh pr close 4 && gh pr reopen 4`. DO NOT push empty commit.
+- **PR #3** = `feature/spec-lint-hardening` → develop. Head `6d954ab`. FIRST update `covered_sha` to `6d954ab88f52795bd1cd1c3bf22b5cba31dec495` in the pr-manager delivery record, then run `check-stale-verdict.sh 3 6d954ab88f52795bd1cd1c3bf22b5cba31dec495`. The `6d954ab` delta is covered by orchestrator's independent mutation verification (D-050). Merge at level-4 autonomy per D-031.
+- **PR #5** = `fix/hardening-pins` → develop. Head `b054694`. APPROVE (0 blocking, 2 cycles). D-052 waiver. Merge after #3.
+- **After #3 merges:** also merge `feature/bi-012-generators` (`78ef3a4`) to develop.
+
+RESUME NEXT-ACTION: execute `.factory/bin/check-stale-verdict.sh` and `.factory/bin/enforce-merge-strategy.sh` per the merge procedure above. Pass explicit `.factory/bin/` paths.
+
+---
+
+**WS-B — Remediation burst (after WS-A)**
+
+Adjudicate the two subsystem blocks (SS-07 DirIndex scope, SS-14 exit-code domain) BEFORE touching those subsystems. Then single-shot remediation:
+1. Add PLATFORM_MATRIX to canonical-facts.toml; fix CV5-001 (product-brief.md:82 + trace chain)
+2. Mechanically join BC VP-table rows against VP-INDEX (closes BI-024-A, highest leverage)
+3. Fix five vacuous VPs (VP-015/016/017/019/023)
+4. Address POLICY 5 quoted-excerpt fabrication (BI-024-B)
+5. Code-fence symbol resolver / undefined types (BI-024-C)
+6. Discharge stale directives (BI-024-D)
+7. ADR-001/ADR-004 revisions
+8. Fix BI-023 structural checker bypasses (positive-coverage counts)
+
+---
+
+**WS-C — Pass 6 (after WS-B remediation)**
+
+Per D-040/D-057, the pass-6 skip list requires both mutation-verified AND positive-coverage counts. Re-freeze HEAD after WS-B. The 0/3 streak re-counts from ZERO against the new HEAD per BC-5.39.001.
+
+---
+
+**WS-D — Phase 1 human approval gate**
+
+Never yet presented. Gated on: 3 clean adversarial passes. On approval: flip `spec-lint` to required status check per D-029/D-032.
+
+### CAVEATS
+
+a. **pr-reviewer APPROVE for PR #3 is STALE** (covered `a9b9be0`; head is `6d954ab`). `covered_sha` MUST be updated to `6d954ab88f52795bd1cd1c3bf22b5cba31dec495` before `check-stale-verdict.sh` passes. Delta covered by orchestrator mutation verification (D-050).
+
+b. **`ci.yml` `on.push.branches` omits `chore/**`** — `pull_request` is the only CI trigger for PR #4. Do NOT push an empty commit — invalidates the APPROVE verdict.
+
+c. **`feature/bi-012-generators` (`78ef3a4`) is stacked on PR #3** — merge to develop only after PR #3 lands.
+
+d. **D-040/D-057 skip-list discipline:** `check-ec-injectivity`, `check-id-resolution`, and `check-placeholders` MUST NOT go on the pass-6 skip list. All have demonstrated false-passing. Positive-coverage counts required per D-057.
+
+e. **Streak reset:** 0/3 clean-pass counter re-counts against whatever HEAD is frozen when pass 6 runs. No counter carries forward across session boundaries.
+
+f. **`verify-sha-currency.sh` absent.** Post-push hook verification could not be run during this wrap. Known gap.
+
+g. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
+
+h. **Allowlists / skip-lists in checkers are FORBIDDEN (D-039).** Suppression is worse than editing the spec.
+
+i. **`prd.md` versioned changelog entries are IMMUTABLE (D-034).** Do not update them to reference newer VP/EC/BC ids.
+
+j. **BI-021:** `check-canonical-facts.py` exits 1 from `.worktrees/STORY-NNN/`. Fix before Phase 3 (`SPEC_LINT_REPO_OVERRIDE`).
+
+k. **BI-022:** `rustup toolchain install nightly` in `fuzz-smoke` job still unpinned. Pin before Phase 6.
+
+l. **Wrappers at `.factory/bin/`** — pr-manager agents may phantom-report exit-127 looking at `plugins/vsdd-factory/bin/`. Pass the explicit path.

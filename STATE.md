@@ -4,21 +4,21 @@ level: ops
 version: "2.5"
 status: draft
 producer: state-manager
-timestamp: 2026-08-07T02:10:00Z
+timestamp: 2026-08-07T06:24:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; perimeter sweep shards 1,2,3,5 COMPLETE (111 findings, 19C, 46 BC bodies); SKIP LIST UNSOUND — check-placeholders `—` bypass + check-id-resolution non-conforming bypass (BI-023 OPENED); three unguarded axes (BI-024 OPENED); shards 4,6,7,8 still running; streak ZERO from frozen HEAD; D-046..D-053 (exhaustive); D-chain cite D-053 D-421; trajectory-tail →32→34→39→37"
+current_step: "phase-1d; session wrap — GitHub Actions RECOVERED; merge queue PR #4→#3→#5 UNBLOCKED; stash CLOSED all 4 worktrees; D-050 correction (mutation verification NECESSARY BUT NOT SUFFICIENT); SS-10 descope DENIED; 4 sweep shards committed; trajectory-tail →34→39→37→259; D-046..D-057 (exhaustive)"
 current_cycle: ""
 dtu_required: false
 ---
 
 <!--
-  STATE.md SIZE BUDGET (per D-421(c)):
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 208 = 292. 208 lines (wc-l, post-burst-11).
+  STATE.md SIZE BUDGET:
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 212 = 288. 212 lines (wc-l, post-session-wrap).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
@@ -37,9 +37,9 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-07 — perimeter sweep shards 1,2,3,5 COMPLETE (111 findings, 19C, 46 BC bodies); SKIP LIST UNSOUND (check-placeholders `—` bypass, check-id-resolution non-conforming bypass); BI-023/BI-024 OPENED; synthesis at cycles/phase-1d/perimeter-sweep-synthesis.md; shards 4,6,7,8 still running; trajectory-tail →32→34→39→37 |
+| **Last Updated** | 2026-08-07 — session wrap: GitHub Actions RECOVERED; merge queue PR #4→#3→#5 UNBLOCKED; stash CLOSED all 4 worktrees; D-054..D-057 (exhaustive); trajectory-tail →34→39→37→259 |
 | **Current Phase** | phase-1d |
-| **Current Step** | Perimeter sweep shards 1,2,3,5 COMPLETE (111 findings, 19C, 46 BC bodies). SKIP LIST UNSOUND — BI-023 OPENED. Three unguarded axes (VP proof-method join, quoted-excerpt substantiation, library-semantics) — BI-024 OPENED. Shards 4,6,7,8 still running. 3 PRs merge-ready blocked ONLY by GitHub Actions outage (2026-08-06T15:22Z). Streak ZERO from frozen HEAD per BC-5.39.001/D-040/D-051. |
+| **Current Step** | Session wrap complete. GitHub Actions RECOVERED (D-055); merge queue PR #4→PR #3→PR #5 UNBLOCKED. Stash EMPTY in all 4 worktrees (D-056). SS-10 descope DENIED (D-054). D-050 correction recorded (D-057). 4 untracked sweep shards committed (shards 4/6/7/8). All 9 sweep records tracked. FIRST ACTION ON RESUME: execute merge queue. |
 
 ## Phase Progress
 
@@ -48,7 +48,7 @@ dtu_required: false
 | pre-1: Planning | completed | 2026-08-05 | 2026-08-05 | HUMAN: market-intel-review + intake-approval | |
 | 0: Codebase Ingestion | not-started | | | | |
 | 1: Spec Crystallization | artifacts-complete | 2026-08-05 | 2026-08-05 | awaiting phase-1d convergence | |
-| phase-1d: Adversarial Spec Review | in-progress | 2026-08-05 | — | adversary: 3 clean passes required | →0→32→34→39→37 |
+| phase-1d: Adversarial Spec Review | in-progress | 2026-08-05 | — | adversary: 3 clean passes required | →0→32→34→39→37→259 |
 | 2: Story Decomposition | not-started | | | | |
 | 3: TDD Implementation | not-started | | | | |
 | 4: Holdout Evaluation | not-started | | | | |
@@ -66,22 +66,21 @@ dtu_required: false
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
-| PR #2 merged | pr-manager | COMPLETE | 7 review cycles; squash-merged to develop 2290cb0; branch deleted; 9/9 required CI green |
-| D-043 macOS-only platform narrowing | architect + product-owner + devops | COMPLETE | branch protection 8→4 contexts both branches; ci.yml matrices → macos-latest (PR #4); NFR-002 re-targeted 10s, NFR-004 retired, T13 retired; unicode-normalization pinned 0.1.24; C4-008 fixed; spec-lint 7/8 |
 | PR #4 APPROVE + PR #3 mutation audit COMPLETE + D-050 | pr-manager + state-manager | COMPLETE | PR #4: APPROVE on 6503d3b (CI blocked: GitHub Actions outage 2026-08-06T15:22Z); PR #3: audit COMPLETE (6d954ab, 15→17 tests, 4/15 over-determined); BI-019 RESOLVED; BI-014 closed; D-046..D-050 (exhaustive); trajectory-tail →32→34→39→37; bc-module-map.md v1.4 |
 | BI-012/BI-015 CLOSED + PR #5 + D-051..D-053 + pass-5 HEAD freeze | state-manager | COMPLETE | BI-012: 14 divergent sites corrected; canonical-facts.toml 7 facts/16 bindings; check-canonical-facts.py exit 0; 18/18 suite; D-040 negative test confirmed. BI-015: SLUG_CORPUS generated from §7; TV-S007+TV-S010 first test coverage. PR #5 APPROVE 0-blocking (b054694, 2 cycles, D-052 waiver). D-051..D-053 (exhaustive). HEAD frozen for pass 5. |
 | perimeter sweep shard 3 | state-manager | COMPLETE | 28 findings (7C/12H/9M) recorded at cycles/phase-1d/perimeter-sweep-shard-3.md; verdict SS-07 NOT adequately specified for macOS-only/APFS — must NOT enter Phase 2; corroborates pass-5 P5-003 (DirIndex scope) and shard 1 fs::canonicalize finding |
-| perimeter sweep shards 1,2,3,5 + synthesis | adversary/state-manager | COMPLETE | 111 findings (19C, 47H, 45M, 46 BC bodies); shard-2: 4C/7H/13M SS-03+SS-04+BC-2.06.002; shard-5: 6C/15H/11M SS-11..14; synthesis at perimeter-sweep-synthesis.md; SKIP LIST UNSOUND (BI-023); three unguarded axes (BI-024); shards 4,6,7,8 still running |
+| perimeter sweep shards 1,2,3,5 + synthesis (partial) | adversary/state-manager | COMPLETE | 111 findings (19C, 47H, 45M, 46 BC bodies); shard-2: 4C/7H/13M SS-03+SS-04+BC-2.06.002; shard-5: 6C/15H/11M SS-11..14; synthesis at perimeter-sweep-synthesis.md; SKIP LIST UNSOUND (BI-023); three unguarded axes (BI-024) |
+| perimeter sweep ALL 8 shards COMPLETE | adversary/state-manager | COMPLETE | 259 findings (~42C); shard-4: 7C SS-08/09+3xSS-10 (DI-005 NOT airtight); shard-6: 2C ADRs+arch-shards (ADR-004 inadequate); shard-7: 6C VPs (5 vacuous); shard-8: 6C domain-spec+prd (R5 not defensible); synthesis FINAL at perimeter-sweep-synthesis.md; perimeter CLOSED |
 
 ## Convergence Status
 
-Trajectory →0→32→34→39→37
+Trajectory →0→32→34→39→37→259
 
 pass count: 0 of 3 required clean passes
 
 Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT the magnitude. Zero of 37 findings fall in the 7 enforced classes (title-sync, EC-injectivity, id-resolution, counts, holdout-boundary, ADR-consistency, index-integrity) — that noise floor is eliminated and verified. The residual defect mass is a SPEC-TOPOLOGY problem, not a spec-quality problem: ~15 documents hand-maintain restatements of the same facts with no generated source of truth. Regression audit found 8 of 12 prior fixes were applied to the primary artifact but not its siblings/dependents. Adversary recommended NOT running pass 5 against the current topology.
 
-**Pass 5 armed (HEAD frozen this commit):** BI-012 spec-topology generators COMMITTED and VERIFIED on this `factory-artifacts` commit per D-051; D-036 pre-condition satisfied. Per BC-5.39.001/D-040, the clean-pass streak MUST re-count from ZERO against this HEAD. No prior streak count carries forward.
+**Pass 5 COMPLETE (perimeter sweep — 8 shards, 259 findings):** All 66 BC bodies, all 8 ADRs, all spec shards read in full for the first time. Perimeter closed. Clean-pass count remains ZERO. Remediation burst required against four unguarded axes (BI-024) before pass 6. Structural checker bypasses confirmed (BI-023).
 
 | Pass | Findings | Delta | Status |
 |------|----------|-------|--------|
@@ -89,6 +88,7 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | 2 | 34 (7C/19M/8m) | +2 | FINDINGS_REMAIN (REGRESSION) — REMEDIATED |
 | 3 | 39 (5C/26M/8m) | +5 | FINDINGS_REMAIN (REGRESSION) — REMEDIATED (mechanical enforcement) |
 | 4 | 37 (3C/19M/15m) | -2 | FINDINGS_REMAIN — composition changed: ZERO findings in the 7 mechanically-enforced classes |
+| 5 | 259 (~42C) | +222 (scope expansion: first full read of all 66 BC bodies, all 8 ADRs, all spec shards) | FINDINGS_REMAIN — perimeter closed; 4 unguarded axes; remediation burst required |
 
 ## Decisions Log
 
@@ -143,6 +143,10 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | D-051 | Pass-5 gate interpretation (operator-approved): D-036's requirement that the BI-012 generators "land" before pass 5 is satisfied by COMMITTED-AND-VERIFIED spec artifacts on `factory-artifacts`, NOT by merge-to-develop. Rationale: pass 5 reviews spec artifacts, which live on `factory-artifacts` and can be committed independently of the product-repo PRs that the GitHub Actions outage has frozen; the proven-can-fail validators were run against those exact artifacts and are clean. Recorded risk: CI enforcement lands only when PR #3/`feature/bi-012-generators` merge, so a regression could theoretically slip in between commit and merge. | Pass 5 gate unblocked by committed verification evidence; outage blocking merge does not block spec-artifact review. | phase-1d | 2026-08-06 | human/operator |
 | D-052 | Restricted-path waiver extended by the operator to PR #5 (`.github/**`). Scoped to PR #5 only; `merge-config.yaml` NOT amended; future restricted-path PRs still need fresh authorization. | PR #5 contents are entirely `.github/workflows/hardening.yml` modifications; same restricted-path class as D-046. Operator explicitly approved. | phase-1d | 2026-08-06 | human/operator |
 | D-053 | `cargo-mutants` platform classification: mutation testing is platform-DEPENDENT because it wraps the project's test suite and inherits its platform sensitivity. Under D-043, macOS APFS (case-insensitive, NFD-storing) is the only filesystem in the matrix and VP-008/VP-009 are solely load-bearing. On case-sensitive ext4, a mutation breaking case-insensitivity handling would SURVIVE (wrong behaviour matches ubuntu semantics), producing false-green survivor reports on exactly the properties that matter most. D-044's ubuntu-for-cost rule continues to apply only to genuinely platform-independent jobs. ~10x runner cost accepted; correctness fix. Applied in PR #5 hardening.yml. | macOS-only matrix + mutation testing = `cargo-mutants` belongs on `macos-latest`; consistent with D-043 while D-044 governs platform-independent jobs. | phase-1d | 2026-08-06 | human/operator |
+| D-054 | SS-10 `--online` descope DENIED. `--online` is a BRIEFED SURFACE — BRIEF.md states http(s) URLs are checked ONLY when `--online` is passed; removing it requires a brief change, not a pipeline scope decision. Gate #12 precedent stands. The concentration of CRITICAL findings in SS-10 is evidence of DIFFICULTY, not grounds for a brief change. Remediate per the perimeter-first plan. Closes the descope option that was offered twice; do not re-propose. | `--online` is in the brief; brief changes require human authorization. Difficulty is not scope-creep evidence. | phase-1d | 2026-08-07 | human/operator |
+| D-055 | GITHUB ACTIONS RECOVERED. PR #4 CI run 31122163633 executed with real jobs; Format check / Clippy (deny warnings) / Test (macos-latest) / Build release (macos-latest) ALL GREEN. `Spec lint` fails HONESTLY against unconverged specs (25 known Phase-2 placeholders + newly-found defects). Outage-era failures CONFIRMED cancellation artifacts, not code defects. Merge queue PR #4 → PR #3 → PR #5 UNBLOCKED under existing waivers: D-046 for #3/#4, D-052 for #5, D-028 full-review-lifecycle satisfied for all three, D-031 autonomy level 4. Stale CI heads may need re-triggering as queue advances. | Cancellation artifacts confirmed; actual code is green. Queue unblocked. | phase-1d | 2026-08-07 | human/operator |
+| D-056 | Stash list EMPTY confirmed in all four worktrees: main repo, .factory, .worktrees/sec-hardening, .worktrees/ws-b-generators. The "needs user-space git stash drop" caveat present in D-030/D-045/D-050/D-053 snapshots is RESOLVED. Caveat text retained in superseded snapshots as historical record; not carried forward to §RESUME SNAPSHOT D-057. | Operator verified stash lists directly. The stash tracking the pre-merge state of PR #2 is gone. Nothing to drop; no work at risk. | phase-1d | 2026-08-07 | human/operator |
+| D-057 | CORRECTION TO D-050: mutation verification is NECESSARY BUT NOT SUFFICIENT for skip-list admission. It proves a checker can fail on inputs its regex RECOGNISES, and cannot reveal input shapes the regex never matches. Positive-coverage counts (runtime-computed "N validated, 0 non-conforming"), not absence-of-known-string, is the durable admission criterion for any skip-list entry. Evidence: `check-placeholders` passed mutation tests against `VP-TBD` strings but is defeated by em-dash `—` (12+ BCs with zero VP coverage passing clean); `check-id-resolution` passes mutation tests but silently skips `EC-NEW-NNN` and `EC-073b` shapes. Cite BI-023. D-050's "mutation verification required" standard was correct; this decision adds the positive-coverage gate on top. | Mutation tests only exercise the test author's known-bad input set, not unknown shapes. BI-023 is the existence proof. | phase-1d | 2026-08-07 | human/operator |
 
 ## Skip Log
 
@@ -162,38 +166,38 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 
 | ID | Issue | Severity | Blocking Phase | Owner | Resolution |
 |----|-------|----------|----------------|-------|------------|
-| BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 4 COMPLETE (37 findings, 3C/19M/15m); root cause SPEC-TOPOLOGY (D-035); BI-012 prerequisite CLOSED (D-051); pass 5 ARMED — HEAD frozen this commit | HIGH | phase-1 gate | orchestrator | Pass 5 armed; pending 3 clean passes; if CLEAN → phase-1 gate; if BLOCKED → remediation burst |
+| BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 5 COMPLETE (259 findings ~42C); perimeter CLOSED; root cause SPEC-TOPOLOGY (D-035) + 4 unguarded axes (BI-024) + structural checker bypasses (BI-023) | HIGH | phase-1 gate | orchestrator | Remediation burst required (4 unguarded axes + stale directives + vacuous VPs + ADR-001/ADR-004 revision) then pass 6 |
 | ~~BI-005~~ | DI-012 (slug fidelity) VP coverage INSUFFICIENT; DI-013 PARTIAL — VP-018's 16 golden vectors were the only pin on github-slugger parity; 1-based duplicate counter bug would pass VP-003 injectivity (FM-002 unprovable) | ~~HIGH~~ CLOSED | ~~phase-1 gate~~ RESOLVED | architect | CLOSED at spec level 2026-08-06. VP-026 authored; FM-002 now covered. Residual implementation risk tracked as BI-007. |
 | BI-007 | VP-026 is SPECIFIED but UNIMPLEMENTED — no Rust workspace exists yet (Phase 3 not started). Until the differential proptest and its pinned `github-slugger@2.0.0` oracle corpus are implemented and green, the product can still emit non-GitHub-fidelity slugs (FM-002) behind a fully green verification suite. Successor to BI-005. | HIGH | phase-6 (formal hardening) — NOT phase-1 | implementer | Phase 3 must implement VP-026; VP-026 must be green before Phase 6 hardening can pass. Story decomposition (Phase 2) MUST generate a story traced to VP-026. |
 | BI-010 | P4-002: VP-025 authored against non-existent API types (AnchorTable, resolve_anchor return type, closed two-variant enum) — all contradict api-surface.md (HashSet<String>, THREE-variant Verdict). Harness cannot compile. | CRITICAL | phase-3 | architect | Architect rewrote VP-025 against declared API (AnchorTable(HashSet<String>), three-variant Verdict, property 4 replaced). INC-MAP-001 RE-OPENED — closes only when Phase 3 implements it. |
-| BI-016 | PR #3 (`feature/spec-lint-hardening` → `develop`) OPEN: eliminates vacuous-negative-test class, fixes P4-021. Head `6d954ab` (15→17 tests, 17/17 passing, BI-019 RESOLVED). Awaiting CI (GitHub Actions outage). | MEDIUM | phase-2 | pr-manager | pr-reviewer APPROVE STALE (covered `a9b9be0`; `covered_sha` must be updated to `6d954ab` before merge). PR #3 merge-ready pending CI + covered_sha update. |
+| BI-016 | PR #3 (`feature/spec-lint-hardening` → `develop`) OPEN: eliminates vacuous-negative-test class, fixes P4-021. Head `6d954ab` (15→17 tests, 17/17 passing, BI-019 RESOLVED). Actions outage resolved per D-055. | MEDIUM | phase-2 | pr-manager | pr-reviewer APPROVE STALE (covered `a9b9be0`; `covered_sha` must be updated to `6d954ab88f52795bd1cd1c3bf22b5cba31dec495` before `check-stale-verdict.sh` passes). Merge after covered_sha update per D-031. |
 | BI-017 | Phase 3 CI obligation: NO perf-gate/benchmark job exists in any workflow. When NFR-008 (~500ms p95 Tier A) and NFR-002 (10s p95) benchmark jobs are created in Phase 3, both MUST run on `macos-latest`. | MEDIUM | phase-3 | devops-engineer | Recorded in vp-022-regression-gate.md and tooling-selection.md §Phase 3 CI Obligations. |
-| BI-018 | PR #4 (`chore/macos-only-ci` → develop): reduces `ci.yml` test/build matrices to `macos-latest`. APPROVE on `6503d3b`; ZERO CI runs (pushed mid-outage). | MEDIUM | phase-2 | pr-manager | Recovery: `gh pr close 4 && gh pr reopen 4` (re-fires `pull_request`; preserves SHA and APPROVE). DO NOT push empty commit. Fallback: `gh workflow run ci.yml --ref chore/macos-only-ci`. |
+| BI-018 | PR #4 (`chore/macos-only-ci` → develop): reduces `ci.yml` test/build matrices to `macos-latest`. APPROVE on `6503d3b`. CI run 31122163633 GREEN (Format/Clippy/Test/Build macos-latest). Actions outage resolved per D-055. UNBLOCKED — first in merge queue. | MEDIUM | phase-2 | pr-manager | Merge first per D-055 queue order. If CI head stale on merge, re-trigger: `gh pr close 4 && gh pr reopen 4`. DO NOT push empty commit. Level-4 autonomy per D-031. |
 | ~~BI-019~~ | ~~B-6 over-determination (selftest 10d)~~ | ~~CRITICAL~~ **CLOSED** | resolved | test-writer | CLOSED 2026-08-06: suite 15→17, 17/17. 4/15 over-determined (D-050). proven-can-fail list: check-index-integrity, check-counts, check-adr-consistency, check-title-sync. |
-| BI-020 | PR #5 (`fix/hardening-pins` → develop) OPEN: pins kani-verifier 0.67.0, cargo-fuzz 0.13.2, explicit `contents: read` on all 6 jobs, `persist-credentials: false` on all 6 checkouts, SHA inventory for upload-artifact, fuzz false-green fixed, cargo-mutants moved to macos-latest (D-053). Head `b054694`. pr-reviewer APPROVE (0 blocking, 2 cycles). D-052 restricted-path waiver. Awaiting CI (GitHub Actions outage). | MEDIUM | phase-3/phase-6 | pr-manager | Merge at level-4 autonomy per D-031 once CI clears. |
+| BI-020 | PR #5 (`fix/hardening-pins` → develop) OPEN: pins kani-verifier 0.67.0, cargo-fuzz 0.13.2, explicit `contents: read` on all 6 jobs, `persist-credentials: false` on all 6 checkouts, SHA inventory for upload-artifact, fuzz false-green fixed, cargo-mutants moved to macos-latest (D-053). Head `b054694`. pr-reviewer APPROVE (0 blocking, 2 cycles). D-052 restricted-path waiver. Actions outage resolved per D-055. | MEDIUM | phase-3/phase-6 | pr-manager | Merge after PR #3 per D-055 queue order. Stale CI head may need re-triggering. Level-4 autonomy per D-031. |
 | BI-021 | MINOR: `check-canonical-facts.py` resolves `.factory/` from the SCRIPT's own location; exits 1 from any secondary worktree under `.worktrees/`. Fails closed (acceptable per D-039) but Phase 3 runs stories in `.worktrees/STORY-NNN/`, where spec-lint would fail confusingly. Workaround: `SPEC_LINT_REPO_OVERRIDE` env var. | LOW | phase-3 | devops-engineer | Fix path resolution before Phase 3 story worktrees launch. |
 | BI-022 | MINOR: `rustup toolchain install nightly` in `fuzz-smoke` job still UNPINNED — frozen fuzz driver against rolling nightly is a known drift pair. Recommend pinning nightly date before Phase 6. | LOW | phase-6 | devops-engineer | Track as follow-up; pin nightly date in hardening.yml before Phase 6. |
-| BI-023 | SKIP LIST UNSOUND — perimeter sweep shards 1,2,3,5 found structural bypasses in two of the pass-5 skip-list checkers: (a) `check-placeholders.py` greps literal `VP-TBD`; em-dash `—` in VP-NNN column is silently skipped — 8 of 15 SS-11..14 BCs and 4 of 6 SS-03 BCs pass as clean despite zero VP coverage; (b) `check-id-resolution.py` (i) auto-synthesises `EC-NNNa..z` as registered when base `EC-NNN` exists anywhere with NO description comparison, and (ii) matches only `EC-\d+` so EC-NEW-NNN and EC-073b are silently skipped rather than reported unresolvable. D-050's mutation-verification criterion is necessary but NOT sufficient: mutation tests only prove the checker fails on shapes it recognises. | HIGH | phase-1 gate | devops-engineer | (a) Remove "placeholders" and "id-resolution" from skip list OR narrow to "ID EXISTENCE for conforming shapes only"; (b) require each checker to emit POSITIVE COVERAGE count; (c) add meta-check for non-conforming ID shapes. Blocker for pass-5 skip-list trust. |
-| BI-024 | THREE UNGUARDED AXES — no checker exists for: (A) VP proof-method/tool mismatch between BC body rows and VP-INDEX `tool` column — 14+ instances found across 4 shards, silently turning Kani P0 into "unit test" while coverage matrix reports Yes; (B) quoted-excerpt fabrication in per-section citations (POLICY 5, lint_hook: null) — 40% fabrication rate in SS-11..14, CAP-006 fabrication in SS-03 drops FM-002 guards; (C) factual claims about third-party library semantics — 3 of 4 CRITICALs in shard 2, unverifiable by any current checker. | HIGH | phase-1 gate | devops-engineer | (A) Mechanically join BC VP rows against VP-INDEX tool column (one-line check, highest-leverage gap found); (B) add substring-presence check for quoted excerpts in resolvable citations; (C) require library-semantics claims to cite primary source with version pinned. |
+| BI-023 | SKIP LIST UNSOUND — perimeter sweep found structural bypasses in two pass-5 skip-list checkers: (a) `check-placeholders.py` greps literal `VP-TBD`; em-dash `—` defeats it (12+ BCs with zero VP coverage passing clean); (b) `check-id-resolution.py` auto-synthesises `EC-NNNa..z` without description comparison AND silently skips EC-NEW-NNN and EC-073b shapes. D-050's mutation-verification criterion is necessary but NOT sufficient (see D-057). | HIGH | phase-1 gate | devops-engineer | (a) Narrow skip to "ID EXISTENCE for conforming shapes"; (b) require POSITIVE COVERAGE count; (c) add meta-check for non-conforming shapes. Blocker for pass-6 skip-list trust. |
+| BI-024 | FOUR UNGUARDED AXES (perimeter sweep, all 8 shards confirmed): (A) VP proof-method/tool mismatch BC body vs VP-INDEX — 14+ instances, highest-leverage fix available (one-line join); (B) quoted-excerpt fabrication in per-section citations (POLICY 5 lint_hook null, 40% rate); (C) symbols in rust code fences + 4 undefined types; (D) ~10 stale discharged directives that cause actively harmful story-writer guidance. | HIGH | phase-1 gate | devops-engineer | (A) Mechanically join BC VP rows against VP-INDEX tool column; (B) substring-presence check on quoted excerpts; (C) code-fence symbol resolver; (D) machine-checkable target references on all open directive strings. |
 
 ## Session Resume Checkpoint
 
-Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-053`
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-057`
 
 | Field | Value |
 |-------|-------|
-| **Date** | 2026-08-06 |
-| **Position** | phase-1d; HEAD frozen for pass 5 (this factory-artifacts commit); BI-012/BI-015 CLOSED (generators built+verified, 18/18 suite, D-040 confirmed); PR #5 APPROVE 0-blocking (b054694); 3 PRs merge-ready (PR #3 6d954ab, PR #4 6503d3b, PR #5 b054694) blocked ONLY by GitHub Actions outage; streak counts ZERO from this HEAD per BC-5.39.001/D-040/D-051 |
-| **Convergence counter** | 0 of 3 clean passes; pass 5 armed against this HEAD |
-| **Next burst** | (1) Wait for GitHub Actions outage to resolve; (2) re-trigger PR #4 CI (`gh pr close 4 && gh pr reopen 4`), update covered_sha for PR #3 to `6d954ab`, then merge all 3 PRs; (3) WS-C: pass 5 with skip list: check-index-integrity, check-counts, check-adr-consistency, check-title-sync (D-050 proven-can-fail) — NOTE BI-023: check-placeholders and check-id-resolution are NOT on the trusted skip list pending BI-023 remediation |
+| **Date** | 2026-08-07 |
+| **Position** | phase-1d; pass-5 perimeter sweep COMPLETE (8 shards, 259 findings ~42C); all 66 BC bodies + all 8 ADRs + all spec shards read in full; 0 of 3 clean passes; perimeter CLOSED; GitHub Actions RECOVERED (D-055); merge queue PR #4→#3→#5 UNBLOCKED; stash EMPTY all 4 worktrees (D-056) |
+| **Convergence counter** | 0 of 3 clean passes; pass 5 COMPLETE (scope expansion sweep); merge queue then remediation burst then pass 6 |
+| **Next burst** | (1) Execute merge queue: PR #4 first (re-trigger if needed), then PR #3 (update covered_sha to 6d954ab first), then PR #5; (2) remediation burst: four unguarded axes (BI-024), stale directives, vacuous VPs, ADR-001/ADR-004 revisions, checker bypasses (BI-023); (3) pass 6 with rebuilt skip list |
 
-Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-053 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/019. Open: BI-007/010/016/017/018/020/021/022/023/024.
+Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-057 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/019. Open: BI-007/010/016/017/018/020/021/022/023/024.
 
 ## Concurrent Cycles
 
 | Cycle | Status | Notes |
 |-------|--------|-------|
-| phase-1d | in-progress | adversarial spec convergence; trajectory-tail →32→34→39→37; perimeter sweep shards 1,2,3,5 COMPLETE (111 findings, 19C); BI-023 SKIP LIST UNSOUND; BI-024 three unguarded axes; shards 4,6,7,8 still running; pass 5 ARMED (HEAD frozen, streak zero per BC-5.39.001/D-040); 3 PRs merge-ready (GitHub Actions outage 2026-08-06T15:22Z) |
+| phase-1d | in-progress | adversarial spec convergence; trajectory-tail →34→39→37→259; perimeter sweep COMPLETE (8 shards, 259 findings ~42C); BI-023 skip list unsound; BI-024 four unguarded axes; 0 of 3 clean passes; GitHub Actions RECOVERED (D-055); merge queue PR #4→#3→#5 UNBLOCKED; FIRST ACTION ON RESUME: execute merge queue; then remediation burst then pass 6 |
 
 ## Historical Content
 
@@ -205,4 +209,4 @@ Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC r
 | Lessons learned | `cycles/phase-1d/lessons.md` |
 | Resolved blockers | `cycles/phase-1d/blocking-issues-resolved.md` |
 
-Last Updated: 2026-08-07 — perimeter sweep shards 1,2,3,5 COMPLETE (111 findings, 19C, 46 BC bodies); SKIP LIST UNSOUND (check-placeholders `—` bypass, check-id-resolution non-conforming bypass — BI-023 OPENED); three unguarded axes (BI-024 OPENED); synthesis at cycles/phase-1d/perimeter-sweep-synthesis.md; shards 4,6,7,8 still running; trajectory-tail →32→34→39→37
+Last Updated: 2026-08-07 — session wrap: GitHub Actions RECOVERED; merge queue PR #4→#3→#5 UNBLOCKED; stash CLOSED all 4 worktrees; D-054..D-057 (exhaustive); trajectory-tail →34→39→37→259
