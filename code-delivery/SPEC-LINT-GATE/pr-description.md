@@ -4,7 +4,7 @@
 **Mode:** feature
 **Convergence:** N/A — pre-story tooling, not a story delivery
 
-![Tests](https://img.shields.io/badge/tests-8%2F8_validators-brightgreen)
+![Tests](https://img.shields.io/badge/selftests-11%2F11-brightgreen)
 ![CI Required](https://img.shields.io/badge/required_checks-8%2F8_PASS-brightgreen)
 ![Spec Lint](https://img.shields.io/badge/spec_lint-ADVISORY_fail-yellow)
 ![Security](https://img.shields.io/badge/GitGuardian-PASS-brightgreen)
@@ -104,7 +104,7 @@ flowchart LR
 | Metric | Value | Threshold | Status |
 |--------|-------|-----------|--------|
 | Validators with selftest coverage | 8/8 | 8/8 | PASS |
-| Negative tests (checkers CAN fail) | 8 | 8 | PASS |
+| Negative tests (checkers CAN fail) | 11 | 11 | PASS |
 | Required CI checks passing | 8/8 | 8/8 | PASS |
 | Advisory spec-lint CI (missing spec tree in CI) | FAIL (expected) | advisory | NOTE |
 
@@ -113,17 +113,16 @@ flowchart LR
 | Test | Checker | Fixture | Result |
 |------|---------|---------|--------|
 | 1. Unregistered EC ref | check-id-resolution | bad-ec-unregistered.md | PASS |
-| 2. EC count mismatch (real tree) | check-counts | real spec tree | PASS |
-| 3. test-sufficient in VP-NNN col (real tree) | check-placeholders | real spec tree | PASS |
-| 4. Injected live VP-TBD | check-placeholders | bad-live-vp-tbd.md | PASS |
+| 1b. Out-of-range T reference | check-id-resolution | bad-trap-ref.md | PASS |
+| 1c. Unregistered R requirement ref | check-id-resolution | bad-r-ref-unregistered.md | PASS |
+| 2. EC count mismatch (isolated temp tree) | check-counts | isolated tree (total_bcs:99, 0 rows) | PASS |
+| 3. test-sufficient in VP-NNN col (isolated) | check-placeholders | isolated tree + bad-placeholder-test-sufficient.md | PASS |
+| 4. Injected live VP-TBD (isolated) | check-placeholders | isolated tree + bad-live-vp-tbd.md | PASS |
 | 5. Exit code semantics | check-adr-consistency | bad-adr-exit-code.md | PASS |
-| 6. EC verdict collision | check-ec-injectivity | bad-ec-injectivity.md | PASS |
+| 6. EC 2-column description collision (isolated) | check-ec-injectivity | isolated temp tree, 2-column fixtures | PASS |
 | 7. Leaked holdout scenario | check-holdout-boundary | bad-holdout-leak.md | PASS |
 | 8. Unlisted BC file | check-index-integrity | bad-unlisted-bc.md | PASS |
-
-Note: Selftests 2 and 3 rely on known-bad state in the real spec tree (EC count mismatch in
-prd.md §5b, [filled by story-writer] placeholders). These selftests will need fixture-based
-replacements as the spec tree is cleaned up in Phase 2.
+| 9. BC-INDEX title vs H1 mismatch (isolated) | check-title-sync | isolated temp tree | PASS |
 
 ---
 
@@ -229,17 +228,16 @@ None — spec-lint is gated by the CI job being advisory (not required) until D-
 
 | Policy | Checker | Selftest | Status |
 |--------|---------|---------|--------|
-| POL-7 (title sync) | check-title-sync.py | N/A (title-sync has no injection selftest; relies on real-tree pass) | NOTE |
+| POL-7 (title sync) | check-title-sync.py | isolated temp tree, H1 mismatch (test 9) | PASS |
 | POL-12/19 (ADR consistency) | check-adr-consistency.py | bad-adr-exit-code.md (test 5) | PASS |
-| POL-13 (title sync) | check-title-sync.py | (shares with POL-7) | NOTE |
+| POL-13 (title sync) | check-title-sync.py | isolated temp tree, H1 mismatch (test 9) | PASS |
 | POL-14 (no VP-TBD, no test-sufficient) | check-placeholders.py | bad-live-vp-tbd.md (test 4), real tree (test 3) | PASS |
 | POL-15 (no SS-TBD) | check-placeholders.py | included in test 4 | PASS |
-| POL-16 (EC injectivity) | check-ec-injectivity.py + check-id-resolution.py | bad-ec-injectivity.md (test 6), bad-ec-unregistered.md (test 1) | PASS |
+| POL-16 (EC injectivity) | check-ec-injectivity.py + check-id-resolution.py | isolated temp tree, 2-column detection (test 6), bad-ec-unregistered.md (test 1) | PASS (isolated temp tree, 2-column detection) |
 | POL-16 (counts) | check-counts.py | real tree EC count mismatch (test 2) | PASS |
 | POL-17 (index integrity) | check-index-integrity.py | bad-unlisted-bc.md (test 8) | PASS |
 | POL-18 (holdout boundary) | check-holdout-boundary.py | bad-holdout-leak.md (test 7) | PASS |
 
-**Gap noted:** check-title-sync does not have a dedicated injection fixture selftest (test 1-8 do not cover it). It relies only on the real-tree passing (which it does: 66 BCs, all match). A fixture-based selftest for title-sync should be added in Phase 2 cleanup.
 
 ---
 
@@ -283,4 +281,4 @@ generated-at: "2026-08-06"
 - [x] Merge mode: squash + delete branch (per merge-config.yaml)
 - [x] Autonomy level 4: no human gate required (D-031)
 - [ ] Security review: pending (pr-manager lifecycle step 4)
-- [ ] PR reviewer approval: pending (pr-manager lifecycle step 5)
+- [x] PR reviewer approval: approved
