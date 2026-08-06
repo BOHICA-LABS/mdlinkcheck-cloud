@@ -131,18 +131,6 @@ def get_actual_adr_files() -> set[str]:
     return ids
 
 
-def get_hs_index_entries() -> set[str]:
-    """Return set of HS-NNN IDs listed in HS-INDEX.md (active, non-struck-through)."""
-    hs_index = FACTORY / "holdout-scenarios" / "HS-INDEX.md"
-    ids: set[str] = set()
-    for line in hs_index.read_text(encoding="utf-8").splitlines():
-        if "~~" in line:
-            continue  # Skip retired entries
-        m = re.match(r"^\|\s*(HS-\d+)\s*\|", line)
-        if m:
-            ids.add(m.group(1))
-    return ids
-
 
 def get_hs_ec_mapping() -> dict[str, str]:
     """Return {hs_id: ec_id} for all authored HS entries (active + retired).

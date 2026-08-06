@@ -22,7 +22,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=12
+EXPECTED_TEST_COUNT=14
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -596,6 +596,110 @@ if [ "$CLEAN_PASS" = "1" ]; then
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; orphan HS entry (HS-002→EC-999) correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 10b: check-index-integrity — wave-scenarios file with no HS entry ──
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 10b: check-index-integrity: wave-scenarios file with no HS-INDEX entry ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+# Clean tree: HS-INDEX with HS-001→EC-156, matching wave-scenarios file
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (HS-INDEX and wave-scenarios in sync)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: add wave-scenarios file with no corresponding HS-INDEX entry
+    touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-998-orphan-no-hs-entry.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch wave-scenarios file with no HS entry)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; orphan wave-scenarios file EC-998 correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 10c: check-index-integrity — duplicate HS-NNN ID in HS-INDEX ──────
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 10c: check-index-integrity: duplicate HS-NNN ID in HS-INDEX ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+# Clean tree: HS-INDEX with unique HS-001→EC-156
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (unique HS-INDEX IDs)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: append duplicate HS-001 entry (different EC mapping) — duplicates HS-NNN ID
+    printf '| HS-001 | EC-157 | Duplicate HS-001 entry | Notes | BC-2.01.001 | active |\n' \
+        >> "$T/.factory/holdout-scenarios/HS-INDEX.md"
+    touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-157-selftest-duplicate.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch duplicate HS-001 entry)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; duplicate HS-001 ID correctly detected)"
     fi
 fi
 rm -rf "$T"
