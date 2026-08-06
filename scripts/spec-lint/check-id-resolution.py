@@ -272,6 +272,16 @@ def check_file(path: Path) -> list[str]:
             ref = m.group(1)
             v(lineno, ref, "POL", VALID_POL)
 
+        # R-NN requirement IDs: must be in product-brief.md
+        for m in re.finditer(r"\bR-?(\d{1,2}[a-c]?)\b", line):
+            ref = m.group(0)
+            # Normalize to R-NNN form for lookup
+            normalized = ref if ref.startswith("R-") else f"R-{m.group(1)}"
+            if normalized not in VALID_R and ref not in VALID_R:
+                violations.append(
+                    f"{path}:{lineno}: unresolvable R requirement reference '{ref}'"
+                )
+
         # EC-NNN and EC-NNNx: must be registered in test-vectors.md table rows
         # or holdout pool. Prose mentions and changelog entries are NOT registrations.
         for m in re.finditer(r"\bEC-(\d+)([a-z]?)\b", line):

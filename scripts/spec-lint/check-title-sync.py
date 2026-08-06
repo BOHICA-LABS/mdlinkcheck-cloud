@@ -9,11 +9,12 @@ This check verifies:
 
 Exits 1 if any mismatch is found. Prints file:line style output.
 """
+import os
 import re
 import sys
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parent.parent.parent
+REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 SPECS = REPO / ".factory" / "specs"
 BC_INDEX = SPECS / "behavioral-contracts" / "BC-INDEX.md"
 PRD = SPECS / "prd.md"

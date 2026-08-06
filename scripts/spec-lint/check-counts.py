@@ -307,7 +307,6 @@ def main() -> int:
 
     # ── policy count ─────────────────────────────────────────────────────
     policies_path = FACTORY / "policies.yaml"
-    actual_pol_count = count_policies()
     checks += 1
     # policies.yaml doesn't declare a count in frontmatter currently,
     # but we can validate the IDs are sequential

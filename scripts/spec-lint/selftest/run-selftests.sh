@@ -23,6 +23,17 @@ FAILURES=0
 TESTS_RUN=0
 INJECTED_FILES=()
 
+# ── Guard: verify spec tree is present ────────────────────────────────────
+if [ ! -d "$SPECS" ] || [ ! -d "$BC_DIR" ] || [ ! -d "$ADR_DIR" ]; then
+    echo "ERROR: Spec tree not found."
+    echo "  Expected: $SPECS (and subdirectories)"
+    echo "  The selftest suite requires the factory worktree to be mounted at .factory/"
+    echo "  Run 'git worktree list' to check if factory-artifacts branch is linked."
+    exit 1
+fi
+echo "Spec tree found at $SPECS — proceeding with selftests."
+echo ""
+
 cleanup() {
     local f
     for f in "${INJECTED_FILES[@]:-}"; do
@@ -39,6 +50,11 @@ run_test() {
     TESTS_RUN=$((TESTS_RUN + 1))
 
     cp "$fixture_src" "$fixture_dst"
+    if [ ! -f "$fixture_dst" ]; then
+        echo "  ERROR: fixture injection failed for $name — $fixture_src not found or cp failed"
+        FAILURES=$((FAILURES + 1))
+        return
+    fi
     INJECTED_FILES+=("$fixture_dst")
 
     echo "── selftest: $name ──"
@@ -64,6 +80,12 @@ run_test "check-id-resolution: out-of-range T-17 reference" \
     "check-id-resolution" \
     "$FIXTURE_DIR/bad-trap-ref.md" \
     "$BC_DIR/SELFTEST-bad-trap-ref.md"
+
+# ── 1c. check-id-resolution: unregistered R requirement reference ──────────
+run_test "check-id-resolution: unregistered R-99 requirement reference" \
+    "check-id-resolution" \
+    "$FIXTURE_DIR/bad-r-ref-unregistered.md" \
+    "$BC_DIR/SELFTEST-bad-r-ref.md"
 
 # ── 2. check-counts: prd.md EC count mismatch ─────────────────────────────
 # The prd.md §5b EC count claim is live in the real tree; we verify the
@@ -103,7 +125,7 @@ run_test "check-adr-consistency: exit 2 for broken link" \
 run_test "check-ec-injectivity: EC verdict collision" \
     "check-ec-injectivity" \
     "$FIXTURE_DIR/bad-ec-injectivity.md" \
-    "$BC_DIR/SELFTEST-bad-ec-injectivity.md"
+    "$BC_DIR/BC-SELFTEST-injectivity.md"
 
 # ── 7. check-holdout-boundary: concrete holdout scenario leaked ───────────
 run_test "check-holdout-boundary: leaked holdout EC-079 concrete scenario" \
@@ -118,6 +140,59 @@ run_test "check-index-integrity: unlisted BC file" \
     "check-index-integrity" \
     "$FIXTURE_DIR/bad-unlisted-bc.md" \
     "$SPECS/behavioral-contracts/ss-01/BC-2.01.999.md"
+
+# ── 9. check-title-sync: H1 title mismatch (isolated temp-tree) ───────────
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest: check-title-sync: BC-INDEX title vs H1 mismatch ──"
+TITLE_SYNC_TEMP=$(mktemp -d)
+TITLE_BC_DIR="$TITLE_SYNC_TEMP/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$TITLE_BC_DIR"
+# Create a minimal BC-INDEX.md with a title that does NOT match the BC file's H1
+cat > "$TITLE_SYNC_TEMP/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCINDEX'
+---
+total_bcs: 1
+subsystems: 1
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+| BC-2.01.001 | Correct Title In Index | P0 | [ss-01/BC-2.01.001.md](ss-01/BC-2.01.001.md) |
+BCINDEX
+# Create BC file with a WRONG H1 (different from BC-INDEX title)
+cat > "$TITLE_BC_DIR/BC-2.01.001.md" <<'BCFILE'
+---
+bc_id: BC-2.01.001
+title: "Selftest BC"
+lifecycle_status: active
+introduced: v0.0.0
+modified: []
+deprecated: null
+---
+
+# BC-2.01.001: Wrong Title That Differs From Index
+
+## Description
+
+This title intentionally mismatches BC-INDEX to trigger check-title-sync.
+BCFILE
+# Create a minimal prd.md with the BC row (needed for prd §2 check)
+mkdir -p "$TITLE_SYNC_TEMP/.factory/specs"
+cat > "$TITLE_SYNC_TEMP/.factory/specs/prd.md" <<'PRDFILE'
+---
+---
+## 2. Behavioral Contracts
+
+### 2.1 File Discovery
+
+| BC-2.01.001 | Correct Title In Index | P0 |
+PRDFILE
+# Run checker against temp repo
+if SPEC_LINT_REPO_OVERRIDE="$TITLE_SYNC_TEMP" python3 "$LINT_DIR/check-title-sync.py" > /dev/null 2>&1; then
+    echo "  FAIL (checker returned 0 — did NOT catch H1 vs BC-INDEX title mismatch)"
+    FAILURES=$((FAILURES + 1))
+else
+    echo "  PASS (checker correctly returned non-zero on H1 title mismatch)"
+fi
+rm -rf "$TITLE_SYNC_TEMP"
 
 # ── Summary ────────────────────────────────────────────────────────────────
 echo ""

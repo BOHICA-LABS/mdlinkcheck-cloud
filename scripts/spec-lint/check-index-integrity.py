@@ -266,6 +266,26 @@ def main() -> int:
             f"{arch_index_path}: ADR file '{adr_id}' exists but is NOT in ARCH-INDEX"
         )
 
+    # ── ARCH-INDEX <-> architecture shard files ──────────────────────────
+    arch_docs = get_arch_index_documents()
+    actual_arch = get_actual_arch_files()
+
+    checks += 1
+    phantom_arch = arch_docs - actual_arch
+    for doc in sorted(phantom_arch):
+        # Only report if it looks like a spec shard file (not common words)
+        if doc.endswith('.md') and len(doc) > 4:
+            violations.append(
+                f"{arch_index_path}: ARCH-INDEX Document Map lists '{doc}' — file not found in architecture/"
+            )
+
+    checks += 1
+    unlisted_arch = actual_arch - arch_docs
+    for doc in sorted(unlisted_arch):
+        violations.append(
+            f"{arch_index_path}: architecture file '{doc}' exists but is NOT in ARCH-INDEX Document Map"
+        )
+
     # ── L2-INDEX <-> domain spec shard files ─────────────────────────────
     l2_sections = get_l2_index_sections()
     ds_files = get_actual_domain_spec_files()
