@@ -1,10 +1,10 @@
 ---
 document_type: architecture-feasibility-report
 level: L4
-version: "1.1"
+version: "1.3"
 status: accepted
 producer: architect
-timestamp: 2026-08-05T20:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 phase: 1b
 outcome: APPROVE
 inputs:
@@ -13,9 +13,16 @@ inputs:
   - .factory/specs/behavioral-contracts/BC-INDEX.md
   - .factory/specs/architecture/module-decomposition.md
   - .factory/specs/architecture/purity-boundary-map.md
-input-hash: "ff03163"
+input-hash: "05c4a7d"
 prd_version: "1.0"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
+changelog:
+  - version: "1.3"
+    date: 2026-08-06
+    change: "D-043 decisions applied: (1) NFR-004 retirement confirmed — NFR Coherence note updated from 'under review for retirement' to 'retired as vacuous per D-043' (unicode-normalization pin retained on determinism grounds). (2) N-003 updated — NFR-002 re-targeted to p95 ≤ 10 seconds on macos-latest; removed HANDOFF placeholder; title updated to reflect decisions are final."
+  - version: "1.2"
+    date: 2026-08-06
+    change: "D-043 macOS-only platform directive: updated NFR Coherence section — NFR-004 (cross-platform portability) noted as under review for retirement (macOS-only makes it vacuous; unicode-normalization 0.1.24 pin is retained on DI-001/DI-002 determinism grounds, independent of NFR-004 status). Updated N-003 — NFR-002 (Linux CI) noted as D-043 HANDOFF for product-owner decision (retire vs. re-target)."
 ---
 
 # Architecture Feasibility Review: mdlinkcheck PRD v1.0
@@ -56,6 +63,14 @@ All 7 NFRs from nfr-catalog.md are either:
 
 No subsystem has conflicting NFR profiles (e.g., "real-time latency AND batch
 processing"). NFR coherence: PASS.
+
+**D-043 decision — NFR-004 retired:** NFR-004 (cross-platform portability) is
+retired as vacuous under the macOS-only platform directive (recorded per POL-1; not
+deleted). There are no other platforms to be portable to. The `unicode-normalization
+0.1.24` pin that NFR-004 previously anchored is retained on determinism grounds
+(DI-001, DI-002): the NFC normalization layer must produce byte-identical results for
+byte-identical repository content, independent of APFS NFD storage. The pin survives
+NFR-004 retirement unchanged.
 
 ### Integration Feasibility
 
@@ -284,16 +299,22 @@ in `Cargo.toml` when implementing SS-09.
 
 ---
 
-### N-003: NFR-001/002 Performance Targets Are Provisional — Human Confirmation Needed at Phase 1 Gate
+### N-003: NFR-001/002 Performance Targets — D-043 Decisions Final
 
-**NFRs:** NFR-001 (5s on M-series), NFR-002 (15s on 2-core CI runner)
+**NFRs:** NFR-001 (5s p95, Apple Silicon M-series), NFR-002 (10s p95, `macos-latest`, shared Apple Silicon M1)
 
-The NFR catalog marks both as "provisional — awaiting human confirmation."
-The architecture (rayon parallelism, two-crate workspace, `--release lto=thin`)
-is designed to satisfy both. However, the specific hardware baselines and
-measurement methodology must be confirmed by the product owner before Phase 3
-implementation stories are written. This is a planning gate item, not an
-architectural blocker.
+The architecture (rayon parallelism, two-crate workspace, `--release lto=thin`) is
+designed to satisfy both. D-043 decisions confirmed by PO:
+
+- **NFR-001:** p95 ≤ 5 seconds on Apple Silicon M-series — unchanged.
+- **NFR-002:** p95 ≤ 10 seconds on `macos-latest` (shared Apple Silicon M1) — re-targeted
+  per D-043. The original Linux CI baseline (15s on ubuntu-latest) is retired. NFR-002
+  is kept distinct from NFR-001 because `macos-latest` is shared CI infrastructure and
+  materially slower than a dedicated developer machine; one ceiling covering both would
+  be wrong for one of them.
+
+Both thresholds are Apple-Silicon-calibrated. VP-022 and all Phase 3 perf-gate CI jobs
+MUST run on `macos-latest` (see tooling-selection.md § Phase 3 CI Obligations).
 
 ---
 

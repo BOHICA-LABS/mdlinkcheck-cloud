@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: edge-cases
-version: "1.4"
+version: "1.5"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -14,6 +14,9 @@ inputs:
 input-hash: "20e96e1"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.5"
+    date: 2026-08-06
+    change: "D-043 (macOS-only platform directive): DEC-004 'on all platforms' narrowed to 'on macOS'; DEC-009 cross-platform framing removed — 'uniquely cross-platform' rationale replaced with macOS APFS determinism framing per D-043 canonical D-006 rationale; 'on **all** platforms — including macOS' replaced with 'on macOS'; 'fails in Linux CI (case-sensitive ext4)' removed."
   - version: "1.4"
     date: 2026-08-06
     change: "Mechanical spec remediation: DEC-006 — removed dangling retired-holdout-scenario citation (the ID was superseded by BV-013 and no longer resolves; BV-013 is now the sole authoritative source) and removed erroneous citation of a different, still-active holdout scenario that does not cover the code-span-in-BRIEF.md case (its inclusion was a mis-citation in the original DD-017 text, resolved per adversary P3-022). Source line now reads BV-013 only."
@@ -113,7 +116,9 @@ the scan set.
 references `[x](Café.md)` in NFC form.
 
 **Domain rule:** DI-002 — NFC-normalize both the destination and the real directory
-entry before comparison. Must resolve `clean` on all platforms.
+entry before comparison. Must resolve `clean` on macOS (where APFS stores filenames in NFD;
+NFC-normalizing both sides ensures verdicts depend on repository content rather than filesystem
+normalization behaviour).
 
 **Corpus fixture required.** Source: EC-037, BV-006.
 
@@ -175,20 +180,26 @@ is a guaranteed false positive (T10, AMB-064).
 **Scenario:** Link `[x](README.MD)` in a source file where the only on-disk entry is
 `README.md` (lowercase extension). On macOS APFS, `std::fs::exists("README.MD")`
 returns `true`; the OS silently accepts the case mismatch. Per DI-002, the tool must
-produce `broken(file-not-found)` on **all** platforms — including macOS — by performing
-explicit case-sensitive directory-entry enumeration rather than delegating to the OS
-path-existence syscall. (EC-036)
+produce `broken(file-not-found)` on macOS — by performing explicit case-sensitive
+directory-entry enumeration rather than delegating to the OS path-existence syscall.
+(EC-036)
 
-**Why difficult:** The only reliable way to detect the mismatch on a case-insensitive
-OS is to `read_dir` the parent directory and compare the link destination against the
-actual on-disk names, case-sensitively. No surveyed competitive tool performs this check
-(T12). The failure mode is uniquely cross-platform: the link silently passes on
-developer machines (case-insensitive OS) and fails in Linux CI (case-sensitive ext4).
+**Why difficult:** The only reliable way to detect the mismatch on macOS APFS (a
+case-insensitive filesystem) is to `read_dir` the parent directory and compare the
+link destination against the actual on-disk names, case-sensitively. No surveyed
+competitive tool performs this check (T12). On macOS APFS, `std::fs::exists("README.MD")`
+returns `true`, producing a silent false negative; explicit directory-entry enumeration
+is the only correct approach.
 
-**Domain rule:** DI-002 — the tool must perform explicit, case-sensitive,
-NFC-normalized directory-entry comparison on ALL platforms. A link whose destination
-filename does not exactly match an on-disk entry must produce a `broken` verdict with
-reason `file-not-found`, regardless of whether the host OS filesystem would accept the
-case variation.
+**Domain rule (D-043 canonical D-006 rationale):** Strict case-sensitive + NFC path
+comparison is retained on determinism grounds, independent of the platform matrix.
+The tool must produce byte-identical output for byte-identical repository content, and
+must not let macOS APFS case-folding or Unicode normalization behaviour influence link
+verdicts. macOS APFS is case-insensitive and stores filenames in NFD; adopting native
+filesystem semantics would make verdicts a function of the filesystem rather than of
+the repository content, which would break DI-001 determinism and NFR-003
+reproducibility. This holds on a macOS-only matrix and is not contingent on
+cross-platform parity. DI-002 — a link whose destination filename does not exactly
+match an on-disk entry must produce a `broken` verdict with reason `file-not-found`.
 
 **Corpus fixture required.** Source: D-006, BV-006, EC-036, T12.

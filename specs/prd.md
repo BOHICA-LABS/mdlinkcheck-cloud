@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.9"
+version: "1.10"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T22:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -35,8 +35,8 @@ external sites die. CI build systems need a deterministic, fast tool that fails 
 build when links break. The dominant failure mode of existing tools is **false positives
 that train engineers to ignore CI failures** — particularly from: (a) links inside code
 fences being extracted as real links, (b) HEAD-based external checks that 403/429 on
-every CI run, and (c) case-insensitive filesystem delegation producing passes on macOS
-that fail in Linux CI.
+every CI run, and (c) case-insensitive filesystem delegation on macOS APFS producing silent false negatives
+that the host filesystem would not catch without explicit directory-entry comparison.
 
 ### 1.2 Solution Vision
 
@@ -60,7 +60,7 @@ formally-hardenable surface; (3) a complete Phase 6 (Kani/fuzz/mutation) proof r
 | KD-001 | Correct anchor checking, on by default | Every competitor either lacks it, gates it behind a flag, or has open false-positive/negative bugs. Covered by BC-2.05.*, BC-2.06.*, BC-2.08.* |
 | KD-002 | Offline-by-default | No network traffic in default mode; external checks are opt-in. Eliminates 429/bot-block false positives entirely in the common case. Covered by BC-2.09.001, BC-2.10.* |
 | KD-003 | Source-level file:line reporting | Reports the `.md` source line, not generated HTML. Post-render tools (htmltest, Sphinx) cannot do this. Covered by BC-2.12.001, BC-2.13.001 |
-| KD-004 | Case-correct path resolution | Performs exact-case directory-entry comparison on ALL platforms. macOS/Linux divergence eliminated. No surveyed tool does this. Covered by BC-2.07.003 |
+| KD-004 | Case-correct path resolution | Performs exact-case directory-entry comparison — never delegates to macOS APFS case-folding. Determinism-grounded (D-043/D-006): verdicts depend on repository content, not filesystem behaviour. No surveyed tool does this. Covered by BC-2.07.003 |
 | KD-005 | Deterministic exit codes | 0/1/2 semantics documented and tested. No flakiness from indeterminate conditions. Covered by BC-2.14.* |
 
 ### 1.4 Target Users
@@ -320,13 +320,13 @@ The frozen brief (R6) states output "may be formatted as an array". This is supe
 | NFR ID | Category | Target | Validation |
 |--------|----------|--------|------------|
 | NFR-001 | Performance (Tier A) — **active** | p95 ≤ 5s for 500 .md files, offline, aarch64-apple-darwin dev laptop, release+LTO, warm cache, 10 runs (D-013) | `hyperfine` benchmark in `benches/` |
-| NFR-002 | Performance (Tier B) — **active** | p95 ≤ 15s same corpus on standard 2-core x86_64 Linux CI runner (D-013) | CI benchmark job |
+| NFR-002 | Performance (Tier B) — **active** | p95 ≤ 10s same corpus on macOS CI runner (`macos-latest`, Apple Silicon M1 shared; D-013, retargeted per D-043) | CI benchmark job |
 | NFR-003 | Determinism | Two runs over identical inputs produce byte-identical stdout | Property test |
-| NFR-004 | Portability | Test suite passes on macOS, Linux, Windows CI matrix | CI matrix |
-| NFR-005 | Memory | Peak RSS ≤ 512 MB for 500-file corpus | `/usr/bin/time -v` (Linux) or `\time -l` (macOS) |
+| NFR-004 | Portability — **retired (D-043)** | ~~Test suite passes on macOS, Linux, Windows CI matrix~~ — retired; macOS-only platform matrix. `unicode-normalization` crate pin remains per DI-001/DI-002 (see nfr-catalog.md). | ~~CI matrix~~ |
+| NFR-005 | Memory | Peak RSS ≤ 512 MB for 500-file corpus | `\time -l` (macOS) |
 | NFR-006 | Anchor algorithm fidelity | All DD-015 worked examples pass as unit tests | Unit test suite |
 | NFR-007 | Correctness — No Undefined Reason Codes | 100% — zero unrecognized reason strings in text or JSON output | Unit/integration tests |
-| NFR-008 | CI Regression Gate — **active** | p95 ≤ ~500ms for 100-file corpus on 2-core Linux CI runner; merge-blocking per-commit benchmark (D-013, VP-022) | `hyperfine` in `perf-gate` CI job |
+| NFR-008 | CI Regression Gate — **active** | p95 ≤ ~500ms for 100-file corpus on `macos-latest` CI runner; merge-blocking per-commit benchmark (D-013, VP-022, updated D-043) | `hyperfine` in `perf-gate` CI job |
 
 > See `prd-supplements/nfr-catalog.md` for full specification.
 
@@ -499,6 +499,7 @@ Nothing may fail with a reason outside this closed set.
 | v1.7 | 2026-08-05 | P3-005, P3-006, P3-032 partial (test-vectors.md hotfix) | See below |
 | v1.8 | 2026-08-05 | POL-16 (EC injectivity), unregistered EC-159..EC-183, vCurrent title sync, BC-INDEX statistics | Spec-lint remediation pass; see below |
 | v1.9 | 2026-08-06 | INC-MAP-002, INC-MAP-003, P3-027 resolution | Architecture Module fields resolved across 26 BC files per bc-module-map.md Phase 1b; joint-ownership BCs annotated; PRD version aligned |
+| v1.10 | 2026-08-06 | D-043 (macOS-only platform directive) | Platform matrix narrowed to macOS-only. NFR-002 retargeted (macOS CI runner, 10s p95). NFR-004 retired (vacuous on single-platform matrix). NFR-008 hardware tier updated to macos-latest. Problem statement §1.2 updated (removed Linux CI divergence framing). KD-004 §1.3 updated (determinism-grounded per D-043). NFR-005 measurement updated (`\time -l` macOS only). |
 
 ### v1.9 — Architecture Module Resolution (bc-module-map.md Phase 1b)
 
@@ -530,6 +531,22 @@ Architecture Module note added to BC-2.01.003 to guide story decomposition.
 
 **Version drift repaired:** BC-2.01.003 had frontmatter `version: "1.0"` while its modification
 log had reached `v1.5`. Frontmatter corrected to `"1.6"` to match the new top-of-log entry.
+
+### v1.10 — D-043 macOS-Only Platform Directive
+
+**Platform matrix narrowed (D-043):** The product now targets macOS (`macos-latest`) only. Linux and Windows removed from all NFRs, test vectors, and platform-scoped prose.
+
+**NFR-002 retargeted:** Changed from "Linux CI Runner" (15s p95, ubuntu-latest) to "macOS CI Runner" (10s p95, macos-latest, Apple Silicon M1 shared). Rationale: a single 5s ceiling covering both a local M2/M3 developer machine (NFR-001) and a shared M1 CI runner (NFR-002) is likely wrong for one of them; the 10s CI ceiling acknowledges shared-infrastructure variability honestly.
+
+**NFR-004 retired:** The portability NFR asserting cross-platform test passage is vacuous on a single-platform matrix. Retired with status note. The `unicode-normalization` crate pin remains in force on DI-001/DI-002 determinism grounds — see nfr-catalog.md NFR-004 note and HANDOFF to architect.
+
+**NFR-008 hardware tier updated:** CI regression gate now runs on `macos-latest` instead of `ubuntu-latest`. 500ms p95 threshold preserved.
+
+**§1.2 Problem statement updated:** Removed cross-platform framing ("passes on macOS that fail in Linux CI"); replaced with macOS APFS case-insensitive filesystem framing.
+
+**§1.3 KD-004 updated:** "macOS/Linux divergence eliminated" replaced with determinism-grounded framing (D-043/D-006 canonical rationale).
+
+**NFR-005 measurement:** Removed `/usr/bin/time -v` (Linux) reference; macOS `\time -l` only.
 
 ### v1.8 — Spec-Lint Violation Remediation Pass
 

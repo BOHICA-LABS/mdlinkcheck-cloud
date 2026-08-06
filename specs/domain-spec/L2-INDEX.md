@@ -1,7 +1,7 @@
 ---
 document_type: domain-spec-index
 level: L2
-version: "1.8"
+version: "1.9"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -13,6 +13,9 @@ inputs:
 input-hash: "20e96e1"
 traces_to: .factory/specs/product-brief.md
 changelog:
+  - version: "1.9"
+    date: 2026-08-06
+    change: "D-043 (macOS-only platform directive): ASM-004 updated (macOS-only, Linux/Windows removed); shard versions bumped: assumptions.md 1.1→1.2, decisions.md 1.7→1.8, failure-modes.md 1.5→1.6, edge-cases.md 1.4→1.5. DD-002 canonical D-006 rationale updated to determinism grounds. DD-020 NFR-002 reference updated to macOS CI runner. FM-006/FM-007 platform framing updated. DEC-004/DEC-009 platform prose narrowed to macOS."
   - version: "1.8"
     date: 2026-08-06
     change: "P3-010 governance gap closure (DD-027): ID Registry DI-NNN count 11→13 (added DI-012, DI-013), DD-NNN count 26→27 (added DD-027). Document Map invariants.md row updated to DI-001–DI-013. Domain Decisions row updated to DD-001–DD-027. Brief→Domain Coverage R2b row updated to include DI-012, DI-013. Human Decisions table extended with DD-027. Shard versions bumped: invariants.md 1.4→1.5, failure-modes.md 1.3→1.4, capabilities.md 1.4→1.5, decisions.md 1.6→1.7."

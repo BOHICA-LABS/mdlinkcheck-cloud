@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.2"
+version: "1.3"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -21,6 +21,9 @@ proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
 modified:
+  - version: "1.3"
+    date: 2026-08-06
+    change: "D-043 macOS-only platform directive: updated #[cfg(unix)] comment — removed Windows reference (macOS is the only target; macOS is Unix). #[cfg(unix)] attribute is still correct and remains unchanged."
   - version: "1.2"
     date: 2026-08-06
     change: "(P4-014) test file path corrected: tests/integration/scan_termination.rs → tests/integration_scan_termination.rs (flat Cargo-discoverable layout per tooling-selection.md §Test Target Layout)."
@@ -58,7 +61,7 @@ removal_reason: null
 
 ```rust
 // tests/integration_scan_termination.rs  (flat layout per tooling-selection.md §Test Target Layout)
-#[cfg(unix)] // symlinks on Unix; Windows requires elevated privileges
+#[cfg(unix)] // macOS is Unix; symlink creation works without elevated privileges on macOS
 #[test]
 fn vp017_symlink_cycle_terminates() {
     use std::os::unix::fs::symlink;

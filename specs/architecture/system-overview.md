@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: system-overview
-version: "1.6"
+version: "1.8"
 status: draft
 producer: architect
 timestamp: 2026-08-05T21:00:00Z
@@ -11,9 +11,15 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/specs/prd.md
   - .factory/specs/prd-supplements/nfr-catalog.md
-input-hash: "d4b8b1f"
+input-hash: "a328802"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.8"
+    date: 2026-08-06
+    change: "D-043 decisions applied: NFR-002 re-targeted to p95 ≤ 10 seconds on macos-latest (shared Apple Silicon M1) per PO decision; removed 'under D-043 review' placeholder from Performance Architecture section."
+  - version: "1.7"
+    date: 2026-08-06
+    change: "D-043 macOS-only platform directive: (1) 'Cross-Platform Path Handling' section renamed to 'Path Handling (macOS APFS)' — removed Windows path-separator note; DI-002 rationale restated on determinism grounds per ADR-006 v1.4. (2) Performance Architecture: NFR-002 (Linux CI 15s) marked as under D-043 review — product-owner decides retire vs. re-target. (3) Pass 1.5 visited-set comment: removed 'and Windows' from fs::canonicalize note (macOS-only)."
   - version: "1.6"
     date: 2026-08-06
     change: "P4 remediation: (P4-003) 'rayon parallelizes both passes' → 'Pass 1 and Pass 2 (Pass 1.5 is sequential)'. (P4-004) Sort line updated to 4-field key (NFC-path, line, col, link_target); P4-019 sort ownership corrected from (app) to (reporter). (P4-035) 'advisory defaults' → 'hard caps' per ADR-004/ADR-005."
@@ -135,7 +141,7 @@ Pass 1.5 (shell only, sequential — app):
   Termination / cycle safety (DI-009): each directory is visited at most once.
     Deduplication key: NFC-normalized, lexically-normalized (`.`/`..` collapsed),
     NON-canonicalized (no `fs::canonicalize` — canonicalize case-folds on macOS
-    and Windows, violating D-006 case-sensitivity), scan-root-relative `PathBuf`.
+    APFS, violating D-006 case-sensitivity and DI-001 determinism), scan-root-relative `PathBuf`.
     The set of visited keys is checked before each `fs::read_dir` call; the second
     encounter of any key is skipped. No recursion into sub-directories occurs —
     only the immediate parent of each link destination is read (DI-006 one-level bound).
@@ -177,9 +183,10 @@ Both limits are hard caps, not configurable in v1.0 (BC-2.10.008, ADR-004).
 
 Performance is specified at two tiers (D-013):
 
-**Tier 1 — Acceptance ceilings (NFR-001/002, confirmed from frozen brief R8):**
+**Tier 1 — Acceptance ceilings (confirmed from frozen brief R8):**
 - NFR-001: p95 wall-clock ≤ 5 seconds on Apple Silicon M-series (500 .md files, offline)
-- NFR-002: p95 wall-clock ≤ 15 seconds on standard 2-core x86_64 Linux CI runner (same corpus)
+- NFR-002: p95 wall-clock ≤ 10 seconds on macOS CI runner (`macos-latest`, shared Apple
+  Silicon M1) — re-targeted per D-043
 
 These ceilings are pass/fail gates at release. Any build that exceeds them on the
 reference corpus is rejected.
@@ -247,13 +254,14 @@ DD-007 and must be updated by the product owner.)
 | Non-existent or unreadable PATH argument | Startup or first access | Record into `Vec<IoError>`; scan continues with valid paths | DD-007 no-fail-fast |
 | Runtime I/O error (unreadable file, non-UTF-8) | During scan | Collect into `Vec<IoError>`; scan continues | DD-007 no-fail-fast |
 
-## Cross-Platform Path Handling
+## Path Handling (macOS APFS)
 
-DI-002 (case-sensitive NFC on ALL platforms) is enforced in `path_resolver` by reading
-actual directory entries and doing byte-for-byte comparison — never delegating to
-`Path::exists()` alone. On Windows, link destinations use `/` per URL semantics;
-`\` in destinations is NOT treated as a path separator (NFR-004 note, BC-2.07).
-See purity-boundary-map.md and ADR-006 for the detailed strategy.
+DI-002 (case-sensitive NFC path comparison) is enforced in `path_resolver` by reading
+actual directory entries and doing NFC-normalized byte-for-byte comparison — never
+delegating to `Path::exists()` alone (which would adopt APFS case-insensitive semantics).
+The rationale is determinism, not cross-platform portability: verdicts must be a function
+of repository content, not of what the host filesystem resolves at runtime (ADR-006 v1.4,
+D-043). See purity-boundary-map.md and ADR-006 for the detailed strategy.
 
 ## [Section Content]
 

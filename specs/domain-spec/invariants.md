@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: invariants
-version: "1.7"
+version: "1.8"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -14,6 +14,9 @@ inputs:
 input-hash: "20e96e1"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.8"
+    date: 2026-08-06
+    change: "D-043 macOS-only platform directive: DI-002 platform list narrowed from 'macOS, Linux, Windows' to 'macOS' (the only target platform). Rationale restated on determinism grounds per ADR-006 v1.4 canonical wording — the invariant is stronger under macOS-only because APFS NFD storage is the only filesystem in scope. DI-009: removed Windows reference from fs::canonicalize note."
   - version: "1.7"
     date: 2026-08-06
     change: "P4 remediation: (1) DI-001 sort key updated to four-field (NFC path, line, col, link_target) — ADR-005 v1.2 added link_target as 4th tie-break to make key total; DI-001 is the L2 authority and must lead. (2) DI-012 rule 1 NFC/NFD normalization adjudicated — no normalization before slugging; NFD combining diacritics stripped as non-word chars; macOS NFD scenario documented. (3) DI-012 and DI-013 'Why invariant' sections updated with reciprocal BC citations (BC-2.06.001 and BC-2.06.002 respectively)."
@@ -76,14 +79,20 @@ output is the observable contract. Resolves BV-015. Decision DD-012.
 ## DI-002: Case-Sensitive NFC-Normalized Path Comparison
 
 Link target resolution always compares the decoded, NFC-normalized destination against
-the actual NFC-normalized directory entries — case-sensitively — on ALL platforms
-(macOS, Linux, Windows). A link whose filename differs from the on-disk entry only in
-case must produce a `broken` verdict on all platforms, regardless of host OS filesystem
-behavior. No case-folding is applied at any stage of path comparison.
+the actual NFC-normalized directory entries — case-sensitively — on macOS (the only
+target platform). A link whose filename differs from the on-disk entry only in
+case must produce a `broken` verdict, regardless of what macOS APFS resolves at
+runtime (APFS is case-insensitive). No case-folding is applied at any stage of path
+comparison.
 
-**Why invariant:** Without this, the same link passes on a dev Mac and fails in CI,
-violating the brief's "deterministic" and "no false positives" promises. D-006. BV-006.
-Concrete corpus scenarios: DEC-004 (NFC/NFD mismatch), DEC-009 (case-mismatched filename).
+**Why invariant (D-043 determinism rationale):** Verdicts must be a function of
+repository content, not of the host filesystem's case-folding or Unicode normalization
+behaviour. macOS APFS is case-insensitive and stores filenames in NFD; adopting native
+filesystem semantics would make verdicts a function of the filesystem rather than of
+the repository content, which would break DI-001 determinism and NFR-003
+reproducibility. This holds on a macOS-only matrix and is not contingent on
+cross-platform parity. D-006. BV-006. ADR-006. Concrete corpus scenarios: DEC-004
+(NFC/NFD mismatch), DEC-009 (case-mismatched filename).
 
 ---
 
@@ -223,7 +232,7 @@ File traversal terminates for any directory tree, including trees with directory
 symlink cycles, overlapping path arguments, zero markdown files, or paths escaping
 the scan root. Pass 1.5's out-of-scan-set directory reads also terminate: each directory is visited at
 most once (deduplicated by NFC-normalized, lexically-normalized key — NOT
-`fs::canonicalize`, which case-normalizes on macOS/APFS and would conflict with DI-002;
+`fs::canonicalize`, which case-normalizes on macOS APFS and would conflict with DI-002;
 the architect's key-form specification defines the exact form), and no recursion into
 sub-directories occurs — only the immediate parent directory of each link destination is
 read (bounded by the DI-006 one-level, non-transitive rule).

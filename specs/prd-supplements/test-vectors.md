@@ -2,10 +2,10 @@
 document_type: prd-supplement
 supplement_type: test-vectors
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -111,13 +111,13 @@ primary_consumers: [test-writer, holdout-evaluator]
 | TV-033 | EC-033 | `a.md` | `[x](a.md?raw=1)` | `a.md` exists | 0 | clean | Query stripped before resolution |
 | TV-034 | EC-034 | `a.md` | `[x](a.md/)` | `a.md` is a file (not dir) | 1 | broken (`file-not-found`) | Trailing slash signals a directory path. `a.md/` resolves to a directory path that does not exist (POSIX: ENOTDIR when `a.md` exists as a file but not as a directory). Verdict: broken, reason: file-not-found (no such directory path exists). (Verdict chosen: file-not-found because `a.md/` as a path does not point to any existing file or directory — ENOTDIR means the path resolution fails. `target-is-directory` would require a directory to exist there; it does not. Backed by BC-2.07.008.) |
 | TV-035 | EC-035 | `a.md` | `[x](./a.md)`, `[x](././a.md)`, `[x](dir/../a.md)` | `a.md` exists | 0 | clean ×3 | Path normalization |
-| TV-036 | EC-036 | `a.md` | `[x](README.MD)` | `README.md` exists; no `README.MD` on disk (case mismatch) | 1 | broken (`file-not-found`) | DEC-009/DI-002/T12 **flagship differentiator KD-004**: explicit case-sensitive `read_dir` entry comparison on ALL platforms. `std::fs::exists("README.MD")` returns `true` on macOS APFS but MUST NOT be used — tool must enumerate the parent directory and compare entries exactly. An `std::fs::exists()`-based implementation passes on macOS, silently produces false-negative on Linux CI. (D-020) |
+| TV-036 | EC-036 | `a.md` | `[x](README.MD)` | `README.md` exists; no `README.MD` on disk (case mismatch) | 1 | broken (`file-not-found`) | DEC-009/DI-002/T12 **flagship differentiator KD-004**: explicit case-sensitive `read_dir` entry comparison. `std::fs::exists("README.MD")` returns `true` on macOS APFS but MUST NOT be used — tool must enumerate the parent directory and compare entries exactly, so that verdicts depend on repository content rather than macOS APFS case-folding behaviour (D-043/D-006 canonical determinism rationale). An `std::fs::exists()`-based implementation silently accepts the case mismatch on macOS APFS, producing a false negative invisible on a macOS-only matrix. (D-020) |
 | TV-037 | EC-037 | `a.md` | `[x](Café.md)` (NFC) | `Café.md` on disk in NFD (macOS-created) | 0 | clean | NFC-normalize both sides |
 | TV-038 | EC-038 | `a.md` | `[x](link.md)` | `link.md` is a dangling symlink | 1 | broken | `broken-symlink` |
 | TV-039 | EC-039 | `a.md` | `[x](logo.png)` | `logo.png` exists | 0 | clean | Non-MD file existence-checked |
 | TV-040 | EC-040 | `a.md` | `![alt](missing.png)` | `missing.png` does NOT exist | 1 | broken | Image treated same as link |
-| TV-041 | EC-041 | `a.md` | `[x](/dev/null)` | `/dev/null` exists on Linux/macOS | 0 | clean | Exists → pass |
-| TV-042 | EC-042 | `a.md` | `[x](C:\docs\a.md)` | Linux FS, no such path | 1 | broken | `\` not a path separator; path not found |
+| TV-041 | EC-041 | `a.md` | `[x](/dev/null)` | `/dev/null` exists on macOS | 0 | clean | Exists → pass |
+| TV-042 | EC-042 | `a.md` | `[x](C:\docs\a.md)` | macOS FS, no such path | 1 | broken | `\` not a path separator on macOS; path not found |
 
 ---
 
@@ -304,7 +304,7 @@ Each trap from market-intelligence §4.3 has at least one test vector above.
 | T10: Fragments on dirs/non-MD | TV-072 (non-MD), TV-029 (dir) | covered |
 | T11: Empty fragment | TV-068, TV-069 | covered |
 | T12: Case-sensitive filename | TV-036 | covered — DI-002/D-006/KD-004: explicit case-sensitive `read_dir` comparison; macOS APFS false-pass eliminated |
-| T13: Windows path separators | TV-042 (partial) | partially covered |
+| T13: Windows path separators | TV-042 (partial) | **retired (D-043, platform-obsolete)** — Windows is out of scope per macOS-only platform directive. TV-042 is retained and active: on macOS, `\` is also not a path separator, so the broken verdict is correct. T13 as a cross-platform portability trap is obsolete; the macOS-scoped residual is covered by TV-042. |
 | T14: Heading with link syntax | TV-058 | covered |
 | T15: Forward heading reference | TV-047 (implicit) + DEC-002 corpus | covered |
 | T16: Path above scan root | TV-076 (file absent) | not-covered — TV-076 is broken because the target file does not exist (relative path to a nonexistent file outside git root), not because of scan-root boundary enforcement. TV-024 establishes there is no scan-root boundary for relative links. A root-relative path (starting with `/`) with `..` traversal above git root on an existing file (per BC-2.07.002) has no dedicated vector; boundary enforcement for root-relative paths is untested. |
@@ -419,7 +419,7 @@ replacing a previously colliding ID in the referencing BC.
 | TV-184 | EC-184 | Directory argument contains no .md files | BC-2.01.008, BC-2.14.001 | (none) | 0 | clean (no findings) | Formerly EC-009 in these BCs; EC-009 owned by TV-009 (symlink outside root) |
 | TV-185 | EC-185 | `mdlinkcheck good_dir/ nonexistent_dir/` — good_dir has 1 broken link; nonexistent_dir absent | BC-2.01.009 | (none) | 2 | exit 2 (I/O error); broken finding from good_dir | Formerly EC-014; EC-014 owned by TV-014 (ISO-8859-1 file); distinguishing vector for DD-007 no-fail-fast |
 | TV-186 | EC-186 | `[x](readme.md)` but file is `README.md` (case-sensitive filesystem) | BC-2.07.003 | (none) | 1 | broken (file-not-found) | Formerly EC-029; EC-029 owned by TV-029 (directory link `docs/`) |
-| TV-187 | EC-187 | NFC vs NFD normalization in filename (macOS NFD, Linux NFC) | BC-2.07.003 | (none) | 1 | broken (file-not-found) on mismatched form | Formerly EC-030; EC-030 owned by TV-030 (dir link `docs` no slash); ADR-008: no normalization applied |
+| TV-187 | EC-187 | NFC vs NFD normalization in filename (macOS APFS stores filenames in NFD) | BC-2.07.003 | (none) | 1 | broken (file-not-found) on mismatched form | Formerly EC-030; EC-030 owned by TV-030 (dir link `docs` no slash); ADR-008: no normalization applied |
 | TV-188 | EC-188 | Unicode filename with mixed case (e.g., `README.Md` target vs `readme.md` on disk) | BC-2.07.003 | (none) | 1 | broken (file-not-found) | Formerly EC-031; EC-031 owned by TV-031 (empty link `[x]()`) |
 | TV-189 | EC-189 | `[x](path%23with-hash.md)` — percent-encoded `#` in path segment | BC-2.07.004 | (none) | 1 | broken (file-not-found) | Formerly EC-034; EC-034 owned by TV-034 (trailing slash `a.md/`); `%23` decoded → path contains literal `#` |
 | TV-190 | EC-190 | `## 🦀Rust` then `## 🎯Rust` in same file | BC-2.06.001 | (none) | n/a | slugs: `rust`, `rust-1` | Formerly EC-060 in BC-2.06.001; EC-060 owned by TV-060 (7-hash non-heading); emoji-collision; 0-based counter keyed on "rust" per DI-012 |
@@ -437,3 +437,12 @@ replacing a previously colliding ID in the referencing BC.
 | TV-202 | EC-202 | `[x][ref]` on line 3 and line 7; `[ref]: missing.md` at EOF | BC-2.03.002 | (none) | 1 | broken ×2; findings at line 3 and line 7 | P4-005 use-site position; definition-site attribution forbidden per BC-2.03.002 Invariant 4 |
 | TV-203 | EC-203 | Redirect chain of 11 hops | BC-2.10.007 | `--online` | 1 | broken (too-many-redirects) | Formerly EC-087e in BC-2.10.007; EC-087e now owned by BC-2.10.004 (P4-015 malformed Retry-After) |
 | TV-204 | EC-204 | HTTP → HTTPS upgrade redirect (single hop) | BC-2.10.007 | `--online` | 0 | clean (redirect followed) | Formerly EC-087f in BC-2.10.007; EC-087f now owned by BC-2.10.004 (P4-015 clamped Retry-After) |
+
+---
+
+## Changelog
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.9 | 2026-08-06 | D-043 (macOS-only platform directive): T13 retired as platform-obsolete (kept with note; TV-042 macOS-scoped residual retained); TV-036 description updated (removed Linux CI cross-platform framing; restated per D-043 determinism rationale); TV-041 fixture description updated ("Linux/macOS" → "macOS"); TV-042 fixture description updated ("Linux FS" → "macOS FS"); TV-187 description updated (removed "Linux NFC" reference; macOS APFS NFD context only) |
+| 1.8 | 2026-08-05 | POL-16 EC injectivity remediation; EC-159..EC-204 registered in §10; holdout WARNING updated; CRLF column offset note added; §10 collision-remapping registry |

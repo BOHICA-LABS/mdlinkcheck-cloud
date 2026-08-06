@@ -287,3 +287,70 @@ PRD v1.9 | 66 BCs | 26 VPs (VP-026 added for slug differential fidelity) | 13 DI
 **Dim-7 Attestation:** Agents dispatched in this burst: state-manager (this burst). Spec content produced by prior architect + product-owner bursts committed without dispatch.
 
 **Closes:** BI-006 (PR #2 merged 2290cb0), BI-008 (VP harness paths flattened), BI-009 (ADR-008 + BC-2.06.001 amended), BI-011 (VP-026 oracle assertions added), BI-013 (EC-184..EC-204 + checker hardened).
+
+---
+
+## Archived STATE.md Steps (overflow — evicted from Current Phase Steps 2026-08-06, burst 8)
+
+| Step | Agent | Status | Output |
+|------|-------|--------|--------|
+| merge autonomy D-031 (level 4) | state-manager | COMPLETE | .factory/merge-config.yaml created; autonomy_level 4; D-031/D-032 recorded |
+
+---
+
+## Burst: burst 8 — D-043 macOS-only Platform Narrowing + Session Wrap D-045 (2026-08-06)
+
+**Parent-commit:** `964e72f3bd60ad6a6a7be7dd641a9d9dc9cd269d` (feat(specs): pass-4 remediation — ADR-008, VP-025 rewrite, 13 EC collisions resolved (D-038..D-042))
+
+**Adversary verdict:** No new adversary pass in this burst. This is a spec-content burst (D-043 macOS-only platform narrowing applied by architect ×2 + product-owner bursts) plus state-manager session wrap (D-044/D-045 consequences recorded). Trajectory unchanged: →0→32→34→39→37. pass count: 0 of 3.
+
+**Files touched (Dim-1): 27 unique files**
+
+- `.factory/STATE.md` — D-043..D-045 appended to Decisions Log; BI-016 updated (spurious CI failures explained, rebase advisable); BI-017/BI-018 added; Current Phase Steps evicted oldest + added D-043 row; Session Resume Checkpoint → D-045; spec snapshot updated (D-001..D-045 exhaustive; open BIs updated); trajectory-tail added to Last Updated cell; timestamp advanced; size budget updated
+- `.factory/SESSION-HANDOFF.md` — D-030 marked SUPERSEDED; §RESUME SNAPSHOT D-045 appended; Latest pointer updated
+- `.factory/cycles/phase-1d/lessons.md` — lessons 14/15 appended (parallel-burst decision-dependency gap; canonical-text-up-front observation)
+- `.factory/cycles/phase-1d/burst-log.md` — evicted step archived; this entry
+- `.factory/specs/architecture/decisions/ADR-006-strict-path-model.md` — rationale restated on determinism grounds (D-043); platform-divergence argument removed as primary justification; ADR status confirmed `accepted`
+- `.factory/specs/architecture/feasibility-review.md` — NFR-004 retired; macOS-only matrix noted
+- `.factory/specs/architecture/system-overview.md` — CI matrix updated to macOS-only for test/build; platform notes updated
+- `.factory/specs/architecture/tooling-selection.md` — NFR-002 re-targeted 10s p95 macos-latest; NFR-004 RETIRED; `unicode-normalization` pinned 0.1.24 noted as load-bearing; Phase 3 CI obligations section added (BI-017)
+- `.factory/specs/architecture/verification-architecture.md` — VP-008/VP-009 noted as sole gatekeepers for case-sensitivity/NFC post-macOS-only (D-045); BC-2.07.003 formal hardening priority raised
+- `.factory/specs/architecture/verification-coverage-matrix.md` — NFR-004 retired row; macos-latest coverage noted
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.003.md` — formal hardening priority raised (D-045)
+- `.factory/specs/domain-spec/L2-INDEX.md` — NFR-004 retired noted
+- `.factory/specs/domain-spec/assumptions.md` — platform assumptions updated (macOS APFS NFD + case-insensitive is the ONLY test filesystem; D-043)
+- `.factory/specs/domain-spec/decisions.md` — D-043/D-044/D-045 recorded
+- `.factory/specs/domain-spec/edge-cases.md` — T13 (Windows path separators) retired as platform-obsolete (D-043)
+- `.factory/specs/domain-spec/failure-modes.md` — FM notes updated for macOS-only matrix
+- `.factory/specs/prd-supplements/nfr-catalog.md` — NFR-002 re-targeted to 10s p95 macos-latest; NFR-004 RETIRED; `unicode-normalization` pin noted
+- `.factory/specs/prd-supplements/test-vectors.md` — platform notes updated; T13 retired
+- `.factory/specs/prd.md` — NFR-002 updated; NFR-004 retired; branch-protection context count 8→4 noted
+- `.factory/specs/verification-properties/VP-INDEX.md` — VP-008/VP-009 load-bearing note added
+- `.factory/specs/verification-properties/vp-008-path-nfc-comparison.md` — determinism rationale updated (D-043/D-045); macOS APFS NFD note
+- `.factory/specs/verification-properties/vp-009-nfc-idempotent.md` — same determinism rationale update
+- `.factory/specs/verification-properties/vp-017-scan-terminates.md` — platform note updated
+- `.factory/specs/verification-properties/vp-022-regression-gate.md` — Phase 3 CI obligation recorded: MUST run on macos-latest (BI-017); NFR-002 threshold updated
+- `.factory/logs/dispatcher-internal-2026-08-06.jsonl` — dispatcher log
+- `.factory/logs/events-2026-08-06.jsonl` — events log
+- `.factory/sidecar-learning.md` — session observations updated
+
+**Codifications:**
+- D-043: Platform matrix narrowed to macOS latest ONLY; branch-protection 8→4 contexts; NFR-002 re-targeted 10s p95; NFR-004 RETIRED; T13 RETIRED; D-006/ADR-006/DI-002 REMAIN IN FORCE (rationale restated on determinism grounds); `unicode-normalization` pinned 0.1.24 load-bearing
+- D-044: Platform-independent CI jobs (Format check, Clippy, Spec lint, hardening.yml ×6) REMAIN on ubuntu-latest; only genuinely macOS-dependent jobs (Test, Build release) moved
+- D-045: Dropping Linux/Windows removes incidental NFC/case-sensitivity safety net; VP-008/VP-009 solely load-bearing; BC-2.07.003 formal hardening priority RAISED
+- BI-017 opened: Phase 3 CI perf-gate/benchmark jobs MUST run on macos-latest
+- BI-018 opened: PR #4 (chore/macos-only-ci → develop) OPEN awaiting pr-manager review
+- BI-016 updated: spurious CI failures explained (GitHub Actions infrastructure outage); rebase advisable
+
+**Artifact state at burst close:**
+PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-045 recorded (exhaustive). spec-lint 7/8 PASS (only 25 known `[filled by story-writer]` placeholders — legitimate until Phase 2). PR #3 + PR #4 OPEN and unreviewed.
+
+**Dim-2 Attestation:** `just spec-lint` = 7 of 8 checks PASS. Only failure: `check-placeholders` at exactly 25 occurrences — legitimate until Phase 2 story decomposition. Verified unchanged from burst 7.
+
+**Dim-5 Attestation:** STATE.md — 194 lines, timestamp 2026-08-07T00:30:00Z, status: draft, producer: state-manager. SESSION-HANDOFF.md — D-045 appended; D-030 marked SUPERSEDED. lessons.md — 15 lessons. burst-log.md — 8 bursts.
+
+**Dim-6 Attestation:** IN_PROGRESS. Convergence counter 0 of 3 required clean passes. Trajectory →0→32→34→39→37. Not converged. Pass 5 pending WS-A (PR #3 + PR #4 review/merge) + WS-B (BI-012 generators) per D-036/D-040.
+
+**Dim-7 Attestation:** Agents dispatched in this burst: architect ×2 (D-043 spec updates, two parallel bursts), product-owner (D-043 NFR decisions + spec updates), state-manager (this burst). Total: 4 agents.
+
+**Closes:** nothing. **Opens:** BI-017 (Phase 3 CI perf-gate must be macos-latest), BI-018 (PR #4 open). **Updates:** BI-016 (spurious CI failures explained). D-043..D-045 recorded.

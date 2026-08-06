@@ -1,7 +1,7 @@
 ---
 document_type: vp-index
 level: L4
-version: "1.5"
+version: "1.6"
 status: draft
 producer: architect
 timestamp: 2026-08-06T00:00:00Z
@@ -17,6 +17,9 @@ p1_count: 11
 test_sufficient_count: 8
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 changelog:
+  - version: "1.6"
+    date: 2026-08-06
+    change: "D-043 / C4-008: VP-022 DI Covered column updated D-013/NFR-001 → D-013/NFR-008 (VP-022 validates the ~500ms per-commit CI regression gate NFR-008, not the 5s acceptance ceiling NFR-001). No VP count changes; arithmetic invariant unchanged."
   - version: "1.5"
     date: 2026-08-06
     change: "BI-005 spec-level closure: added VP-026 (slug differential fidelity, proptest P1, BC-2.06.001/BC-2.06.002, DI-012/DI-013/FM-002). Updated total_vps 25→26, proptest_count 8→9, p1_count 10→11. DI-012 coverage upgraded from Partial to Yes (proptest oracle); DI-013 coverage upgraded from Partial to Yes (kani+proptest). BC-to-VP table updated for BC-2.06.001/BC-2.06.002. Slug module proptest count 0→1, total 5→6. FM-002 now covered-by-VP-026 (was unprovable: VP-003 injectivity + VP-018 without duplicate-heading vectors could not detect the 0-based/1-based counter bug). Arithmetic invariant: 7+9+2+7+1=26; 7+11+8=26."
@@ -72,7 +75,7 @@ Phase check: p0 (7) + p1 (11) + test_sufficient (8) = 26. Check before editing.
 | VP-019 | vp-019-one-verdict-per-link.md | link_extractor | proptest | P1 | DI-005 | draft |
 | VP-020 | vp-020-html-anchor-narrow-scope.md | anchor_table | integration | test-sufficient | DI-007 | draft |
 | VP-021 | vp-021-no-undefined-reason-codes.md | reporter | integration | test-sufficient | — (NFR-007) | draft |
-| VP-022 | vp-022-regression-gate.md | app | integration | test-sufficient | — (D-013/NFR-001) | draft |
+| VP-022 | vp-022-regression-gate.md | app | integration | test-sufficient | — (D-013/NFR-008) | draft |
 | VP-023 | vp-023-url-classifier-totality.md | url_classifier | proptest | P1 | — (BC-2.07.007 empty-dest) | draft |
 | VP-024 | vp-024-path-resolver-trailing-slash.md | path_resolver | proptest | P1 | — (BC-2.07.008 trailing-slash) | draft |
 | VP-025 | vp-025-anchor-resolver-totality.md | anchor_resolver | proptest | P1 | — (BC-2.08.001/002/004 totality+correctness) | draft |

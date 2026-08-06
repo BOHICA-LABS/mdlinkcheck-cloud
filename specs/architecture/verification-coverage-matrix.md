@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: verification-coverage-matrix
-version: "1.7"
+version: "1.8"
 status: draft
 producer: architect
 timestamp: 2026-08-06T00:00:00Z
@@ -10,9 +10,12 @@ phase: 1b
 inputs:
   - .factory/specs/prd.md
   - .factory/specs/architecture/ARCH-INDEX.md
-input-hash: "31deb21"
+input-hash: "9e802db"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.8"
+    date: 2026-08-06
+    change: "D-043 / C4-008: VP-022 DI Discharged column updated D-013/NFR-001 → D-013/NFR-008 (VP-022 validates the ~500ms per-commit regression gate NFR-008, not the 5s acceptance ceiling NFR-001)."
   - version: "1.7"
     date: 2026-08-06
     change: "BI-005 spec-level closure: added VP-026 row (slug/proptest/P1/Phase-3, DI-012+DI-013+FM-002). Updated header Total VPs 25→26. slug module proptest 0→1, total 5→6. Totals row proptest 8→9, total 25→26. DI Coverage Summary: DI-012 and DI-013 upgraded from partial to covered."
@@ -68,7 +71,7 @@ Source of truth: VP-INDEX.md. Total VPs: **26**.
 | VP-019 | link_extractor | proptest | 3 | P1 | DI-005 |
 | VP-020 | anchor_table | integration | 3 | test-sufficient | DI-007 |
 | VP-021 | reporter | integration | 3 | test-sufficient | NFR-007 |
-| VP-022 | app | integration | 3 | test-sufficient | D-013/NFR-001 |
+| VP-022 | app | integration | 3 | test-sufficient | D-013/NFR-008 |
 | VP-023 | url_classifier | proptest | 3 | P1 | — (BC-2.07.007 empty-dest) |
 | VP-024 | path_resolver | proptest | 3 | P1 | — (BC-2.07.008 trailing-slash) |
 | VP-025 | anchor_resolver | proptest | 3 | P1 | — (BC-2.08.001/002/004 totality + correctness) |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
   - "v1.2: (EC-collision) EC-029→EC-186 (EC-029 canonical owner is BC-2.07.005); EC-030→EC-187 (NFC/NFD normalization case); EC-031→EC-188 (Unicode mixed-case case)."
+  - "v1.3: (D-043) macOS-only platform directive: Description restated with canonical D-006 determinism rationale; Invariant 3 replaced with D-043 canonical wording; Postcondition 4 scoped to macOS; VP-008 proof method updated to macOS-only."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -34,9 +35,14 @@ removal_reason: null
 
 ## Description
 After resolving a path, the resolved destination is compared against actual filesystem directory
-entries using case-sensitive, NFC-normalized exact matching — on ALL platforms, including macOS
-(which has a case-insensitive HFS+ default filesystem). This is DI-002: the tool never delegates
-case-sensitivity to the OS filesystem layer.
+entries using case-sensitive, NFC-normalized exact matching. Strict case-sensitive + NFC path
+comparison is retained on determinism grounds, independent of the platform matrix. The tool must
+produce byte-identical output for byte-identical repository content, and must not let macOS APFS
+case-folding or Unicode normalization behaviour influence link verdicts. macOS APFS is
+case-insensitive and stores filenames in NFD; adopting native filesystem semantics would make
+verdicts a function of the filesystem rather than of the repository content, which would break
+DI-001 determinism and NFR-003 reproducibility. This is DI-002 / D-006, retained on determinism
+grounds per D-043 and not contingent on cross-platform parity.
 
 ## Preconditions
 1. A path has been resolved (BC-2.07.001 or BC-2.07.002).
@@ -47,12 +53,13 @@ case-sensitivity to the OS filesystem layer.
 2. Comparison is byte-for-byte exact after NFC normalization (case-sensitive).
 3. `README.md` → `readme.md` fails (different case, broken: file-not-found) even on macOS.
 4. `café.md` (NFC U+00E9) linking to `cafe\u{301}.md` (NFD U+0065+U+0301): both sides normalize to NFC → the
-   comparison succeeds → verdict `clean`. NFC normalization eliminates this false positive on all platforms.
+   comparison succeeds → verdict `clean`. NFC normalization eliminates this false positive on macOS (where APFS
+   stores filenames in NFD), ensuring verdicts depend on repository content rather than filesystem normalization.
 
 ## Invariants
 1. The tool NEVER uses `std::path::Path::exists()` alone for the final match decision. It reads the actual directory entries and compares.
 2. NFC normalization is applied to both sides: the link destination AND the directory entry names.
-3. This behavior is identical on macOS, Linux, and Windows.
+3. Strict case-sensitive + NFC path comparison is retained on determinism grounds, independent of the platform matrix. The tool must produce byte-identical output for byte-identical repository content, and must not let the host filesystem's case-folding or Unicode normalization behaviour influence link verdicts. macOS APFS is case-insensitive and stores filenames in NFD; adopting native filesystem semantics would make verdicts a function of the filesystem rather than of the repository content, which would break DI-001 determinism and NFR-003 reproducibility. This holds on a macOS-only matrix and is not contingent on cross-platform parity. (D-043 canonical D-006 rationale)
 
 ## Edge Cases
 | EC | Description |
@@ -73,7 +80,7 @@ case-sensitivity to the OS filesystem layer.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-008 | Case mismatch always detected regardless of OS filesystem | integration test (macOS + Linux) |
+| VP-008 | Case mismatch always detected on macOS (never delegated to APFS case-folding) | integration test (macOS only per D-043) |
 | VP-009 | NFC-normalized comparison is applied | unit test |
 
 ## Traceability

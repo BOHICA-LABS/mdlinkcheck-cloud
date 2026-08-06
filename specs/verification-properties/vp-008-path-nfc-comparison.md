@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
+version: "1.2"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -9,7 +9,7 @@ phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
-input-hash: "012887b"
+input-hash: "9c1a1a8"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.07.003
 module: path_resolver
@@ -21,6 +21,9 @@ proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
 modified:
+  - version: "1.2"
+    date: 2026-08-06
+    change: "D-043 macOS-only platform directive: re-scoped Property Statement and Feasibility Assessment to macOS APFS context. Noted that VP-008 becomes MORE important under macOS-only — on a macOS-only matrix, APFS NFD storage is the only filesystem in scope, making the NFC normalization layer the sole barrier between APFS NFD storage and correct verdicts. No changes to harness (proptest strategies are platform-independent)."
   - version: "1.1"
     date: 2026-08-05
     change: "P2-M02 remediation: replaced vacuous property 3 (ASCII-only %23 generator that never produced combining characters) with (a) a real NFD/NFC combining-character pair test (é, ñ, ガ) and (b) a case-sensitivity falsifying test asserting files_match(s, s.to_uppercase()) == false for any string with at least one ASCII letter. D-006 now has a genuine falsifying test."
@@ -39,6 +42,8 @@ removal_reason: null
 ## Property Statement
 
 For all path strings `a` and `b` where `nfc_normalize(a) == nfc_normalize(b)` (same logical path in different Unicode normalization forms), `path_resolver::files_match(a, b)` returns `true`. For paths where `nfc_normalize(a) != nfc_normalize(b)` (different paths regardless of case), `files_match` returns `false`. No case-folding is applied. This is DI-002.
+
+**macOS-only scope (D-043):** On the macOS-only platform matrix, macOS APFS stores filenames in NFD. The NFC normalization layer in `path_resolver` is the sole barrier between APFS NFD storage and correct link verdicts. This makes VP-008 **more important** under macOS-only, not less: without it, every NFC-authored link to an accented-character filename would produce a false positive on APFS. There is no cross-platform CI run (e.g., Linux ext4) that would incidentally catch a missing normalization call. The harness strategies are platform-independent (proptest generates Unicode strings regardless of host OS).
 
 ## Source Contract
 
@@ -122,8 +127,9 @@ proptest! {
 |--------|-----------|-------|
 | Input space size | Unbounded (property-based) | proptest generates Unicode strings including composed/decomposed variants |
 | Proof complexity | Low | Pure function; proptest strategies for NFD/NFC pairs are standard |
-| Tool support | Full | `proptest 1.6.0` with `unicode-normalization` test helpers |
-| Estimated proof time | < 5s per run (Phase 3 CI) | 10000 sample default; run in `cargo nextest` |
+| Tool support | Full | `proptest 1.6.0` with `unicode-normalization 0.1.24` test helpers |
+| Estimated proof time | < 5s per run (Phase 3 macOS CI) | 10000 sample default; run in `cargo nextest` on Apple Silicon |
+| Platform | macOS only (D-043) | Harness strategies are platform-independent; APFS NFD → NFC is the primary falsifying scenario |
 
 ## Lifecycle
 

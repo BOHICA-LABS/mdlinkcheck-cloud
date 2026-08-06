@@ -1,7 +1,7 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.1"
+version: "1.3"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
@@ -9,9 +9,9 @@ phase: 1b
 inputs:
   - .factory/specs/prd-supplements/nfr-catalog.md
   - .factory/specs/architecture/system-overview.md
-input-hash: "f20e937"
+input-hash: "9a07a20"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
-source_bc: "NFR-001"
+source_bc: "NFR-008"
 module: app
 proof_method: integration
 feasibility: feasible
@@ -21,6 +21,12 @@ proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
 modified:
+  - version: "1.3"
+    date: 2026-08-06
+    change: "D-043 decisions applied: removed HANDOFF placeholder; VP-022 MUST run on macos-latest (NFR-008 ~500ms threshold is Apple-Silicon-calibrated, not portable to Linux). Added Phase 3 obligation: NFR-008 perf-gate and NFR-002 benchmark CI jobs (currently absent from .github/workflows/) MUST be created on macos-latest."
+  - version: "1.2"
+    date: 2026-08-06
+    change: "C4-008 fix: corrected source_bc from NFR-001 (5s Apple Silicon acceptance ceiling) to NFR-008 (the ~500ms per-commit CI regression gate — the NFR this VP actually validates). D-043 HANDOFF: product-owner must decide whether NFR-002 (15s p95 Linux CI runner) is retired or re-targeted to macOS CI; VP-022 Source Contract and CI harness will be aligned to the outcome. NFR-002 reference removed from Source Contract pending that decision."
   - version: "1.1"
     date: 2026-08-05
     change: "P2-m02 remediation: populated source_bc from empty string to NFR-001; clarified that ~500ms is a placeholder target (not a committed value) requiring calibration once the Tier A corpus and CI runner are established; clarified metric is process wall-clock p95 (not mean, not library call latency); added recalibration procedure."
@@ -54,13 +60,28 @@ normalization cases.
 Pass 1 (parse + anchor tables) + Pass 1.5 (out-of-scan targets) + Pass 2 (resolve) +
 Sort + Emit.
 
-**This VP does NOT replace NFR-001/NFR-002** (acceptance ceilings). Those are validated
-separately against the 500-file corpus via `hyperfine` in `benches/`.
+**This VP does NOT replace NFR-001** (acceptance ceiling, 5s p95 Apple Silicon) or
+**NFR-002** (acceptance ceiling, 10s p95 on `macos-latest` — re-targeted per D-043).
+Those are validated separately against the 500-file corpus via `hyperfine` in `benches/`.
+
+**D-043 decision applied — runner platform:** VP-022 MUST run on `macos-latest`. The
+~500ms regression gate is calibrated for Apple Silicon; running this job on a Linux runner
+would produce a different baseline and silently invalidate the threshold. NFR-008's ~500ms
+is an Apple-Silicon-specific measurement, not a portable latency ceiling.
+
+**Phase 3 obligation — CI jobs must use `macos-latest`:** There is currently no
+perf-gate or benchmark CI job in `.github/workflows/` (confirmed: no matches for
+`perf-gate`, `NFR-008`, `hyperfine`, or `bench` as of 2026-08-06). When created in
+Phase 3, BOTH the NFR-008 regression gate and the NFR-002 benchmark job (p95 ≤ 10s,
+500-file corpus) MUST be configured on `macos-latest`. Running them on `ubuntu-latest`
+or any Linux runner would silently invalidate both Apple-Silicon-calibrated thresholds.
 
 ## Source Contract
 
-- **NFR:** NFR-001 — 5s p95 process wall-clock ceiling, Apple Silicon, 500-file corpus
-  (acceptance floor). system-overview.md D-013 — regression gate: Tier A corpus, ~500ms
+- **NFR:** NFR-008 — p95 wall-clock ≤ ~500ms per-commit CI regression gate, 100-file
+  corpus, blocking merge (the NFR this VP validates). NFR-001 (5s/500-file acceptance
+  ceiling) is a separate, manually-validated gate at Phase 4.
+  system-overview.md D-013 — regression gate: Tier A corpus, ~500ms
   p95 process wall-clock (placeholder; see Threshold Calibration below).
 - **Metric:** **process wall-clock p95 over 10 warm runs** measured by `criterion` or
   `hyperfine`. This is NOT library call latency, NOT CPU time, NOT mean. The CI script

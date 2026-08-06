@@ -2,7 +2,7 @@
 document_type: architecture-section
 level: L3
 section: verification-architecture
-version: "1.9"
+version: "1.10"
 status: draft
 producer: architect
 timestamp: 2026-08-06T00:00:00Z
@@ -10,9 +10,12 @@ phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/prd.md
-input-hash: "80954ae"
+input-hash: "0983244"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.10"
+    date: 2026-08-06
+    change: "D-043 macOS-only platform directive: (1) VP-022 test-sufficient table row: D-013/NFR-001 → D-013/NFR-008 (C4-008 propagation from VP-INDEX). (2) VP-022 source contract inline reference corrected."
   - version: "1.9"
     date: 2026-08-06
     change: "P4 remediation: (P4-004) VP-011 sort key 'dest' → 'link_target' to match api-surface.md Finding struct field name. (P4-009) VP-026 proptest coverage claim corrected — removed false claims for NFC/NFD and inline-code+HTML; now names only the 6 rules with enabled proptest arms (rules 2/3/4/5/6/7); Rule 1b rendering fidelity explicitly deferred to Phase 3 integration; oracle corpus NFC/NFD runs (R-009/OR-010) recorded."
@@ -93,7 +96,7 @@ changelog:
 | VP-018 | All DD-015 slug worked examples produce exact match (NFR-006) | slug | NFR-006, BC-2.06.001 |
 | VP-020 | HTML anchor extraction narrow scope — only `id=`/`name=` from raw HTML (DI-007) | anchor_table | DI-007, BC-2.05.003 |
 | VP-021 | No undefined reason codes — every emitted `reason` field is in the closed taxonomy set (NFR-007) | reporter | NFR-007, BC-2.12.001, BC-2.13.001 |
-| VP-022 | Regression gate — p95 wall-clock <= ~500ms on Tier A benchmark corpus, offline (D-013) | app | D-013, NFR-001 |
+| VP-022 | Regression gate — p95 wall-clock <= ~500ms on Tier A benchmark corpus, offline (D-013) | app | D-013, NFR-008 |
 
 ## P0 Proof Harness Strategy
 

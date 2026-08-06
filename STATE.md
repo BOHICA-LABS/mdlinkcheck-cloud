@@ -4,21 +4,21 @@ level: ops
 version: "2.2"
 status: draft
 producer: state-manager
-timestamp: 2026-08-06T22:40:00Z
+timestamp: 2026-08-07T00:30:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; pass-4 remediation COMPLETE (spec-lint 7/8, only 25 known placeholders); PR #2 merged 2290cb0; PR #3 open for spec-lint hardening; D-chain cite D-421; next = PR #3 review lifecycle + BI-012 generators, THEN pass 5 per D-036/D-040; trajectory-tail →32→34→39→37"
+current_step: "phase-1d; D-043 macOS-only applied across CI + specs; spec-lint 7/8 (only 25 known placeholders); PR #3 and PR #4 open awaiting pr-manager review; next = review/merge both PRs, then BI-012 generators, THEN pass 5 per D-036/D-040; trajectory-tail →32→34→39→37; D-chain cite D-045 D-421"
 current_cycle: ""
 dtu_required: false
 ---
 
 <!--
   STATE.md SIZE BUDGET (per D-421(c)):
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 189 = 311. 189 lines (wc-l).
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 194 = 306. 194 lines (wc-l).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
@@ -37,9 +37,9 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-06 — pass-4 remediation COMPLETE (ADR-008 authored; VP-025 rewritten; 10 VP paths flattened; 13 EC collisions → EC-184..EC-204; spec-lint 7/8 only 25 known placeholders fail); PR #2 squash-merged 2290cb0; D-038..D-042 (exhaustive) recorded; BI-006/BI-008/BI-009/BI-011/BI-013 closed; BI-014/BI-015/BI-016 opened; trajectory-tail →32→34→39→37 |
+| **Last Updated** | 2026-08-06 — D-043 macOS-only platform narrowing applied across CI + specs; branch protection 8→4 contexts both branches; NFR-002 re-targeted 10s p95; NFR-004/T13 retired; unicode-normalization pinned 0.1.24; D-043..D-045 (exhaustive) recorded; BI-017/BI-018 opened; spec-lint 7/8; PR #3 and PR #4 open; trajectory-tail →32→34→39→37 |
 | **Current Phase** | phase-1d |
-| **Current Step** | pass-4 remediation COMPLETE — ADR-008; VP-025 rewritten; 10 VP paths flattened; 13 EC collisions resolved; PR #2 merged 2290cb0; next = PR #3 review lifecycle + BI-012 generators, THEN pass 5 per D-036/D-040 |
+| **Current Step** | D-043 macOS-only COMPLETE — branch protection 8→4 contexts; ci.yml matrices → macos-latest (PR #4 open); NFR-002 re-targeted 10s; NFR-004/T13 retired; unicode-normalization pinned 0.1.24; C4-008 fixed; PR #3 + PR #4 open; next = review/merge both PRs, then BI-012 generators, THEN pass 5 per D-036/D-040 |
 
 ## Phase Progress
 
@@ -55,8 +55,8 @@ dtu_required: false
 | 5: Adversarial Refinement | not-started | | | | |
 | 6: Formal Hardening | not-started | | | | |
 | 7: Convergence | not-started | | | | |
-| pass-3 adversary | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39 |
-| pass-3 fix burst | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39 |
+| pass-3 adversary | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39→37 |
+| pass-3 fix burst | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39→37 |
 | pass-4 adversary | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39→37 |
 | pass-4 fix burst | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39→37 |
 
@@ -66,11 +66,11 @@ dtu_required: false
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
-| merge autonomy D-031 (level 4) | state-manager | COMPLETE | .factory/merge-config.yaml created; autonomy_level 4; D-031/D-032 recorded |
 | WS-3 close BI-005 (VP-026) | architect | COMPLETE | VP-026 authored; VP-018 +3 vectors; VP-INDEX/coverage-matrix/verification-architecture/failure-modes/invariants/module-criticality updated; 25→26 VPs; spec-lint 7/8 (only 25 known placeholders fail) |
 | phase-1d adversary pass 4 | adversary | COMPLETE | cycles/phase-1d/adversary-pass-4.md; 37 findings (3C/19M/15m); FINDINGS_REMAIN; zero in 7 enforced classes; topology root cause named |
 | phase-1d pass-4 remediation | architect + product-owner | COMPLETE | ADR-008 authored; VP-025 rewritten; 10 VP paths flattened; DI-001 4-field key; 13 EC collisions → EC-184..EC-204; spec-lint 7/8 (only 25 known placeholders fail) |
 | PR #2 merged | pr-manager | COMPLETE | 7 review cycles; squash-merged to develop 2290cb0; branch deleted; 9/9 required CI green |
+| D-043 macOS-only platform narrowing | architect + product-owner + devops | COMPLETE | branch protection 8→4 contexts both branches; ci.yml matrices → macos-latest (PR #4); NFR-002 re-targeted 10s, NFR-004 retired, T13 retired; unicode-normalization pinned 0.1.24; C4-008 fixed; spec-lint 7/8 |
 
 ## Convergence Status
 
@@ -127,8 +127,11 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | D-038 | PR #2 review-cycle limit exceeded with recorded exception: 7 cycles against `merge-config.yaml`'s `max_review_cycles: 3`. Operator-approved. Merge permitted because all blocking findings were resolved and the alternative — merging tooling with known false-passing tests — was strictly worse. | Operator directive selected "fix the pattern, not the instances" over splitting or closing the PR. The cycle overrun bought elimination of a recurring false-pass class rather than three point fixes. | phase-1d | 2026-08-06 | human/operator |
 | D-039 | Remediation of a defect class MUST NOT be achieved by suppressing detection. A devops burst made `check-ec-injectivity` pass by adding a 14-ID `KNOWN_EC_COLLISIONS_PHASE2_DEFERRAL` allowlist while printing "all injective" — a false green on a gate-blocking class, rejected by the orchestrator. Allowlists, skip-lists, deferral sets, and known-issues collections are now FORBIDDEN in any spec-lint checker, enforced by a pre-flight structural guard. | Blinding a checker is worse than editing a spec to suit it: it is durable, silent, and survives every future run. The same burst had just fixed P4-021, whose defect was an identical "defer to Phase 2" pattern — deferring a class past the very deadline it protects. | phase-1d | 2026-08-06 | orchestrator |
 | D-040 | A validator earns a place on an adversarial-review SKIP LIST only once it has a negative test proving it CAN fail. Three of eight validators have now been caught false-passing (`check-id-resolution`, `check-placeholders` under D-027; `check-ec-injectivity` under BI-013), and a fourth attempted to pass by suppression (D-039). Pass 5's skip list must be re-derived from proven-can-fail evidence, NOT from the pass-4 list. | Pass 4's skip list was partly built on `check-ec-injectivity`, which could not fail — so an entire defect class was excluded from review on a false premise. "Enforced" must mean "demonstrably able to fail." | phase-1d | 2026-08-06 | orchestrator |
-| D-041 | Orchestrator sequencing error recorded: a devops burst was dispatched onto `feature/spec-lint-tooling` while pr-manager held merge-and-delete authority over that same branch. The merge landed mid-burst and deleted the branch. No work was lost (recovered from working tree + `stash@{0}`); the burst was redirected to `feature/spec-lint-hardening` (PR #3). | LESSON: never dispatch a burst onto a branch another burst is authorized to merge or delete. Check branch ownership against in-flight merge authority before dispatch. | phase-1d | 2026-08-06 | orchestrator |
+| D-041 | Orchestrator sequencing error recorded: a devops burst was dispatched onto `feature/spec-lint-tooling` while pr-manager held merge-and-delete authority over that same branch. The merge landed mid-burst and deleted the branch. No work was lost (recovered from working tree + `stash@{0}`); the burst was redirected to `feature/spec-lint-hardening` (PR #3). Recorded as a factory process-gap. | LESSON: never dispatch a burst onto a branch another burst is authorized to merge or delete. Check branch ownership against in-flight merge authority before dispatch. | phase-1d | 2026-08-06 | orchestrator |
 | D-042 | Adversary pass 4 and consistency pass 4 INDEPENDENTLY converged on the same defect (`BC-2.06.001`/`BC-2.06.002` citing DI-008 where DI-012/DI-013 belong; P4-007 == C4-001/C4-002). Independent convergence from different methods is adopted as the strongest available evidence a finding is real, and warrants immediate remediation without further verification. | Two fresh contexts, different mandates, same conclusion. | phase-1d | 2026-08-06 | orchestrator |
+| D-043 | Platform matrix narrowed to **macOS latest ONLY**. Linux and Windows dropped from CI test/build jobs and from branch-protection required checks (8 → 4 contexts on both branches). NFR-002 RE-TARGETED to 10s p95 on `macos-latest` shared CI (kept distinct from NFR-001's 5s on an Apple Silicon dev machine). NFR-004 (cross-platform portability) RETIRED as vacuous. Trap T13 (Windows path separators) retired as platform-obsolete. **D-006 / ADR-006 / DI-002 (strict case-sensitive + NFC path comparison) REMAIN IN FORCE**, with rationale restated on determinism grounds rather than platform-divergence grounds. `unicode-normalization` pinned to exactly `0.1.24`, load-bearing for DI-001/DI-002/VP-008/VP-009 on determinism grounds and explicitly surviving NFR-004's retirement. | Operator directive; simplifies CI (9 → 5 jobs per run, −44%). Rationale restatement was required because D-006's recorded justification argued from macOS-vs-Linux divergence, which partly evaporates under a single-platform matrix — leaving it would have left a live decision resting on obsolete reasoning for a future pass to re-litigate. | phase-1d | 2026-08-06 | human/operator |
+| D-044 | Platform-independent CI jobs (`Format check`, `Clippy`, `Spec lint`, and all 6 `hardening.yml` jobs) deliberately REMAIN on `ubuntu-latest` under D-043. Only genuinely macOS-dependent jobs (`Test`, `Build release`) moved to `macos-latest`. | macOS runners cost ~10x Linux. `cargo fmt`/`clippy` are syntactic/semantic with no OS-specific behaviour; `spec-lint` is pure Python over YAML/Markdown; GitGuardian is a hosted service. Literal platform uniformity would have increased CI cost while the directive's stated goal was simplification. Reversible if strict uniformity is later preferred. | phase-1d | 2026-08-06 | orchestrator |
+| D-045 | Dropping Linux/Windows CI removes an INCIDENTAL safety net for case-sensitivity and Unicode-normalization divergence. No VP coverage is lost (all 26 VPs are platform-independent by construction), but `path_resolver`'s explicit `read_dir` case-sensitive enumeration and the NFC layer become SOLELY load-bearing, with VP-008/VP-009 as the only gatekeepers. Consequence: Phase 6 formal hardening of BC-2.07.003 is RAISED in priority. | Independently concluded by both the product-owner and architect bursts working in parallel (D-042 independent-convergence principle). ADR-006 is now MORE load-bearing, not less: macOS APFS is case-insensitive and NFD-storing, and on a macOS-only matrix it is the only filesystem, so nothing incidentally catches a missing normalization call. | phase-1d | 2026-08-06 | orchestrator |
 
 ## Skip Log
 
@@ -155,26 +158,28 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | BI-012 | Spec-topology defect: ~15 documents hand-maintain restatements of the same canonical facts (DI-001 sort key, AnchorTable/Finding field names, pipeline pass count, module->subsystem, module->ADR, slug golden vectors) with no generated source of truth. Six such facts are currently INCONSISTENT across their restatement sites. Adversary assesses this as the generator of the 32->34->39->37 novelty plateau and of the 8-of-12 partial-fix rate. | HIGH | phase-1 gate | devops-engineer + architect | Land 3 generators (`gen-bc-traceability.py`, `gen-slug-corpus.py`) plus a canonical-facts block + divergence checker. Adversary estimates this structurally eliminates 11 of 22 MAJOR+ findings and makes the class unrepeatable. |
 | BI-014 | C4-008: `VP-022` frontmatter declares `source_bc: "NFR-001"` but the VP validates NFR-008 (the ~500ms Tier A regression gate). Resolves-but-wrong citation class — invisible to `check-id-resolution` because NFR-001 exists. | MEDIUM | phase-1 gate | architect | Correct `source_bc` to NFR-008 after confirming against `nfr-catalog.md`. |
 | BI-015 | P4-017: NFR-006 names `test-vectors.md` §7 as its inputs but VP-018 implements a near-disjoint corpus (overlap 2 of 16). TV-S007 (`😄 emoji` → `-emoji`, leading hyphen) and TV-S010 (`` `--online` flag `` → `--online-flag`) are the hardest registry vectors and have no test anywhere. PO merged VP-018's unique rows into §7; the one-to-one transcription of §7 into VP-018's SLUG_CORPUS remains outstanding. | MEDIUM | phase-1 gate | architect + devops | Land `gen-slug-corpus.py` (part of BI-012) and generate VP-018's corpus from §7 rather than hand-maintaining it. |
-| BI-016 | PR #3 (`feature/spec-lint-hardening` → `develop`) OPEN and unreviewed: eliminates the vacuous-negative-test class (isolated temp trees, clean-pass assertions on all 11 tests, pre-flight + post-test structural guards, POL-11 coverage line) and fixes P4-021 (real bidirectional HS-INDEX↔wave-scenarios check, fence-based frontmatter scan, corrected success line/docstring, 64→66 BC row detection). | MEDIUM | phase-2 | pr-manager | Run the full pr-manager review lifecycle per D-028, then merge at level-4 autonomy per D-031. |
+| BI-016 | PR #3 (`feature/spec-lint-hardening` → `develop`) OPEN and unreviewed: eliminates the vacuous-negative-test class (isolated temp trees, clean-pass assertions on all 11 tests, pre-flight + post-test structural guards, POL-11 coverage line) and fixes P4-021. PR #3 branched off develop before PR #4, so it still carries the 3-platform `ci.yml`; its `Test (ubuntu-latest)` / `Test (windows-latest)` failures are NO LONGER blocking (not required checks). A GitHub Actions infrastructure outage ("Failed to resolve action download info. Error: Service Unavailable", retried to 15-min timeout) caused spurious failures; re-runs were triggered. Rebase onto post-PR-#4 develop advisable but not blocking. | MEDIUM | phase-2 | pr-manager | Run the full pr-manager review lifecycle per D-028, then merge at level-4 autonomy per D-031. Rebase onto post-PR-#4 develop first if PR #4 has merged. |
+| BI-017 | Phase 3 CI obligation: NO perf-gate/benchmark job exists in any workflow (orchestrator verified zero matches for `perf-gate`, `NFR-008`, `hyperfine`, `bench` under `.github/workflows/`). When the NFR-008 regression gate (~500ms p95 Tier A) and the NFR-002 benchmark (10s p95) jobs are created in Phase 3, both MUST run on `macos-latest` — their thresholds are Apple-Silicon-calibrated and a Linux runner would silently invalidate them. | MEDIUM | phase-3 | devops-engineer | Recorded in `verification-properties/vp-022-regression-gate.md` Phase 3 obligations and `architecture/tooling-selection.md` §Phase 3 CI Obligations. |
+| BI-018 | PR #4 (`chore/macos-only-ci` → develop) OPEN and unreviewed: reduces `ci.yml` test/build matrices to `macos-latest`. Branch protection was already narrowed to 4 contexts BEFORE the workflow change (deadlock-free ordering per D-023). All 4 required contexts verified reporting on PR #4; `mergeable: MERGEABLE`. | MEDIUM | phase-2 | pr-manager | Run the full pr-manager review lifecycle per D-028, then merge at level-4 autonomy per D-031. |
 
 ## Session Resume Checkpoint
 
-Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-030`
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-045`
 
 | Field | Value |
 |-------|-------|
 | **Date** | 2026-08-06 |
-| **Position** | phase-1d; pass-4 remediation COMPLETE; PR #2 merged 2290cb0; PR #3 open; 0 of 3 clean passes; trajectory-tail →32→34→39→37 |
+| **Position** | phase-1d; D-043 macOS-only COMPLETE; PR #3 + PR #4 open awaiting review; 0 of 3 clean passes; trajectory-tail →32→34→39→37 |
 | **Convergence counter** | 0 of 3 clean passes |
-| **Next burst** | PR #3 review lifecycle + BI-012 generators, THEN pass 5 per D-036/D-040 |
+| **Next burst** | PR #3 + PR #4 review lifecycles (WS-A), then BI-012 generators (WS-B), THEN pass 5 per D-036/D-040 (WS-C) |
 
-Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-031..D-042 (exhaustive) recorded. BI-005/BI-006/BI-008/BI-009/BI-011/BI-013 CLOSED; BI-007/BI-010/BI-012/BI-014/BI-015/BI-016 open.
+Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-045 recorded (exhaustive). Closed: BI-005/006/008/009/011/013. Open: BI-007/010/012/014/015/016/017/018.
 
 ## Concurrent Cycles
 
 | Cycle | Status | Notes |
 |-------|--------|-------|
-| phase-1d | in-progress | adversarial spec convergence; trajectory-tail →32→34→39→37; pass-4 remediation COMPLETE — PR #2 merged; next = PR #3 review + BI-012 generators, then pass 5 |
+| phase-1d | in-progress | adversarial spec convergence; trajectory-tail →32→34→39→37; D-043 macOS-only COMPLETE; PR #3 + PR #4 open; next = review/merge PRs + BI-012 generators, then pass 5 |
 
 ## Historical Content
 

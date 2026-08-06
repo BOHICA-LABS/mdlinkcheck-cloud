@@ -2,16 +2,22 @@
 document_type: architecture-section
 level: L3
 section: tooling-selection
-version: "1.2"
+version: "1.4"
 status: draft
 producer: architect
 timestamp: 2026-08-05T20:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/prd.md
-input-hash: "99c94a4"
+input-hash: "4f3a8c5"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.4"
+    date: 2026-08-06
+    change: "D-043 decisions applied: hyperfine row updated — NFR-002 re-targeted to 10s on macos-latest; removed D-043 HANDOFF annotation. NFR-004 retirement confirmed. Added Phase 3 CI Obligations section — NFR-008 perf-gate and NFR-002 benchmark MUST run on macos-latest (Apple-Silicon-calibrated thresholds)."
+  - version: "1.3"
+    date: 2026-08-06
+    change: "D-043 macOS-only platform directive: (1) hyperfine role updated from 'NFR-001/002' to 'NFR-001' (NFR-002 Linux CI target under review per D-043 HANDOFF). (2) Node.js/github-slugger row annotated as platform-independent at generation time. (3) unicode-normalization 0.1.24 Runtime Dependencies entry strengthened: added NFR-004-retirement note — pin is load-bearing for DI-001/DI-002/VP-008/VP-009 on determinism grounds, not portability."
   - version: "1.2"
     date: 2026-08-06
     change: "P4 remediation: (P4-018A) added Node.js 22.x LTS + github-slugger 2.0.0 to Verification Toolchain for VP-026 oracle corpus generation. (P4-018B) added unicode-normalization crate pin to new Runtime Dependencies table; amended ADR-006 defer note. (P4-018C) updated proptest VP list: VP-008..011, VP-019 → VP-008..011, VP-019, VP-023..026. (P4-018D) updated module-criticality.md citation from v1.2 to v1.6. (P4-026) kani.toml default-unwind 8 → 12 (bound 10 + 2 margin). (P4-014) added Test Target Layout section — flat tests/<category>_<name>.rs convention."
@@ -34,9 +40,9 @@ changelog:
 | **cargo-mutants** | 27.0.0 | Mutation testing — enforces kill-rate targets per module-criticality.md | 6 | `.cargo-mutants.toml` |
 | **cargo-nextest** | 0.9.129 | Test runner — faster parallel test execution | 3–6 | `.config/nextest.toml` |
 | **semgrep** | 1.56.0 | Static security analysis | 6 | `.semgrep/` rules |
-| **hyperfine** | 2.0.0 | Benchmark harness for NFR-001/002 | 4 | `benches/perf.sh` |
-| **Node.js** | 22.x LTS | Oracle-corpus generation for VP-026 (generation time only, never test time) | 3 | `tools/gen-slug-oracle.js` |
-| **github-slugger** | 2.0.0 (npm, exact pin) | Differential oracle reference for VP-026 / DI-012 | 3 | `tools/package.json` + `tools/package-lock.json` committed |
+| **hyperfine** | 2.0.0 | Benchmark harness for NFR-001 (Apple Silicon acceptance ceiling, 5s p95) and NFR-002 (macOS CI runner acceptance ceiling, 10s p95) — both thresholds are Apple-Silicon-calibrated; benchmark jobs MUST run on `macos-latest` (see Phase 3 CI Obligations) | 4 | `benches/perf.sh` |
+| **Node.js** | 22.x LTS | Oracle-corpus generation for VP-026 (generation time only, never test time; **platform-independent** — runs wherever Node 22 is available, not macOS-specific) | 3 | `tools/gen-slug-oracle.js` |
+| **github-slugger** | 2.0.0 (npm, exact pin) | Differential oracle reference for VP-026 / DI-012 (platform-independent at generation time) | 3 | `tools/package.json` + `tools/package-lock.json` committed |
 
 ## Test Dependencies (Cargo.toml dev-deps)
 
@@ -55,6 +61,15 @@ changelog:
 | `unicode-normalization` | **0.1.24** | NFC normalization for DI-001 sort key, DI-002 path comparison (ADR-006); version pinned at workspace level — do NOT use the 1.x major version |
 
 Note: `ADR-006:46`/`:129-130` previously deferred the unicode-normalization version pin to workspace creation. That deferral is now resolved: use `unicode-normalization = "0.1.24"` (the latest stable `0.1.x` as of 2026-08-06). The `0.1.x` and `1.x` major versions are API-incompatible; `0.1.x` is the correct branch for all existing Rust ecosystem consumers.
+
+**NFR-004 retired (D-043):** NFR-004 (cross-platform portability) is retired as vacuous under
+the macOS-only platform matrix. The `unicode-normalization 0.1.24` pin **must NOT be dropped**.
+It is load-bearing for:
+- DI-001 sort key: NFC-normalized path as the first sort field
+- DI-002 path comparison: case-sensitive NFC comparison in `path_resolver`
+- VP-008: proptest falsifying the absence of NFC normalization
+- VP-009: proptest proving NFC idempotency of the wrapper
+All four obligations are on **determinism grounds** (NFR-003, D-006), not portability grounds.
 
 ## Kani Configuration
 
@@ -149,6 +164,22 @@ this is the standard Kani layout and is not subject to the flat-test convention.
 
 **Fuzz targets** live in `fuzz/fuzz_targets/` — cargo-fuzz generates `[[bin]]` entries
 automatically and does not use the integration-test discovery mechanism.
+
+## Phase 3 CI Obligations — Runner Platform
+
+**Platform constraint:** The following CI jobs do not yet exist (confirmed: no `perf-gate`,
+`NFR-008`, `hyperfine`, or `bench` entry in `.github/workflows/` as of 2026-08-06). When
+created in Phase 3, BOTH MUST be configured on `macos-latest`. Their thresholds are
+calibrated for Apple Silicon (M1); running them on `ubuntu-latest` or any Linux runner
+would silently invalidate both thresholds.
+
+| Phase 3 job | NFR | Threshold | Required runner |
+|-------------|-----|-----------|-----------------|
+| NFR-008 regression gate (VP-022) | NFR-008 | p95 ≤ ~500ms, Tier A corpus | `macos-latest` |
+| NFR-002 benchmark | NFR-002 | p95 ≤ 10 seconds, 500-file corpus | `macos-latest` |
+
+This constraint is recorded here so that devops-engineer creating these jobs in Phase 3
+cannot silently pick a cheaper Linux runner and break the Apple-Silicon-calibrated thresholds.
 
 ## [Section Content]
 

@@ -71,6 +71,12 @@ traces_to: STATE.md
 13. **[observation] Mechanical enforcement pays for itself immediately** — The product-owner's own P4-015 fix introduced 2 NEW EC collisions (EC-087e/f vs BC-2.10.007) while resolving 13 — caught only because the hardened checker was in place. Evidence that automated enforcement prevents regression that human review would miss.
     _Discovered: pass-4 remediation session, 2026-08-06_
 
+14. **[process-gap] Parallel bursts with a decision dependency should either be serialized or given canonical wording up front** — D-043 was dispatched to three agents in parallel; the architect deferred two NFR decisions (NFR-002 re-targeting, NFR-004 retirement) to the product-owner, which had already decided them, leaving four stale "under D-043 review" placeholders requiring a follow-up burst. LESSON: when parallel bursts have a decision dependency, either serialize them or give every burst the canonical decision text up front. Successfully demonstrated in the same burst: the D-006 determinism rationale was given to all three agents as canonical wording and that part did NOT drift.
+    _Discovered: D-043 macOS-only narrowing burst, 2026-08-06_
+
+15. **[observation] Canonical-text-up-front prevents drift where ambiguity-up-front causes it** — Giving three parallel agents identical canonical wording for the D-006 determinism rationale prevented drift entirely. Contrast with the NFR-002/004 decisions, which had no canonical text provided and did drift (four stale placeholders). Canonical-text-up-front is a cheap, effective control for parallel-burst consistency.
+    _Discovered: D-043 macOS-only narrowing burst, 2026-08-06_
+
 ## Policy Candidates
 
 | Lesson | Proposed Policy | Scope | Status |

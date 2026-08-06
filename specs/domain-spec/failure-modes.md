@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: failure-modes
-version: "1.5"
+version: "1.6"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -14,6 +14,9 @@ inputs:
 input-hash: "20e96e1"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.6"
+    date: 2026-08-06
+    change: "D-043 (macOS-only platform directive): FM-006 description updated — removed 'silently' framing that implied Linux comparison; retained macOS APFS case-insensitivity as the core issue; FM-007 description updated — removed 'fails on Linux' framing; restated as macOS NFD/NFC mismatch concern on macOS-only matrix."
   - version: "1.5"
     date: 2026-08-06
     change: "BI-005 spec-level closure: FM-002 Notes section updated — VP-026 (slug differential fidelity, proptest, Phase 3) closes FM-002 with oracle run R-001 (≥3-entry repeat heading sequence). FM-002 was previously unprovable: VP-003 injectivity proves uniqueness but not the 0-based suffix values; VP-018 lacked duplicate-heading vectors. Both gaps are now closed. Phase 3 cannot skip VP-026."
@@ -72,8 +75,8 @@ to one or more corpus fixtures.
 | FM-003 | Slug computation | Underscore stripped instead of retained: `my_heading` → `my-heading` | DI-012 | EC-050, EC-051 |
 | FM-004 | Parsing | Links inside fenced code blocks extracted → false positive on every code example | DI-004 | DEC-006 |
 | FM-005 | Fragment handling | Fragment split AFTER percent-decode: `a%23b.md` treated as file `a` with fragment `b.md` | DI-003 | DEC-005, EC-053 |
-| FM-006 | Path resolution | Case-insensitive OS delegation: `README.MD` passes on macOS silently | DI-002 | DEC-009, EC-036 |
-| FM-007 | Path resolution | NFC/NFD mismatch: macOS-created file fails on Linux | DI-002 | DEC-004, EC-037 |
+| FM-006 | Path resolution | Case-insensitive OS delegation: `README.MD` accepted by macOS APFS `fs::exists()` producing a false `clean` verdict; explicit `read_dir` comparison required to detect the mismatch | DI-002 | DEC-009, EC-036 |
+| FM-007 | Path resolution | NFC/NFD mismatch: macOS APFS stores filenames in NFD; a link using NFC form and a file stored in NFD form must both be NFC-normalized before comparison or the path check produces a false `broken` verdict | DI-002 | DEC-004, EC-037 |
 | FM-008 | Online checking | 5xx response classified as `broken` → CI false positive | DI-010 | EC-081 |
 | FM-009 | Output | Parallel scan emits findings in traversal order without sorting → non-deterministic output | DI-001 | EC-147 |
 | FM-010 | Filter | `--ignore` applied to anchor *targets*: ignored file's anchor table not built → false `anchor-not-found` | DI-006 | DEC-003, EC-074 |
