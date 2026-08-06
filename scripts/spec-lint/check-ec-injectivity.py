@@ -122,15 +122,46 @@ def main() -> int:
         if len(occurrences) <= 1:
             continue
 
-        # Check for description collisions
-        descs = [o[1] for o in occurrences]
-        verdicts = [normalize_verdict(o[2]) for o in occurrences]
+        # Separate BC-file occurrences from test-vectors.md occurrences
+        tv_file_str = str(TV_FILE)
+        bc_occs = [(f, d, v, l) for f, d, v, l in occurrences if f != tv_file_str]
+        tv_occs = [(f, d, v, l) for f, d, v, l in occurrences if f == tv_file_str]
 
-        unique_descs = set(descs)
-        unique_verdicts = set(verdicts)
+        has_desc_collision = False
+        has_verdict_collision = False
+        collision_detail: list[str] = []
 
-        has_desc_collision = len(unique_descs) > 1
-        has_verdict_collision = len(unique_verdicts) > 1
+        # Description collision: only within BC files that have explicit verdicts
+        # 2-column citation rows (verdict_raw="") are paraphrases — not canonical descriptions
+        if len(bc_occs) > 1:
+            explicit_bc_occs = [(f, d, v, l) for f, d, v, l in bc_occs if v.strip()]
+            if len(explicit_bc_occs) > 1:
+                descs = [o[1] for o in explicit_bc_occs]
+                if len(set(descs)) > 1:
+                    has_desc_collision = True
+                    for filepath, desc, verdict_raw, lineno in explicit_bc_occs:
+                        collision_detail.append(
+                            f"  {filepath}:{lineno}: desc={desc[:80]!r} verdict={verdict_raw[:40]!r}"
+                        )
+
+        # Verdict collision: BC file vs test-vectors.md — only when BOTH have explicit verdicts
+        if bc_occs and tv_occs:
+            tv_verdicts = [normalize_verdict(o[2]) for o in tv_occs if o[2].strip()]
+            for bc_filepath, bc_desc, bc_verdict_raw, bc_lineno in bc_occs:
+                if not bc_verdict_raw.strip():
+                    continue  # BC row has no verdict column — skip verdict comparison
+                bc_norm = normalize_verdict(bc_verdict_raw)
+                for tv_norm in tv_verdicts:
+                    if tv_norm and bc_norm != tv_norm:
+                        has_verdict_collision = True
+                        if not collision_detail:  # avoid duplicate headers
+                            for filepath, desc, verdict_raw, lineno in tv_occs:
+                                collision_detail.append(
+                                    f"  {filepath}:{lineno}: desc={desc[:80]!r} verdict={verdict_raw[:40]!r}"
+                                )
+                        collision_detail.append(
+                            f"  {bc_filepath}:{bc_lineno}: desc={bc_desc[:80]!r} verdict={bc_verdict_raw[:40]!r}"
+                        )
 
         if has_desc_collision or has_verdict_collision:
             collision_ids.add(ec_id)
@@ -140,10 +171,7 @@ def main() -> int:
             if has_verdict_collision:
                 hdr += " verdict-mismatch"
             violations.append(hdr)
-            for filepath, desc, verdict_raw, lineno in occurrences:
-                violations.append(
-                    f"  {filepath}:{lineno}: desc={desc[:80]!r} verdict={verdict_raw[:40]!r}"
-                )
+            violations.extend(collision_detail)
 
     total_ec_ids = len(ec_map)
     multi_occurrence = sum(1 for v in ec_map.values() if len(v) > 1)
