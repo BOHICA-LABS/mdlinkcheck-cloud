@@ -1,0 +1,247 @@
+# Phase-6 hardening pipeline for mdlinkcheck
+#
+# Runs on:
+#   - Weekly schedule (Monday 03:00 UTC, outside peak hours)
+#   - Manual dispatch (workflow_dispatch)
+#
+# These jobs are too slow for per-PR CI.  They gate the Phase-6 formal
+# hardening milestone and any release candidate.
+#
+# All action versions pinned to full commit SHAs.
+# SHA inventory:
+#   actions/checkout     v4.2.2  11bd71901bbe5b1630ceea73d27597364c9af683
+#   Swatinem/rust-cache  v2.7.5  82a92a6e8fbeee089604da2575dc567ae9ddeaab
+
+name: Hardening
+
+on:
+  schedule:
+    # Weekly Monday 03:00 UTC
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+# No cancel-in-progress: hardening runs are long; don't waste work.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  # issues: write is needed for the schedule path to open a tracking issue
+  # when a job fails.  Uncomment when the repo has a remote and issues enabled.
+  # issues: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  RUST_BACKTRACE: "1"
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────
+  # Job 1: cargo-audit — known vulnerability scan
+  # Local equivalent: just audit
+  # ─────────────────────────────────────────────────────────────────
+  audit:
+    name: cargo-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Guard — skip if no Cargo workspace
+        id: guard
+        shell: bash
+        run: |
+          if [ ! -f Cargo.toml ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No Cargo.toml found — workspace not yet scaffolded, skipping."
+          fi
+
+      - name: Install cargo-audit
+        if: steps.guard.outputs.skip != 'true'
+        run: cargo install cargo-audit --locked --version 0.21.2
+
+      - name: Run audit
+        if: steps.guard.outputs.skip != 'true'
+        run: cargo audit
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 2: cargo-deny — license, ban, and advisory policy check
+  # Local equivalent: just deny
+  # ─────────────────────────────────────────────────────────────────
+  deny:
+    name: cargo-deny
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Guard — skip if no Cargo workspace
+        id: guard
+        shell: bash
+        run: |
+          if [ ! -f Cargo.toml ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No Cargo.toml found — workspace not yet scaffolded, skipping."
+          fi
+
+      - name: Install cargo-deny
+        if: steps.guard.outputs.skip != 'true'
+        run: cargo install cargo-deny --locked --version 0.17.0
+
+      - name: Run deny check
+        if: steps.guard.outputs.skip != 'true'
+        run: cargo deny check
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 3: Semgrep static analysis
+  # Local equivalent: just semgrep
+  # ─────────────────────────────────────────────────────────────────
+  semgrep:
+    name: Semgrep
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install Semgrep
+        run: pip install semgrep==1.75.0
+
+      - name: Run Semgrep (auto rules)
+        run: semgrep --config=auto --error --metrics=off .
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 4: cargo-mutants — mutation testing smoke run
+  # Local equivalent: just mutants
+  #
+  # Smoke run: tests that survive mutations indicate under-tested logic.
+  # Full run is too slow for weekly CI; the smoke set uses a time budget.
+  # ─────────────────────────────────────────────────────────────────
+  mutants:
+    name: cargo-mutants (smoke)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Guard — skip if no Cargo workspace
+        id: guard
+        shell: bash
+        run: |
+          if [ ! -f Cargo.toml ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No Cargo.toml found — workspace not yet scaffolded, skipping."
+          fi
+
+      - name: Restore Cargo cache
+        if: steps.guard.outputs.skip != 'true'
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+
+      - name: Install cargo-nextest (needed by mutants runner)
+        if: steps.guard.outputs.skip != 'true'
+        run: cargo install cargo-nextest --locked --version 0.9.98
+
+      - name: Install cargo-mutants
+        if: steps.guard.outputs.skip != 'true'
+        run: cargo install cargo-mutants --locked --version 24.11.2
+
+      - name: Run mutation smoke test
+        if: steps.guard.outputs.skip != 'true'
+        # --no-shuffle: deterministic ordering for reproducible reports
+        # -j2: parallelize 2 mutant builds (keeps time budget under 60 min)
+        # --timeout 30: per-mutant timeout so slow mutants don't blow budget
+        run: |
+          set -euo pipefail
+          cargo mutants --no-shuffle -j2 --timeout 30 \
+            -- --all-targets 2>&1 | tee mutants-report.txt
+          exit ${PIPESTATUS[0]}
+
+      - name: Upload mutants report
+        if: always() && steps.guard.outputs.skip != 'true'
+        uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba # v4.3.2
+        with:
+          name: mutants-report
+          path: mutants-report.txt
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 5: cargo-fuzz smoke run
+  # Local equivalent: just fuzz-smoke
+  #
+  # Runs each fuzz target for 30 seconds to confirm harnesses compile
+  # and don't immediately panic on the seed corpus.
+  # Requires nightly for the fuzz feature.
+  # ─────────────────────────────────────────────────────────────────
+  fuzz-smoke:
+    name: Fuzz smoke (nightly)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install nightly toolchain
+        # rust-toolchain.toml pins 1.97.0 for production; fuzzing needs nightly.
+        run: rustup toolchain install nightly --component rust-src --no-self-update
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          key: fuzz-nightly
+
+      - name: Install cargo-fuzz
+        run: cargo +nightly install cargo-fuzz --locked
+
+      - name: Smoke run all fuzz targets
+        # 30 second per-target budget; exits 1 if any target crashes.
+        # This step is a no-op if the fuzz/ directory doesn't exist yet.
+        run: |
+          set -euo pipefail
+          if [ ! -d fuzz ]; then
+            echo "No fuzz/ directory found — skipping smoke run."
+            exit 0
+          fi
+          for target in $(cargo +nightly fuzz list 2>/dev/null); do
+            echo "Fuzzing target: ${target} (30s)"
+            cargo +nightly fuzz run "${target}" -- -max_total_time=30 -max_len=65536
+          done
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 6: cargo-kani — bounded model checking
+  # Local equivalent: just kani
+  #
+  # Verifies mathematical properties on annotated Kani proof harnesses.
+  # Skipped automatically if no #[kani::proof] annotations exist.
+  # ─────────────────────────────────────────────────────────────────
+  kani:
+    name: cargo-kani
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          key: kani
+
+      - name: Install Kani verifier
+        run: cargo install --locked kani-verifier
+
+      - name: Kani setup (downloads solver binaries)
+        run: cargo kani setup
+
+      - name: Run Kani proofs
+        # Exits 0 if no proof harnesses exist.
+        run: |
+          set -euo pipefail
+          if ! grep -rq '#\[kani::proof\]' src/ 2>/dev/null; then
+            echo "No Kani proof harnesses found — skipping."
+            exit 0
+          fi
+          cargo kani

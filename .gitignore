@@ -1,1 +1,24 @@
 .factory/
+.worktrees/
+
+# ── Rust build artifacts ───────────────────────────────────────────────────────
+/target/
+
+# Rust backup source files (rustfmt)
+**/*.rs.bk
+
+# Cargo.lock is committed for binary crates; omit this line if library-only.
+# Cargo.lock
+
+# ── Fuzzing artifacts ──────────────────────────────────────────────────────────
+fuzz/target/
+fuzz/corpus/*/
+
+# ── Local benchmarks and reports ──────────────────────────────────────────────
+bench-results.md
+bench-results.json
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+*.bak
