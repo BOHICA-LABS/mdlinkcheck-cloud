@@ -174,7 +174,7 @@ def main() -> int:
         diffs = [(i+1, o, n) for i, (o, n) in enumerate(zip(orig_lines, new_lines)) if o != n]
         print(f"  {len(diffs)} lines changed")
         for lineno, old, new in diffs[:10]:
-            print(f"  L{lineno}: {old!r[:60]} -> {new!r[:60]}")
+            print(f"  L{lineno}: {repr(old)[:60]} -> {repr(new)[:60]}")
         if len(diffs) > 10:
             print(f"  ... and {len(diffs)-10} more")
         return 0
