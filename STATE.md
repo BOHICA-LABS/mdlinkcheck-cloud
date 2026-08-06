@@ -4,14 +4,14 @@ level: ops
 version: "2.5"
 status: draft
 producer: state-manager
-timestamp: 2026-08-07T00:15:00Z
+timestamp: 2026-08-07T01:41:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; HEAD frozen for pass 5 (this factory-artifacts commit per BC-5.39.001/D-040); BI-012/BI-015 CLOSED (generators built+verified, D-036 satisfied per D-051); PR #5 APPROVE 0-blocking (b054694); 3 PRs merge-ready blocked only by GitHub Actions outage 2026-08-06T15:22Z; streak re-counts ZERO from this HEAD; D-046..D-053 (exhaustive); trajectory-tail →32→34→39→37; D-chain cite D-053 D-421"
+current_step: "phase-1d; perimeter sweep shards 1,2,3,5 COMPLETE (111 findings, 19C, 46 BC bodies); SKIP LIST UNSOUND — check-placeholders `—` bypass + check-id-resolution non-conforming bypass (BI-023 OPENED); three unguarded axes (BI-024 OPENED); shards 4,6,7,8 still running; streak ZERO from frozen HEAD; D-046..D-053 (exhaustive); D-chain cite D-053 D-421; trajectory-tail →32→34→39→37"
 current_cycle: ""
 dtu_required: false
 ---
