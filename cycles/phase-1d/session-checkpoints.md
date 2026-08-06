@@ -56,4 +56,21 @@ PRD v1.7 | 66 BCs | 24 VPs | 7 ADRs | 9 arch shards | 12 domain-spec shards | 26
 
 ---
 
+## Session Resume Checkpoint (2026-08-06) — after pass-3 remediation COMPLETE (pre-restart)
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-06 |
+| **Position** | phase-1d; mechanical enforcement plus generation built and 254→25 violations cleared; 7 of 8 checkers green |
+| **Next Step** | Adversary pass 4 + consistency pass 4 — first real test of mechanical enforcement bending the novelty curve; then close BI-005 (slug-fidelity VP gap) and merge PR #2 |
+| **Convergence counter** | 0 of 3 |
+
+### Artifact Snapshot
+
+PRD v1.9 | 66 BCs (all carry owning module, criticality tier, VP anchor) | 25 VPs | 13 DIs | 7 ADRs | 27 DD decisions | 19 policies | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). spec-lint tooling on PR #2 (feature/spec-lint-tooling, unmerged). D-026/D-027 recorded. BI-004 resolved (pass 3 covered perimeter). BI-005/006 opened.
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
