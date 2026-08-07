@@ -4,24 +4,24 @@ level: ops
 version: "2.6"
 status: draft
 producer: state-manager
-timestamp: 2026-08-08T18:08:00Z
+timestamp: 2026-08-08T18:50:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; PR #7 MERGED as e1299b07 (develop 7b9aa6d→e1299b07); BI-042 CLOSED (selftest-22 teeth-test); BI-035 CLOSED (fully discharged); BI-023 checker repairs on develop (spec-row burn-down open); D-086/D-087/D-088 recorded; 0 of 3 clean passes; trajectory-tail →34→39→37→259"
-current_cycle: ""
+current_step: "phase-1d; compact-state D-087 COMPLETE; 16 CLOSED blockers archived; D-002 superseded decision archived; D-086/D-087/D-088 recorded; 0 of 3 clean passes; trajectory-tail →34→39→37→259"
+current_cycle: phase-1d
 dtu_required: false
 ---
 
 <!--
   STATE.md SIZE BUDGET:
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 269 = 231. 269 lines (wc-l, post-D-088 burst).
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 253 = 247. 253 lines (wc-l, post-D-087 compact-state).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
-  Run /vsdd-factory:compact-state if this file grows past 200 lines (D-087: MANDATORY at next session start).
+  Run /vsdd-factory:compact-state if this file grows past 200 lines.
 -->
 
 # Pipeline State: mdlinkcheck-cloud
@@ -37,7 +37,7 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-08 — PR #7 MERGED as e1299b07 (develop 7b9aa6d→e1299b07); BI-042 CLOSED (selftest-22 teeth-test); BI-035 CLOSED; BI-023 checker repairs on develop; D-086/D-087/D-088; worktree ws3 removed; 55/55 selftests; 0 of 3 clean passes; trajectory-tail →34→39→37→259 |
+| **Last Updated** | 2026-08-08 — D-087 compact-state: 16 CLOSED blockers archived; D-002 superseded decision archived; current_cycle pointer set to phase-1d; 0 of 3 clean passes; trajectory-tail →34→39→37→259 |
 | **Current Phase** | phase-1d |
 | **Current Step** | PR #7 MERGED as `e1299b07` (develop `7b9aa6d`→`e1299b07`). BI-042 CLOSED (selftest-22 rewritten, teeth-test passed). BI-035 CLOSED (fully discharged). BI-023 checker repairs landed on develop; spec-row burn-down open. BI-040 OPEN + BI-044 OPEN (gate WS-4). D-086 (WS-4 scope re-derivation by execution mandatory). D-087 (compact-state at next session start). D-088 (stage by explicit path in state bursts). |
 
@@ -96,7 +96,6 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | ID | Decision | Rationale | Phase | Date | Made By |
 |----|----------|-----------|-------|------|---------|
 | D-001 | Initialize .factory worktree via /vsdd-factory:factory-health | factory-artifacts branch and worktree were missing; pre-existing logs/ and sidecar-learning.md preserved | pre-1 | 2026-08-05 | human/orchestrator |
-| ~~D-002~~ | ~~Run pipeline LOCAL-ONLY, no GitHub remote / no PRs~~ | ~~Repo has no `origin` remote; human elected local-only delivery~~ | pre-1 | 2026-08-05 | **SUPERSEDED by D-021** |
 | D-003 | Phase 3 autonomy = run to convergence, stop only at designed human gates | Human decision; no per-story or per-wave pauses | pre-1 | 2026-08-05 | human |
 | D-004 | Target language Rust, MSRV 1.85, toolchain pinned to 1.97.0 | BRIEF.md specifies Rust; MSRV 1.85 forced by clap 4.6 + ureq 3.3 per market-intelligence.md | pre-1 | 2026-08-05 | dx-engineer/orchestrator |
 | D-005 | Copy BRIEF.md to .factory/specs/product-brief.md with canonical VSDD L1 frontmatter; keep root BRIEF.md as frozen original | artifact-detection.md flagged path discrepancy; BRIEF.md is frozen and must not be edited | pre-1 | 2026-08-05 | orchestrator |
@@ -199,14 +198,9 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | ID | Issue | Severity | Blocking Phase | Owner | Resolution |
 |----|-------|----------|----------------|-------|------------|
 | BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 5 COMPLETE (259 findings ~42C); perimeter CLOSED; root cause SPEC-TOPOLOGY (D-035) + 4 unguarded axes (BI-024) + structural checker bypasses (BI-023) | HIGH | phase-1 gate | orchestrator | PR #7 MERGED as `e1299b07`; BI-042/035 CLOSED; BI-023 checker repairs on develop. Next: compact-state (D-087) → BI-040 Stage 1+2+3 → WS-4 scope re-derivation BY EXECUTION (D-086) → WS-4 (~306-finding burst) → WS-5 pass 6 + Phase-1 gate. Blockers: BI-040 OPEN + BI-044 OPEN (both gate WS-4 per D-072/D-079). |
-| ~~BI-005~~ | ~~DI-012 VP coverage INSUFFICIENT; FM-002 unprovable via VP-003 injectivity alone~~ | ~~HIGH~~ **CLOSED** | resolved | architect | CLOSED at spec level 2026-08-06. VP-026 authored; FM-002 now covered. Residual implementation risk tracked as BI-007. |
 | BI-007 | VP-026 is SPECIFIED but UNIMPLEMENTED — no Rust workspace exists yet (Phase 3 not started). FM-002 risk until Phase 3 implements the differential proptest. | HIGH | phase-6 (formal hardening) | implementer | Phase 3 must implement VP-026; story traced to VP-026 required in Phase 2. |
 | BI-010 | VP-025 authored against non-existent API types. Harness cannot compile. Architect rewrote VP-025; INC-MAP-001 SPEC-RESOLVED/IMPL-PENDING (D-048). | CRITICAL | phase-3 | architect | INC-MAP-001 closes only when Phase 3 implements it. |
-| ~~BI-016~~ | ~~PR #3 (`feature/spec-lint-hardening` → `develop`) — 11-cycle review lifecycle; four fix rounds (B-7/B-8/B-9/B-11); D-068/D-069/D-070 rulings this session; final APPROVE at `7c1eccf`.~~ | ~~MEDIUM~~ **CLOSED** | resolved | pr-manager | CLOSED 2026-08-07 — squash-merged as `651ee3a` on `develop`; branch deleted; remote pruned. D-071. |
 | BI-017 | Phase 3 CI obligation: NO perf-gate/benchmark job exists. Both NFR-008 and NFR-002 benchmark jobs MUST run on `macos-latest` when created in Phase 3. | MEDIUM | phase-3 | devops-engineer | Recorded in vp-022-regression-gate.md and tooling-selection.md §Phase 3 CI Obligations. |
-| ~~BI-018~~ | ~~PR #4 (`chore/macos-only-ci` → develop) blocked pending pull_request-typed run~~ | ~~MEDIUM~~ **CLOSED** | resolved | pr-manager | CLOSED 2026-08-07 — squash-merged as bcbb4a5; develop→bcbb4a5. D-043 macOS-only matrix now in force. Branch deleted. |
-| ~~BI-019~~ | ~~B-6 over-determination (selftest 10d)~~ | ~~CRITICAL~~ **CLOSED** | resolved | test-writer | CLOSED 2026-08-06: suite 15→17, 17/17. 4/15 over-determined (D-050). |
-| ~~BI-020~~ | ~~PR #5 (`fix/hardening-pins` → develop) OPEN~~ | ~~MEDIUM~~ **CLOSED** | resolved | pr-manager | CLOSED 2026-08-07 — squash-merged as 2776d94; develop→2776d94. Worktree .worktrees/sec-hardening REMOVED. Local branch `fix/hardening-pins` force-deleted by operator (D-067). |
 | BI-021 | UPDATED: `check-canonical-facts.py` — from a real linked worktree (`.git` is a pointer FILE) the new `.git` boundary stop halts the walk before reaching main checkout's `.factory/`, exits 1 with clearer message. `SPEC_LINT_REPO_OVERRIDE` is the supported path. Fixed: unbounded ancestor walk false-GREEN traded for loud, self-documenting refusal (selftest 25, mutation-verified). `parent.parent.parent` heuristic generalized in BI-043. | LOW | phase-3 | devops-engineer | Fix `parent.parent.parent` heuristic uniformly before Phase 3 story worktrees launch (see BI-043). |
 | BI-022 | MINOR: `rustup toolchain install nightly` in `fuzz-smoke` job still UNPINNED. Recommend pinning nightly date before Phase 6. | LOW | phase-6 | devops-engineer | Pin nightly date in hardening.yml before Phase 6. |
 | BI-023 | SKIP LIST UNSOUND — structural bypasses: (a) `check-placeholders.py` defeated by em-dash `—` — **CONFIRMED: 34 BC files / 55 rows**, all U+2014, confirmed exactly (D-082 executed predicate); (b) `check-id-resolution.py` skips non-conforming shapes — **CORRECTED: 9 live defects / 4 files** (`ss-07/BC-2.07.006.md`, `ss-11/BC-2.11.004.md`, `ss-12/BC-2.12.005.md`, `ss-14/BC-2.14.004.md`); 3 Class H historical records across 3 files MUST NOT be flagged per R3-C. **NEW DEFECT (found by repaired checker):** `BC-2.04.001.md:63` carries `TV-BV013` in the EC column (non-conforming ID) AND three cells in a two-column table — add to burn-down. Root cause corrected: `check-placeholders.py` was not missing em-dash detection; it had a value-blacklist on `test-sufficient` (0 occurrences in live tree). R2-RULE (VP-id whitelist) and R3-A/B/C (EC-shape triple-segment) specified at `cycles/phase-1d/ws3-phase2-checker-repair-design.md`. | HIGH | phase-1 gate | devops-engineer | R2-RULE + R3-A/B/C LANDED on develop (`e1299b07`) via PR #7 — **items 2+3 CLOSED** (checker repairs). Item 1 (EC-NEW-* registration) HELD per D-083. Burn-down open: 55 VP-col / 34 files + 9 EC-NEW-* / 4 files + BC-2.04.001:63 MUST clear before Phase-1 convergence gate (D-077). |
@@ -215,23 +209,12 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | BI-026 | BC-VP PROOF-METHOD/PROPERTY JOIN BROKEN — 12+ BC VP-table rows attribute properties the cited VP provably lacks. 30+ rows declare the wrong Proof Method. Highest-leverage mechanical fix (one automated join pass closes 42+ defects). | HIGH | phase-1d fix burst | product-owner + architect | Automated join: BC VP-rows × VP-INDEX rows; assert property text and proof-method token match. |
 | BI-027 | POLICY 5 QUOTED-EXCERPT FABRICATION — ~40% fabrication rate confirmed across shards 2, 4, 5, 8. POLICY 5 lint_hook returns null. Quoted text does not match actual source text; some cases invert the meaning. | HIGH | phase-1d fix burst | product-owner | Substring-presence assertion: every quoted string in a per-section citation must appear verbatim in the named section. |
 | BI-028 | VP CODE-FENCE SYMBOL VALIDATION + FOUR UNDEFINED TYPES — symbols in VP Rust harnesses that resolve to nothing. Four types with NO definition anywhere: `PathVerdict`, `FailureReason`, `IoError`, `AllowPrefix`. All five VP-007 harnesses fail to compile. | HIGH | phase-1d fix burst | architect | Symbol-extraction linter over VP rust code fences; reconcile api-surface.md vs module-decomposition.md naming; add missing type definitions. |
-| ~~BI-029~~ | ~~SS-07 DirIndex scope contradicted purity-boundary-map.md vs system-overview.md~~ | ~~HIGH~~ **CLOSED** | resolved | architect | CLOSED 2026-08-07 by D-061. DirIndex scope BROAD. BC-2.07.002/003/005/006 and DI-009 updated atomically. FACT-9+FACT-10 added. |
-| ~~BI-030~~ | ~~Exit-code input domain ambiguity — `config_error` membership, `--help`/`--version` precedence, standalone exit 2 owner~~ | ~~HIGH~~ **CLOSED** | resolved | architect | CLOSED 2026-08-07 by D-062/D-063. `config_error` = {invalid `--ignore` glob} ONLY. SS-14 BCs and CAP-014 updated. |
-| ~~BI-031~~ | ~~D-043 survivors: 6 sites declared "macOS, Linux, Windows" post-narrowing~~ | ~~HIGH~~ **CLOSED** | resolved | product-owner | CLOSED 2026-08-07 — 8 sites corrected; FACT-7+FACT-8 added. |
-| ~~BI-032~~ | ~~B-7 / PR #3 — D-039 suppression guard vacuous~~ | ~~HIGH~~ **CLOSED** | resolved | devops-engineer | CLOSED — fixed at `1fc1bce`. B-9/B-11 followed. |
-| ~~BI-033~~ | ~~B-8 / PR #3 — check-index-integrity FALSE-PASSES ON ZERO ITEMS~~ | ~~HIGH~~ **CLOSED** | resolved | devops-engineer | CLOSED core fix at `1fc1bce`. B-9/B-11 supersede — see BI-036. |
-| ~~BI-034~~ | ~~PASS-6 SKIP LIST RE-AUDIT REQUIRED (D-060). THREE REMAINING ENTRIES admitted on D-050 mutation-only evidence.~~ | ~~HIGH~~ **CLOSED** | resolved | devops-engineer | CLOSED 2026-08-07 — All three entries KEEP on pass-6 skip list. Positive-coverage evidence confirmed per D-057: `check-counts` reports 37 count checks passed; `check-adr-consistency` reports 8 ADRs checked; `check-title-sync` reports 66 BC titles validated. Resolution rests on D-057 positive-coverage evidence, not D-050 mutation-only evidence (which B-8 disproved). Caveats in `cycles/phase-1d/ws3-skip-list-audit.md`. |
-| ~~BI-035~~ | ~~HALF-DISCHARGED per D-073. All FACT-7/8/9/10 production patterns corrected. Selftest-22 rewrite in PR `fix/ws3-spec-lint-integrity`.~~ | MEDIUM **CLOSED** | resolved | devops-engineer | CLOSED 2026-08-08 — PR #7 squash-merged as `e1299b07`. Selftest-22 rewritten with teeth-test: prefix-extension DIVERGE assertion confirmed. All FACT-7/8/9/10 production patterns verified sound. |
-| ~~BI-036~~ | ~~B-11 STOPGAP LANDED (D-067) — structural independence NOT achieved; counter NOT moved above pre-filters. D-068 reversed D-067 deferral; D-069 ordered property-based restructure (`count_and_classify()`); D-070 bounded fix + Option-3 story (BI-040).~~ | ~~HIGH~~ **CLOSED** | resolved | pr-manager | CLOSED 2026-08-07 — B-11 resolved structurally via `count_and_classify()`. Counter above all pre-filters. Property test 300/300. Merged as `651ee3a`. Residual class → BI-040. D-071. |
 | BI-037 | F-15 MINOR / PR #3 — fail-open in `run_suppression_guard`. Reproduced in isolation but UNREACHABLE via the real entry point (guard 1 exits 2 first). Load-bearing guard ordering MUST be preserved in any refactor. | LOW | phase-2 (maintenance) | devops-engineer | Document ordering dependency explicitly. Do NOT change guard execution order without re-auditing all paths. |
-| ~~BI-038~~ | ~~F-17 MINOR / PR #3 — PR body still says "17/17 tests" and names the renamed `get_hs_ec_mapping()`. Stale.~~ | ~~LOW~~ **CLOSED** | resolved | pr-manager | CLOSED 2026-08-06 — PR body corrected to 24/24 and `get_hs_data()` at head `51e6be8`. |
 | BI-039 | `gh pr review --request-changes` IMPOSSIBLE on any PR in this repo: GitHub returns GraphQL "Can not request changes on your own pull request" — same root cause as D-021 (all PRs authored by `drbothen`). Working fallback: `gh pr comment --body-file`. Two pr-reviewer agents misdiagnosed as permission-classifier denial. Hook `validate-pr-review-posted` UNSATISFIABLE via `gh pr review` for every PR in this repo. | MEDIUM | phase-2 | devops-engineer | Switch pr-reviewer/pr-manager to `gh pr comment`; change hook's satisfaction condition to accept a PR comment as sufficient. |
 | BI-040 | `splitlines()`/`strip()` BYPASS FAMILY — surface MEASURED (D-082): **54 raw `splitlines()` sites + 63 `.strip()` sites across 14 files**. Family proven CLOSED-UNDER-DISCOVERY by full Unicode iteration: **8** codepoints where Python `splitlines()` diverges from CommonMark (U+000B U+000C U+001C U+001D U+001E U+0085 U+2028 U+2029) and **23** where `strip()` diverges (including U+00A0, U+3000). Primitive layer design at `cycles/phase-1d/bi-040-primitive-layer-design.md`. Still OPEN, still blocks WS-4 per D-072. | HIGH | phase-1 gate | architect + devops-engineer | Three-stage migration planned. WS-3b (design doc + fix PR per D-085). MANDATORY landing gate: assert family closed-under-discovery. Must close BEFORE WS-4 begins (D-072). |
 | BI-041 | `gen-bc-traceability.py` write mode is LOSSY: regenerates BC `\| Architecture Module \|` row from `bc-module-map.md` and DESTROYS hand-authored annotations it does not model. Orchestrator confirmed 6 annotation-bearing lines removed with zero surviving; reviewer found ~20+ annotated rows unreproducible. Destroyed: INC-MAP-002, INC-MAP-003 (D-062 routing), INC-MAP-004 (VP-016 formal assignment). MITIGATION LANDED: Gate 1 concurrency (bare invocation refuses) + Gate 2 (`--write` refuses unconditionally); function-level RuntimeError; reviewer verified 14 argv x 2 generators x 6 env vars: zero paths reach a write. RESOLUTION requires adjudication of annotation handling. | HIGH | phase-3 | architect | DO NOT enable write mode until adjudicated. |
-| ~~BI-042~~ | ~~`.toml` side APPLIED (D-076): 24 of 26 tautological patterns corrected (FACT-6a/6b structural limitation, BENIGN). Selftest-22 rewrite in PR `fix/ws3-spec-lint-integrity`.~~ | HIGH **CLOSED** | resolved | architect + product-owner | CLOSED 2026-08-08 — PR #7 squash-merged as `e1299b07`. Selftest-22 rewritten to drive production bindings; teeth-test: old tautological pattern exits 0 on prefix-extension vector; corrected pattern exits 1 with DIVERGE. BI-035 simultaneously closed. |
 | BI-043 | `parent.parent.parent` repo-root heuristic survives in 8 other checkers plus both new generators. Fails CLOSED (usability defect, not safety). A `.git`-less working tree can also escape to an ancestor and print OK. Fix uniformly before Phase 3 story worktrees launch. | LOW | phase-3 | devops-engineer | Fix before Phase 3 story worktrees. Addressed by BI-040/D-084 shared primitive layer. |
 | BI-044 | OPENED (HIGH, blocks WS-4). Digits-only EC grammar replicated at **17 sites across 6 files**: `check-counts.py` ×5, `check-id-resolution.py` ×3, `check-holdout-boundary.py` ×3, `check-index-integrity.py` ×3, `check-ec-injectivity.py` ×2, `gen-ec-registry.py` ×1. Consequence: non-conforming EC rows are simultaneously unresolvable, absent from injectivity DENOMINATOR, and missing from EC totals. | HIGH | phase-1 gate (WS-4) | devops-engineer | Detection repaired in `check-id-resolution.py` NOW ON DEVELOP (`e1299b07`). 16 sites remain: `check-counts.py` ×5, `check-holdout-boundary.py` ×3, `check-index-integrity.py` ×3, `check-ec-injectivity.py` ×2, `gen-ec-registry.py` ×1. Addressed by BI-040/D-084 shared primitive layer. |
-| ~~BI-045~~ | ~~Three non-hermetic selftest invocations (test 25 clean-pass, test 30 clean-pass, test 30 DEFECT phase) inherited ambient `SPEC_LINT_REPO_OVERRIDE`, making assertions vacuous — test 30's defect phase had been passing vacuously. Fixed: suite now reports 54/54 identically with and without the variable set.~~ | ~~HIGH~~ **CLOSED** | resolved | devops-engineer | CLOSED this session — PR `fix/ws3-spec-lint-integrity` commit `70794e3`. |
 
 ## Session Resume Checkpoint
 
@@ -265,5 +248,6 @@ Spec snapshot: PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies 
 | BI-042 binding adjudication | `cycles/phase-1d/bi-042-binding-adjudication.md` |
 | WS-3 Phase 2 checker repair design | `cycles/phase-1d/ws3-phase2-checker-repair-design.md` |
 | BI-040 shared primitive layer design | `cycles/phase-1d/bi-040-primitive-layer-design.md` |
+| Superseded decisions | `cycles/phase-1d/decisions-log.md` |
 
-Last Updated: 2026-08-08 — PR #7 MERGED as e1299b07; BI-042 CLOSED; BI-035 CLOSED; BI-023 checker repairs on develop; D-086/D-087/D-088; 0 of 3 clean passes; trajectory-tail →34→39→37→259
+Last Updated: 2026-08-08 — D-087 compact-state: 16 CLOSED blockers archived; D-002 superseded decision archived; current_cycle pointer set to phase-1d; 0 of 3 clean passes; trajectory-tail →34→39→37→259
