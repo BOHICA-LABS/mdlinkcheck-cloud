@@ -235,7 +235,25 @@ that policies are codified.
 | PG-007 | F-024 | T-NNN, EC-NNN, R-NNN reference families in BC Traceability sections are not resolved by any validator | POL-16 | Deferred — vsdd-factory consistency-validator ID resolution |
 | PG-008 | P3 pass | `[filled by ...]` placeholder text (73 occurrences, 35 BC files) passes all current gates; not covered by POL-14/POL-15 | None yet | Deferred — automation track (scripts/spec-lint/) |
 | PG-009 | P3-028 | POL-12's own verification step encodes `alive` as external-URL verdict, inverting binding decision D-014 | POL-12 (defective) | Deferred — automation track; resolve D-014 first |
+| PG-010 | data-repair burst 2026-08-08 | A binding decision ID can be cited in spec files while absent from the STATE.md Decisions Log, with no ID-continuity gate detecting the gap | None yet | Deferred — vsdd-factory consistency-validator + STATE.md burst gate |
+
+---
+
+### PG-010 — Binding Decision IDs Referenced in Specs While Absent from STATE.md Decisions Log
+
+| Field | Value |
+|-------|-------|
+| Origin finding | Data-repair burst (2026-08-08) — D-017..D-020 (exhaustive) cited as binding in prd.md changelog, BC-2.11.002.md, and adversary-pass-3.md but absent from the STATE.md Decisions Log at commit `ea3cd2d` and still absent after D-087 compaction at `a70306d` |
+| Process gap | A decision can be recorded as binding in spec files (PRD changelog, BC changelogs, adversary findings) while its corresponding STATE.md Decisions Log row is never written or is silently dropped. No gate performs an ID-continuity check over the Decisions Log (e.g., verify D-001..D-NNN has no gaps). The burst-log asserted "D-017..D-025 recorded in STATE.md" — D-021..D-025 were present; D-017..D-020 were not. An adversary finding (P3-001) cited D-018 as a "binding decision" and filed a CRITICAL finding against ADR-007 for contradicting it — yet D-018 had no row in the Decisions Log. |
+| Policy coverage | None — no policy currently requires or verifies Decisions Log ID continuity |
+| Disposition | **Deferred — factory engine** |
+| Deferral reason | The fix requires adding an ID-continuity check to the consistency-validator or STATE.md gate: after each burst, verify that the Decisions Log contains a row for every D-NNN from D-001 to the current maximum, with no gaps. This is a vsdd-factory gate-script change. The immediate repair (D-017..D-020 rows reconstructed from prd.md and cycle artifacts) is recorded in STATE.md with RECONSTRUCTED provenance markers. |
+| Detection note | An ID-continuity check over the Decisions Log would have caught this gap immediately: `grep -oP 'D-\d+' STATE.md \| sort -un` showing a jump from D-016 to D-021 is unambiguous evidence of missing rows. |
+| Upstream location | vsdd-factory: consistency-validator (Decisions Log ID-continuity check); STATE.md burst gate |
+
+---
 
 **PG-001 through PG-007:** Justified Deferral — vsdd-factory engine changes.
 **PG-008 through PG-009:** Deferred — automation track (scripts/spec-lint/ in progress).
-No Phase 2 product stories are created for any gap. All 9 gaps have explicit dispositions.
+**PG-010:** Deferred — vsdd-factory consistency-validator + STATE.md burst gate.
+No Phase 2 product stories are created for any gap. All 10 gaps have explicit dispositions.
