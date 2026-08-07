@@ -105,4 +105,23 @@ PRD v1.9 | 66 BCs (all carry owning module, criticality tier, VP anchor) | 25 VP
 
 ---
 
+## Session Resume Checkpoint (2026-08-07) — D-074 (post-PR #6 merge)
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-07 |
+| **Position** | phase-1d; PR #6 MERGED as `7b9aa6d` on `develop`; D-072..D-074 (exhaustive) recorded; BI-041/042/043 OPEN; BI-035 re-scoped (FACT-7/8 sound; FACT-9/10 → BI-042); no open PRs; `develop` at `7b9aa6d`; 0 of 3 clean passes |
+| **Convergence counter** | 0 of 3 clean passes; trajectory-tail →34→39→37→259; pass 6 blocked in order: (1) BI-042 (FIRST, once `.factory/specs` editor releases per D-073); (2) WS-3 skip-list re-audit (D-060/BI-034 + BI-023); (3) WS-3b Option-3 story (BI-040 as landing gate); (4) WS-4 ~306-finding remediation burst — BLOCKED on BI-040 per D-072; (5) WS-5 pass 6 + Phase 1 gate |
+| **Next burst** | BI-042 FIRST (once `.factory/specs` editor releases); WS-3 skip-list re-audit; WS-3b; WS-4; WS-5. Standing: autonomy level 4 merge-only-after-full-review-lifecycle; spec-lint ADVISORY until Phase-1 convergence; macOS-latest-only; SS-10 `--online` IN scope. |
+
+### Artifact Snapshot
+
+PRD v1.11 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-074 (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/036/038. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/034/035/037/039/040/041/042/043.
+
+*Superseded by D-075 session wrap.*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

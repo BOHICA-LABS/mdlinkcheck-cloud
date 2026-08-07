@@ -682,3 +682,58 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 **Dim-7 Attestation:** Agents dispatched: pr-reviewer (PR #6 at `a642d24`, `0ad5c5e`, `06b58b6`, `90840ca`), state-manager (this burst).
 
 **Closes:** (none this burst). **Opens:** BI-041, BI-042, BI-043. **Re-scoped (open):** BI-035. **Updated (open):** BI-021.
+
+---
+
+## Archived STATE.md Steps (overflow — evicted from Current Phase Steps 2026-08-07, burst 16)
+
+| Step | Agent | Status | Output |
+|------|-------|--------|--------|
+| CV5-001 CLOSED + FACT-7+FACT-8 added; D-055..D-060; BI-025..BI-035 opened; PR #3 B-11 REQUEST_CHANGES (B-7/B-8) | state-manager + pr-reviewer | COMPLETE | burst-13 artifacts committed; `check-canonical-facts.py` FACT-7+FACT-8 added (verified sound); BI-031 CLOSED; BI-032/033/034/035 OPENED; `check-index-integrity` removed from pass-6 skip list; pr-reviewer REQUEST_CHANGES at 6d954ab (B-7 vacuous suppression guard, B-8 zero-item false-pass) |
+
+---
+
+## Burst: burst 16 — WS-3 Phase 1 (read-only skip-list audit); BI-034 RESOLVED; BI-023 corrected; D-075; session wrap D-075 (2026-08-07)
+
+**Parent-commit:** `3734c1e` (factory(phase-1d): WS-3 Phase 1 skip-list audit complete; ws3-skip-list-audit.md committed)
+
+**Adversary verdict:** No new adversary pass this burst. This burst is a state-manager session wrap only: WS-3 Phase 1 read-only audit findings recorded, BI-034 RESOLVED, BI-023 corrected, D-075 codified, SESSION-HANDOFF.md RESUME SNAPSHOT D-075 written.
+
+**Headline outcome:** WS-3 Phase 1 (read-only skip-list re-audit per D-060) COMPLETE. Findings at `cycles/phase-1d/ws3-skip-list-audit.md` (prior factory commit `3734c1e`). BI-034 RESOLVED: all three skip-list entries (check-counts, check-adr-consistency, check-title-sync) KEEP — positive-coverage evidence per D-057 confirmed. BI-023 corrected: (a) 34 BC files / 55 em-dash rows (not 12+); (b) 11 `EC-NEW-` occurrences across 5 files (BC-2.07.005 omitted from audit list). Two orchestrator leads REFUTED: `count_domain_decisions()` dead code, `build_heading_ids()` over-inclusive not bypass. D-075 (BI-042 PREEMPTIVE, not serializing). No code changed, no PR opened. `develop` at `7b9aa6d`.
+
+**Files touched (Dim-1): 7 unique files**
+
+- `.factory/STATE.md` — timestamp advanced to 2026-08-08T02:45:00Z; current_step updated; Last Updated advanced; Current Phase Steps: WS-3 Phase 1 row added, oldest row (CV5-001 CLOSED) evicted to burst-log; Decisions Log: D-075 appended; Blocking Issues: BI-034 struck through (RESOLVED), BI-023 corrected (34 files/55 rows, 5 files EC-NEW-); Session Resume Checkpoint: D-075 (D-074 archived to session-checkpoints.md); Concurrent Cycles updated; spec snapshot D-001..D-075; Historical Content row added
+- `.factory/SESSION-HANDOFF.md` — D-074 header marked SUPERSEDED by D-075; §RESUME SNAPSHOT D-075 appended; Latest pointer updated to D-075
+- `.factory/cycles/phase-1d/burst-log.md` — evicted CV5-001 Current Phase Step archived; this entry (burst 16)
+- `.factory/cycles/phase-1d/lessons.md` — lessons 37-40 appended to Policy Candidates table
+- `.factory/cycles/phase-1d/session-checkpoints.md` — D-074 checkpoint archived
+- `.factory/cycles/phase-1d/blocking-issues-resolved.md` — BI-034 closure row appended
+- *(No .factory/specs/ files modified — read-only audit only per standing instruction)*
+
+**Key events this session:**
+
+1. **WS-3 Phase 1 read-only audit COMPLETE.** All three pass-6 skip-list entries (check-counts, check-adr-consistency, check-title-sync) evaluated against D-057 positive-coverage criterion: check-counts reports "37 count checks passed"; check-adr-consistency reports "8 ADRs checked"; check-title-sync reports "66 BC titles validated". All three KEEP. BI-034 RESOLVED.
+
+2. **BI-023 corrected (counts under-estimated by 3x).** The orchestrator's prior count of "12+ BC files" for the em-dash bypass was actually 34 BC files / 55 rows. The "4 files" count for EC-NEW- was actually 5 files (BC-2.07.005 omitted). Ground truth from grep sweep, not from memory. Lesson 38 captured.
+
+3. **Two orchestrator leads REFUTED.** `count_domain_decisions()` is dead code — confirmed never called anywhere. `build_heading_ids()` is over-inclusive (captures both BC headings and subsystem-header lines) — confirmed correct behavior in context, not a bypass. Lesson 39 captured.
+
+4. **D-075 — BI-042 clarified as PREEMPTIVE.** D-073 "BI-042 FIRST" means preemptive (jumps to front when the lock releases), not serializing (does not block unrelated work while the lock is held). WS-3 Phase 2 items 2+3 (checker-only) proceed immediately. Lesson 40 captured.
+
+5. **hook discipline — three PostToolUse violations resolved iteratively.** STATE.md write had three simultaneous hook violations: (1) banner line count off by 1 (252 claimed, 251 actual); (2) D-075 Decisions Log row missing Rationale column (5 cells vs 6 required); (3) trajectory_tail missing from Last Updated cell (3rd prescribed site). All three fixed; validate-trajectory-tail-cell-completeness confirmed prescribed sites include `current_step` frontmatter, Phase Progress Finding Progression, AND the Last Updated metadata cell.
+
+**Codifications:** D-075 recorded. BI-034 CLOSED. BI-023 corrected counts recorded.
+
+**Artifact state at burst close:**
+PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-204 (205 ids) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-075 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/034/036/038. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/035/037/039/040/041/042/043.
+
+**Dim-2 Attestation:** No canonical-facts.toml mutation this burst. `check-canonical-facts.py` last reported exit 0 at burst-15 close (all 31 bindings match). No FACT-N entries added or modified in this burst. Canonical facts corpus unchanged; attestation is a pass-through. WS-3 skip-list audit confirmed checkers KEEP; no checker code modified.
+
+**Dim-5 Attestation:** STATE.md — 251 lines, timestamp 2026-08-08T02:45:00Z, version 2.5, status: draft, producer: state-manager. SESSION-HANDOFF.md — §RESUME SNAPSHOT D-075 appended; D-074 marked SUPERSEDED; Latest → D-075. burst-log.md — 16 bursts. lessons.md — 40 lessons. blocking-issues-resolved.md — BI-034 closure row added. session-checkpoints.md — D-074 checkpoint archived.
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 unchanged. Pass 6 blocked in order: (1) BI-042 (PREEMPTIVE, specs-gated — once `.factory/specs` editor releases per D-075); AND (2) WS-3 Phase 2 items 2+3 (checker-only, runnable immediately); then WS-3 Phase 2 item 1 (specs-gated, same gate as BI-042); then WS-3b (BI-040); then WS-4 — BLOCKED on BI-040 AND BI-042 per D-072/D-075; then WS-5.
+
+**Dim-7 Attestation:** Agents dispatched this session: state-manager (this burst). WS-3 Phase 1 audit executed in prior commit `3734c1e` (devops-engineer / orchestrator). No new agent dispatches in this wrap burst.
+
+**Closes:** BI-034 (pass-6 skip-list re-audit complete; all three entries KEEP). **Updates:** BI-002 (WS-3 Phase 1 DONE; BI-034 RESOLVED; next: BI-042 PREEMPTIVE + WS-3 Phase 2 items 2+3). BI-023 (corrected counts: 34 files/55 rows, 5 files EC-NEW-).

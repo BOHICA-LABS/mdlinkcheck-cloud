@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-074
+  Latest: §RESUME SNAPSHOT D-075
 -->
 
 ---
@@ -1052,7 +1052,7 @@ l. **BI-040 (Option-3 story):** `splitlines()`/`strip()` bypass family DEFERRED 
 
 ---
 
-## §RESUME SNAPSHOT D-074
+## §RESUME SNAPSHOT D-074 [SUPERSEDED by D-075 — retained for audit]
 
 *Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-071.*
 
@@ -1168,3 +1168,125 @@ l. **BI-040 (Option-3 story):** `splitlines()`/`strip()` bypass family DEFERRED 
 m. **BI-041 (gen-bc-traceability LOSSY):** DO NOT enable write mode until annotation-handling adjudicated. Gate 1 + Gate 2 mitigations landed; 14 argv x 2 generators x 6 env vars verified zero write paths.
 
 n. **BI-042 (FACT-9/10 tautological):** FIRST work item per D-073. 17 of 31 bindings literal-baked prefix-presence. Selftest 22 negative vector passes the real FACT-10 production pattern. Adjudicate value-mismatch capture form before closing.
+
+---
+
+## §RESUME SNAPSHOT D-075
+
+*Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-074.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d, still 0 of 3 clean adversarial passes. WS-3 Phase 1 (read-only skip-list audit) COMPLETE this session. Findings at `cycles/phase-1d/ws3-skip-list-audit.md`. BI-034 RESOLVED: all three skip-list entries (check-counts, check-adr-consistency, check-title-sync) KEEP on pass-6 skip list — positive-coverage evidence per D-057 confirmed (check-counts: 37 count checks; check-adr-consistency: 8 ADRs; check-title-sync: 66 BC titles). BI-023 CORRECTED: (a) 34 BC files / 55 em-dash rows (not 12+); (b) 11 `EC-NEW-` occurrences across 5 files (BC-2.07.005 also carries it, omitted from prior audit list). Two orchestrator leads REFUTED: `count_domain_decisions()` confirmed dead code (never called); `build_heading_ids()` confirmed over-inclusive, NOT a bypass. D-075 recorded: D-073 clarified as PREEMPTIVE — BI-042 preempts the queue the MOMENT the concurrent `.factory/specs` editor releases; it does NOT block checker-only work. No code changed, no PR opened. `develop` at `7b9aa6d`. Exactly two worktrees. No open PRs. **FIRST ACTION ON RESUME: TWO PARALLEL TRACKS — (1) BI-042 (specs-gated: adjudicate FACT-9/10 binding-pattern form, re-verify all 31 bindings, close BI-035 — FIRST once `.factory/specs` editor releases per D-075); AND (2) WS-3 Phase 2 items 2+3 (checker-only, NOT specs-gated, runnable immediately: repair check-placeholders em-dash detection; add non-conforming EC-shape detection to check-id-resolution).**
+
+### HEADS
+
+Verify each at resume before taking action. Resolve factory-artifacts HEAD via `git -C .factory log -1` — never trust a literal SHA recorded here for the current HEAD.
+
+| Ref | SHA | Note |
+|-----|-----|------|
+| `origin/main` | `78a9f77` | CI workflows live; PR #1 merged |
+| `origin/develop` | `7b9aa6d` | integration branch after PR #6 merged (squash) |
+| `.factory` / `factory-artifacts` | resolve via `git -C .factory log -1 --format=%H` | latest burst = D-075 session wrap |
+
+- Main repo working tree: branch `develop`, tree clean. No open PRs.
+- No story worktrees exist (Phase 3 not started).
+- Stash list: EMPTY in all worktrees (D-056 still valid).
+- `.factory/hooks/verify-sha-currency.sh`: NOT present — post-push hook verification gap (record only).
+
+### WORKSTREAMS
+
+**BI-042 (FIRST — D-073/D-075, PREEMPTIVE, specs-gated):** Once `.factory/specs` editor releases the tree — adjudicate correct binding-pattern form for FACT-9/FACT-10 (value-mismatch capture, not prefix presence), re-verify all 31 bindings, close BI-035. The current 17 tautological bindings use literal-baked prefix-presence checks; selftest 22's negative vector passes the real FACT-10 pattern. DOES NOT block checker-only work (D-075).
+
+**WS-3 Phase 2 (checker-only items, NOT specs-gated, runnable immediately):**
+- Item 2: Repair `check-placeholders.py` to detect em-dash `—` in VP-NNN column (34 BC files / 55 rows affected). No `.factory/specs/` writes needed.
+- Item 3: Add non-conforming EC-shape detection to `check-id-resolution.py` (11 `EC-NEW-` occurrences across 5 files). No `.factory/specs/` writes needed.
+- Item 1 (specs-gated, same gate as BI-042 per D-075): Register EC-NEW-N live table rows in test-vectors.md for ~9-11 rows across 5 BC files. WAITS for `.factory/specs/` editor to release.
+
+**WS-3b (after BI-042 + WS-3 item 1): Option-3 story creation.** Author a story carrying BI-040 (the `splitlines()`/`strip()` bypass family per D-070). MANDATORY landing gate: assert the family closed-under-discovery (not enumeration of 2). Must close BEFORE WS-4 begins (D-072).
+
+**WS-4 (BLOCKED on BI-040 AND BI-042 per D-072/D-075): ~306-finding remediation burst.** BI-024 (four unguarded axes: VP proof-method join, POLICY 5 substantiation, code-fence symbol validation, stale directives) + BI-023 (checker bypasses) + BI-025 (five vacuous VPs) + BI-026 (BC-VP property join) + BI-027 (POLICY 5 fabrication) + BI-028 (VP code-fence symbols). DO NOT START until BI-040 (WS-3b) AND BI-042 both close. Verify every fix at all restatement sites.
+
+**WS-5: Pass 6 adversarial review + Phase 1 gate.** After all workstreams complete. Three clean passes needed; streak resets from ZERO at the frozen HEAD used for pass 6. After 3 clean passes: flip `spec-lint` to required status check (D-029/D-032). Human approval gate. Begin Phase 2 Story Decomposition.
+
+### STANDING DIRECTIVES
+
+| Directive | Status |
+|-----------|--------|
+| Autonomy level 4 — agents merge ONLY after full pr-manager review lifecycle | IN FORCE (D-028/D-031) |
+| `spec-lint` CI job ADVISORY until Phase-1 convergence gate | IN FORCE (D-029/D-032) |
+| macOS-latest ONLY for Test + Build release jobs | IN FORCE (D-043) |
+| SS-10 `--online` IN scope — do not re-propose descope | IN FORCE (D-054) |
+| Wrap at 430K tokens at a clean boundary | STANDING |
+| No multi-agent fan-outs above 350K tokens | STANDING |
+| Wrappers at `.factory/bin/` (NOT `plugins/vsdd-factory/bin/`) | IN FORCE (D-047) |
+| `gh pr review --request-changes` IMPOSSIBLE — use `gh pr comment --body-file` | BI-039 |
+| BI-040 must close BEFORE WS-4 begins — hard ordering | D-072 |
+| BI-042 is FIRST work item once .factory/specs editor releases (PREEMPTIVE per D-075) | D-073/D-075 |
+| BI-042 does NOT block checker-only work (D-075) | D-075 |
+| gen-bc-traceability write mode PROHIBITED until adjudicated (BI-041) | D-074 |
+
+### PENDING USER-APPROVED WORK
+
+| Decision | Approval | Status |
+|----------|----------|--------|
+| D-028: Agents MAY merge PRs after full pr-manager review lifecycle | Granted by operator | In force |
+| D-029/D-032: Flip `spec-lint` to required status check at Phase 1 approval | Granted by operator | Not started — gated on 3 clean passes |
+| D-031: Autonomy level 4 | Granted by operator | In force |
+| D-043: macOS-only platform narrowing | Granted by operator | APPLIED |
+| D-057: D-050 correction (mutation NECESSARY BUT NOT SUFFICIENT) | Operator ruling | RECORDED |
+| D-060: Pass-6 skip-list re-audit ordered | Operator ruling | COMPLETE (WS-3 Phase 1 done — BI-034 RESOLVED) |
+| D-070: Bounded fix now + Option-3 story for the class | Operator ruling | APPLIED; WS-3b pending |
+| D-072: BI-040 must close before WS-4 — hard ordering | Operator ruling | ENFORCED |
+| D-073: BI-042 FIRST work item once .factory/specs frees up | Operator ruling | PENDING (specs-gated) |
+| D-074: PR #6 merged as 7b9aa6d under level-4 autonomy; cherry-pick over rebase | Orchestrator | DONE |
+| D-075: D-073 clarified PREEMPTIVE; BI-042 does NOT block checker-only work | human/operator | RECORDED |
+
+### WORKTREE INVENTORY
+
+| Path | Branch | SHA | Status |
+|------|--------|-----|--------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` (root) | `develop` | `7b9aa6d` | active; tree clean; no open PRs |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | `git -C .factory log -1` | active |
+
+`feature/bi-012-generators` branch and `.worktrees/ws-b-generators` worktree REMOVED. Commit `78ef3a4` recoverable via reflog. Stash list EMPTY (D-056 still valid). No Phase 3 story worktrees exist.
+
+### DECISION DELTA
+
+Decisions D-001 through D-074 were committed in prior bursts. This wrap adds D-075 (exhaustive).
+
+| ID | Decision | Rationale | Phase | Date |
+|----|----------|-----------|-------|------|
+| D-075 | D-073 clarified as PREEMPTIVE, not serializing. BI-042 preempts the queue the MOMENT the concurrent `.factory/specs` editor releases the tree; it does NOT block checker-only work. The single HARD constraint is that BI-042 completes BEFORE WS-4 begins (D-072). | Keep-moving forbids idling on a lock we do not hold. WS-3 therefore proceeded immediately. | phase-1d | 2026-08-07 |
+
+### CAVEATS
+
+a. **`.factory/hooks/verify-sha-currency.sh` ABSENT.** Post-push hook verification gap. Record only; not an implied pass.
+
+b. **BI-035 HALF-DISCHARGED.** FACT-7/8 production patterns verified sound. FACT-9/10 (17 of 31 bindings tautological) tracked to BI-042 — FIRST work item once `.factory/specs` frees.
+
+c. **D-040/D-057 skip-list discipline:** BI-034 RESOLVED (WS-3 Phase 1 complete). Pass-6 skip list KEEP: check-counts / check-adr-consistency / check-title-sync (positive-coverage evidence per D-057). `check-ec-injectivity`, `check-id-resolution`, `check-placeholders` MUST NOT go on the pass-6 skip list until WS-3 Phase 2 closes them.
+
+d. **Streak reset:** 0/3 clean-pass counter re-counts from ZERO against whatever HEAD is frozen when pass 6 runs.
+
+e. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
+
+f. **Allowlists / skip-lists in checkers are FORBIDDEN (D-039).** Suppression is worse than editing the spec.
+
+g. **`prd.md` versioned changelog entries are IMMUTABLE (D-034).** Do not update them to reference newer VP/EC/BC ids.
+
+h. **BI-021/BI-043:** `parent.parent.parent` repo-root heuristic in 8 checkers + 2 generators fails CLOSED from linked worktrees. Fix before Phase 3. Use `SPEC_LINT_REPO_OVERRIDE` as interim.
+
+i. **BI-022:** `rustup toolchain install nightly` in `fuzz-smoke` job still unpinned. Pin before Phase 6.
+
+j. **Wrappers at `.factory/bin/`** — pr-manager agents may phantom-report exit-127 looking at `plugins/vsdd-factory/bin/`. Pass the explicit path.
+
+k. **BI-039:** `gh pr review --request-changes` IMPOSSIBLE on own PRs. Use `gh pr comment --body-file` for review posting; ensure hook satisfaction condition accepts PR comments.
+
+l. **BI-040 (Option-3 story):** `splitlines()`/`strip()` bypass family DEFERRED per D-070. MANDATORY landing gate: assert family closed-under-discovery, not enumeration of 2. Candidate remedy: `split("\n")` instead of `str.splitlines()`. HARD ORDERING: must close before WS-4 (D-072).
+
+m. **BI-041 (gen-bc-traceability LOSSY):** DO NOT enable write mode until annotation-handling adjudicated. Gate 1 + Gate 2 mitigations landed; 14 argv x 2 generators x 6 env vars verified zero write paths.
+
+n. **BI-042 (FACT-9/10 tautological):** FIRST work item per D-073/D-075 PREEMPTIVE — once `.factory/specs` frees up. 17 of 31 bindings literal-baked prefix-presence. Selftest 22 negative vector passes the real FACT-10 production pattern. Adjudicate value-mismatch capture form before closing. DOES NOT block checker-only work (D-075).
+
+o. **BI-023 (skip-list bypasses — CORRECTED):** (a) `check-placeholders.py` em-dash bypass: 34 BC files / 55 rows (not 12+). (b) `check-id-resolution.py` EC-NEW- gap: 11 occurrences across 5 files (BC-2.07.005 included). WS-3 Phase 2 items 2+3 address checker fixes (NOT specs-gated, runnable immediately). Item 1 (register EC-NEW-N rows in test-vectors.md) IS specs-gated — same gate as BI-042 per D-075.
