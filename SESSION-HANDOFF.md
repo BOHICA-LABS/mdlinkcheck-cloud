@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT burst-19
+  Latest: §RESUME SNAPSHOT D-090
 -->
 
 ---
@@ -1397,7 +1397,7 @@ f. **Never dispatch a burst onto a branch another burst may merge or delete (D-0
 
 ---
 
-## §RESUME SNAPSHOT D-088 [SUPERSEDED by burst-19 — retained for audit]
+## §RESUME SNAPSHOT D-088 [SUPERSEDED by D-090 — retained for audit]
 
 *Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-085.*
 
@@ -1481,7 +1481,7 @@ g. **D-088:** Do NOT use `git add -A` or `git add .` in state-manager bursts whi
 
 ---
 
-## §RESUME SNAPSHOT burst-19
+## §RESUME SNAPSHOT burst-19 [SUPERSEDED by D-090 — retained for audit]
 
 *Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-088.*
 
@@ -1566,3 +1566,129 @@ g. **Burn-down MUST clear before Phase-1 gate (D-077):** 55 VP-col rows / 34 BC 
 h. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
 
 i. **D-088:** Do NOT use `git add -A` or `git add .` in state-manager bursts while any PR agent is in flight. Stage by explicit path.
+
+---
+
+## §RESUME SNAPSHOT D-090
+
+*Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes burst-19.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d, still **0 of 3 clean passes**. BI-040 is MERGED: PR #8 squash-merged to develop as `c2e5cf1` (from `e1299b0`), landing the shared spec-lint primitive layer across all 15 checkers/generators and closing **BI-040, BI-043, BI-044**. Baseline preserved exactly on merged develop — `check-placeholders.py` **80** findings/133 files, `check-id-resolution.py` **10** findings/134 files, 55/55 selftests, 10/10 primitive tests. Per PG-011 the perimeter sweep IS **pass 6** (complete, 249 findings executed); the next adversary pass is **pass 7**. WS-4 is now UNBLOCKED and fully scoped by execution at **178 items** (138 mechanical + 40 POLICY-5), replacing the discredited "~306". **FIRST ACTION ON RESUME: WS-4-G Shard-A, starting with the BC-2.05.003 DD-007 misreference (3 lines) — the single MEANING-INVERTED citation.**
+
+### HEADS
+
+Verify each at resume before taking action. Resolve factory-artifacts HEAD via `git -C .factory log -1` — never trust a literal SHA recorded here for the current HEAD.
+
+| Ref | SHA | Note |
+|-----|-----|------|
+| develop | `c2e5cf1` | PR #8 squash-merge (BI-040 primitive layer); local == `origin/develop`; tree CLEAN; PUSHED |
+| factory-artifacts | run `git -C .factory log -1` | current HEAD — do not cite a literal SHA here |
+
+- Main repo working tree: branch `develop` (`c2e5cf1`). Tree CLEAN.
+- Worktrees: exactly TWO — main checkout (`develop`, `c2e5cf1`) and `.factory` (`factory-artifacts`). The `bi-040-primitive-layer` worktree was removed post-merge. No story worktrees (Phase 3 not started).
+- Open PRs: NONE.
+- `.factory` uncommitted: `logs/dispatcher-internal-2026-08-07.jsonl`, `logs/events-2026-08-07.jsonl`, `sidecar-learning.md` — deliberately excluded from state bursts; NOT a loss.
+- Nothing is local-only. Everything is backed up to origin.
+- `.factory/hooks/verify-sha-currency.sh`: NOT present in this project — post-push hook verification gap (record only, not an implied pass).
+
+### WORKSTREAMS
+
+**WS-4 (remediation) — UNBLOCKED, not started.**
+
+Executed scope **178 items**:
+- 55 VP-column `—` rows across 34 BC files
+- 25 `[filled by ...]` placeholders
+- (those two = the 80 `check-placeholders` baseline)
+- 9 `EC-NEW-*` rows across 4 BC files + 1 `TV-BV013` at `BC-2.04.001.md:63` (= the 10 `check-id-resolution` baseline)
+- 43 BC VP-table proof-method join repairs (~20 BC files, via VP-INDEX authority lookup)
+- 5 vacuous VP rewrites (VP-015/016/017/019/023, BI-025)
+- 40 POLICY-5 quoted-excerpt fabrications (39 FABRICATED + 1 MEANING-INVERTED)
+
+RESUME NEXT-ACTION: dispatch **WS-4-G Shard-A first** — fix `BC-2.05.003.md` lines 37, 78, 81, which cite **DD-007** for the HTML-anchor narrow carve-out. DD-007 actually governs nonexistent-PATH fail-fast behavior; the correct targets are **DI-007** ("HTML anchor extraction has narrow, well-defined scope", per vp-020 / VP-INDEX) and **DD-003**. Orchestrator-confirmed by execution. Then the remaining POLICY-5 shards (A:12 / B:11 / C:8 / D:9 by subsystem), then the 138 mechanical items sharded SS-01..SS-14.
+
+**POLICY-5 predicate — COMPLETE (gate #27 Q4 prerequisite satisfied).**
+
+Population **132** citations, all citing `capabilities.md`, orchestrator-verified independently. Verdicts: 92 VERBATIM / 39 FABRICATED / 1 MEANING-INVERTED / 0 wrong-section / 0 unresolvable / 0 unclassifiable. Rate **30.3%**, not BI-027's "~40%"; count **40**, not "~53". Honest sensitivity boundary: count is 40 WITH whitespace/em-dash/smart-quote normalization and 45 WITHOUT — orchestrator independently reproduced the raw-substring figure at 87/132, corroborating this. Normalization was justified as correcting source line-wraps.
+
+**Pass 7 — not started.** RESUME NEXT-ACTION: run only after WS-4 remediation. Streak re-counts from ZERO against whatever HEAD is frozen when it runs. Severity reporting MUST use **ranges**, not point totals (PG-012, operator ruling gate #27 Q5).
+
+### PENDING OPERATOR-APPROVED-BUT-UNSTARTED WORK
+
+- **BI-046 (NEW, MEDIUM, blocks phase-3):** separate reviewer identity/token so PR approval is genuinely independent. Operator condition at gate #28, reconfirmed in a gate-#28 addendum. Required BEFORE story PRs begin in Phase 3 — not now.
+- **Deferred out of PR #8, none to be lost:** W1 (5 remaining inline EC grammar literals → WS-4 intake); W10/S4/SUGGESTION-1 (G4 guard proof arm + dead `OVERRIDE_PATTERN` variable → next burst); W12 (text-only demo evidence, accepted for a CLI tool).
+- **~78 aggregate P6 findings** still require operator scoping before dispatch — multi-file contradiction chains, not mechanical edits.
+- **Pass-5 total 36 vs 37** remains DISPUTED, unadjudicated by ruling.
+- **STATE.md is ~58 lines over the 200-line soft target** structurally: the Decisions Log (88 rows) dominates. Needs a policy call, NOT another compaction pass.
+
+### CORRECTIONS REGISTER (carry as a standing caution)
+
+Every headline figure in the WS-4 chain was overstated in the SAME direction. The next session distrusts any un-executed number:
+
+| Claimed | Corrected | Field |
+|---------|-----------|-------|
+| ~306 | 178 | WS-4 total scope |
+| 259 (perimeter sweep) | 249 | executed pass-6 findings |
+| ~53 | 40 | POLICY-5 FABRICATED + MEANING-INVERTED |
+| ~40% | 30.3% | POLICY-5 fabrication rate |
+| ~42 CRITICAL | 40 | BI-027 CRITICAL count |
+| 16 BI-044 sites | 14 | actual sites (17 − 3 already fixed) |
+| 11/5 files CV5 | 1 | CV5 findings |
+| 11/5 files EC-NEW-* | 9/4 files | actual EC-NEW-* scope |
+| ~36 pass-5 actionable | 37 | (under-statement; the one exception) |
+| 2026-08-08 (future-dated) | 2026-08-07 | corrected across 7 files, 26 occurrences |
+| D-017..D-020 lost | restored | 4 binding decisions reconstructed (PG-010) |
+
+### STANDING DIRECTIVES
+
+| Directive | Rule |
+|-----------|------|
+| Autonomy | Level 4 — agents merge PRs after full pr-manager review lifecycle (D-028/D-031) |
+| spec-lint | ADVISORY until Phase-1 gate; flip to required at gate (D-029/D-032) |
+| Platform matrix | macOS-latest ONLY in CI (D-043) |
+| SS-10 `--online` | IN SCOPE — do not re-propose descope (D-054) |
+| Context wrap | Wrap at 430K at clean boundaries; no fan-outs above 350K |
+| Wrappers | At `.factory/bin/` (D-047) |
+| `gh pr review` | IMPOSSIBLE — use `gh pr comment --body-file` (BI-039) |
+| `gen-bc-traceability` write mode | PROHIBITED until adjudicated (BI-041) |
+| Allowlists/skip-lists in checkers | FORBIDDEN (D-039) |
+| `prd.md` changelog entries | IMMUTABLE (D-034) |
+| `git add -A` in state bursts | FORBIDDEN while any PR agent is in flight — stage by explicit path (D-088) |
+| BI-022 fuzz nightly | Pin before Phase 6 |
+| WS-4 scope | CONFIRMED by execution: 178 items (138 mechanical + 40 POLICY-5) |
+| Severity reporting | MUST use ranges, not point totals (PG-012, gate #27 Q5) |
+| Differential verification | MUST carry positive non-vacuity assertion (Lesson 46) |
+
+### WORKTREE INVENTORY
+
+Exactly two worktrees:
+
+| Path | Branch | HEAD | Note |
+|------|--------|------|------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | `develop` | `c2e5cf1` | main checkout; tree clean |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | run `git -C .factory log -1` | factory artifacts |
+
+`bi-040-primitive-layer` worktree REMOVED post-merge. Stash list EMPTY (D-056 still valid).
+
+### DECISION DELTA (D-090)
+
+| ID | Decision | Rationale | Phase | Date |
+|----|----------|-----------|-------|------|
+| D-090 | Session wrap — durable RESUME SNAPSHOT D-090 committed to factory-artifacts | Zero-context resume capability; single-commit burst TD-VSDD-053; wrap triggered at end of session before context clear | phase-1d | 2026-08-07 |
+
+### CAVEATS
+
+a. **`.factory/hooks/verify-sha-currency.sh` STILL ABSENT** — post-push hook verification gap. Record only; not an implied pass. The wrap protocol's `verify-sha-currency.sh` step could NOT be run.
+
+b. **Lesson 46 `[process-gap]`:** two orchestrator verification harnesses produced FALSE PASSES because **zsh does not word-split unquoted variables** — `for c in $CHECKS` iterated once with the whole string, both sides emitted the identical error, and `diff` reported IDENTICAL. Caught only by asserting non-vacuity (expected line count + expected headline findings) against a known baseline. **Every differential verification must carry a positive non-vacuity assertion.**
+
+c. **spec-lint remains ADVISORY** until the Phase-1 gate; flip to required on 3 clean passes (D-029/D-032).
+
+d. **BI-041:** `gen-bc-traceability.py --write` remains PROHIBITED pending adjudication.
+
+e. **D-077 burn-down** must clear before the Phase-1 gate; it is now exactly the WS-4 scope (178 items): 55 VP-col rows / 34 BC files · 9 EC-NEW-* rows / 4 BC files · BC-2.04.001:63.
+
+f. The reusable output-identity harness (both the `SPEC_LINT_REPO_OVERRIDE` path and the no-override CI path, with the four anti-vacuity assertions and the literal-loop zsh requirement) is documented in the burst-19/20 entries — reuse it, do not reinvent it.
+
+g. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
