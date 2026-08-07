@@ -134,6 +134,18 @@ if ! run_suppression_guard "$LINT_DIR"; then
 fi
 echo ""
 
+# ── Pre-flight guard 3: primitive module unit tests (G3) ─────────────────
+# Verify spec_lint_primitives.py implements all public API functions correctly.
+# These tests run in a separate Python runner (test_primitives.sh) and do NOT
+# count toward EXPECTED_TEST_COUNT / TESTS_RUN — primitive unit tests are a
+# different category from checker selftests.
+# Stage: WS-3b Stage 1 (BI-040). If this guard fires, Stage 1 is incomplete.
+echo "Pre-flight structural guard: running spec_lint_primitives unit tests (G3)..."
+if ! bash "$LINT_DIR/selftest/test_primitives.sh"; then
+    exit 2
+fi
+echo ""
+
 # ── Helper: make_temp ──────────────────────────────────────────────────────
 make_temp() {
     local d
