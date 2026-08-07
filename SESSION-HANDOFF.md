@@ -1571,11 +1571,11 @@ i. **D-088:** Do NOT use `git add -A` or `git add .` in state-manager bursts whi
 
 ## §RESUME SNAPSHOT D-090
 
-*Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes burst-19.*
+*Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes burst-19. Updated: 2026-08-07 burst-21 (WS-4-G Shard-A COMPLETE, D-091).*
 
 ### RESUME IN ONE BREATH
 
-mdlinkcheck-cloud is in phase-1d, still **0 of 3 clean passes**. BI-040 is MERGED: PR #8 squash-merged to develop as `c2e5cf1` (from `e1299b0`), landing the shared spec-lint primitive layer across all 15 checkers/generators and closing **BI-040, BI-043, BI-044**. Baseline preserved exactly on merged develop — `check-placeholders.py` **80** findings/133 files, `check-id-resolution.py` **10** findings/134 files, 55/55 selftests, 10/10 primitive tests. Per PG-011 the perimeter sweep IS **pass 6** (complete, 249 findings executed); the next adversary pass is **pass 7**. WS-4 is now UNBLOCKED and fully scoped by execution at **178 items** (138 mechanical + 40 POLICY-5), replacing the discredited "~306". **FIRST ACTION ON RESUME: WS-4-G Shard-A, starting with the BC-2.05.003 DD-007 misreference (3 lines) — the single MEANING-INVERTED citation.**
+mdlinkcheck-cloud is in phase-1d, still **0 of 3 clean passes**. BI-040 is MERGED: PR #8 squash-merged to develop as `c2e5cf1` (from `e1299b0`), landing the shared spec-lint primitive layer across all 15 checkers/generators and closing **BI-040, BI-043, BI-044**. Baseline preserved exactly on merged develop — `check-placeholders.py` **80** findings/133 files, `check-id-resolution.py` **10** findings/134 files, 55/55 selftests, 10/10 primitive tests. Per PG-011 the perimeter sweep IS **pass 6** (complete, 249 findings executed); the next adversary pass is **pass 7**. WS-4 is now UNBLOCKED and fully scoped by execution at **177 items** (138 mechanical + 39 POLICY-5), down from 178. **WS-4-G Shard-A COMPLETE (D-091): BC-2.05.003 v1.3 committed — the single MEANING-INVERTED citation CLOSED. NEXT ACTION: POLICY-5 subsystem shards (A:11/B:11/C:8/D:9 = 39 FABRICATED).**
 
 ### HEADS
 
@@ -1597,16 +1597,16 @@ Verify each at resume before taking action. Resolve factory-artifacts HEAD via `
 
 **WS-4 (remediation) — UNBLOCKED, not started.**
 
-Executed scope **178 items**:
+Executed scope **177 items** (138 mechanical + 39 POLICY-5 FABRICATED; WS-4-G Shard-A CLOSED D-091):
 - 55 VP-column `—` rows across 34 BC files
 - 25 `[filled by ...]` placeholders
 - (those two = the 80 `check-placeholders` baseline)
 - 9 `EC-NEW-*` rows across 4 BC files + 1 `TV-BV013` at `BC-2.04.001.md:63` (= the 10 `check-id-resolution` baseline)
 - 43 BC VP-table proof-method join repairs (~20 BC files, via VP-INDEX authority lookup)
 - 5 vacuous VP rewrites (VP-015/016/017/019/023, BI-025)
-- 40 POLICY-5 quoted-excerpt fabrications (39 FABRICATED + 1 MEANING-INVERTED)
+- 39 POLICY-5 quoted-excerpt fabrications (FABRICATED; 1 MEANING-INVERTED CLOSED by WS-4-G Shard-A D-091)
 
-RESUME NEXT-ACTION: dispatch **WS-4-G Shard-A first** — fix `BC-2.05.003.md` lines 37, 78, 81, which cite **DD-007** for the HTML-anchor narrow carve-out. DD-007 actually governs nonexistent-PATH fail-fast behavior; the correct targets are **DI-007** ("HTML anchor extraction has narrow, well-defined scope", per vp-020 / VP-INDEX) and **DD-003**. Orchestrator-confirmed by execution. Then the remaining POLICY-5 shards (A:12 / B:11 / C:8 / D:9 by subsystem), then the 138 mechanical items sharded SS-01..SS-14.
+RESUME NEXT-ACTION: **WS-4-G Shard-A is DONE** (BC-2.05.003 v1.3 committed, MEANING-INVERTED CLOSED). Dispatch POLICY-5 subsystem shards next: A:11 / B:11 / C:8 / D:9 = 39 FABRICATED remaining. Then 138 mechanical items sharded SS-01..SS-14 → pass 7.
 
 **POLICY-5 predicate — COMPLETE (gate #27 Q4 prerequisite satisfied).**
 
@@ -1639,6 +1639,7 @@ Every headline figure in the WS-4 chain was overstated in the SAME direction. Th
 | ~36 pass-5 actionable | 37 | (under-statement; the one exception) |
 | 2026-08-08 (future-dated) | 2026-08-07 | corrected across 7 files, 26 occurrences |
 | D-017..D-020 lost | restored | 4 binding decisions reconstructed (PG-010) |
+| WS-4-G Shard-A: "3 lines, DD-007→DI-007+DD-003" | 4 lines, 3 distinct IDs (DD-003 decision; D-007 brief-level decision; DI-007 invariant) + R5→R2b (wrong brief requirement, prescription had not flagged) | BC-2.05.003 citation-authority scope — un-executed prescriptions are upper bounds AND can be qualitatively wrong, not merely overstated |
 
 ### STANDING DIRECTIVES
 
@@ -1656,7 +1657,7 @@ Every headline figure in the WS-4 chain was overstated in the SAME direction. Th
 | `prd.md` changelog entries | IMMUTABLE (D-034) |
 | `git add -A` in state bursts | FORBIDDEN while any PR agent is in flight — stage by explicit path (D-088) |
 | BI-022 fuzz nightly | Pin before Phase 6 |
-| WS-4 scope | CONFIRMED by execution: 178 items (138 mechanical + 40 POLICY-5) |
+| WS-4 scope | CONFIRMED by execution: 177 items (138 mechanical + 39 POLICY-5 FABRICATED); WS-4-G Shard-A CLOSED (D-091) |
 | Severity reporting | MUST use ranges, not point totals (PG-012, gate #27 Q5) |
 | Differential verification | MUST carry positive non-vacuity assertion (Lesson 46) |
 
@@ -1687,7 +1688,7 @@ c. **spec-lint remains ADVISORY** until the Phase-1 gate; flip to required on 3 
 
 d. **BI-041:** `gen-bc-traceability.py --write` remains PROHIBITED pending adjudication.
 
-e. **D-077 burn-down** must clear before the Phase-1 gate; it is now exactly the WS-4 scope (178 items): 55 VP-col rows / 34 BC files · 9 EC-NEW-* rows / 4 BC files · BC-2.04.001:63.
+e. **D-077 burn-down** must clear before the Phase-1 gate; it is now exactly the WS-4 scope (177 items): 55 VP-col rows / 34 BC files · 9 EC-NEW-* rows / 4 BC files · BC-2.04.001:63 (mechanical items unchanged; POLICY-5 MEANING-INVERTED CLOSED by D-091).
 
 f. The reusable output-identity harness (both the `SPEC_LINT_REPO_OVERRIDE` path and the no-override CI path, with the four anti-vacuity assertions and the literal-loop zsh requirement) is documented in the burst-19/20 entries — reuse it, do not reinvent it.
 

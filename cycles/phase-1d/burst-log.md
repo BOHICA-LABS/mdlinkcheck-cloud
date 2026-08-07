@@ -938,3 +938,64 @@ All verdicts mutation-verified. B2 fix mutation-verified: mutating `split_table_
 **Files touched:** `.factory/STATE.md`, `.factory/cycles/phase-1d/blocking-issues-resolved.md`, `.factory/cycles/phase-1d/burst-log.md`, `.factory/cycles/phase-1d/session-checkpoints.md`
 
 **Closes:** BI-040 (PR #8 merged `c2e5cf1`), BI-043 (zero parent.parent.parent on develop). **Opens:** BI-046 (reviewer independence, pre-phase-3). **Adds:** D-089 (gate #28 ruling).
+
+---
+
+## Burst 21 — WS-4-G Shard-A COMPLETE; BC-2.05.003 v1.3 (POLICY-5 MEANING-INVERTED CLOSED)
+
+**Date:** 2026-08-07
+**Agent:** state-manager
+**Status:** COMPLETE
+
+### Evicted from Current Phase Steps (oldest row archived here)
+
+| Step | Agent | Status | Output |
+|------|-------|--------|--------|
+| WS-3 Phase 1 audit COMPLETE; BI-034 RESOLVED; BI-023 corrected; D-075; session wrap D-075 | state-manager | COMPLETE | WS-3 Phase 1 read-only audit COMPLETE. Findings at `cycles/phase-1d/ws3-skip-list-audit.md` (commit `3734c1e`). BI-034 RESOLVED: all three skip-list entries KEEP (positive-coverage evidence per D-057). BI-023 corrected: (a) 34 BC files / 55 em-dash rows; (b) 11 `EC-NEW-` occurrences across 5 files (BC-2.07.005 omitted from audit list). D-075 (BI-042 PREEMPTIVE, not serializing). Lessons 37-40 committed. |
+
+### Burst Narrative
+
+WS-4-G Shard-A executed and committed. The single POLICY-5 MEANING-INVERTED citation (BC-2.05.003, DD-007 misreference) is closed.
+
+**BC-2.05.003 v1.2 → v1.3 — citation-authority repair (4 lines changed, 3 distinct IDs):**
+
+1. **Description line:** `DD-007` → `DD-003`. DD-007 governs exit-code precedence / no-fail-fast (→ DI-011), not HTML anchors. DD-003 (decisions.md:65) is the HTML-anchor narrow carve-out decision.
+2. **L2 Capability row:** FABRICATED quoted excerpt `"HTML id/name attributes via DD-007 narrow carve-out"` → verbatim real title `"Anchor Table Construction"` (capabilities.md:98); explanatory gloss moved outside the quotes and re-cited to DD-003. This row previously contradicted the adjacent Capability Anchor Justification row, which already quoted CAP-005 correctly.
+3. **L2 Domain Invariants:** `DI-008` → `DI-007, DI-008`. DI-007 ("HTML Anchor Extraction Scope Is Narrow") was MISSING and is precisely this BC's subject (corroborated verification-architecture.md:97,144). DI-008 retained.
+4. **Brief Requirement:** `R5, DD-007` → `R2b, D-007`. BOTH were wrong. R5 is `--ignore`/`--allow` source exclusion (product-brief.md:46). R2b = heading anchors per BC-INDEX.md:222 and BC-INDEX.md:230 (which maps R2b → BC-2.05.001..BC-2.06.002, containing this BC). Note: D-007 is the decisions.md narrow-carve-out decision at the brief level; DD-003 is the domain-spec-level counterpart. Both apply; D-007 is the correct brief-level reference for the Brief Requirement field.
+
+**CORRECTIONS REGISTER note (appended to SESSION-HANDOFF.md §D-090):** The recorded WS-4-G Shard-A prescription said "3 lines, DD-007→DI-007+DD-003". Execution found **4 lines** requiring **three distinct IDs** (DD-003 for the decision, D-007 for the brief-level decision, DI-007 for the invariant) AND an additional wrong ID (`R5`) that the prescription had not flagged and would have left in place. Further instance of the standing caution: un-executed prescriptions are upper bounds AND can be qualitatively wrong, not merely overstated in magnitude.
+
+**Ancillary observation logged for pass-7 intake (NOT fixed in this burst):** DD-007 is glossed as "exit code precedence" (→ DI-011) at L2-INDEX.md:131 while several artifacts gloss it as "no-fail-fast" for nonexistent PATH (BC-2.01.009.md:40,51,57; prd.md:630,701). Whether DD-007 carries one decision or two conflated ones is UNADJUDICATED — logged as pass-7 intake item only.
+
+**Baselines PRESERVED on develop @ `c2e5cf1` (unchanged — no develop commits this burst):**
+- `check-placeholders.py` 80 findings / 133 files — PRESERVED
+- `check-id-resolution.py` 10 findings / 134 files — PRESERVED
+- `run-selftests.sh` 55/55 — PRESERVED
+- `test_primitives.sh` 10/10 — PRESERVED
+
+**Convergence counter:** UNCHANGED — 0 of 3 clean passes. WS-4-G Shard-A is the first of the 39 POLICY-5 subsystem items. WS-4 scope: 177 items (138 mechanical + 39 POLICY-5 FABRICATED; A:11/B:11/C:8/D:9).
+
+**`.factory/hooks/verify-sha-currency.sh` STILL ABSENT** — post-push hook verification gap. Record only; not an implied pass. Heads verified directly by orchestrator.
+
+**Files touched (Dim-1): 4 unique files (factory-artifacts only — no develop-side changes this burst)**
+
+- `.factory/specs/behavioral-contracts/ss-05/BC-2.05.003.md` — v1.2 → v1.3 (citation-authority repair)
+- `.factory/STATE.md` — timestamp, version 2.8→2.9, current_step, Last Updated, Current Step, Current Phase Steps (WS-3-audit row evicted; WS-4-G-Shard-A row added), BI-002 resolution, BI-027 counts, Session Resume Checkpoint, Concurrent Cycles, Last Updated footer, D-091 appended to Decisions Log
+- `.factory/SESSION-HANDOFF.md` — RESUME IN ONE BREATH updated; WS-4 scope 178→177 / 40→39 POLICY-5; RESUME NEXT-ACTION updated; CORRECTIONS REGISTER new row; STANDING DIRECTIVES WS-4 scope updated
+- `.factory/cycles/phase-1d/burst-log.md` — WS-3-audit row archived; this entry (burst 21)
+
+**Codifications:** D-091 (WS-4-G Shard-A burst wrap, state-manager, 2026-08-07).
+
+**Artifact state at burst close:**
+PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-204 (205 ids) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-091 (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/034/035/036/038/040/042/043/044/045. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/037/039/041/046.
+
+**Dim-2 Attestation:** No `canonical-facts.toml` mutation this burst. `check-canonical-facts.py` last reported exit 0 at burst-20 close. No FACT-N entries added or modified. Canonical facts corpus unchanged.
+
+**Dim-5 Attestation:** STATE.md — timestamp 2026-08-07T23:08:00Z, version 2.9, status: draft, producer: state-manager. burst-log.md — 21 bursts. SESSION-HANDOFF.md — D-090 snapshot updated (WS-4-G Shard-A COMPLETE).
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. WS-4-G Shard-A COMPLETE (D-091). WS-4 remaining: 177 items (138 mechanical + 39 POLICY-5 FABRICATED).
+
+**Dim-7 Attestation:** Agents dispatched this burst: state-manager only (spec file already edited and orchestrator-verified before burst start). No adversary agent dispatched.
+
+**Closes:** (nothing — BC-2.05.003 was an open POLICY-5 finding, not a formal BI). **Updates:** BI-002 (WS-4-G Shard-A COMPLETE, 177 remaining), BI-027 (MEANING-INVERTED CLOSED; 39 FABRICATED remain). **Adds:** D-091 (WS-4-G Shard-A burst wrap).

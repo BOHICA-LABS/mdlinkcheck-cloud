@@ -1,17 +1,17 @@
 ---
 document_type: pipeline-state
 level: ops
-version: "2.8"
+version: "2.9"
 status: draft
 producer: state-manager
-timestamp: 2026-08-07T21:14:00Z
+timestamp: 2026-08-07T23:08:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; POLICY-5 predicate COMPLETE (40 FABRICATED/1 MEANING-INVERTED/92 VERBATIM of 132; rate 30.3%); WS-4 scope 178 items (138 mechanical + 40 POLICY-5); D-090 session wrap; 0 of 3 clean passes; trajectory-tail →34→39→37→259"
+current_step: "phase-1d; WS-4-G Shard-A COMPLETE D-091 (BC-2.05.003 v1.3 POLICY-5 MEANING-INVERTED CLOSED); POLICY-5 39 FABRICATED; WS-4 177 items (138 mechanical + 39 POLICY-5); 0 of 3 clean passes; trajectory-tail →34→39→37→259"
 current_cycle: phase-1d
 dtu_required: false
 ---
@@ -19,8 +19,8 @@ dtu_required: false
 <!--
   STATE.md SIZE BUDGET:
   Soft target: ≤200 lines; hard cap: 500 lines.
-  258 lines (wc-l); margin from soft-target: +58 lines over 200; margin from actual: 242 lines to hard cap (500).
-  Still over the 200-line soft target because the Decisions Log (88 rows) dominates; no further extraction performed since the remaining decisions are standing directives.
+  259 lines (wc-l); margin from soft-target: +59 lines over 200; margin from actual: 241 lines to hard cap (500).
+  Still over the 200-line soft target because the Decisions Log (89 rows) dominates; no further extraction performed since the remaining decisions are standing directives.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
 -->
@@ -38,9 +38,9 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-07 — D-090 session wrap: POLICY-5 predicate COMPLETE (40 FABRICATED/1 MEANING-INVERTED, 30.3%, 132 citations); WS-4 scope 178 items (138 mechanical + 40 POLICY-5); 0 of 3 clean passes; trajectory-tail →34→39→37→259 |
+| **Last Updated** | 2026-08-07 — D-091 WS-4-G Shard-A COMPLETE: BC-2.05.003 v1.3 citation-authority repair (POLICY-5 MEANING-INVERTED CLOSED); POLICY-5 39 FABRICATED; WS-4 177 items (138 mechanical + 39 POLICY-5); 0 of 3 clean passes; trajectory-tail →34→39→37→259 |
 | **Current Phase** | phase-1d |
-| **Current Step** | POLICY-5 predicate COMPLETE (gate #27 Q4 satisfied); WS-4 178-item scope locked by execution (D-086); FIRST ACTION: WS-4-G Shard-A — fix BC-2.05.003.md DD-007 misreference (3 lines); pass 7 after WS-4; BI-046 before Phase 3 |
+| **Current Step** | WS-4-G Shard-A DONE (BC-2.05.003 MEANING-INVERTED CLOSED, D-091); POLICY-5 39 FABRICATED (A:11/B:11/C:8/D:9); WS-4 177 items (138 mechanical + 39 POLICY-5); next: POLICY-5 subsystem shards then 138 mechanical → pass 7; BI-046 before Phase 3 |
 
 ## Phase Progress
 
@@ -68,11 +68,11 @@ dtu_required: false
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
-| WS-3 Phase 1 audit COMPLETE; BI-034 RESOLVED; BI-023 corrected; D-075; session wrap D-075 | state-manager | COMPLETE | WS-3 Phase 1 read-only audit COMPLETE. Findings at `cycles/phase-1d/ws3-skip-list-audit.md` (commit `3734c1e`). BI-034 RESOLVED: all three skip-list entries KEEP (positive-coverage evidence per D-057). BI-023 corrected: (a) 34 BC files / 55 em-dash rows; (b) 11 `EC-NEW-` occurrences across 5 files (BC-2.07.005 omitted from audit list). D-075 (BI-042 PREEMPTIVE, not serializing). Lessons 37-40 committed. |
 | BI-042 .toml APPLIED (D-076); WS-3 Phase 2 repair design (D-077..D-081 exhaustive); BI-040 primitive layer design (D-084..D-085 exhaustive); BI-044 OPENED; BI-045 OPENED+FIXED; D-076..D-085 (exhaustive) | devops-engineer + architect + state-manager | COMPLETE | `.toml` corrections: 24/26 tautological bindings rewritten (FACT-6a/6b structural limitation, BENIGN verified); checker OK (all 31 match). Count corrected **17→26** tautological. WS-3 Phase 2 design: R2-RULE (VP-id whitelist) + R3-A/B/C (EC-shape triple-segment). BI-040 design: 54 splitlines + 63 strip sites measured, 8+23 CommonMark-divergent codepoints derived, three-stage migration planned. BI-044 OPENED (17 EC-grammar sites, detection repaired in check-id-resolution.py). ~~BI-045~~ OPENED+FIXED (3 non-hermetic selftests, 54/54 hermetic). PR `fix/ws3-spec-lint-integrity` open (4 commits: BI-023 R2+R3, BI-042 selftest 22, D-081 scoping, BI-045 hermeticity). Burn-down: 55 VP-col rows / 34 files · 9 EC-NEW-* rows / 4 files · BC-2.04.001:63 · BI-044 16 sites. |
 | PR #7 MERGED as `e1299b07`; BI-042/035 CLOSED; BI-023 checker repairs landed; D-086/D-087/D-088; worktree ws3 removed | state-manager | COMPLETE | PR #7 squash-merged develop `7b9aa6d`→`e1299b07`; 9-step pr-manager lifecycle, 3 review cycles, 5 blockers resolved; APPROVE at `791fc11` (freshness check not tautological — D-071 failure mode did not recur); CI 4/4 PASS; spec-lint ADVISORY FAIL accepted (D-029/D-032/D-077); SEC-001 LOW accepted; 55/55 selftests; check-canonical-facts OK; baseline PRESERVED (80 placeholders + 10 id-resolution findings). BI-042 CLOSED (selftest-22 teeth-test). BI-035 CLOSED. BI-023 items 2+3 CLOSED (checker repairs on develop). BI-045 already CLOSED. Worktree ws3 removed (tree-identical diff verified; `791fc11` reflog-recoverable). D-086/D-087/D-088. |
 | compact-state DONE (a70306d); D-017..D-020 (exhaustive) restored (002111a); BI-040 code-CLOSED on fix/bi-040-primitive-layer (4 commits, NOT merged); BI-044 CLOSED (14 sites); D-088 WS-4 re-derivation COMPLETE (286 actionable); 0 of 3 clean passes | state-manager | COMPLETE | compact-state: 16 CLOSED blockers archived, D-002 superseded decision archived, current_cycle pointer set. D-017..D-020 (exhaustive) restored: 4 decisions absent from Decisions Log reconstructed from prd.md/BC-2.11.002.md, PG-010 filed. BI-040 all 3 stages on branch fix/bi-040-primitive-layer: output-identity byte-exact, 55/55 selftests + 9/9 primitive tests. BI-044 CLOSED (14 sites). BI-043 OPEN (10-file evidence). D-088 WS-4 re-derivation: 286 actionable; 138 dispatchable; BI-040 must MERGE before WS-4 dispatch. |
 | PR #8 MERGED as `c2e5cf1`; BI-040 CLOSED; BI-043 CLOSED; BI-046 OPENED (reviewer independence, pre-phase-3); D-089 (gate #28 ruling); develop `e1299b0`→`c2e5cf1`; 5 commits; test suite 55/55 + 10/10 primitives; WS-4 UNBLOCKED | state-manager | COMPLETE | PR #8 squash-merged as `c2e5cf1b3aab5daafc89a18af7470123a946aebc`. 3-cycle review; reviewer found B1 (fail-open is_conforming_vp_cell), B2 (tautological split_table_cells test), W2 (5-digit EC ID truncation), W7 (dropped startswith guard), S2 (override-guard bypass via comment). All mutation-verified. Baseline PRESERVED: 80/133 placeholders + 10/134 id-resolution. Deferred: W1 (inline EC literals → WS-4), W10/S4/SUGGESTION-1 (→ next burst), W12 (text-only demo, accepted). Branch + worktree removed. 2 worktrees remain. BI-043 CLOSED (zero parent.parent.parent on develop; 15 checkers/generators share fail-closed repo-root resolver). BI-046 OPENED. D-089 recorded (gate #28 ruling). WS-4 UNBLOCKED, gated on POLICY-5 predicate per gate #27 Q4. |
+| WS-4-G Shard-A COMPLETE (D-091); BC-2.05.003 v1.3 (DD-007→DD-003/D-007/DI-007); POLICY-5 MEANING-INVERTED CLOSED; WS-4 177 items; baselines PRESERVED; CORRECTIONS REGISTER updated | state-manager | COMPLETE | BC-2.05.003 citation-authority repair: 4 lines changed, 3 distinct IDs (DD-003 for decision, D-007 for brief-level decision, DI-007 for invariant). Prescription said "3 lines, DD-007→DI-007+DD-003" — execution found 4 lines and also R5→R2b (wrong brief requirement, prescription had not flagged). Baselines PRESERVED: check-placeholders 80/133; check-id-resolution 10/134; selftests 55/55; primitives 10/10. CORRECTIONS REGISTER appended to SESSION-HANDOFF.md §D-090. Pass-7 intake item logged: DD-007 gloss discrepancy (→DI-011 "exit-code precedence" vs "no-fail-fast for nonexistent PATH") at L2-INDEX.md:131 / BC-2.01.009.md:40,51,57 / prd.md:630,701 — UNADJUDICATED, do NOT fix in this burst. .factory/hooks/verify-sha-currency.sh STILL ABSENT — post-push verification gap, not an implied pass. |
 
 ## Convergence Status
 
@@ -185,6 +185,7 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | D-088 | State-manager must NOT use `git add -A` in state bursts while a PR agent is in flight; stage by explicit path. Path-scoping recorded as standing improvement item. | Burst `7e0f02a` incidentally committed another agent's in-flight `code-delivery/` artifacts. | phase-1d | 2026-08-07 | human/operator |
 | D-089 | Gate #28 operator ruling: authorized review-as-comment + autonomy-L4 merge mechanism for the standing model. Grounds: (1) `develop` branch requires 0 approving reviews; real gate is 4 required status checks (`Format check`, `Clippy (deny warnings)`, `Test (macos-latest)`, `Build release (macos-latest)`), with `spec-lint` NOT among required checks; `enforce_admins: false`; no GitHub protection is circumvented; (2) standing designed-autonomy model (D-021→D-028→D-031); (3) journal 2026-08-05 22:35 precedent; (4) gate #5 as revised 2026-08-06 09:15; (5) BI-039 review-as-comment ruling. Residual: AI review independence is nominal, not structural. Pre-Phase-3 condition: BI-046 (separate reviewer identity/token) REQUIRED before story PRs begin. | Real-world GitHub constraint: `drbothen` authors all PRs; self-approval is prohibited by GitHub; review-as-comment is the only viable mechanism. The 4 required CI status checks constitute the real gate. BI-046 filed to resolve the structural residual before Phase 3. | phase-1d | 2026-08-07 | human/operator |
 | D-090 | Session wrap — durable RESUME SNAPSHOT D-090 committed to factory-artifacts | Zero-context resume capability; single-commit burst TD-VSDD-053; wrap triggered at end of session before context clear | phase-1d | 2026-08-07 | state-manager |
+| D-091 | WS-4-G Shard-A burst wrap — BC-2.05.003 v1.3 citation-authority repair committed to factory-artifacts. Single-commit burst TD-VSDD-053. POLICY-5 MEANING-INVERTED CLOSED; WS-4 scope 177 items (138 mechanical + 39 POLICY-5 FABRICATED). Prescription said "3 lines, DD-007→DI-007+DD-003"; execution found 4 lines and three distinct IDs (DD-003, D-007, DI-007) plus unprescribed wrong R5→R2b. Pass-7 intake item logged: DD-007 gloss discrepancy unadjudicated. .factory/hooks/verify-sha-currency.sh STILL ABSENT — post-push verification gap. | Un-executed prescriptions are upper bounds AND can be qualitatively wrong, not merely overstated in magnitude. CORRECTIONS REGISTER appended to SESSION-HANDOFF.md §D-090. | phase-1d | 2026-08-07 | state-manager |
 
 ## Skip Log
 
@@ -204,7 +205,7 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 
 | ID | Issue | Severity | Blocking Phase | Owner | Resolution |
 |----|-------|----------|----------------|-------|------------|
-| BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 6 COMPLETE (259 findings ~42C; executed 249; pass 6 per PG-011 ruling); perimeter CLOSED; root cause SPEC-TOPOLOGY (D-035) + 4 unguarded axes (BI-024) + structural checker bypasses (BI-023) | HIGH | phase-1 gate | orchestrator | BI-040 MERGED (c2e5cf1); POLICY-5 predicate COMPLETE; WS-4 UNBLOCKED at 178 items. Next: WS-4-G Shard-A → WS-4 remediation (178 items) → pass 7 → Phase-1 gate. |
+| BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 6 COMPLETE (259 findings ~42C; executed 249; pass 6 per PG-011 ruling); perimeter CLOSED; root cause SPEC-TOPOLOGY (D-035) + 4 unguarded axes (BI-024) + structural checker bypasses (BI-023) | HIGH | phase-1 gate | orchestrator | BI-040 MERGED (c2e5cf1); POLICY-5 predicate COMPLETE; WS-4 UNBLOCKED. WS-4-G Shard-A COMPLETE (D-091): BC-2.05.003 MEANING-INVERTED CLOSED. WS-4 remaining: 177 items (138 mechanical + 39 POLICY-5 FABRICATED; A:11/B:11/C:8/D:9). Next: POLICY-5 subsystem shards → 138 mechanical → pass 7 → Phase-1 gate. |
 | BI-007 | VP-026 is SPECIFIED but UNIMPLEMENTED — no Rust workspace exists yet (Phase 3 not started). FM-002 risk until Phase 3 implements the differential proptest. | HIGH | phase-6 (formal hardening) | implementer | Phase 3 must implement VP-026; story traced to VP-026 required in Phase 2. |
 | BI-010 | VP-025 authored against non-existent API types. Harness cannot compile. Architect rewrote VP-025; INC-MAP-001 SPEC-RESOLVED/IMPL-PENDING (D-048). | CRITICAL | phase-3 | architect | INC-MAP-001 closes only when Phase 3 implements it. |
 | BI-017 | Phase 3 CI obligation: NO perf-gate/benchmark job exists. Both NFR-008 and NFR-002 benchmark jobs MUST run on `macos-latest` when created in Phase 3. | MEDIUM | phase-3 | devops-engineer | Recorded in vp-022-regression-gate.md and tooling-selection.md §Phase 3 CI Obligations. |
@@ -214,7 +215,7 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | BI-024 | FOUR UNGUARDED AXES: (A) VP proof-method/tool mismatch BC body vs VP-INDEX (14+ instances, highest-leverage); (B) quoted-excerpt fabrication (~40% rate, POLICY 5 lint_hook null); (C) symbols in rust code fences + 4 undefined types; (D) ~10 stale discharged directives causing harmful story-writer guidance. | HIGH | phase-1 gate | devops-engineer | (A) Mechanically join BC VP rows against VP-INDEX; (B) substring-presence check; (C) code-fence symbol resolver; (D) machine-checkable directive references. |
 | BI-025 | FIVE VPs OUTRIGHT VACUOUS — VP-015/016/017/019/023 each satisfied by a no-op/constant implementation. SOLE VP coverage for DI-008/DI-006/DI-009/DI-005. VP-INDEX:93-96 marks first three "All Covered: Yes". Phase 6 formal-hardening gate could pass while 4 domain invariants are unverified. | CRITICAL | phase-6 | formal-verifier | Every VP harness must contain at least 1 assertion that fails on empty/constant output. |
 | BI-026 | BC-VP PROOF-METHOD/PROPERTY JOIN BROKEN — 12+ BC VP-table rows attribute properties the cited VP provably lacks. 30+ rows declare the wrong Proof Method. Highest-leverage mechanical fix (one automated join pass closes 42+ defects). | HIGH | phase-1d fix burst | product-owner + architect | Automated join: BC VP-rows × VP-INDEX rows; assert property text and proof-method token match. |
-| BI-027 | POLICY 5 QUOTED-EXCERPT FABRICATION — **CORRECTED: 30.3% fabrication rate (40 items: 39 FABRICATED + 1 MEANING-INVERTED out of 132 citations); 92 VERBATIM.** Sensitivity boundary: 40 WITH normalization, 45 WITHOUT (whitespace/em-dash/smart-quote normalization justified as correcting source line-wraps). POLICY 5 lint_hook returns null. Quoted text does not match actual source text; 1 case inverts the meaning. | HIGH | phase-1d fix burst | product-owner | WS-4-G: substring-presence assertion with normalization. POLICY-5 predicate COMPLETE (gate #27 Q4 satisfied). |
+| BI-027 | POLICY 5 QUOTED-EXCERPT FABRICATION — **CORRECTED: 30.3% fabrication rate (39 FABRICATED out of 132 citations; 92 VERBATIM; 1 MEANING-INVERTED CLOSED by WS-4-G Shard-A D-091).** Sensitivity boundary: 39 WITH normalization, 44 WITHOUT (whitespace/em-dash/smart-quote normalization justified as correcting source line-wraps). POLICY 5 lint_hook returns null. Quoted text does not match actual source text. | HIGH | phase-1d fix burst | product-owner | WS-4-G: substring-presence assertion with normalization. POLICY-5 predicate COMPLETE (gate #27 Q4 satisfied). MEANING-INVERTED (BC-2.05.003) CLOSED. 39 FABRICATED remain in subsystem shards A:11/B:11/C:8/D:9. |
 | BI-028 | VP CODE-FENCE SYMBOL VALIDATION + FOUR UNDEFINED TYPES — symbols in VP Rust harnesses that resolve to nothing. Four types with NO definition anywhere: `PathVerdict`, `FailureReason`, `IoError`, `AllowPrefix`. All five VP-007 harnesses fail to compile. | HIGH | phase-1d fix burst | architect | Symbol-extraction linter over VP rust code fences; reconcile api-surface.md vs module-decomposition.md naming; add missing type definitions. |
 | BI-037 | F-15 MINOR / PR #3 — fail-open in `run_suppression_guard`. Reproduced in isolation but UNREACHABLE via the real entry point (guard 1 exits 2 first). Load-bearing guard ordering MUST be preserved in any refactor. | LOW | phase-2 (maintenance) | devops-engineer | Document ordering dependency explicitly. Do NOT change guard execution order without re-auditing all paths. |
 | BI-039 | `gh pr review --request-changes` IMPOSSIBLE on any PR in this repo: GitHub returns GraphQL "Can not request changes on your own pull request" — same root cause as D-021 (all PRs authored by `drbothen`). Working fallback: `gh pr comment --body-file`. Two pr-reviewer agents misdiagnosed as permission-classifier denial. Hook `validate-pr-review-posted` UNSATISFIABLE via `gh pr review` for every PR in this repo. | MEDIUM | phase-2 | devops-engineer | Switch pr-reviewer/pr-manager to `gh pr comment`; change hook's satisfaction condition to accept a PR comment as sufficient. |
@@ -228,17 +229,17 @@ Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-090`
 | Field | Value |
 |-------|-------|
 | **Date** | 2026-08-07 |
-| **Position** | phase-1d; POLICY-5 predicate COMPLETE (40 FABRICATED/1 MEANING-INVERTED/92 VERBATIM/132 citations; rate 30.3%); WS-4 scope 178 items (138 mechanical + 40 POLICY-5); FIRST ACTION: WS-4-G Shard-A — BC-2.05.003 DD-007 misreference (3 lines); 0 of 3 clean passes |
-| **Convergence counter** | 0 of 3 clean passes; trajectory-tail →34→39→37→259; pass 6 (perimeter sweep) COMPLETE per PG-011; next adversary pass is pass 7, after WS-4 remediation; WS-4 dispatch scope: 178 items (138 mechanical + 40 POLICY-5) by execution |
-| **Next burst** | WS-4-G Shard-A: fix BC-2.05.003.md lines 37, 78, 81 (DD-007→DI-007+DD-003); then remaining POLICY-5 shards (A:12/B:11/C:8/D:9 by subsystem); then 138 mechanical items sharded SS-01..SS-14 → pass 7. Burn-down: 55 VP-col/34 files · 9 EC-NEW-*/4 files · BC-2.04.001:63. BI-046 requires devops-engineer resolution before phase-3. |
+| **Position** | phase-1d; WS-4-G Shard-A COMPLETE (D-091); POLICY-5 39 FABRICATED (was 40+1 MEANING-INVERTED; MEANING-INVERTED CLOSED); WS-4 177 items (138 mechanical + 39 POLICY-5); 0 of 3 clean passes |
+| **Convergence counter** | 0 of 3 clean passes; trajectory-tail →34→39→37→259; pass 6 (perimeter sweep) COMPLETE per PG-011; next adversary pass is pass 7, after WS-4 remediation; WS-4 dispatch scope: 177 items (138 mechanical + 39 POLICY-5 FABRICATED) by execution |
+| **Next burst** | POLICY-5 subsystem shards: A:11/B:11/C:8/D:9 = 39 FABRICATED (BC files in each subsystem group, substring-presence assertion with normalization); then 138 mechanical items sharded SS-01..SS-14 → pass 7. Burn-down: 55 VP-col/34 files · 9 EC-NEW-*/4 files · BC-2.04.001:63. BI-046 requires devops-engineer resolution before phase-3. Pass-7 intake: DD-007 gloss discrepancy (→DI-011 vs "no-fail-fast for nonexistent PATH") UNADJUDICATED — log only, do not fix. |
 
-Spec snapshot: PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-204 (205 ids) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-090 (exhaustive). D-017..D-020 (exhaustive) restored by reconstruction; see process-gap-register PG-010. Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/034/035/036/038/040/042/043/044/045. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/037/039/041/046.
+Spec snapshot: PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-204 (205 ids) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-091 (exhaustive). D-017..D-020 (exhaustive) restored by reconstruction; see process-gap-register PG-010. Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/034/035/036/038/040/042/043/044/045. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/037/039/041/046.
 
 ## Concurrent Cycles
 
 | Cycle | Status | Notes |
 |-------|--------|-------|
-| phase-1d | in-progress | adversarial spec convergence; 0 of 3 clean passes; trajectory-tail →34→39→37→259 (executed 249); BI-040 MERGED (c2e5cf1, PR #8); POLICY-5 predicate COMPLETE; WS-4 UNBLOCKED at 178 items (138 mechanical + 40 POLICY-5); FIRST ACTION: WS-4-G Shard-A — BC-2.05.003 DD-007 misreference → pass 7 |
+| phase-1d | in-progress | adversarial spec convergence; 0 of 3 clean passes; trajectory-tail →34→39→37→259 (executed 249); BI-040 MERGED (c2e5cf1, PR #8); POLICY-5 predicate COMPLETE; WS-4-G Shard-A COMPLETE (D-091): BC-2.05.003 MEANING-INVERTED CLOSED; WS-4 remaining 177 items (138 mechanical + 39 POLICY-5 A:11/B:11/C:8/D:9); next: POLICY-5 subsystem shards → 138 mechanical → pass 7 |
 
 ## Historical Content
 
@@ -255,4 +256,4 @@ Spec snapshot: PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies 
 | BI-040 shared primitive layer design | `cycles/phase-1d/bi-040-primitive-layer-design.md` |
 | Superseded decisions | `cycles/phase-1d/decisions-log.md` |
 
-Last Updated: 2026-08-07 — D-090 session wrap: POLICY-5 predicate COMPLETE (40 FABRICATED/1 MEANING-INVERTED; rate 30.3%); WS-4 scope 178 items (138 mechanical + 40 POLICY-5); FIRST ACTION WS-4-G Shard-A → pass 7
+Last Updated: 2026-08-07 — D-091 WS-4-G Shard-A COMPLETE: BC-2.05.003 v1.3 citation-authority repair (POLICY-5 MEANING-INVERTED CLOSED); POLICY-5 39 FABRICATED; WS-4 177 items (138 mechanical + 39 POLICY-5)

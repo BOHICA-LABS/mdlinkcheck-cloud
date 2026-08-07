@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (WS-4-G) Citation-authority repair: replaced misreferenced DD-007 with DD-003 in Description; corrected fabricated CAP-005 excerpt to verbatim title 'Anchor Table Construction'; added missing DI-007 to L2 Domain Invariants; replaced wrong brief requirement R5/DD-007 with R2b/D-007."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -34,7 +35,7 @@ removal_reason: null
 
 ## Description
 In addition to headings, the anchor table includes anchors from HTML `id=` and `name=` attributes
-in inline HTML spans (the "narrow carve-out" per DD-007). Only `<a name="...">` and any element
+in inline HTML spans (the "narrow carve-out" per DD-003). Only `<a name="...">` and any element
 with `id="..."` are recognized. The value is used as-is (no slug computation). This supports
 legacy `<a name="top">` patterns and explicit id anchors in documentation.
 
@@ -75,8 +76,8 @@ legacy `<a name="top">` patterns and explicit id anchors in documentation.
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-005 ("HTML id/name attributes via DD-007 narrow carve-out") per capabilities.md §CAP-005 |
+| L2 Capability | CAP-005 ("Anchor Table Construction") per capabilities.md §CAP-005 — HTML id/name attribute extraction narrow carve-out per DD-003 |
 | Capability Anchor Justification | CAP-005 ("Anchor Table Construction") per capabilities.md §CAP-005 |
-| L2 Domain Invariants | DI-008 |
-| Brief Requirement | R5, DD-007 |
+| L2 Domain Invariants | DI-007, DI-008 |
+| Brief Requirement | R2b, D-007 |
 | Architecture Module | `anchor_table.rs` (SS-05, pure core, CRITICAL tier) — ADR-003 (pulldown-cmark HTML event stream governs the extraction approach) |
