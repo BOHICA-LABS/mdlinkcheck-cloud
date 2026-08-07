@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=45
+EXPECTED_TEST_COUNT=47
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -1205,10 +1205,12 @@ fi
 rm -rf "$T"
 
 # ── Test 24: gen-slug-corpus --check detects SLUG_CORPUS content mismatch ────────────────
-# Operator-endorsed landing gate (Task 2). Uses isolated temp tree: run generator in
-# normal mode to establish a known-good state, verify --check exits 0 (clean pass),
+# Operator-endorsed landing gate (Task 2). Uses isolated temp tree: run generator with
+# --write to establish a known-good state, verify --check exits 0 (clean pass),
 # then corrupt the generated corpus block and verify --check exits 1 (defect pass).
 # Confirms --check is read-only w.r.t. canonical-facts.toml (not in temp tree).
+# Setup uses --write (explicit opt-in) because the concurrency guard (selftest 28)
+# prevents bare invocation from writing.
 TESTS_RUN=$((TESTS_RUN + 1))
 echo "── selftest 24: gen-slug-corpus --check: detects SLUG_CORPUS mismatch ──"
 T=$(make_temp)
@@ -1238,18 +1240,18 @@ const SLUG_CORPUS: &[(&str, &str)] = &[
 ```
 VP018FILE
 
-# Clean pass: run generator in normal mode first, then --check on the result.
+# Clean pass: run generator with --write first, then --check on the result.
 CLEAN_PASS=0
-if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" > /dev/null 2>&1; then
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" --write > /dev/null 2>&1; then
     if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" --check > /dev/null 2>&1; then
         TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
         CLEAN_PASS=1
     else
-        echo "  STRUCTURAL FAIL: --check failed immediately after generator run (should be identical)"
+        echo "  STRUCTURAL FAIL: --check failed immediately after --write run (should be identical)"
         FAILURES=$((FAILURES + 1))
     fi
 else
-    echo "  STRUCTURAL FAIL: generator normal-mode run failed on minimal VP-018 fixture"
+    echo "  STRUCTURAL FAIL: generator --write run failed on minimal VP-018 fixture"
     FAILURES=$((FAILURES + 1))
 fi
 
@@ -1352,10 +1354,12 @@ rm -rf "$T"
 # --dry-run and --check modes must remain unblocked (they never write files).
 #
 # Clean pass: generator with --dry-run exits 0 on a valid BC fixture.
-# Defect:     generator WITHOUT --dry-run (write mode) exits non-zero with BI-041 message.
+# Defect:     generator with --write exits non-zero with BI-041 guard message.
+#             (--write is the explicit opt-in that passes the concurrency gate, Gate 1,
+#              but must still be refused by the BI-041 gate, Gate 2 — two independent gates.)
 #
-# Mutation-verify: removing the write-mode guard block in gen-bc-traceability.py causes
-# write mode to exit 0, flipping this test's defect-fail assertion to FAIL.
+# Mutation-verify: removing the BI-041 guard block (Gate 2) in gen-bc-traceability.py
+# causes --write to exit 0, flipping this test's defect-fail assertion to FAIL.
 TESTS_RUN=$((TESTS_RUN + 1))
 echo "── selftest 26: gen-bc-traceability: write mode fail-closed (BI-041 guard) ──"
 T=$(make_temp)
@@ -1389,19 +1393,162 @@ else
 fi
 
 if [ "$CLEAN_PASS" = "1" ]; then
-    # Defect: write mode (no flags) must exit non-zero with the BI-041 guard message
-    GUARD_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" 2>&1)
+    # Defect: --write passes the concurrency gate (Gate 1) but must still exit non-zero
+    # with the BI-041 guard message from Gate 2.
+    GUARD_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --write 2>&1)
     GUARD_EXIT=$?
     if [ "$GUARD_EXIT" -eq 0 ]; then
-        echo "  FAIL (write mode returned 0 — BI-041 guard not active; BC files could be corrupted)"
+        echo "  FAIL (--write returned 0 — BI-041 guard (Gate 2) not active; BC files could be corrupted)"
         FAILURES=$((FAILURES + 1))
     else
         # D-040: assert on specific guard message, not just exit code
         if echo "$GUARD_OUT" | grep -q "BI-041"; then
-            echo "  PASS (clean-pass confirmed; write mode correctly blocked with BI-041 guard message)"
+            echo "  PASS (clean-pass confirmed; --write correctly blocked by BI-041 guard (Gate 2))"
         else
-            echo "  FAIL (write mode exited non-zero but expected 'BI-041' not in output)"
+            echo "  FAIL (--write exited non-zero but expected 'BI-041' not in output)"
             echo "  Actual output: $GUARD_OUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 27: gen-bc-traceability bare invocation is fail-safe (concurrency gate) ─────────
+# Verifies that Gate 1 (concurrency safety gate) refuses bare invocation and does not
+# write any BC file. Uses --dry-run for the clean pass (proves the fixture is valid).
+#
+# Clean pass: --dry-run exits 0 (non-destructive, unblocked by either gate).
+# Defect:     bare invocation exits non-zero (Gate 1 fires) AND BC file is byte-identical
+#             (no write occurred before the guard refused).
+#
+# Mutation note: removing ONLY Gate 1 leaves Gate 2 (BI-041) still active.
+# Gate 2 also refuses write mode, so the byte-identical assertion continues to pass.
+# Full isolation of Gate 1 requires removing BOTH gates — tested jointly.
+# For an independently mutation-verifiable bare-invocation test, see selftest 28
+# (gen-slug-corpus, which has no Gate 2 analogue).
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 27: gen-bc-traceability: bare invocation is fail-safe (concurrency gate) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-99"
+
+cat > "$T/.factory/specs/architecture/bc-module-map.md" <<'BCMAP27'
+| BC ID | Primary Module | Secondary | P/E | Tier | Key ADRs | Formal VPs |
+|-------|----------------|-----------|-----|------|----------|------------|
+| BC-2.99.001 | `test-mod` | — | Pure | CRITICAL | — | — |
+BCMAP27
+
+cat > "$T/.factory/specs/behavioral-contracts/ss-99/BC-2.99.001.md" <<'BCFILE27'
+# BC-2.99.001: Selftest BC (concurrency gate fixture)
+
+## Traceability
+| Architecture Module | existing-value |
+BCFILE27
+
+BC27="$T/.factory/specs/behavioral-contracts/ss-99/BC-2.99.001.md"
+
+# Clean pass: --dry-run must exit 0 (non-destructive modes are never gated)
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --dry-run > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: --dry-run unexpectedly failed (should not be gated)"
+    DR27_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --dry-run 2>&1)
+    echo "  Output: $DR27_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    BEFORE27=$(cat "$BC27")
+    # Defect: bare invocation must exit non-zero (concurrency gate fires)
+    BARE27_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" 2>&1)
+    BARE27_EXIT=$?
+    if [ "$BARE27_EXIT" -eq 0 ]; then
+        echo "  FAIL (bare invocation returned 0 — concurrency gate not active)"
+        FAILURES=$((FAILURES + 1))
+    else
+        # Confirm BC file was not modified (no write occurred)
+        AFTER27=$(cat "$BC27")
+        if [ "$BEFORE27" = "$AFTER27" ]; then
+            echo "  PASS (clean-pass confirmed; bare invocation refused and BC file byte-identical after)"
+        else
+            echo "  FAIL (gate refused but BC file was still modified — write occurred before gate check)"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 28: gen-slug-corpus bare invocation is fail-safe (concurrency gate) ────────────
+# Verifies that the concurrency gate refuses bare invocation and VP-018 is byte-identical
+# after refusal. This test IS fully mutation-verifiable: removing the gate causes bare
+# invocation to write VP-018, flipping the file-identical assertion to FAIL.
+#
+# Clean pass: --dry-run exits 0 on an unpopulated VP-018 fixture (proves fixture is valid).
+# Defect:     bare invocation exits non-zero (concurrency gate fires) AND VP-018 is
+#             byte-identical (no write occurred).
+#
+# Mutation-verify: removing the concurrency guard block in gen-slug-corpus.py causes bare
+# invocation to write VP-018 (inserting the corpus block), the BEFORE/AFTER comparison
+# fails, and this test's defect-fail assertion flips to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 28: gen-slug-corpus: bare invocation is fail-safe (concurrency gate) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/verification-properties"
+
+cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TVFILE28'
+# Test Vectors
+
+## §7. Slug Test Vectors (TV-S)
+
+| TV-ID | Heading Text | Expected Slug | Source |
+|-------|-------------|---------------|--------|
+| TV-S998 | `Bare Guard` | `bare-guard` | selftest-28 |
+
+---
+TVFILE28
+
+# VP-018 with no @GENERATED markers yet — generator WOULD insert corpus block if not gated
+cat > "$T/.factory/specs/verification-properties/vp-018-slug-worked-examples.md" <<'VP018_28'
+# VP-018 Selftest Fixture (test 28)
+
+```rust
+const SLUG_CORPUS: &[(&str, &str)] = &[
+];
+```
+VP018_28
+
+VP28="$T/.factory/specs/verification-properties/vp-018-slug-worked-examples.md"
+
+# Clean pass: --dry-run must exit 0 (non-destructive, not gated)
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" --dry-run > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: --dry-run unexpectedly failed (should not be gated)"
+    DR28_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" --dry-run 2>&1)
+    echo "  Output: $DR28_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    BEFORE28=$(cat "$VP28")
+    # Defect: bare invocation must exit non-zero (concurrency gate fires)
+    BARE28_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" 2>&1)
+    BARE28_EXIT=$?
+    if [ "$BARE28_EXIT" -eq 0 ]; then
+        echo "  FAIL (bare invocation returned 0 — concurrency gate not active; VP-018 may have been written)"
+        FAILURES=$((FAILURES + 1))
+    else
+        # Confirm VP-018 was not modified (no write occurred before the gate refused)
+        AFTER28=$(cat "$VP28")
+        if [ "$BEFORE28" = "$AFTER28" ]; then
+            echo "  PASS (clean-pass confirmed; bare invocation refused and VP-018 byte-identical after)"
+        else
+            echo "  FAIL (gate refused but VP-018 was still modified — write occurred before gate check)"
             FAILURES=$((FAILURES + 1))
         fi
     fi

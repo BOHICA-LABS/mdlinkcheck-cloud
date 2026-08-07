@@ -20,12 +20,26 @@ MARKER STRATEGY:
 
 READ-ONLY with respect to canonical-facts.toml — never writes to that file.
 
+DEFAULT-SAFE POLICY (concurrency gate):
+  Bare invocation with no arguments does NOT write. A concurrent editor may
+  hold .factory/specs/ at any time, and an accidental bare invocation is a
+  realistic failure mode. Explicit opt-in required: use --write to enable
+  write mode. --check and --dry-run are always available without opt-in.
+
+  Even with --write present, a SECOND independent gate (BI-041) refuses write
+  mode until hand-authored annotation loss is adjudicated — see below.
+
 Usage:
-  python3 gen-bc-traceability.py [--dry-run] [--check]
+  python3 gen-bc-traceability.py [--check] [--dry-run] [--write]
 
 --check mode: regenerates all Architecture Module rows in memory, compares
   each BC file byte-for-byte against its committed content, exits 0 if
   identical, exits 1 with a unified diff if any file differs. Never writes.
+
+--dry-run mode: previews what would be written without modifying any file.
+
+--write mode: explicit opt-in for write mode. Still blocked by the BI-041
+  guard until annotation loss is adjudicated.
 """
 import difflib
 import os
@@ -247,9 +261,34 @@ def update_bc_file(bc_file: Path, arch_value: str, dry_run: bool) -> bool:
 def main() -> int:
     check_mode = "--check" in sys.argv
     dry_run = "--dry-run" in sys.argv
+    write_mode = "--write" in sys.argv
 
-    # ── BI-041 WRITE-MODE GUARD ────────────────────────────────────────────────
+    # ── GATE 1: CONCURRENCY SAFETY (bare-invocation default-safe) ─────────────
+    # Bare invocation must not write. A concurrent editor may hold .factory/specs/
+    # at any time; an accidental bare invocation is a realistic failure mode (D-039
+    # compliant: no bypass flag). Explicit --write opt-in required to proceed to
+    # write mode. --check and --dry-run are always available without opt-in.
+    #
+    # Mutation-verify (gen-bc-traceability): removing only this block leaves the
+    # BI-041 gate (Gate 2) still active, so selftest 27's file-identical assertion
+    # is NOT independently flippable by this mutation alone. However, selftest 28
+    # (gen-slug-corpus) IS fully mutation-verifiable for the equivalent guard there.
+    if not check_mode and not dry_run and not write_mode:
+        print(
+            "gen-bc-traceability: bare invocation does not write.\n"
+            "  A concurrent editor may hold .factory/specs/ and accidental bare\n"
+            "  invocation is a realistic failure mode. Explicit opt-in required.\n"
+            "  Use --write to enable write mode (still subject to BI-041 gate).\n"
+            "  Use --check to inspect divergence without writing.\n"
+            "  Use --dry-run to preview changes without writing.",
+            file=sys.stderr,
+        )
+        return 1
+
+    # ── GATE 2: BI-041 WRITE-MODE GUARD ───────────────────────────────────────
     # gen-bc-traceability write mode is BLOCKED pending BI-041 adjudication.
+    # This gate is INDEPENDENT of Gate 1: even when --write is explicitly present,
+    # write mode is still refused until hand-authored annotation loss is resolved.
     #
     # The generator's model does not preserve hand-authored annotations in
     # Architecture Module rows. Running write mode silently destroys INC-MAP
@@ -267,9 +306,9 @@ def main() -> int:
     # --check mode is NOT blocked and remains fully functional (non-destructive).
     # --dry-run mode is NOT blocked (it never writes files).
     #
-    # Mutation-verify: removing this block causes write mode to succeed (exit 0),
+    # Mutation-verify: removing this block causes --write to succeed (exit 0),
     # flipping selftest 26's defect-fail assertion to FAIL.
-    if not check_mode and not dry_run:
+    if write_mode:
         print(
             "gen-bc-traceability: BLOCKED — write mode disabled pending BI-041 adjudication.\n"
             "  The generator destroys hand-authored INC-MAP annotations (INC-MAP-002,\n"

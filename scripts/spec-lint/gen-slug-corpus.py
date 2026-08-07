@@ -26,12 +26,22 @@ Phase-3 integration skeleton are NEVER touched.
 
 READ-ONLY with respect to canonical-facts.toml — never writes to that file.
 
+DEFAULT-SAFE POLICY (concurrency gate):
+  Bare invocation with no arguments does NOT write. A concurrent editor may
+  hold .factory/specs/ at any time, and an accidental bare invocation is a
+  realistic failure mode. Explicit opt-in required: use --write to enable
+  write mode. --check and --dry-run are always available without opt-in.
+
 Usage:
-  python3 gen-slug-corpus.py [--dry-run] [--check]
+  python3 gen-slug-corpus.py [--check] [--dry-run] [--write]
 
 --check mode: regenerates VP-018 content in memory, compares byte-for-byte
   against the committed artifact, exits 0 if identical, exits 1 with a
   unified diff if different. Never writes.
+
+--dry-run mode: previews what would be written without modifying VP-018.
+
+--write mode: explicit opt-in for write mode.
 """
 import difflib
 import os
@@ -391,6 +401,27 @@ def update_tests_in_vp018(content: str, tests_block: str) -> str:
 def main() -> int:
     check_mode = "--check" in sys.argv
     dry_run = "--dry-run" in sys.argv
+    write_mode = "--write" in sys.argv
+
+    # ── CONCURRENCY SAFETY GATE (bare-invocation default-safe) ────────────────
+    # Bare invocation must not write. A concurrent editor may hold .factory/specs/
+    # at any time; an accidental bare invocation is a realistic failure mode.
+    # Explicit --write opt-in required to proceed to write mode. --check and
+    # --dry-run are always available without opt-in (D-039: no bypass flag).
+    #
+    # Mutation-verify: removing this block causes bare invocation to write VP-018,
+    # flipping selftest 28's file-identical assertion to FAIL.
+    if not check_mode and not dry_run and not write_mode:
+        print(
+            "gen-slug-corpus: bare invocation does not write.\n"
+            "  A concurrent editor may hold .factory/specs/ and accidental bare\n"
+            "  invocation is a realistic failure mode. Explicit opt-in required.\n"
+            "  Use --write to enable write mode.\n"
+            "  Use --check to verify without writing (non-destructive).\n"
+            "  Use --dry-run to preview without writing.",
+            file=sys.stderr,
+        )
+        return 1
 
     if not TV_FILE.exists():
         print(f"ERROR: test-vectors.md not found at {TV_FILE}", file=sys.stderr)
@@ -449,7 +480,7 @@ def main() -> int:
 
     if dry_run:
         print("DRY-RUN: would update VP-018 (no file written)")
-    else:
+    elif write_mode:
         VP_018.write_text(new_content, encoding="utf-8")
         print(f"Updated {VP_018}")
 
