@@ -16,6 +16,7 @@ import os
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
 REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 SPECS = REPO / ".factory" / "specs"
@@ -114,7 +115,7 @@ def get_bc_index_entries() -> dict[str, str]:
     """Return {bc_id: file_path_from_link} from BC-INDEX.md."""
     bc_index = SPECS / "behavioral-contracts" / "BC-INDEX.md"
     entries: dict[str, str] = {}
-    for line in bc_index.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(bc_index.read_text(encoding="utf-8")):
         # | BC-2.SS.NNN | Title | Priority | [ss-NN/BC-2.SS.NNN.md](ss-NN/BC-2.SS.NNN.md) |
         m = re.match(r"^\|\s*(BC-\d+\.\d+\.\d+)\s*\|.*?\[([^\]]+)\]\(([^\)]+)\)\s*\|", line)
         if m:
@@ -140,7 +141,7 @@ def get_vp_index_entries() -> dict[str, str]:
     vp_index = SPECS / "verification-properties" / "VP-INDEX.md"
     entries: dict[str, str] = {}
     in_catalog = False
-    for line in vp_index.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(vp_index.read_text(encoding="utf-8")):
         if "## VP Catalog" in line:
             in_catalog = True
             continue
@@ -172,7 +173,7 @@ def get_arch_index_documents() -> set[str]:
     arch_index = SPECS / "architecture" / "ARCH-INDEX.md"
     docs: set[str] = set()
     in_doc_map = False
-    for line in arch_index.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(arch_index.read_text(encoding="utf-8")):
         if "## Document Map" in line:
             in_doc_map = True
             continue
@@ -200,7 +201,7 @@ def get_adr_index_entries() -> set[str]:
     """Return set of ADR filenames referenced in ARCH-INDEX.md."""
     arch_index = SPECS / "architecture" / "ARCH-INDEX.md"
     adrs: set[str] = set()
-    for line in arch_index.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(arch_index.read_text(encoding="utf-8")):
         # ADR table rows: | ADR-NNN | Title | Subsystems |
         m = re.match(r"^\|\s*(ADR-\d+)\b", line)
         if m:
@@ -347,12 +348,12 @@ def get_hs_data(
         This makes every recognition gap loud rather than silent.
         """
         # Active entry: | HS-001 | EC-156 | ...
-        m = re.match(r"^\|\s*(HS-\d+)\s*\|\s*(EC-\d+)\s*\|", l)
+        m = re.match(r"^\|\s*(HS-\d+)\s*\|\s*(EC-\d{1,4}[a-z]?)\s*\|", l)
         if m:
             mapping[m.group(1)] = m.group(2)
             return
         # Retired entry: | ~~HS-002~~ | ~~EC-157~~ | ...
-        m = re.match(r"^\|\s*~~(HS-\d+)~~\s*\|\s*~~(EC-\d+)~~\s*\|", l)
+        m = re.match(r"^\|\s*~~(HS-\d+)~~\s*\|\s*~~(EC-\d{1,4}[a-z]?)~~\s*\|", l)
         if m:
             mapping[m.group(1)] = m.group(2)
             return
@@ -406,7 +407,7 @@ def get_hs_data(
         pending_linenos.clear()
 
     for lineno, raw in enumerate(
-        hs_index_path.read_text(encoding="utf-8").splitlines(), start=1
+        slp.cm_splitlines(hs_index_path.read_text(encoding="utf-8")), start=1
     ):
         # B-9 fix: strip leading/trailing whitespace before pipe-row matching.
         # A single leading space is semantically neutral in Markdown but defeated
@@ -531,7 +532,7 @@ def get_actual_wave_scenario_ec_ids() -> set[str]:
     ids: set[str] = set()
     if hs_dir.exists():
         for f in hs_dir.glob("*.md"):
-            m = re.match(r"^(EC-\d+)", f.name)
+            m = re.match(r"^(EC-\d{1,4}[a-z]?)", f.name)
             if m:
                 ids.add(m.group(1))
     return ids
@@ -546,7 +547,7 @@ def get_l2_index_sections() -> set[str]:
     """
     l2_index = SPECS / "domain-spec" / "L2-INDEX.md"
     sections: set[str] = set()
-    lines = l2_index.read_text(encoding="utf-8").splitlines()
+    lines = slp.cm_splitlines(l2_index.read_text(encoding="utf-8"))
 
     # Detect frontmatter end by scanning for the closing --- fence
     frontmatter_end = 0  # line index (0-based) of closing ---; 0 = no frontmatter
@@ -745,12 +746,9 @@ def main() -> int:
         #     4 columns, NOT a heading; the prior raw.startswith("    ") missed this —
         #     D-070 fix).  Also excluded: inside a fenced code block.  D-069 + D-070
         #     NARROW the A/A2/A3/tab bypass class; the class is NARROWED, not closed.
-        #     Known residual: Python's str.splitlines() treats \f (form feed) and \v
-        #     (vertical tab) as line boundaries; CommonMark does not. '\f## X' and
-        #     '\v## X' therefore reach this branch and can kill section scope — verified
-        #     at this head. Do NOT fix here (different root cause from indent; ad-hoc
-        #     changes opened new holes in three of the prior four rounds). Tracked to a
-        #     separate story as a named landing gate.
+        #     CLOSED via slp.cm_splitlines() (WS-3b-2, BI-040). CommonMark-faithful
+        #     line splitting removes the \f/\v phantom-line class. See
+        #     spec_lint_primitives.cm_splitlines docstring for remaining CRLF residual.
         #   - Fenced code block lines (D-069 + D-070: tracked via _FENCE_RE with
         #     _leading_columns(raw) < 4 guard; lines inside 0-3-column-indented fences
         #     are fenced_code bucket.  NARROWS the A2 bypass; class is NARROWED, not
@@ -812,7 +810,7 @@ def main() -> int:
         # Duplicate HS-ID check (scan both active and retired canonical rows).
         checks += 1
         all_hs_ids: list[str] = []
-        for raw in hs_index_path.read_text(encoding="utf-8").splitlines():
+        for raw in slp.cm_splitlines(hs_index_path.read_text(encoding="utf-8")):
             m_hs = re.match(r"^\|\s*(?:~~)?(HS-\d+)(?:~~)?\s*\|", raw.strip())
             if m_hs:
                 all_hs_ids.append(m_hs.group(1))

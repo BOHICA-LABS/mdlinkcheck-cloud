@@ -46,6 +46,7 @@ trap cleanup_all EXIT INT TERM
 # or SUPPRESSION_PATTERN will make both the pre-flight guard AND G1/G2 flip.
 OVERRIDE_PATTERN='^REPO[[:space:]]*=.*SPEC_LINT_REPO_OVERRIDE'
 SUPPRESSION_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET)[[:space:]]*[=:]'
+SPLITLINES_PATTERN='\.splitlines\(\)'
 
 run_override_guard() {
     # Verify every check-*.py in $1, plus the two new generators introduced by this PR
@@ -105,6 +106,37 @@ run_suppression_guard() {
     return 0
 }
 
+run_splitlines_guard() {
+    # Verify no check-*.py or covered generators in $1 use raw .splitlines().
+    # Scans non-comment lines only (grep -v '^\s*#') so intentional comments
+    # documenting the old API do not trigger false positives.
+    # Exempt: spec_lint_primitives.py (defines cm_splitlines itself) and
+    #         test_spec_lint_primitives.py (tests the primitive).
+    # Stage 2 scope: check-*.py + gen-bc-traceability.py + gen-slug-corpus.py.
+    # Stage 3 generators (gen-bc-index.py etc.) remain exempt until Stage 3.
+    # D-057: prints runtime count of files scanned; fails if 0 files found.
+    # Returns 0 = all clear, 2 = guard fired.
+    local dir="$1"
+    local count=0
+    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py"; do
+        [[ -f "$f" ]] || continue
+        [[ "$(basename "$f")" == "spec_lint_primitives.py" ]] && continue
+        [[ "$(basename "$f")" == "test_spec_lint_primitives.py" ]] && continue
+        count=$((count + 1))
+        if grep -v '^\s*#' "$f" | grep -qE "$SPLITLINES_PATTERN" 2>/dev/null; then
+            echo "STRUCTURAL GUARD FAILED: $(basename "$f") uses raw .splitlines()"
+            echo "  Use slp.cm_splitlines() instead (BI-040)."
+            return 2
+        fi
+    done
+    if [[ "$count" -eq 0 ]]; then
+        echo "STRUCTURAL GUARD FAILED: no check-*.py files found in $dir — nothing scanned"
+        return 2
+    fi
+    echo "Pre-flight guard passed: $count files checked, 0 raw .splitlines() uses"
+    return 0
+}
+
 # ── Pre-flight structural guard 1: SPEC_LINT_REPO_OVERRIDE ────────────────
 # Every checker must have an active REPO= assignment referencing
 # SPEC_LINT_REPO_OVERRIDE, or isolated-tree tests are impossible to write —
@@ -142,6 +174,20 @@ echo ""
 # Stage: WS-3b Stage 1 (BI-040). If this guard fires, Stage 1 is incomplete.
 echo "Pre-flight structural guard: running spec_lint_primitives unit tests (G3)..."
 if ! bash "$LINT_DIR/selftest/test_primitives.sh"; then
+    exit 2
+fi
+echo ""
+
+# ── Pre-flight guard 4: no raw .splitlines() in migrated checkers (G4) ───
+# All check-*.py files and Stage-2 generators (gen-bc-traceability.py,
+# gen-slug-corpus.py) must use slp.cm_splitlines() instead of raw
+# .splitlines(). CommonMark recognizes only LF as a line ending; Python's
+# .splitlines() also splits on FF, VT, CR, FS, GS, RS, NEL, LS, PS — any
+# of which can create phantom lines in spec content. Stage 3 generators
+# are excluded until Stage 3 migration is complete.
+# Stage: WS-3b Stage 2 (BI-040). If this guard fires, a file regressed.
+echo "Pre-flight structural guard: checking for raw .splitlines() in migrated checkers (G4)..."
+if ! run_splitlines_guard "$LINT_DIR"; then
     exit 2
 fi
 echo ""
@@ -1439,8 +1485,13 @@ MD25
 # .git FILE at the worktree root — simulates a real git linked worktree
 printf "gitdir: ../../.git/worktrees/BI021-SIM\n" > "$T/.worktrees/BI021-SIM/.git"
 
-# Copy the script into the simulated secondary worktree
+# Copy the script and its co-located primitive module into the simulated secondary worktree.
+# spec_lint_primitives.py must be present because check-canonical-facts.py now imports it
+# (BI-040 §6: find_repo_root consolidated into the shared primitive). The walk used by
+# slp.find_repo_root() starts from spec_lint_primitives.py's own location (Path(__file__)),
+# which is now inside the simulated worktree — so the .git boundary stop fires correctly.
 cp "$LINT_DIR/check-canonical-facts.py" "$T/.worktrees/BI021-SIM/scripts/spec-lint/"
+cp "$LINT_DIR/spec_lint_primitives.py"  "$T/.worktrees/BI021-SIM/scripts/spec-lint/"
 
 # Clean pass: without SPEC_LINT_REPO_OVERRIDE, boundary stop fires at .git → exit non-zero
 # with guidance message naming SPEC_LINT_REPO_OVERRIDE.
@@ -1887,8 +1938,10 @@ DB30
 # inner/.git is a FILE (simulates git linked worktree — .git is a pointer file in worktrees)
 printf "gitdir: ../../.git/worktrees/inner\n" > "$T/inner/.git"
 
-# Copy the FIXED script into the simulated inner repository
+# Copy the FIXED script and its co-located primitive module into the simulated inner repository.
+# spec_lint_primitives.py is required because check-canonical-facts.py imports it (BI-040 §6).
 cp "$LINT_DIR/check-canonical-facts.py" "$T/inner/scripts/spec-lint/"
+cp "$LINT_DIR/spec_lint_primitives.py"  "$T/inner/scripts/spec-lint/"
 
 # Clean pass: boundary stop must fire and script must exit non-zero (fail-closed).
 # env -u ensures the ambient SPEC_LINT_REPO_OVERRIDE (set by the calling workflow per

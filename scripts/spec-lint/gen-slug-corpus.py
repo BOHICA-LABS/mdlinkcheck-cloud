@@ -51,6 +51,7 @@ import os
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
 REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 SPECS = REPO / ".factory" / "specs"
@@ -93,7 +94,7 @@ def parse_tv_s_entries(tv_path: Path) -> list[dict]:
     """
     section = extract_tv_section(tv_path)
     entries: list[dict] = []
-    for line in section.splitlines():
+    for line in slp.cm_splitlines(section):
         m = re.match(r"^\|\s*(TV-S\d+)\s*\|([^|]+)\|([^|]+)\|([^|]+)\|", line)
         if not m:
             continue
