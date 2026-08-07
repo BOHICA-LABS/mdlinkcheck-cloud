@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=21
+EXPECTED_TEST_COUNT=24
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -1137,6 +1137,210 @@ if [ "$CLEAN_PASS" = "1" ]; then
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; both guards fail closed on empty checker directory)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test A1: check-index-integrity — data row placed ABOVE the |---| separator ─
+# B-11: regression introduced by the F-12 scoping fix at 031ca5b.
+# A row like "| HS-042 | EC-999 | …" placed before the |---| separator was
+# silently skipped (found_separator=False gate). After the B-11 fix, HS-like
+# pre-separator rows fall through the modified filter-5 and are classified by
+# the canonical parser; the forward check then catches EC-999.
+#
+# Mutation-flip: revert filter 5 to `if not found_separator: continue`
+# (unconditional pre-separator skip). A1 exits 0 again — forward check never
+# reached for the pre-separator row. A2a/A2b are unaffected (they appear after
+# the separator where found_separator is already True).
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest A1: check-index-integrity: data row above |---| separator (B-11 regression) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (valid HS-INDEX)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: rewrite HS-INDEX with HS-042 placed BEFORE the |---| separator.
+    # No wave-scenarios/EC-999-*.md file — the forward check must fire even
+    # though the row appears before the header separator.
+    cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX_DEFECT'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+| HS-042 | EC-999 | Bogus row above separator — no wave-scenarios file | Notes | BC | active |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX_DEFECT
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch HS-042 placed above separator)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; pre-separator HS-042→EC-999 correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test A2a: check-index-integrity — empty first cell bypasses separator check ─
+# B-11: `set("") <= set("-: ")` is True (empty set is subset of everything), so
+# a row with a blank ID cell was misclassified as a separator row and silently
+# skipped. After the B-11 fix the `first_cell and` guard prevents the empty set
+# vacuous-truth bypass; the row falls through, is counted by hs_rows_seen, matches
+# no parser pattern, and the accounting invariant fires.
+#
+# Mutation-flip for A2a (independent of A2b): replace `first_cell and all(…)` with
+# `(not first_cell) or (first_cell and all(…))` — empty cells are re-classified as
+# separators. A2a exits 0 again. A2b is unaffected (its first cell is non-empty).
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest A2a: check-index-integrity: empty first cell bypasses separator check (B-11) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (valid HS-INDEX)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: append a row with an EMPTY first cell pointing at EC-999 (no file).
+    # The empty first cell must NOT be misclassified as a separator row.
+    printf '|  | EC-999 | Empty ID cell | Notes | BC | active |\n' \
+        >> "$T/.factory/holdout-scenarios/HS-INDEX.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — empty first cell bypassed separator check)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; empty first cell row correctly detected via accounting invariant)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test A2b: check-index-integrity — dash-only first cell bypasses separator ──
+# B-11: `set("-") <= set("-: ")` is True, so a row like "| - | EC-999 | … |"
+# (dash-only first cell, real data in other cells) was misclassified as a
+# separator row and silently skipped. After the B-11 fix the `all(set(c) <= …)`
+# requirement checks ALL non-empty cells, not just the first; "EC-999" fails the
+# check so the row falls through, is counted, and the invariant fires.
+#
+# Mutation-flip for A2b (independent of A2a): revert to first-cell-only check:
+# `if first_cell and set(first_cell) <= set("-: ")`. A2b (first_cell="-") exits
+# 0 again. A2a is unaffected (first_cell="" is guarded by `first_cell and`).
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest A2b: check-index-integrity: dash-only first cell bypasses separator check (B-11) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (valid HS-INDEX)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: append a row with a SINGLE DASH first cell pointing at EC-999.
+    # The dash-only first cell with data in other cells must NOT be misclassified
+    # as a separator row (the all()-cells check prevents this).
+    printf '| - | EC-999 | Dash ID cell | Notes | BC | active |\n' \
+        >> "$T/.factory/holdout-scenarios/HS-INDEX.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — dash-only first cell bypassed separator check)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; dash-only first cell row correctly detected via accounting invariant)"
     fi
 fi
 rm -rf "$T"

@@ -139,11 +139,19 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
       ec_id may be the sentinel "MALFORMED" if the EC cell is unrecognized.
       Reserved IDs (not-yet-authored) are NOT included.
 
-    hs_rows_seen: count of data rows in the Authored Scenarios table computed
-      by cell-splitting, structurally independent of the four parser patterns.
-      Used for the D-057 / B-9 accounting invariant: every data row must be
+    hs_rows_seen: count of data rows in the Authored Scenarios table.
+      Incremented for every pipe-prefixed line in scope that is not classified
+      as a separator row or a non-HS header row.  Independent of the four regex
+      patterns (canonical, retired, malformed, near-miss) but NOT independent
+      of the structural pre-filters (non-pipe lines, empty-cell rows, and
+      confirmed-non-HS pre-separator rows are excluded).
+      Used for the D-057 / B-9 accounting invariant: every counted row must be
       accounted for as either a canonical entry or a nonconforming entry, and
       hs_rows_seen != hs_canonical + hs_nonconforming is a hard failure.
+      B-11 fix: rows that previously bypassed the counter via the separator
+      false-match (A2a: empty first cell; A2b: dash-only first cell with data
+      in other cells) or via the pre-separator gate (A1: HS-NNN row placed
+      before the |---| separator) are now counted and reported.
 
     near_misses: list of raw_id strings for each near-miss row (HS-like but
       non-canonical ID). One entry per row; duplicate rows are preserved so the
@@ -158,10 +166,13 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
       any matching. A single leading space is semantically neutral in Markdown
       but defeated all ^\| anchors in the prior implementation (BI-023 / B-9).
 
-    F-12 fix: detection is scoped to the ## Authored Scenarios section and to
-      rows that appear after the table header separator. Header rows (before the
-      separator) are never counted as data rows and never matched by patterns,
-      so a column header named 'HS-ID' cannot trigger a false near-miss violation.
+    F-12 fix: detection is scoped to the ## Authored Scenarios section.
+      Non-HS-pattern rows before the separator (e.g. the column header row
+      "| HS ID | EC ID | …") are silently skipped and never counted.
+      HS-pattern rows before the separator (e.g. a data row accidentally placed
+      above the |---| line) fall through to be counted and classified by the
+      parser patterns below; the forward check or the accounting invariant will
+      then report them (B-11 fix: closes the A1 regression).
     """
     hs_index = FACTORY / "holdout-scenarios" / "HS-INDEX.md"
     mapping: dict[str, str] = {}
@@ -195,19 +206,32 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
         if not cells:
             continue
         first_cell = cells[0].strip("~").strip()
-        if set(first_cell) <= set("-: "):
+        # B-11 fix (item 2 / A2a): require non-empty first_cell before the
+        # separator check — the empty set is a subset of everything, so the old
+        # `set(first_cell) <= set("-: ")` returned True vacuously for blank ID
+        # cells, misclassifying them as separator rows.
+        # B-11 fix (A2b): require ALL non-empty cells to be separator-like, not
+        # just the first cell — a row like "| - | EC-999 |" has a dash-only first
+        # cell but real data in other cells; it is not a separator row.
+        if first_cell and all(set(c) <= set("-: ") for c in cells if c):
             found_separator = True
             continue
 
         if not found_separator:
-            # Header row (before separator) — skip; not counted as a data row
-            # (F-12: prevents header cells like 'HS-ID' from firing near-miss).
-            continue
+            # Pre-separator row. Skip ONLY if it lacks an HS-like first cell
+            # (i.e. it looks like a column header such as "| HS ID | EC ID | …").
+            # HS-pattern rows placed before the separator (B-11 fix / A1: e.g. a
+            # data row accidentally above the |---| line) fall through so the
+            # parser can classify them and the forward check can report them.
+            if not re.match(r"^\|\s*(?:~~)?(?:HS-\d+|[Hh][Ss][-_])", line):
+                continue  # column-header row or similar non-HS pre-separator line
 
         # D-057 / B-9 accounting invariant denominator: count data rows by
-        # cell-splitting, independent of the four parser patterns below.
-        # If hs_rows_seen != hs_canonical + hs_nonconforming at the end of
-        # main(), at least one row was unaccounted for (parser or counter mismatch).
+        # structural pre-filters (pipe-prefix, non-empty cells, non-separator,
+        # non-header).  Any row that reaches this point but is not classified by
+        # the four parser patterns below will cause the invariant to fire.
+        # Rows excluded earlier (non-pipe lines, empty-cell rows, confirmed header
+        # rows, separator rows) are correct non-data exclusions.
         hs_rows_seen += 1
 
         # Active entry: | HS-001 | EC-156 | ...
@@ -445,13 +469,17 @@ def main() -> int:
                     f"(expected 'EC-NNN' or '~~EC-NNN~~')"
                 )
 
-        # D-057 / B-9 accounting invariant: every data row seen by cell-splitting
-        # must be accounted for as either a canonical entry or a nonconforming entry.
-        # hs_rows_seen is derived independently of the four parser patterns, so any
-        # row that defeats the parser is reported rather than silently dropped.
-        # This check is structurally independent of the "len(hs_mapping) == 0" guard
-        # it replaces, and fires on partial parsing (e.g. mixed flush/indented rows)
-        # as well as total parse failure.
+        # D-057 / B-9 accounting invariant: every row counted by hs_rows_seen must
+        # be accounted for as either a canonical entry or a nonconforming entry.
+        # hs_rows_seen is independent of the four regex parser patterns below, so
+        # any row that passes the structural pre-filters (pipe-prefix, non-empty
+        # cells, non-separator, non-header) but defeats the regex patterns will
+        # cause this invariant to fire.  Rows excluded by the structural pre-filters
+        # (non-pipe lines, empty-cell rows, column-header rows, separator rows) are
+        # not covered by this invariant — they are correctly excluded as non-data
+        # structural rows.  B-11: blank/punctuation-only ID cells (A2a, A2b) and
+        # HS-pattern rows placed before the separator (A1) are now counted, closing
+        # the third instance of the BI-023 shared-filter bypass.
         hs_canonical = sum(1 for v in hs_mapping.values() if v != "MALFORMED")
         hs_nonconforming = len(near_misses) + sum(1 for v in hs_mapping.values() if v == "MALFORMED")
         if hs_rows_seen != hs_canonical + hs_nonconforming:
