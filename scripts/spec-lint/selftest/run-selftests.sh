@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=27
+EXPECTED_TEST_COUNT=28
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -1568,6 +1568,85 @@ if [ "$CLEAN_PASS" = "1" ]; then
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; pipeless GFM row correctly counted and detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test B4: check-index-integrity — phantom data row in column-header position ─
+# D-068 residual exploit: when the ONLY pre-separator row is a real data row
+# (e.g., "| HS-099 | EC-999 | Phantom |"), the prior unconditional positional
+# discard (pending[-1]) silently dropped it. EC-999 was never forward-checked;
+# the checker exited 0 — a false pass.
+#
+# Fix: _is_column_header() positive recognition. The phantom row's first cell
+# is "HS-099", not "hs id" / "hs-id" / "hs_id", so _is_column_header() returns
+# False → the row is counted → forward check sees EC-999 has no wave-scenarios
+# file → checker exits 1.
+#
+# Mutation-flip: restore the unconditional `pending[:-1]` positional discard.
+# The phantom row is again silently dropped; EC-999 is never checked; checker
+# exits 0 on the defect tree → B4 FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest B4: check-index-integrity: phantom data row in column-header position (D-068 residual) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+# Clean tree: single valid entry, column header, separator, data row — all in order.
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: exactly the coordinator's exploit fixture. The phantom data row
+    # "| HS-099 | EC-999 | Phantom |" is the ONLY pre-separator row — no real
+    # column header precedes it. With the D-068 residual (pending[-1] discard),
+    # this row is silently dropped; EC-999 is never checked; exit 0 (false pass).
+    # With the _is_column_header() fix, "HS-099" is not in _HEADER_FIRST_CELLS;
+    # the row is counted; the forward check fires on missing EC-999; exit 1.
+    cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX_DEFECT'
+## Authored Scenarios
+
+| HS-099 | EC-999 | Phantom | phantom | BC-9.99.999 | active |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX_DEFECT
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — phantom data row in column-header position not detected — D-068 residual not closed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; phantom data row in column-header position correctly detected)"
     fi
 fi
 rm -rf "$T"

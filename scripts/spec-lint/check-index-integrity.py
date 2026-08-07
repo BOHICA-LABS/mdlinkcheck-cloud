@@ -21,6 +21,36 @@ REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.envir
 SPECS = REPO / ".factory" / "specs"
 FACTORY = REPO / ".factory"
 
+# ── Column-header positive recognition ────────────────────────────────────────
+# _is_column_header() is the ONLY gate that exempts a pre-separator row from
+# count_and_classify().  Its failure mode is COUNTING, not skipping — the inverse
+# of a D-039 allowlist.
+_HEADER_FIRST_CELLS: frozenset[str] = frozenset({"hs id", "hs-id", "hs_id"})
+
+
+def _is_column_header(l: str) -> bool:
+    """Return True iff row l is positively recognised as the HS-INDEX column header.
+
+    Inspects the first cell of the GFM pipe row.  Comparison is case-insensitive;
+    leading/trailing whitespace and strikethrough markers (~~ … ~~) are stripped
+    before matching against _HEADER_FIRST_CELLS.
+
+    Fail-toward-counting: False → the row is passed to count_and_classify(), not
+    silently discarded.  Failing recognition makes the row MORE visible (accounting
+    invariant fires), not less.  This is the inverse of a D-039 allowlist:
+
+      - allowlist failure  → row becomes invisible (D-039 violation)
+      - _is_column_header failure → row is counted and reported (NOT a D-039 violation)
+
+    The asymmetry is load-bearing: it means every recognition gap produces a
+    visible lint error rather than a silent false-pass.
+    """
+    cells = [c.strip() for c in l.strip("|").split("|")]
+    if not cells:
+        return False
+    first = cells[0].strip("~").strip().lower()
+    return first in _HEADER_FIRST_CELLS
+
 
 def get_bc_index_entries() -> dict[str, str]:
     """Return {bc_id: file_path_from_link} from BC-INDEX.md."""
@@ -144,20 +174,21 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
 
       A "candidate row" is counted by count_and_classify() for each:
         - In-scope pipe-prefixed post-separator row (normal data rows).
-        - In-scope pipe-prefixed pre-separator row that is NOT the positional
-          column header: all pre-separator rows except the last per sub-table,
-          which is discarded as the column header (BLOCKING-2 fix). Residual:
-          when a defect row is the ONLY pre-separator row (no column header
-          above it), it is discarded as the positional column header and not
-          counted; the accounting invariant holds vacuously for that row alone.
+        - In-scope pipe-prefixed pre-separator row NOT positively recognised as
+          the column header by _is_column_header() (BLOCKING-2 + D-068-residual
+          fix: fail-toward-counting replaces unconditional positional discard).
+          Recognition failure → row is counted and classified as a data row,
+          making it visible. This is NOT a D-039 violation: the failure mode
+          counts (visible), not skips (invisible).
         - In-scope pipeless line containing cell delimiters (MAJOR-1 fix: GFM
           allows leading/trailing pipes to be omitted; such lines are now
           counted and will fire the accounting invariant since none of the pipe-
           anchored classifier patterns can match them).
 
       NOT counted: heading lines; out-of-scope rows (outside the current h1/h2
-      section boundary); separator rows; the last pre-separator row per
-      sub-table (the positional column header).
+      section boundary); separator rows; pre-separator pipe rows positively
+      recognised as the column header by _is_column_header() (first cell
+      matches "hs id" / "hs-id" / "hs_id", case-insensitive).
 
       B-11 fix: rows previously bypassed via separator false-match (A2a: empty
       first cell; A2b: dash-only first cell with data in other cells) or via
@@ -187,9 +218,20 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
       with :59 (VP), :91 (ARCH), :308 (L2) which all use startswith("## ").
 
     BLOCKING-2 fix: pre-separator rows are buffered rather than gated by a
-      shape-regex allowlist. When the separator is seen, the last buffered row
-      is discarded positionally as the column header; earlier rows are counted
-      and classified as misplaced data rows. Prior implementation used a regex
+      shape-regex allowlist. When the separator is seen (or at any flush point),
+      each buffered row is exempted from count_and_classify() ONLY on positive
+      recognition by _is_column_header(). Fail-toward-counting: rows not
+      recognised as the column header are counted and classified as data rows,
+      making them visible (accounting invariant fires). This is NOT a D-039
+      violation: the failure mode counts, not hides.
+
+      D-068 residual closed: the prior unconditional positional discard of
+      pending[-1] has been replaced. A phantom data row in the column-header
+      position (e.g., the only pre-separator row is "| HS-099 | EC-999 |...")
+      is no longer silently discarded — _is_column_header() returns False for
+      it, so it is counted and reported.
+
+      Prior implementation used a regex
       (r"^\\|\\s*(?:~~)?(?:HS-\\d+|[Hh][Ss][-_])") that was a D-039-forbidden
       allowlist in disguised form: only HS-shaped pre-separator rows were seen.
     """
@@ -254,19 +296,22 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
             level = len(line) - len(line.lstrip("#"))
             if level <= 2:
                 # h1/h2: section boundary. Flush any buffered pre-separator rows
-                # (section ended without a separator — count all as data rows).
+                # (section ended without a separator). Fail-toward-counting:
+                # count unless positively recognised as the column header.
                 for p in pending_pre_sep:
-                    count_and_classify(p)
+                    if not _is_column_header(p):
+                        count_and_classify(p)
                 pending_pre_sep = []
                 in_authored_scenarios = "Authored Scenarios" in line
                 found_separator = False
             else:
                 # h3+: sub-heading within section. Stay in scope but reset
                 # separator tracking so each sub-table gets fresh buffering.
-                # Flush pending (no separator seen since last heading or table
-                # start — count buffered rows as data rows).
+                # Flush pending (no separator seen). Fail-toward-counting:
+                # count unless positively recognised as the column header.
                 for p in pending_pre_sep:
-                    count_and_classify(p)
+                    if not _is_column_header(p):
+                        count_and_classify(p)
                 pending_pre_sep = []
                 found_separator = False
             continue  # headings are never candidate rows
@@ -293,12 +338,17 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
         # real data in other cells; it is not a separator row.
         if first_cell and all(set(c) <= set("-: ") for c in cells if c):
             found_separator = True
-            # BLOCKING-2: positional column-header identification. The last
-            # pre-separator row is the column header (GFM: header immediately
-            # precedes the separator); discard it. All earlier pre-separator rows
-            # are misplaced data rows — count and classify them.
-            for p in pending_pre_sep[:-1]:
-                count_and_classify(p)
+            # BLOCKING-2: column-header positive recognition. Exempt a row only
+            # when _is_column_header() positively recognises it as the column
+            # header. Fail-toward-counting: unrecognised rows are counted and
+            # classified as data rows (accounting invariant fires). NOT a D-039
+            # violation: failure mode is counting (visible), not skipping.
+            # D-068 residual closed: the prior `pending[:-1]` unconditional
+            # positional discard is gone — a phantom data row in the header
+            # position is now counted and reported.
+            for p in pending_pre_sep:
+                if not _is_column_header(p):
+                    count_and_classify(p)
             pending_pre_sep = []
             continue
 
@@ -314,9 +364,11 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
         count_and_classify(line)
 
     # Flush any remaining buffered pre-separator rows (end of file or section
-    # ended without a separator). All are treated as data rows.
+    # ended without a separator). Fail-toward-counting: count unless positively
+    # recognised as the column header by _is_column_header().
     for p in pending_pre_sep:
-        count_and_classify(p)
+        if not _is_column_header(p):
+            count_and_classify(p)
 
     return mapping, hs_rows_seen, near_misses
 
@@ -539,13 +591,12 @@ def main() -> int:
         #   - Out-of-scope rows (after an h1/h2 section change, BLOCKING-1 fixed:
         #     h3+ subheadings no longer exit scope)
         #   - Separator rows (|---|--- rows, explicitly excluded)
-        #   - The last pre-separator pipe row per sub-table, discarded positionally
-        #     as the column header (BLOCKING-2 fixed: no shape-regex gate)
-        # Residual: when a defect row is the ONLY pre-separator row (no column
-        # header above it), it is discarded as the positional column header and the
-        # invariant holds vacuously for that row. All other pre-separator defect
-        # rows (when a column header is present above them) cause the invariant to
-        # fire by counting the displaced column header row as unclassified.
+        #   - Pre-separator pipe rows positively recognised as the column header by
+        #     _is_column_header() (BLOCKING-2 fixed: no shape-regex gate; D-068
+        #     residual closed: no unconditional positional discard). Recognition
+        #     failures fail toward counting — unrecognised rows are passed to
+        #     count_and_classify(), making them visible. NOT a D-039 violation:
+        #     failure mode counts, not hides.
         # B-11: blank/punctuation-only ID cells (A2a, A2b) and HS-pattern rows
         # placed before the separator (A1) are now counted and reported.
         hs_canonical = sum(1 for v in hs_mapping.values() if v != "MALFORMED")
