@@ -138,6 +138,15 @@ def get_hs_ec_mapping() -> dict[str, str]:
     Parses both active rows (| HS-NNN | EC-NNN | ...) and retired rows
     (| ~~HS-NNN~~ | ~~EC-NNN~~ | ...) from HS-INDEX.md. Reserved IDs in the
     "not-yet-authored" section have no wave-scenarios file and are NOT included.
+
+    Sentinel values used as ec_id:
+      "MALFORMED"    — canonical HS-NNN ID present but EC cell is unrecognized
+      "MALFORMED_ID" — HS-like cell present but ID is non-canonical (wrong case,
+                       underscore separator, trailing junk, annotation, etc.)
+                       Key is prefixed with "NEAR_MISS:" to avoid collisions.
+
+    D-057 / BI-023: near-miss rows are captured rather than silently skipped so
+    that main() can emit a violation for every row it cannot fully parse.
     """
     hs_index = FACTORY / "holdout-scenarios" / "HS-INDEX.md"
     mapping: dict[str, str] = {}
@@ -152,11 +161,19 @@ def get_hs_ec_mapping() -> dict[str, str]:
         if m:
             mapping[m.group(1)] = m.group(2)
             continue
-        # Malformed row: has HS-NNN cell but EC cell is unrecognized (partial strikethrough,
-        # TBD placeholder, etc.). Mark with sentinel so main() can emit a violation.
+        # Malformed row: canonical HS-NNN cell but EC cell is unrecognized (partial
+        # strikethrough, TBD placeholder, etc.). Mark with sentinel for violation.
         m = re.match(r"^\|\s*(?:~~)?(HS-\d+)(?:~~)?\s*\|", line)
         if m:
             mapping[m.group(1)] = "MALFORMED"
+            continue
+        # Near-miss: looks like an HS row but the ID is non-canonical — wrong case
+        # (hs-009), underscore separator (HS_008), annotation (HS-007 (deferred)),
+        # or trailing junk (HS-005x). Capture rather than silently skip (BI-023).
+        m = re.match(r"^\|\s*(?:~~)?([Hh][Ss][-_]\S[^\|]*?)(?:~~)?\s*\|", line)
+        if m:
+            raw_id = m.group(1).strip().rstrip("~").strip()
+            mapping["NEAR_MISS:" + raw_id] = "MALFORMED_ID"
     return mapping
 
 
@@ -344,25 +361,49 @@ def main() -> int:
         )
 
     # ── HS-INDEX <-> wave-scenarios files (bidirectional) ───────────────────
+    hs_validated = 0  # D-057: canonical entries that went through the forward check
     if hs_index_path.exists():
         hs_mapping = get_hs_ec_mapping()
         wave_ec_ids = get_actual_wave_scenario_ec_ids()
 
-        # Malformed-cell check: HS entries whose EC column is unrecognized format.
-        # Kept in its own checks+=1 block so a mutation targeting ONLY this block
-        # makes test 10d flip independently of the forward check.
+        # Malformed-cell / near-miss-ID check: HS rows whose ID or EC column is
+        # unrecognized. Kept in its own checks+=1 block so a mutation targeting
+        # ONLY this block makes test 10d flip independently of the forward check.
         checks += 1
         for hs_id, ec_id in sorted(hs_mapping.items()):
-            if ec_id == "MALFORMED":
+            if hs_id.startswith("NEAR_MISS:"):
+                # Near-miss: HS-like ID that didn't parse as canonical (BI-023 fix)
+                real_id = hs_id[len("NEAR_MISS:"):]
+                violations.append(
+                    f"{hs_index_path}: HS row with non-canonical ID '{real_id}' "
+                    f"— expected 'HS-<digits>' or '~~HS-<digits>~~'"
+                )
+            elif ec_id == "MALFORMED":
                 violations.append(
                     f"{hs_index_path}: HS entry '{hs_id}' has a malformed or unrecognized EC cell "
                     f"(expected 'EC-NNN' or '~~EC-NNN~~')"
                 )
 
-        # Forward check: each authored (non-malformed) HS entry's EC-NNN -> file exists
+        # D-057 fail-closed: if the HS-INDEX has data rows but none parsed, report it.
+        if len(hs_mapping) == 0:
+            hs_content = hs_index_path.read_text(encoding="utf-8").splitlines()
+            hs_data_rows = [l for l in hs_content if re.match(r"^\|\s*[^-|]", l)]
+            if hs_data_rows:
+                violations.append(
+                    f"{hs_index_path}: HS-INDEX has {len(hs_data_rows)} data row(s) "
+                    f"but none could be parsed as HS entries — checker validated nothing"
+                )
+
+        # Forward check: each authored (non-malformed, non-near-miss) HS entry's
+        # EC-NNN must have a corresponding wave-scenarios file. Kept in its own
+        # checks+=1 block so a mutation targeting ONLY this block makes test 10 flip
+        # independently of test 10d.
         checks += 1
         for hs_id, ec_id in sorted(hs_mapping.items()):
-            if ec_id != "MALFORMED" and ec_id not in wave_ec_ids:
+            if hs_id.startswith("NEAR_MISS:") or ec_id in ("MALFORMED", "MALFORMED_ID"):
+                continue
+            hs_validated += 1
+            if ec_id not in wave_ec_ids:
                 violations.append(
                     f"{hs_index_path}: HS entry '{hs_id}' maps to '{ec_id}' — "
                     f"no wave-scenarios file found for this EC ID"
@@ -370,7 +411,7 @@ def main() -> int:
 
         # Reverse check: each wave-scenarios file -> has corresponding HS entry
         checks += 1
-        hs_ec_ids = {v for v in hs_mapping.values() if v != "MALFORMED"}
+        hs_ec_ids = {v for v in hs_mapping.values() if v not in ("MALFORMED", "MALFORMED_ID")}
         for ec_id in sorted(wave_ec_ids):
             if ec_id not in hs_ec_ids:
                 violations.append(
@@ -378,7 +419,7 @@ def main() -> int:
                     f"corresponding HS-INDEX entry"
                 )
 
-        # Duplicate HS-ID check (scan both active and retired rows)
+        # Duplicate HS-ID check (scan both active and retired canonical rows)
         checks += 1
         all_hs_ids: list[str] = []
         for line in hs_index_path.read_text(encoding="utf-8").splitlines():
@@ -404,7 +445,7 @@ def main() -> int:
 
     print(
         f"Check passed: {checks} structural checks — BC ({len(bc_entries)} entries), "
-        f"VP ({len(vp_entries)} entries), ADR, ARCH, L2, HS all consistent"
+        f"VP ({len(vp_entries)} entries), ADR, ARCH, L2, HS ({hs_validated} entries) all consistent"
     )
     return 0
 

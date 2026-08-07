@@ -37,51 +37,83 @@ cleanup_all() {
 }
 trap cleanup_all EXIT INT TERM
 
-# ── Pre-flight structural guard ────────────────────────────────────────────
+# ── Guard patterns (single canonical definitions) ─────────────────────────
+# Each pattern is defined ONCE here. Both the pre-flight checks and the guard
+# selftests (G1, G2) use these variables — there is no second copy of either
+# pattern anywhere in this file. This means any mutation to OVERRIDE_PATTERN
+# or SUPPRESSION_PATTERN will make both the pre-flight guard AND G1/G2 flip.
+OVERRIDE_PATTERN='^REPO[[:space:]]*=.*SPEC_LINT_REPO_OVERRIDE'
+SUPPRESSION_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET)[[:space:]]*[=:]'
+
+run_override_guard() {
+    # Verify every check-*.py in $1 has an active SPEC_LINT_REPO_OVERRIDE assignment.
+    # D-057: prints runtime count of files scanned; fails if 0 files found.
+    # Returns 0 = all clear, 2 = guard fired (missing support, or no files found).
+    local dir="$1"
+    local count=0
+    for f in "$dir"/check-*.py; do
+        [[ -f "$f" ]] || continue
+        count=$((count + 1))
+        if ! grep -qE "$OVERRIDE_PATTERN" "$f" 2>/dev/null; then
+            echo "STRUCTURAL GUARD FAILED: $(basename "$f") lacks SPEC_LINT_REPO_OVERRIDE support"
+            echo "  Add the standard REPO= line so tests can use isolated temp trees."
+            echo "  Pattern: REPO = Path(os.environ.get(\"SPEC_LINT_REPO_OVERRIDE\", \"\")).resolve() if ..."
+            return 2
+        fi
+    done
+    if [[ "$count" -eq 0 ]]; then
+        echo "STRUCTURAL GUARD FAILED: no check-*.py files found in $dir — nothing scanned"
+        return 2
+    fi
+    echo "Pre-flight guard passed: $count checkers support SPEC_LINT_REPO_OVERRIDE"
+    return 0
+}
+
+run_suppression_guard() {
+    # Verify no check-*.py in $1 contains a hardcoded suppression allowlist construct.
+    # D-057: prints runtime count of files scanned; fails if 0 files found.
+    # Returns 0 = all clear, 2 = guard fired (suppression found, or no files found).
+    local dir="$1"
+    local count=0
+    for f in "$dir"/check-*.py; do
+        [[ -f "$f" ]] || continue
+        count=$((count + 1))
+        if grep -qE "$SUPPRESSION_PATTERN" "$f" 2>/dev/null; then
+            echo "STRUCTURAL GUARD FAILED: $(basename "$f") contains a hardcoded suppression allowlist"
+            echo "  Checkers must not silently suppress real findings via allowlists, skip-lists,"
+            echo "  deferral sets, or known-issues collections — fix the spec, not the checker."
+            echo "  Remove any variable matching: ALLOWLIST | _DEFERRAL | SKIP_LIST | SKIP_SET |"
+            echo "    KNOWN_COLLISIONS | KNOWN_VIOLATIONS | KNOWN_ISSUES | WHITELIST | SUPPRESS_SET"
+            return 2
+        fi
+    done
+    if [[ "$count" -eq 0 ]]; then
+        echo "STRUCTURAL GUARD FAILED: no check-*.py files found in $dir — nothing scanned"
+        return 2
+    fi
+    echo "Pre-flight guard passed: $count checkers scanned, 0 suppression constructs found"
+    return 0
+}
+
+# ── Pre-flight structural guard 1: SPEC_LINT_REPO_OVERRIDE ────────────────
 # Every checker must have an active REPO= assignment referencing
 # SPEC_LINT_REPO_OVERRIDE, or isolated-tree tests are impossible to write —
 # vacuous tests reappear the moment one checker loses override support.
 echo "Pre-flight structural guard: checking SPEC_LINT_REPO_OVERRIDE in all checkers..."
-CHECKER_COUNT=0
-for checker in check-adr-consistency check-counts check-ec-injectivity \
-               check-holdout-boundary check-id-resolution check-index-integrity \
-               check-placeholders check-title-sync; do
-    CHECKER_COUNT=$((CHECKER_COUNT + 1))
-    # Require an active (non-comment) REPO= assignment referencing SPEC_LINT_REPO_OVERRIDE
-    if ! grep -qE "^REPO[[:space:]]*=.*SPEC_LINT_REPO_OVERRIDE" "$LINT_DIR/$checker.py" 2>/dev/null; then
-        echo ""
-        echo "STRUCTURAL GUARD FAILED: $checker.py lacks SPEC_LINT_REPO_OVERRIDE support"
-        echo "  Add the standard REPO= line so tests can use isolated temp trees."
-        echo "  Pattern: REPO = Path(os.environ.get(\"SPEC_LINT_REPO_OVERRIDE\", \"\")).resolve() if ..."
-        exit 2
-    fi
-done
-echo "Pre-flight guard passed: all $CHECKER_COUNT checkers support SPEC_LINT_REPO_OVERRIDE"
+if ! run_override_guard "$LINT_DIR"; then
+    exit 2
+fi
 echo ""
 
 # ── Pre-flight guard 2: no hardcoded suppression allowlists ───────────────
 # Checkers must not contain allowlists, skip-lists, or deferral sets that
 # silently suppress real findings. The same Phase-2-deferral defect caught in
 # P4-021 (check-index-integrity) re-emerged in check-ec-injectivity; this
-# guard closes the class structurally. Suppression-pattern keywords below are
-# chosen to match common names for these constructs (ALLOWLIST, DEFERRAL,
-# SKIP_LIST, KNOWN_COLLISIONS, etc.) when used as variable assignments.
+# guard closes the class structurally. See SUPPRESSION_PATTERN definition above.
 echo "Pre-flight structural guard: checking for hardcoded suppression allowlists in all checkers..."
-SUPPRESSION_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET)[[:space:]]*[=:]'
-for checker in check-adr-consistency check-counts check-ec-injectivity \
-               check-holdout-boundary check-id-resolution check-index-integrity \
-               check-placeholders check-title-sync; do
-    if grep -qE "$SUPPRESSION_PATTERN" "$LINT_DIR/$checker.py" 2>/dev/null; then
-        echo ""
-        echo "STRUCTURAL GUARD FAILED: $checker.py contains a hardcoded suppression allowlist"
-        echo "  Checkers must not silently suppress real findings via allowlists, skip-lists,"
-        echo "  deferral sets, or known-issues collections — fix the spec, not the checker."
-        echo "  Remove any variable matching: ALLOWLIST | _DEFERRAL | SKIP_LIST | SKIP_SET |"
-        echo "    KNOWN_COLLISIONS | KNOWN_VIOLATIONS | KNOWN_ISSUES | WHITELIST | SUPPRESS_SET"
-        exit 2
-    fi
-done
-echo "Pre-flight guard passed: no suppression allowlists found in any checker"
+if ! run_suppression_guard "$LINT_DIR"; then
+    exit 2
+fi
 echo ""
 
 # ── Helper: make_temp ──────────────────────────────────────────────────────
@@ -770,35 +802,36 @@ if [ "$CLEAN_PASS" = "1" ]; then
 fi
 rm -rf "$T"
 
-# ── Guard test G1: SPEC_LINT_REPO_OVERRIDE pre-flight guard logic ──────────
-# D-040 applies recursively: the pre-flight guard that verifies checkers have
-# SPEC_LINT_REPO_OVERRIDE must itself be proven to fire for a bad checker.
-# This test validates the guard's grep pattern directly against stub files.
+# ── Guard test G1: run_override_guard fires on a checker lacking SPEC_LINT_REPO_OVERRIDE ──
+# D-040 applies recursively: run_override_guard must itself be proven to fire.
+# This test calls the REAL function (defined above). OVERRIDE_PATTERN has one
+# canonical definition; any mutation to it will flip this test. There is no
+# duplicate pattern copy here — that was the original B-7 defect class.
 TESTS_RUN=$((TESTS_RUN + 1))
 echo "── guard selftest G1: SPEC_LINT_REPO_OVERRIDE pre-flight guard fires ──"
 T=$(make_temp)
 
-# Clean pass: guard correctly does NOT fire for a valid checker stub
-cat > "$T/good-checker.py" <<'GOODSTUB'
+# Clean pass: run_override_guard returns 0 for a valid checker stub
+cat > "$T/check-stub.py" <<'GOODSTUB'
 REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 GOODSTUB
 
 CLEAN_PASS=0
-if grep -qE "^REPO[[:space:]]*=.*SPEC_LINT_REPO_OVERRIDE" "$T/good-checker.py"; then
+if run_override_guard "$T" > /dev/null 2>&1; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
     CLEAN_PASS=1
 else
-    echo "  STRUCTURAL FAIL: guard pattern fires on a valid SPEC_LINT_REPO_OVERRIDE assignment"
+    echo "  STRUCTURAL FAIL: guard fired on a valid SPEC_LINT_REPO_OVERRIDE assignment"
     FAILURES=$((FAILURES + 1))
 fi
 
 if [ "$CLEAN_PASS" = "1" ]; then
-    # Defect: bad checker lacks SPEC_LINT_REPO_OVERRIDE entirely
-    cat > "$T/bad-checker.py" <<'BADSTUB'
+    # Defect: replace stub with a checker lacking SPEC_LINT_REPO_OVERRIDE entirely
+    cat > "$T/check-stub.py" <<'BADSTUB'
 REPO = Path("/hardcoded/path/without/override")
 BADSTUB
-    if grep -qE "^REPO[[:space:]]*=.*SPEC_LINT_REPO_OVERRIDE" "$T/bad-checker.py"; then
-        echo "  FAIL (guard did NOT detect missing SPEC_LINT_REPO_OVERRIDE in bad checker stub)"
+    if run_override_guard "$T" > /dev/null 2>&1; then
+        echo "  FAIL (guard did NOT detect missing SPEC_LINT_REPO_OVERRIDE in bad checker)"
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; guard correctly detects checker lacking SPEC_LINT_REPO_OVERRIDE)"
@@ -806,36 +839,37 @@ BADSTUB
 fi
 rm -rf "$T"
 
-# ── Guard test G2: suppression-allowlist pre-flight guard logic ────────────
-# D-040 applies recursively: the suppression-allowlist guard must itself be proven
-# to fire for a checker that introduces KNOWN_COLLISIONS or similar constructs.
+# ── Guard test G2: run_suppression_guard fires on a checker with KNOWN_COLLISIONS ──
+# D-040 applies recursively: run_suppression_guard must itself be proven to fire.
+# This test calls the REAL function (defined above). SUPPRESSION_PATTERN has one
+# canonical definition; any mutation to it will flip this test. There is no
+# duplicate pattern copy here — that was the original B-7 defect class.
 TESTS_RUN=$((TESTS_RUN + 1))
 echo "── guard selftest G2: suppression-allowlist pre-flight guard fires ──"
 T=$(make_temp)
-G2_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET)[[:space:]]*[=:]'
 
-# Clean pass: guard correctly does NOT fire for a checker with no suppression allowlists
-cat > "$T/clean-checker.py" <<'CLEANSTUB'
+# Clean pass: run_suppression_guard returns 0 for a checker with no suppression allowlists
+cat > "$T/check-stub.py" <<'CLEANSTUB'
 REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 # This checker has no suppression allowlists — all violations are reported
 CLEANSTUB
 
 CLEAN_PASS=0
-if ! grep -qE "$G2_PATTERN" "$T/clean-checker.py"; then
+if run_suppression_guard "$T" > /dev/null 2>&1; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
     CLEAN_PASS=1
 else
-    echo "  STRUCTURAL FAIL: guard pattern fires on a clean checker with no suppression allowlists"
+    echo "  STRUCTURAL FAIL: guard fired on a clean checker with no suppression allowlists"
     FAILURES=$((FAILURES + 1))
 fi
 
 if [ "$CLEAN_PASS" = "1" ]; then
-    # Defect: bad checker introduces a KNOWN_COLLISIONS suppression allowlist
-    cat > "$T/bad-checker.py" <<'BADSTUB'
+    # Defect: replace stub with a checker containing KNOWN_COLLISIONS (D-039 violation)
+    cat > "$T/check-stub.py" <<'BADSTUB'
 KNOWN_COLLISIONS = {"EC-001", "EC-002"}  # hardcoded suppression allowlist
 BADSTUB
-    if ! grep -qE "$G2_PATTERN" "$T/bad-checker.py"; then
-        echo "  FAIL (guard did NOT detect KNOWN_COLLISIONS suppression allowlist in bad checker stub)"
+    if run_suppression_guard "$T" > /dev/null 2>&1; then
+        echo "  FAIL (guard did NOT detect KNOWN_COLLISIONS suppression allowlist)"
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; guard correctly detects KNOWN_COLLISIONS suppression allowlist)"
