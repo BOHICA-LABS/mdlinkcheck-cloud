@@ -1376,8 +1376,11 @@ rm -rf "$T"
 #             (--write is the explicit opt-in that passes the concurrency gate, Gate 1,
 #              but must still be refused by the BI-041 gate, Gate 2 — two independent gates.)
 #
-# Mutation-verify: removing the BI-041 guard block (Gate 2) in gen-bc-traceability.py
-# causes --write to exit 0, flipping this test's defect-fail assertion to FAIL.
+# Mutation-verify status: NOT independently verifiable. Removing only Gate 2 does not
+# flip this test to FAIL: --write then hits the function-level RuntimeError in
+# update_bc_file, whose message also contains "BI-041" — the grep still matches and
+# the suite stays green. Both Gate 2 AND the function-level guard must be removed
+# simultaneously for --write to succeed and for exit code to become 0.
 TESTS_RUN=$((TESTS_RUN + 1))
 echo "── selftest 26: gen-bc-traceability: write mode fail-closed (BI-041 guard) ──"
 T=$(make_temp)
@@ -1439,8 +1442,10 @@ rm -rf "$T"
 # Defect:     bare invocation exits non-zero (Gate 1 fires) AND BC file is byte-identical
 #             (no write occurred before the guard refused).
 #
-# Mutation note: removing ONLY Gate 1 leaves Gate 2 (BI-041) still active.
-# Gate 2 also refuses write mode, so the byte-identical assertion continues to pass.
+# Mutation note: removing ONLY Gate 1 does not flip this test. --write is not
+# passed in the defect step so Gate 2 is irrelevant; the byte-identical assertion
+# passes because the function-level RuntimeError in update_bc_file prevents any
+# write. Only removing Gate 1 AND that RuntimeError simultaneously allows writes.
 # Full isolation of Gate 1 requires removing BOTH gates — tested jointly.
 # For an independently mutation-verifiable bare-invocation test, see selftest 28
 # (gen-slug-corpus, which has no Gate 2 analogue).
@@ -1595,8 +1600,21 @@ echo "── selftest 29: meta-guard: every check-*.py is in the active CHECKS a
 
 # Extract non-commented entries from the CHECKS=( ... ) block in a runner file.
 # Returns one name per line, without surrounding quotes.
+# FAILS LOUDLY (exit 1, message to stderr) if the file contains more than one
+# CHECKS=( block: a second block would make it ambiguous which entries bash
+# actually executes; silently unioning both could include demoted checkers as
+# if still active.  If more than one block is found, the guard's assumption has
+# been invalidated — update the guard to name the authoritative array.
 _get_active_checks() {
     local file="$1"
+    local block_count
+    block_count=$(awk '/CHECKS=\(/{c++} END{print c+0}' "$file")
+    if [ "$block_count" -ne 1 ]; then
+        echo "META-GUARD ERROR: $file contains $block_count CHECKS=( block(s) — expected exactly 1." >&2
+        echo "  The guard's assumption (one authoritative array per runner file) has been invalidated." >&2
+        echo "  Update the guard to name the authoritative array before proceeding." >&2
+        return 1
+    fi
     awk '
         /CHECKS=\(/ { in_array=1; next }
         in_array && /\)/ { in_array=0 }
@@ -1679,8 +1697,28 @@ if [ "$CLEAN_PASS" = "1" ]; then
         ALL_ARM_DEFECTS_DETECTED=0
     fi
 
+    # Defect C: two-array fixture — guard must reject files with multiple CHECKS=( blocks.
+    # Mutation-verify: removing the block_count check from _get_active_checks causes
+    # _get_active_checks to return 0 (success) instead of 1 (failure), flipping this
+    # arm's defect-detected assertion to FAIL.
+    cat > "$T/ci-twoarray.yml" <<'TWOARRAY_EOF'
+CHECKS=(
+  "check-first"
+  "check-second"
+)
+# Advisory checks (not yet blocking)
+CHECKS=(
+  "check-advisory"
+)
+TWOARRAY_EOF
+    if _get_active_checks "$T/ci-twoarray.yml" >/dev/null 2>&1; then
+        echo "  FAIL (two-array fixture: guard did NOT reject file with two CHECKS=( blocks)"
+        FAILURES=$((FAILURES + 1))
+        ALL_ARM_DEFECTS_DETECTED=0
+    fi
+
     if [ "$ALL_ARM_DEFECTS_DETECTED" -eq 1 ]; then
-        echo "  PASS (clean-pass confirmed; both ci.yml and justfile arms detect commented-out check-canonical-facts)"
+        echo "  PASS (clean-pass confirmed; ci.yml and justfile arms detect commented-out entry; two-array fixture rejected)"
     fi
     rm -rf "$T"
 fi
