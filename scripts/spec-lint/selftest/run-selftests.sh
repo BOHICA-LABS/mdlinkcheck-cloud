@@ -1398,8 +1398,11 @@ cp "$LINT_DIR/check-canonical-facts.py" "$T/.worktrees/BI021-SIM/scripts/spec-li
 
 # Clean pass: without SPEC_LINT_REPO_OVERRIDE, boundary stop fires at .git → exit non-zero
 # with guidance message naming SPEC_LINT_REPO_OVERRIDE.
+# env -u ensures the ambient SPEC_LINT_REPO_OVERRIDE (set by the calling workflow per
+# BI-021/BI-043) does not leak into this subprocess — this test specifically exercises
+# the without-override code path (BI-045).
 CLEAN_PASS=0
-BI021_OUT=$(python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+BI021_OUT=$(env -u SPEC_LINT_REPO_OVERRIDE python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" 2>&1)
 BI021_EXIT=$?
 if [ "$BI021_EXIT" -ne 0 ] && echo "$BI021_OUT" | grep -q "SPEC_LINT_REPO_OVERRIDE"; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
@@ -1841,9 +1844,12 @@ printf "gitdir: ../../.git/worktrees/inner\n" > "$T/inner/.git"
 # Copy the FIXED script into the simulated inner repository
 cp "$LINT_DIR/check-canonical-facts.py" "$T/inner/scripts/spec-lint/"
 
-# Clean pass: boundary stop must fire and script must exit non-zero (fail-closed)
+# Clean pass: boundary stop must fire and script must exit non-zero (fail-closed).
+# env -u ensures the ambient SPEC_LINT_REPO_OVERRIDE (set by the calling workflow per
+# BI-021/BI-043) does not leak into this subprocess — this test specifically exercises
+# the without-override code path (BI-045).
 CLEAN_PASS=0
-BOUND_OUT=$(python3 "$T/inner/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+BOUND_OUT=$(env -u SPEC_LINT_REPO_OVERRIDE python3 "$T/inner/scripts/spec-lint/check-canonical-facts.py" 2>&1)
 BOUND_EXIT=$?
 if [ "$BOUND_EXIT" -ne 0 ]; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
@@ -1856,9 +1862,12 @@ fi
 
 if [ "$CLEAN_PASS" = "1" ]; then
     # Defect: remove inner/.git — the boundary stop no longer fires; walk escapes to
-    # $T/ and finds the decoy canonical-facts.toml, producing a false pass (exit 0)
+    # $T/ and finds the decoy canonical-facts.toml, producing a false pass (exit 0).
+    # env -u ensures the ambient SPEC_LINT_REPO_OVERRIDE cannot bypass the decoy
+    # escape scenario — the defect must be proved by the walk reaching the decoy,
+    # not by inheriting the real repo from the environment (BI-045).
     rm "$T/inner/.git"
-    DEFECT_OUT=$(python3 "$T/inner/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+    DEFECT_OUT=$(env -u SPEC_LINT_REPO_OVERRIDE python3 "$T/inner/scripts/spec-lint/check-canonical-facts.py" 2>&1)
     DEFECT_EXIT=$?
     if [ "$DEFECT_EXIT" -eq 0 ]; then
         echo "  PASS (clean-pass confirmed; boundary stop prevents false pass; without .git, decoy is found)"
