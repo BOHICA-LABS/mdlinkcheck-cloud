@@ -8,10 +8,13 @@ after Phase 1b:
   VP-TBD       — POL-14: no VP-TBD placeholders after Phase 1b
   SS-TBD       — POL-15: no SS-TBD subsystem placeholders after Phase 1b
   [filled by * — any "[filled by ...]" marker (73 remain per audit)
-  test-sufficient in VP-NNN column — POL-14: VP-NNN must be a real VP
-                   reference; the literal string "test-sufficient" is NOT
-                   a valid VP ID and must not appear as a table row key in
-                   the VP-NNN column of a Verification Properties table.
+  non-conforming VP-NNN column value — POL-14: in any Verification Properties
+                   table (header row first cell exactly "VP-NNN"), every data
+                   row's first cell MUST be a non-empty comma-or-slash-separated
+                   list of VP-\d{3} tokens, or the sentinel VP-NONE (only when
+                   the Proof Method column is non-empty). Any other first-cell
+                   content (em-dash, en-dash, TBD, none, empty, etc.) is a
+                   POL-14 violation — R2-RULE (D-069).
 
 Scope: .factory/specs/behavioral-contracts/ (primary)
        .factory/specs/ (secondary, for any stray occurrences elsewhere)
@@ -28,6 +31,10 @@ Scoping rule for VP-TBD / SS-TBD:
     - are inside a quoted string (the match is bracketed by " ... "
       on the same line) AND the line looks like a changelog entry
       (contains a version prefix like "v1." or "v2.").
+
+R2-RULE scoping:
+  Fenced code blocks (triple-backtick, not 4-space-indented per CommonMark §4.5)
+  are suppressed — content inside them is documentation, not live spec content.
 
 Exit 1 if any placeholder found.
 """
@@ -46,9 +53,15 @@ PLACEHOLDER_PATTERNS = [
     (re.compile(r"\[filled by [^\]]+\]", re.IGNORECASE), "[filled by ...] (POL-14/15 generalized)"),
 ]
 
-# Regex to detect test-sufficient in the VP-NNN column of a VP table row.
-# Pattern: | test-sufficient | <anything> |
-TEST_SUFFICIENT_IN_VP_COL = re.compile(r"^\|\s*test-sufficient\s*\|")
+# R2-RULE: VP-ID-COLUMN CONFORMANCE (replaces TEST_SUFFICIENT_IN_VP_COL).
+# A VP table header has exactly "VP-NNN" as its first cell.
+_VP_TABLE_HEADER_CELL = "VP-NNN"
+
+# A conforming VP-NNN cell value: single VP-NNN token (canonical 3-digit form)
+_VP_TOKEN_RE = re.compile(r"^VP-\d{3}$")
+
+# Separator row detection: cells matching :?-{2,}:? (ignoring spaces)
+_SEP_CELL_RE = re.compile(r"^:?-{2,}:?$")
 
 # Pattern to detect if VP-TBD/SS-TBD is inside a quoted changelog entry.
 # Changelog entries look like: - "v1.x: some description VP-TBD something"
@@ -79,6 +92,50 @@ def is_historical_changelog_line(line: str, matched_text: str) -> bool:
     return in_quotes and has_version
 
 
+def _split_table_cells(line: str) -> list:
+    """Split a markdown table row into stripped cell values.
+
+    Handles ragged rows: returns whatever cells are present.
+    E.g. '| VP-001 | some text | unit test |' -> ['VP-001', 'some text', 'unit test']
+    """
+    parts = line.split("|")
+    # parts[0] is empty (before leading |), parts[-1] may be empty (after trailing |)
+    if len(parts) < 2:
+        return []
+    # Strip leading/trailing empty parts
+    inner = parts[1:]
+    if inner and inner[-1].strip() == "":
+        inner = inner[:-1]
+    return [p.strip() for p in inner]
+
+
+def _is_separator_row(cells: list) -> bool:
+    """Return True if all non-empty cells look like table separators (e.g. '---', ':---:', etc.)."""
+    non_empty = [c for c in cells if c]
+    return bool(non_empty) and all(_SEP_CELL_RE.match(c) for c in non_empty)
+
+
+def _is_valid_vp_cell(first_cell: str, proof_method: str) -> bool:
+    """Return True if first_cell is a conforming VP-NNN column value.
+
+    Conforming values (R2-RULE + D-078 sentinel):
+      - One or more VP-NNN tokens (3-digit), separated by commas or slashes
+      - VP-NONE sentinel, but ONLY when proof_method is non-empty
+
+    Everything else (em-dash, en-dash, TBD, none, n/a, empty, etc.) is non-conforming.
+    """
+    if not first_cell:
+        return False
+
+    # VP-NONE sentinel (D-078): admitted only when Proof Method is non-empty
+    if first_cell == "VP-NONE":
+        return bool(proof_method.strip())
+
+    # Comma- or slash-separated list of VP-NNN tokens
+    tokens = re.split(r"[,/]", first_cell)
+    return bool(tokens) and all(_VP_TOKEN_RE.match(t.strip()) for t in tokens if t.strip())
+
+
 # Files/paths to exclude (they document the pattern)
 EXCLUDE_PATHS = {
     str(REPO / ".factory" / "policies.yaml"),
@@ -99,6 +156,82 @@ def should_check(path: Path) -> bool:
     return True
 
 
+def check_file_lines(md_file: Path, lines: list) -> list:
+    """Check a list of lines from md_file for placeholder violations.
+
+    Returns a list of (filepath, lineno, matched, pattern_name) tuples.
+    """
+    violations = []
+    filepath = str(md_file)
+
+    # Per-file state for R2-RULE table-context tracking
+    in_fenced_code = False
+    table_header_first_cell = None  # first cell of last non-separator | row
+    in_vp_table_data = False        # True after VP-NNN header + separator row seen
+
+    for lineno, line in enumerate(lines, 1):
+        # ── Fenced code block suppression (CommonMark §4.5) ──────────────────
+        # A line starting with ``` (not 4-space indented) is a fence delimiter.
+        indent = len(line) - len(line.lstrip())
+        stripped_line = line.lstrip()
+        if stripped_line.startswith("```") and indent < 4:
+            in_fenced_code = not in_fenced_code
+            # Exiting or entering a fence resets table context
+            in_vp_table_data = False
+            table_header_first_cell = None
+            continue
+        if in_fenced_code:
+            continue  # skip all content inside fenced code blocks
+
+        # ── Table-context state machine (R2-RULE) ────────────────────────────
+        if line.startswith("|"):
+            cells = _split_table_cells(line)
+            if cells:
+                if _is_separator_row(cells):
+                    # Separator row: transition to data mode if header was VP-NNN
+                    if table_header_first_cell == _VP_TABLE_HEADER_CELL:
+                        in_vp_table_data = True
+                    else:
+                        in_vp_table_data = False
+                    # Separator rows have no ID content; skip other checks
+                    continue
+                elif in_vp_table_data:
+                    # Data row inside a VP-NNN-headed table: apply R2-RULE
+                    first_cell = cells[0] if cells else ""
+                    proof_method = cells[2] if len(cells) > 2 else ""
+                    if not _is_valid_vp_cell(first_cell, proof_method):
+                        violations.append((filepath, lineno, first_cell,
+                                           f"non-conforming VP-NNN column value '{first_cell}' (POL-14)"))
+                    # Do NOT apply the general PLACEHOLDER_PATTERNS to this row
+                    # (the first cell is a structural ID, not free text)
+                    # Still check non-first cells for [filled by] etc. below
+                    # by falling through to PLACEHOLDER_PATTERNS after skipping
+                    # the first-cell check — but we do that by not continuing here.
+                    # Actually: run PLACEHOLDER_PATTERNS on the full line (VP-TBD etc.
+                    # in the Property or Proof Method cells are still violations).
+                else:
+                    # Header candidate row (no separator seen yet for this table)
+                    table_header_first_cell = cells[0] if cells else None
+                    in_vp_table_data = False
+        else:
+            # Non-| line: leave any current table context
+            table_header_first_cell = None
+            in_vp_table_data = False
+
+        # ── General placeholder pattern scan ─────────────────────────────────
+        for pattern, name in PLACEHOLDER_PATTERNS:
+            for m in pattern.finditer(line):
+                matched = m.group(0)
+                # Skip VP-TBD / SS-TBD if they are inside a historical
+                # changelog entry (quoted string with a version prefix).
+                if matched in ("VP-TBD", "SS-TBD"):
+                    if is_historical_changelog_line(line, matched):
+                        continue
+                violations.append((filepath, lineno, matched, name))
+
+    return violations
+
+
 def main() -> int:
     if not SPECS.exists():
         print(f"ERROR: Spec tree not found at {SPECS} — cannot run check (no spec files to validate)", file=sys.stderr)
@@ -111,22 +244,7 @@ def main() -> int:
             continue
         files_checked += 1
         lines = md_file.read_text(encoding="utf-8").splitlines()
-        for lineno, line in enumerate(lines, 1):
-            # Check for test-sufficient in VP-NNN column (POL-14 violation)
-            if TEST_SUFFICIENT_IN_VP_COL.match(line):
-                violations.append((str(md_file), lineno, "test-sufficient",
-                                    "test-sufficient in VP-NNN column (POL-14)"))
-                continue  # no point checking other patterns on the same row
-
-            for pattern, name in PLACEHOLDER_PATTERNS:
-                for m in pattern.finditer(line):
-                    matched = m.group(0)
-                    # Skip VP-TBD / SS-TBD if they are inside a historical
-                    # changelog entry (quoted string with a version prefix).
-                    if matched in ("VP-TBD", "SS-TBD"):
-                        if is_historical_changelog_line(line, matched):
-                            continue
-                    violations.append((str(md_file), lineno, matched, name))
+        violations.extend(check_file_lines(md_file, lines))
 
     if violations:
         # Group by type for summary
@@ -140,7 +258,7 @@ def main() -> int:
         print(f"\nCheck FAILED: {len(violations)} placeholder occurrences found ({files_checked} files checked)")
         return 1
 
-    print(f"Check passed: {files_checked} spec files checked — no VP-TBD, SS-TBD, [filled by], or test-sufficient placeholders")
+    print(f"Check passed: {files_checked} spec files checked — no VP-TBD, SS-TBD, [filled by], or non-conforming VP-NNN column values")
     return 0
 
 
