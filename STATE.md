@@ -4,21 +4,21 @@ level: ops
 version: "2.5"
 status: draft
 producer: state-manager
-timestamp: 2026-08-07T08:10:00Z
+timestamp: 2026-08-07T11:30:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; PR #4+#5 MERGED (develop→2776d94); SS-07 DirIndex BROAD (D-061); SS-14 corrections (D-063); FACT-9+FACT-10 added; PR #3 031ca5b 4×REQUEST_CHANGES (B-11 blocking); design reassessment ordered (D-066); trajectory-tail →34→39→37→259"
+current_step: "phase-1d; PR #3 stopgap landed (031ca5b→51e6be8); operator D-067 authorization; 24/24 tests; B-11 A1/A2a/A2b closed; structural independence NOT achieved (documented residual); dispatch pr-reviewer for D-028 final review; trajectory-tail →34→39→37→259"
 current_cycle: ""
 dtu_required: false
 ---
 
 <!--
   STATE.md SIZE BUDGET:
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 235 = 265. 235 lines (wc-l, post-burst-16).
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 236 = 264. 236 lines (wc-l, post-burst-17).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
@@ -37,9 +37,9 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-07 — PR #4+#5 MERGED (develop→2776d94); SS-07/SS-14 adjudicated; FACT-9+FACT-10; PR #3 031ca5b 4×REQUEST_CHANGES (B-11); design reassessment D-066; D-058..D-066 (exhaustive); trajectory-tail →34→39→37→259 |
+| **Last Updated** | 2026-08-07 — PR #3 stopgap landed (031ca5b→51e6be8); operator D-067 authorization; 24/24 tests; fix/hardening-pins cleaned up; BI-038 CLOSED; D-067 recorded; trajectory-tail →34→39→37→259 |
 | **Current Phase** | phase-1d |
-| **Current Step** | PR #4+#5 MERGED (develop→2776d94). SS-07 adjudicated (DirIndex BROAD, D-061). SS-14 corrections (D-063). FACT-9+FACT-10 added. PR #3 head 031ca5b: 4×REQUEST_CHANGES (B-11 blocking; design reassessment D-066). Pass-6 skip-list re-audit required (D-060). |
+| **Current Step** | PR #3 stopgap landed (031ca5b→51e6be8). Operator authorized per architect design ruling (D-067); two structural follow-on stories to be created. Selftest suite 21→24/24. Narrowed pre-filters close three KNOWN bypasses (A1/A2a/A2b now exit 1, mutation-verified); counter NOT moved; structural independence NOT achieved (honest documented residual). OPEN GATE: dispatch pr-reviewer on PR #3 at 51e6be8 for D-028 final review before merge. |
 
 ## Phase Progress
 
@@ -67,10 +67,10 @@ dtu_required: false
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
-| perimeter sweep ALL 8 shards COMPLETE | adversary/state-manager | COMPLETE | 259 findings (~42C); shard-4: 7C SS-08/09+3xSS-10 (DI-005 NOT airtight); shard-6: 2C ADRs+arch-shards (ADR-004 inadequate); shard-7: 6C VPs (5 vacuous); shard-8: 6C domain-spec+prd (R5 not defensible); synthesis FINAL at perimeter-sweep-synthesis.md; perimeter CLOSED |
 | perimeter sweep shards 4,6,7,8 persisted + BI-025..BI-031 opened | state-manager | COMPLETE | shard-4 (32 findings), shard-6 (32), shard-7 (44), shard-8 (40) committed; 7 new blocking issues: BI-025 (5 vacuous VPs), BI-026 (proof-method join), BI-027 (POLICY 5), BI-028 (code-fence symbols), BI-029 (SS-07 Phase-2 block), BI-030 (exit-code domain), BI-031 (D-043 survivors 6 sites) |
 | CV5-001 CLOSED + FACT-7+FACT-8 + PR #3 REQUEST_CHANGES + BI-032..035 | product-owner + architect + state-manager | COMPLETE | 8 D-043 survivor sites corrected (product-brief v1.1, risks v1.2, prd v1.11, BC-2.10.003 v1.3, differentiators v1.1, invariants v1.9, failure-modes v1.7). FACT-7+FACT-8 added to canonical-facts.toml. PR #3 REQUEST_CHANGES (2 blocking: BI-032/B-7, BI-033/B-8). PR #4 BLOCKED pending pull_request-typed run. BI-031 CLOSED. BI-032..035 OPENED. |
 | PR #4+#5 MERGED; SS-07 DirIndex BROAD; SS-14 corrections; FACT-9+FACT-10; PR #3 B-11 REQUEST_CHANGES; design ruling written | pr-manager + architect + state-manager | COMPLETE | PR #4 bcbb4a5 MERGED (develop→bcbb4a5); PR #5 2776d94 MERGED; SS-07 adjudicated (purity-boundary-map.md AUTHORITATIVE D-061); SS-14 CAP-014+BC-2.14.002/004 corrected (D-063); FACT-9+FACT-10 added; PR #3 head 031ca5b 4×REQUEST_CHANGES (B-11: hs_rows_seen++ after pre-filters); design-ruling-index-integrity.md written; D-058..D-066 (exhaustive); BI-018/020/029/030 CLOSED; BI-036..038 OPENED |
+| PR #3 stopgap landed (031ca5b→51e6be8); D-067 delta recorded | state-manager | COMPLETE | Operator authorized per architect design ruling; narrowed pre-filters close A1/A2a/A2b (exit 1 mutation-verified); suite 21→24/24; structural independence NOT achieved (counter position unchanged, honest documented residual at :142-147/:169-175/:472-482); fix/hardening-pins cleaned up; BI-038 CLOSED; BI-016 updated to 51e6be8; D-067 recorded |
 
 ## Convergence Status
 
@@ -156,6 +156,7 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | D-064 | Cycle-limit exception granted for the PR #3 review at `031ca5b` (`max_review_cycles: 3`; PR #3 near cycle 8). Extends D-049/D-038 lineage. | Four consecutive failures all in `check-index-integrity.py`; design reassessment may resolve without additional review cycles. | phase-1d | 2026-08-07 | human/operator |
 | D-065 | D-040 SCOPE CLARIFICATION: D-040 is SATISFIED when a defect is detected by a stronger subsuming backstop even if the narrower mutation no longer flips a test — detection is what D-040 protects. Evidence: MUT-1 caught by accounting invariant; MUT-3 still flips test 10e. Extends D-050→D-057 lineage. | Mutation no longer flipping a test is acceptable if a stronger backstop catches the same defect class. | phase-1d | 2026-08-07 | human/operator |
 | D-066 | PR #3 patch-fixing HALTED; DESIGN REASSESSMENT ordered. Four consecutive failures all in `check-index-integrity.py`, each fix opening a new hole of the same shape. Read `cycles/phase-1d/design-ruling-index-integrity.md`. Option C (generate from frontmatter, reusing BI-012 infrastructure) is the one to weigh hardest. Session wrap — single-commit burst TD-VSDD-053. | Four consecutive failures in one component is a design signal, not a quality signal. Option C eliminates the parse-fidelity class entirely; Phase 3 not started so structural change is cheapest now. | phase-1d | 2026-08-07 | human/operator |
+| D-067 | Operator authorized PR #3 B-11 stopgap per architect design ruling. Structural fix (counter above pre-filters) deferred to two follow-on stories. D-028 full review lifecycle still required. PR #3 head `031ca5b` → `51e6be8`. Suite 21→24/24. Three KNOWN bypasses closed (A1/A2a/A2b now exit 1, mutation-verified). Narrowed pre-filters NOT structural independence. `fix/hardening-pins` local branch + worktree confirmed removed. D-066 halt superseded. | Architect ruling: land stopgap, create separate structural stories. Honest documented residual preferred over false independence claim. | phase-1d | 2026-08-06 | human/operator |
 
 ## Skip Log
 
@@ -175,15 +176,15 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 
 | ID | Issue | Severity | Blocking Phase | Owner | Resolution |
 |----|-------|----------|----------------|-------|------------|
-| BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 5 COMPLETE (259 findings ~42C); perimeter CLOSED; root cause SPEC-TOPOLOGY (D-035) + 4 unguarded axes (BI-024) + structural checker bypasses (BI-023) | HIGH | phase-1 gate | orchestrator | Fix PR #3 per design ruling (D-066); then remediation burst (BI-024/025/026/027/028 + BI-023); then pass 6 |
+| BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 5 COMPLETE (259 findings ~42C); perimeter CLOSED; root cause SPEC-TOPOLOGY (D-035) + 4 unguarded axes (BI-024) + structural checker bypasses (BI-023) | HIGH | phase-1 gate | orchestrator | Merge PR #3 after D-028 final review (WS-1); then remediation burst (BI-024/025/026/027/028 + BI-023); then pass 6 |
 | ~~BI-005~~ | ~~DI-012 VP coverage INSUFFICIENT; FM-002 unprovable via VP-003 injectivity alone~~ | ~~HIGH~~ **CLOSED** | resolved | architect | CLOSED at spec level 2026-08-06. VP-026 authored; FM-002 now covered. Residual implementation risk tracked as BI-007. |
 | BI-007 | VP-026 is SPECIFIED but UNIMPLEMENTED — no Rust workspace exists yet (Phase 3 not started). FM-002 risk until Phase 3 implements the differential proptest. | HIGH | phase-6 (formal hardening) | implementer | Phase 3 must implement VP-026; story traced to VP-026 required in Phase 2. |
 | BI-010 | VP-025 authored against non-existent API types. Harness cannot compile. Architect rewrote VP-025; INC-MAP-001 SPEC-RESOLVED/IMPL-PENDING (D-048). | CRITICAL | phase-3 | architect | INC-MAP-001 closes only when Phase 3 implements it. |
-| BI-016 | PR #3 (`feature/spec-lint-hardening` → `develop`) OPEN: head `031ca5b`. 4×REQUEST_CHANGES (B-7→B-8→B-9→B-11). B-11 BLOCKING — `hs_rows_seen += 1` after five `continue` pre-filters; accounting invariant holds vacuously. Design reassessment ordered (D-066). D-064 cycle exception granted. | MEDIUM | phase-2 | pr-manager | Read design-ruling-index-integrity.md; execute chosen option (Option C — generate from frontmatter — is highest weight); merge after ruling resolves. |
+| BI-016 | PR #3 (`feature/spec-lint-hardening` → `develop`) OPEN: head now `51e6be8` (stopgap landed, D-067). Narrowed pre-filters close A1/A2a/A2b (exit 1, mutation-verified); counter NOT moved; structural independence NOT achieved (honest documented residual). OPEN GATE: dispatch pr-reviewer for D-028 final review. | MEDIUM | phase-2 | pr-manager | Dispatch `vsdd-factory:pr-reviewer` on PR #3 at head `51e6be8df98653779148d624b89749c74c3e1a46`; focus: is narrowed-pre-filters acceptable stopgap? Merge ONLY on APPROVE via `.factory/bin/check-stale-verdict.sh 3 51e6be8...` then `enforce-merge-strategy.sh 3 --squash --delete-branch`. |
 | BI-017 | Phase 3 CI obligation: NO perf-gate/benchmark job exists. Both NFR-008 and NFR-002 benchmark jobs MUST run on `macos-latest` when created in Phase 3. | MEDIUM | phase-3 | devops-engineer | Recorded in vp-022-regression-gate.md and tooling-selection.md §Phase 3 CI Obligations. |
 | ~~BI-018~~ | ~~PR #4 (`chore/macos-only-ci` → develop) blocked pending pull_request-typed run~~ | ~~MEDIUM~~ **CLOSED** | resolved | pr-manager | CLOSED 2026-08-07 — squash-merged as bcbb4a5; develop→bcbb4a5. D-043 macOS-only matrix now in force. Branch deleted. |
 | ~~BI-019~~ | ~~B-6 over-determination (selftest 10d)~~ | ~~CRITICAL~~ **CLOSED** | resolved | test-writer | CLOSED 2026-08-06: suite 15→17, 17/17. 4/15 over-determined (D-050). |
-| ~~BI-020~~ | ~~PR #5 (`fix/hardening-pins` → develop) OPEN~~ | ~~MEDIUM~~ **CLOSED** | resolved | pr-manager | CLOSED 2026-08-07 — squash-merged as 2776d94; develop→2776d94. Worktree .worktrees/sec-hardening REMOVED. **OPERATOR: `git branch -D fix/hardening-pins`** still needed. |
+| ~~BI-020~~ | ~~PR #5 (`fix/hardening-pins` → develop) OPEN~~ | ~~MEDIUM~~ **CLOSED** | resolved | pr-manager | CLOSED 2026-08-07 — squash-merged as 2776d94; develop→2776d94. Worktree .worktrees/sec-hardening REMOVED. Local branch `fix/hardening-pins` force-deleted by operator (D-067). |
 | BI-021 | MINOR: `check-canonical-facts.py` exits 1 from any `.worktrees/` secondary worktree. Workaround: `SPEC_LINT_REPO_OVERRIDE` env var. | LOW | phase-3 | devops-engineer | Fix path resolution before Phase 3 story worktrees launch. |
 | BI-022 | MINOR: `rustup toolchain install nightly` in `fuzz-smoke` job still UNPINNED. Recommend pinning nightly date before Phase 6. | LOW | phase-6 | devops-engineer | Pin nightly date in hardening.yml before Phase 6. |
 | BI-023 | SKIP LIST UNSOUND — structural bypasses: (a) `check-placeholders.py` defeated by em-dash `—` (12+ BCs with zero VP coverage passing clean); (b) `check-id-resolution.py` skips non-conforming shapes (`EC-NEW-NNN`, `EC-073b`). D-050 mutation-verification criterion is necessary but NOT sufficient (D-057). | HIGH | phase-1 gate | devops-engineer | (a) Narrow skip to conforming shapes; (b) require POSITIVE COVERAGE count; (c) add meta-check for non-conforming shapes. |
@@ -199,28 +200,28 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | ~~BI-033~~ | ~~B-8 / PR #3 — check-index-integrity FALSE-PASSES ON ZERO ITEMS~~ | ~~HIGH~~ **CLOSED** | resolved | devops-engineer | CLOSED core fix at `1fc1bce`. B-9/B-11 supersede — see BI-036. |
 | BI-034 | PASS-6 SKIP LIST RE-AUDIT REQUIRED (D-060). THREE REMAINING ENTRIES (`check-counts`, `check-adr-consistency`, `check-title-sync`) admitted on D-050 mutation-only evidence — disproved by B-8. Positive-coverage soundness re-audit required. | HIGH | phase-1 gate | devops-engineer | Re-audit all three for positive-coverage counts before restoring skip-list trust. Do not run concurrently with PR #3 fix burst. |
 | BI-035 | FACT-7/FACT-8/FACT-9/FACT-10 have no D-040 negative test. `check-canonical-facts.py` lives on unmerged `feature/bi-012-generators` — obligation must be met BEFORE that branch lands. FACT-9 (6 bindings, every extracted link destination) and FACT-10 (7 bindings, invalid `--ignore` glob) added this session. | MEDIUM | phase-2 (pre-merge gate) | devops-engineer | Add negative-test vectors for all 4 facts before feature/bi-012-generators merges. "macOS and Linux" must FAIL FACT-7; "macOS and Windows" must FAIL FACT-8; vectors for FACT-9/FACT-10 TBD. |
-| BI-036 | B-11 / PR #3 — `hs_rows_seen += 1` at line :211 sits AFTER five `continue` pre-filters (:188/:190/:195/:198/:202). Accounting invariant holds VACUOUSLY. Three inputs pass a bogus `HS-042 → EC-999` at exit 0. Row-above-separator case is a REGRESSION (exit 1 at `1fc1bce` → exit 0 at `031ca5b`). `set(first_cell) <= set("-: ")` is True for empty string, misclassifying blank ID cells as separator rows. | HIGH | phase-2 | devops-engineer | Design reassessment ordered (D-066). Read cycles/phase-1d/design-ruling-index-integrity.md. Do NOT patch until ruling resolved. Option C (generate from frontmatter) is highest-weight. |
-| BI-037 | F-15 MINOR / PR #3 `031ca5b` — fail-open in `run_suppression_guard`. Reproduced in isolation but UNREACHABLE via the real entry point (guard 1 exits 2 first). Load-bearing guard ordering MUST be preserved in any refactor. | LOW | phase-2 (maintenance) | devops-engineer | Document ordering dependency explicitly. Do NOT change guard execution order without re-auditing all paths. |
-| BI-038 | F-17 MINOR / PR #3 — PR body still says "17/17 tests" and names the renamed `get_hs_ec_mapping()`. Stale. | LOW | phase-2 | pr-manager | Update PR body before merge. |
+| BI-036 | B-11 STOPGAP LANDED (D-067). Three KNOWN bypasses closed (A1/A2a/A2b now exit 1, mutation-verified). Suite 21→24/24. Counter NOT moved above pre-filters — structural independence NOT achieved (honest documented residual in docstrings at :142-147/:169-175/:472-482). Fourth bypass shape still possible via narrowed pre-filters. Two structural follow-on stories to be created per D-067 architect ruling. | HIGH | phase-2 | pr-manager | OPEN GATE: dispatch pr-reviewer at 51e6be8 for D-028 final review; focus on whether narrowed-pre-filters is acceptable stopgap. Two follow-on structural stories required before Phase 3. |
+| BI-037 | F-15 MINOR / PR #3 — fail-open in `run_suppression_guard`. Reproduced in isolation but UNREACHABLE via the real entry point (guard 1 exits 2 first). Load-bearing guard ordering MUST be preserved in any refactor. | LOW | phase-2 (maintenance) | devops-engineer | Document ordering dependency explicitly. Do NOT change guard execution order without re-auditing all paths. |
+| ~~BI-038~~ | ~~F-17 MINOR / PR #3 — PR body still says "17/17 tests" and names the renamed `get_hs_ec_mapping()`. Stale.~~ | ~~LOW~~ **CLOSED** | resolved | pr-manager | CLOSED 2026-08-06 — PR body corrected to 24/24 and `get_hs_data()` at head `51e6be8`. |
 
 ## Session Resume Checkpoint
 
-Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-066`
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-066` + appended `### POST-SNAPSHOT DELTA (D-067)`
 
 | Field | Value |
 |-------|-------|
 | **Date** | 2026-08-07 |
-| **Position** | phase-1d; PR #4+#5 MERGED (develop→2776d94); SS-07/SS-14 adjudicated; PR #3 031ca5b 4×REQUEST_CHANGES (B-11); design reassessment ordered (D-066); 0 of 3 clean passes; perimeter CLOSED |
-| **Convergence counter** | 0 of 3 clean passes; pass 5 COMPLETE (259 findings); pass 6 blocked on: (1) PR #3 design ruling (WS-1); (2) pass-6 skip-list re-audit (WS-3, D-060); (3) remaining ~306-finding remediation burst (WS-4) |
-| **Next burst** | (1) Read design-ruling-index-integrity.md; present ruling; execute chosen option for PR #3 (WS-1); (2) rebase + merge feature/bi-012-generators after PR #3 resolves + FACT-7/8/9/10 negative tests (BI-035, WS-2); (3) pass-6 skip-list re-audit: check-counts/check-adr-consistency/check-title-sync positive-coverage (BI-034/D-060, WS-3); (4) remaining ~306 findings remediation burst (WS-4); (5) pass 6 (WS-5) |
+| **Position** | phase-1d; PR #3 stopgap landed (031ca5b→51e6be8); 24/24 tests; B-11 A1/A2a/A2b now exit 1; structural independence NOT achieved (documented residual); OPEN GATE: dispatch pr-reviewer for D-028 final review; 0 of 3 clean passes |
+| **Convergence counter** | 0 of 3 clean passes; pass 5 COMPLETE (259 findings); pass 6 blocked on: (1) PR #3 D-028 final review (WS-1, CURRENT); (2) pass-6 skip-list re-audit (WS-3, D-060); (3) remaining ~306-finding remediation burst (WS-4) |
+| **Next burst** | (1) Dispatch `vsdd-factory:pr-reviewer` on PR #3 at `51e6be8df98653779148d624b89749c74c3e1a46` — explicit focus: narrowed-pre-filters acceptable stopgap? Merge ONLY on APPROVE via `.factory/bin/check-stale-verdict.sh 3 51e6be8...` then `enforce-merge-strategy.sh 3 --squash --delete-branch`. (2) After PR #3 merges: rebase + merge feature/bi-012-generators + FACT-7/8/9/10 negative tests (BI-035, WS-2). (3) Pass-6 skip-list re-audit (WS-3, D-060). (4) ~306 findings remediation burst (WS-4). (5) Pass 6 (WS-5). |
 
-Spec snapshot: PRD v1.11 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-066 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/018/019/020/029/030/031/032/033. Open: BI-002/007/010/016/017/021/022/023/024/025/026/027/028/034/035/036/037/038.
+Spec snapshot: PRD v1.11 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-067 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/018/019/020/029/030/031/032/033/038. Open: BI-002/007/010/016/017/021/022/023/024/025/026/027/028/034/035/036/037.
 
 ## Concurrent Cycles
 
 | Cycle | Status | Notes |
 |-------|--------|-------|
-| phase-1d | in-progress | adversarial spec convergence; 0 of 3 clean passes; trajectory →0→32→34→39→37→259; PR #4+#5 MERGED (develop→2776d94); SS-07/SS-14 adjudicated; PR #3 031ca5b 4×REQUEST_CHANGES (B-11); design reassessment D-066; next: WS-1 design ruling → PR #3 resolution |
+| phase-1d | in-progress | adversarial spec convergence; 0 of 3 clean passes; trajectory →0→32→34→39→37→259; PR #3 stopgap landed (51e6be8); B-11 A1/A2a/A2b closed; OPEN GATE: D-028 final review; next: WS-1 dispatch pr-reviewer on PR #3 at 51e6be8 |
 
 ## Historical Content
 
@@ -232,4 +233,4 @@ Spec snapshot: PRD v1.11 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC 
 | Lessons learned | `cycles/phase-1d/lessons.md` |
 | Resolved blockers | `cycles/phase-1d/blocking-issues-resolved.md` |
 
-Last Updated: 2026-08-07 — PR #4+#5 MERGED (develop→2776d94); SS-07/SS-14 adjudicated; FACT-9+FACT-10 added; PR #3 031ca5b 4×REQUEST_CHANGES (B-11); design reassessment D-066; D-058..D-066 (exhaustive)
+Last Updated: 2026-08-07 — PR #3 stopgap landed (031ca5b→51e6be8); operator D-067 authorization; 24/24 tests; fix/hardening-pins cleaned up; BI-038 CLOSED; D-067 recorded

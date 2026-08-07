@@ -856,3 +856,77 @@ j. **BI-022:** `rustup toolchain install nightly` in `fuzz-smoke` job still unpi
 k. **Wrappers at `.factory/bin/`** — pr-manager agents may phantom-report exit-127 looking at `plugins/vsdd-factory/bin/`. Pass the explicit path.
 
 l. **PR #3 design reassessment (D-066):** Do NOT push incremental patches. Read `cycles/phase-1d/design-ruling-index-integrity.md` first. Option C (generate from frontmatter) is highest-weight. B-11 root cause: each fix moved the verification backstop one step downstream of the classifier — the defect followed. A structural fix is required.
+
+---
+
+### POST-SNAPSHOT DELTA (D-067)
+
+*Written: 2026-08-06 — state-manager mid-session burst. Appended to D-066; does NOT supersede it. Supersession will be assigned to the next full session wrap.*
+
+#### 1. Operator authorization granted — PR #3 B-11 stopgap (supersedes D-066 halt)
+
+The architect's design ruling was presented. Ruling: land PR #3 with the narrow stopgap as-implemented; track the structural work (counter movement above all pre-filters) as two SEPARATE follow-on stories — NOT scope on PR #3. Operator granted this ruling and **explicitly DECLINED** the option to skip the final review. The D-028 full review lifecycle still applies before merge.
+
+#### 2. Stopgap landed — PR #3 head advanced `031ca5b` → `51e6be8df98653779148d624b89749c74c3e1a46`
+
+PR #3 (`feature/spec-lint-hardening` → `develop`) is **OPEN**, **UNSTABLE/MERGEABLE**, and up-to-date with `origin/develop` (`2776d94`; `031ca5b` already carried `2776d94` as a merge parent — no further merge needed).
+
+- Selftest suite: 21 → **24/24** passing.
+- `EXPECTED_TEST_COUNT` 21 → 24 and still genuinely gates: deleting a test yields `STRUCTURAL GUARD FAILED: expected 24 tests, ran 23`, exit 2.
+- All three B-11 bypass inputs now exit 1 where they previously exited 0:
+  - A1: data row above the `|---|` separator — this was a **REGRESSION from `1fc1bce`**
+  - A2a: empty first cell
+  - A2b: dash-only first cell
+- Each has a mutation-verified negative test flipping exactly 1/24.
+- Real-tree line **unchanged**: `HS (7 validated, 0 non-conforming, 7 rows seen)`.
+- PR body corrected to 24/24 and `get_hs_data()` (closes F-17 / BI-038).
+
+#### 3. OPEN GATE — stopgap deviated from authorized mandate (MOST IMPORTANT for next session)
+
+The mandate was: move `hs_rows_seen += 1` ABOVE all five `continue` pre-filters so the accounting denominator is **structurally independent** of the classifier.
+
+The implementer did NOT do that. Its own words: *"Counter stays at its current position (after these two filters); filters were made non-bypassable rather than counter moved literally."* Instead it narrowed the pre-filters:
+- `:216` separator detection changed to `if first_cell and all(set(c) <= set("-: ") for c in cells if c):`
+- `:220-227` pre-separator filter now skips only rows whose first cell does not match `^\|\s*(?:~~)?(?:HS-\d+|[Hh][Ss][-_])`
+
+**Consequence:** this closes the three KNOWN bypasses (proven by mutation) but does NOT establish structural independence. A fourth bypass shape — any input the narrowed pre-filters still skip — would again be invisible to BOTH the parser and the accounting invariant. That is precisely the shape that produced B-8, B-9, and B-11 (three instances of one defect: verification mechanism placed downstream of the classification it verifies, per the architect's diagnosis that tokenizer / classifier / accounting are three roles that must be independent but are coupled).
+
+**Mitigating:** the implementer did NOT conceal this. It rewrote the docstring at `:142-147`, the F-12 note at `:169-175`, and the `main()` invariant comment at `:472-482` to state explicitly which rows the invariant DOES cover (those passing structural pre-filters) and which it does NOT (non-pipe lines, empty-cell rows, confirmed header rows, separator rows). An honest documented residual is materially better than a false claim of independence.
+
+#### 4. Still-open items carried forward
+
+- **F-18** (MINOR): no positive-only selftest pins the `in_authored_scenarios` detection; follow-on story per the design ruling.
+- **F-15 residual** (MINOR, BI-037 unchanged): `run_suppression_guard` fails open on a mode-000 checker; accepted, unreachable in practice because guard 1 aborts first.
+- **N-1**: the explicit `if not first_cell:` branch was not added — the `all()` guard subsumes it.
+- **N-2/N-3**: unchanged.
+
+#### 5. `fix/hardening-pins` FULLY cleaned up
+
+Operator force-deleted the local branch (`b054694`); worktree `.worktrees/sec-hardening` was removed earlier; remote branch deleted earlier. PR #5 content verified on `develop` at `2776d94`. Worktree inventory is now exactly three:
+
+| Path | Branch | SHA | Status |
+|------|--------|-----|--------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` (root) | `feature/spec-lint-hardening` | `51e6be8` | active; PR #3 open; stopgap landed; awaiting D-028 review |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | resolve via `git -C .factory log -1 --format=%H` | active |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/ws-b-generators` | `feature/bi-012-generators` | `78ef3a4` | active; stacked on PR #3; merge after PR #3 + BI-035 |
+
+The `sec-hardening` row in the D-066 WORKTREE INVENTORY was already absent; this confirms the inventory is accurate.
+
+#### RESUME NEXT-ACTION for WS-1 (replaces D-066's WS-1 next-action)
+
+Dispatch `vsdd-factory:pr-reviewer` on PR #3 at head `51e6be8df98653779148d624b89749c74c3e1a46` for the final D-028 review cycle. **Explicit focus:** is narrowed-pre-filters an acceptable stopgap, or must the counter actually move to satisfy the design ruling? Merge ONLY on APPROVE, via:
+
+1. `.factory/bin/check-stale-verdict.sh 3 51e6be8df98653779148d624b89749c74c3e1a46`
+2. `.factory/bin/enforce-merge-strategy.sh 3 --squash --delete-branch`
+
+Do NOT merge on orchestrator judgment alone — the orchestrator's own B-8 verification was previously insufficient (it confirmed a guard existed but never tested whether it could be defeated), which is why an independent review is required here.
+
+#### HEADS NOTE (D-067 reaffirmation)
+
+The `factory-artifacts` HEAD SHA MUST ALWAYS be resolved at resume via `git -C .factory log -1 --format=%H`. No literal SHA recorded anywhere in this file may be trusted for the current factory-artifacts head — it is always one commit behind by construction.
+
+#### D-067 Decision Record
+
+| ID | Decision | Rationale | Phase | Date |
+|----|----------|-----------|-------|------|
+| D-067 | Operator authorized PR #3 B-11 stopgap per architect design ruling. Structural fix (counter above pre-filters) deferred to two follow-on stories. D-028 full review lifecycle still required. PR #3 head `031ca5b` → `51e6be8`. Suite 21→24/24. Three KNOWN bypasses closed (A1/A2a/A2b now exit 1, mutation-verified). Narrowed pre-filters NOT structural independence. `fix/hardening-pins` local branch + worktree confirmed removed. D-066 halt superseded. | Architect ruling: land stopgap, create separate structural stories. Honest documented residual preferred over false independence claim. | phase-1d | 2026-08-06 |
