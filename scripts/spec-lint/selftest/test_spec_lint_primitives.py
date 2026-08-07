@@ -273,8 +273,9 @@ def test_is_conforming_ec_token() -> None:
 @register
 def test_split_table_cells() -> None:
     """
-    split_table_cells splits on '|', discards first part (pre-first-pipe), strips
-    trailing empty cell, and applies cm_strip_cell to each.
+    split_table_cells returns [] when there is non-whitespace before the first
+    pipe (prose lines containing pipes are rejected). Leading CM whitespace IS
+    allowed. Strips trailing empty cell and applies cm_strip_cell to each cell.
 
     Key property: NBSP (U+00A0) in a cell is NOT stripped (cm_strip_cell uses
     only CM whitespace). This distinguishes split_table_cells from a naive
@@ -322,6 +323,15 @@ def test_split_table_cells() -> None:
 
     # Ragged row (1 cell)
     assert slp.split_table_cells("| a |") == ["a"], "ragged 1-cell row"
+
+    # W7 contract: prose before the first pipe is not a table row
+    assert slp.split_table_cells("See: | EC-001 | desc |") == [], (
+        "non-whitespace before first '|' must not be parsed as a table row"
+    )
+    # W7 contract: leading CommonMark whitespace IS allowed (table row with indent)
+    assert slp.split_table_cells("  | VP-001 | x |") == ["VP-001", "x"], (
+        "leading CM whitespace before first '|' is still a table row"
+    )
 
 
 # ── Test 7: find_repo_root — fail closed ─────────────────────────────────────
@@ -497,6 +507,16 @@ def test_is_historical_changelog_line() -> None:
     line5 = '- "v1.0: renamed EC-001 to EC-002"'
     assert not slp.is_historical_changelog_line(line5, "EC-999"), (
         "matched_text absent from line should return False"
+    )
+
+    # S3: version marker alone (no quotes) must NOT suppress — quote logic is load-bearing
+    assert not slp.is_historical_changelog_line(
+        "v1.2 mentions EC-001 in plain prose, no quotes", "EC-001"
+    ), "version marker without quotes must not suppress"
+
+    # S3: disjunct 1 — quote-bracketed match where version marker is outside the quotes
+    assert slp.is_historical_changelog_line('v1.2 - "EC-001 renamed"', "EC-001"), (
+        "quote-bracketed match with version marker outside quotes should suppress"
     )
 
 

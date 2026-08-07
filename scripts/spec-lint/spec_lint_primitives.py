@@ -77,9 +77,9 @@ def split_table_cells(line: str) -> list[str]:
     Ragged-safe: returns whatever cells are present. The leading and trailing
     empty parts produced by splitting on '|' are discarded.
 
-    Returns [] if the line is not a table row (i.e., there is non-whitespace
-    content before the first '|'). This prevents prose lines containing pipes
-    from being misidentified as table rows at all 5 call sites (W7 — BI-040).
+    Returns [] if there is non-CM-whitespace before the first '|' (prose lines
+    containing pipes are rejected). This prevents prose lines containing pipes
+    from being misidentified as table rows at all 4 call sites (W7 — BI-040).
 
     Example: '| VP-001 | some text | unit test |' →
              ['VP-001', 'some text', 'unit test']

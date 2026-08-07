@@ -51,10 +51,15 @@ SPLITLINES_PATTERN='\.splitlines\(\)'
 run_override_guard() {
     # Verify every check-*.py in $1, plus all generators, have an active
     # SPEC_LINT_REPO_OVERRIDE assignment (direct env-var check or via slp.find_repo_root,
-    # which honors SPEC_LINT_REPO_OVERRIDE internally — pattern matches both forms).
+    # which honors SPEC_LINT_REPO_OVERRIDE internally — two-part check covers both forms).
     # Stage 3 (BI-040): gen-bc-index.py, gen-ec-registry.py, gen-prd-sections.py, gen-rtm.py
     # added to scope; they use slp.find_repo_root() and carry # honors SPEC_LINT_REPO_OVERRIDE.
     # D-057: prints runtime count of files scanned; fails if 0 files found.
+    # S2 (review cycle 2): uses a two-part check instead of the single OVERRIDE_PATTERN regex.
+    # Part 1: file has a line starting with REPO[[:space:]]*= (confirms REPO assignment exists).
+    # Part 2: stripping comments, file contains slp.find_repo_root( OR
+    #         os.environ.get(...SPEC_LINT_REPO_OVERRIDE (confirms live, not comment-only usage).
+    # This rejects files where slp.find_repo_root appears only in a comment on the REPO= line.
     # Returns 0 = all clear, 2 = guard fired (missing support, or no files found).
     local dir="$1"
     local count=0
@@ -62,7 +67,9 @@ run_override_guard() {
              "$dir/gen-bc-index.py" "$dir/gen-ec-registry.py" "$dir/gen-prd-sections.py" "$dir/gen-rtm.py"; do
         [[ -f "$f" ]] || continue
         count=$((count + 1))
-        if ! grep -qE "$OVERRIDE_PATTERN" "$f" 2>/dev/null; then
+        if ! { grep -qE '^REPO[[:space:]]*=' "$f" \
+          && grep -v '^[[:space:]]*#' "$f" \
+             | grep -qE '(slp\.find_repo_root\(|os\.environ\.get\([^)]*SPEC_LINT_REPO_OVERRIDE)'; }; then
             echo "STRUCTURAL GUARD FAILED: $(basename "$f") lacks SPEC_LINT_REPO_OVERRIDE support"
             echo "  Add the standard REPO= line so tests can use isolated temp trees."
             echo "  Pattern: REPO = Path(os.environ.get(\"SPEC_LINT_REPO_OVERRIDE\", \"\")).resolve() if ..."
@@ -121,6 +128,9 @@ run_splitlines_guard() {
     for f in "$dir"/*.py; do
         [[ -f "$f" ]] || continue
         [[ "$(basename "$f")" == "spec_lint_primitives.py" ]] && continue
+        # Forward-looking: test_spec_lint_primitives.py lives in selftest/ (not $LINT_DIR),
+        # so this exemption is currently dead code (non-recursive glob). If $LINT_DIR is
+        # ever widened to include selftest/, this becomes live. Keep for intent clarity.
         [[ "$(basename "$f")" == "test_spec_lint_primitives.py" ]] && continue
         count=$((count + 1))
         if grep -v '^\s*#' "$f" | grep -qE "$SPLITLINES_PATTERN" 2>/dev/null; then
@@ -2290,6 +2300,10 @@ if [ "$CLEAN_PASS" = "1" ]; then
     fi
 fi
 rm -rf "$T"
+
+# G4 proof arm (guard-selftest proving G4 fires on a planted .splitlines() defect)
+# is deferred to the W10 burst — same scope as the checker-level negative selftest
+# for the BI-040 bypass class. Track as S4 from review cycle 2.
 
 # ── Test A1: check-index-integrity — data row placed ABOVE the |---| separator ─
 # B-11: regression introduced by the F-12 scoping fix at 031ca5b.
