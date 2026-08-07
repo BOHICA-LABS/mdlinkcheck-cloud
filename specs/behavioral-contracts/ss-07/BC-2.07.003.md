@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,9 +20,10 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
-  - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
-  - "v1.2: (EC-collision) EC-029→EC-186 (EC-029 canonical owner is BC-2.07.005); EC-030→EC-187 (NFC/NFD normalization case); EC-031→EC-188 (Unicode mixed-case case)."
+  - "v1.4: (DirIndex-scope ruling) Precondition 2 clarified: 'parent directory is readable' operationalized as 'present in DirIndex' — Pass 1.5a guarantees this for all link destination types. VP-008 proof method corrected: 'integration test (macOS only per D-043)' was wrong (D-043 edit changed platform scope, not proof method); corrected to 'proptest (macOS only per D-043)' matching VP-INDEX (authoritative) and vp-008 file."
   - "v1.3: (D-043) macOS-only platform directive: Description restated with canonical D-006 determinism rationale; Invariant 3 replaced with D-043 canonical wording; Postcondition 4 scoped to macOS; VP-008 proof method updated to macOS-only."
+  - "v1.2: (EC-collision) EC-029→EC-186 (EC-029 canonical owner is BC-2.07.005); EC-030→EC-187 (NFC/NFD normalization case); EC-031→EC-188 (Unicode mixed-case case)."
+  - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -46,7 +47,7 @@ grounds per D-043 and not contingent on cross-platform parity.
 
 ## Preconditions
 1. A path has been resolved (BC-2.07.001 or BC-2.07.002).
-2. The resolved path's parent directory is readable.
+2. The resolved path's parent directory is present in `DirIndex`. In the pure-core model, `path_resolver` performs no I/O; "readable" is operationalized as "present in `DirIndex`." Pass 1.5a guarantees this for every extracted link destination — all link types (.md files already in the scan set, missing .md files, non-.md files, and directory references) — before Pass 2 begins.
 
 ## Postconditions
 1. Both the resolved destination and all actual directory entries are NFC-normalized before comparison.
@@ -80,7 +81,7 @@ grounds per D-043 and not contingent on cross-platform parity.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-008 | Case mismatch always detected on macOS (never delegated to APFS case-folding) | integration test (macOS only per D-043) |
+| VP-008 | Case mismatch always detected on macOS (never delegated to APFS case-folding) | proptest (macOS only per D-043) |
 | VP-009 | NFC-normalized comparison is applied | unit test |
 
 ## Traceability

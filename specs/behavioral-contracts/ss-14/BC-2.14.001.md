@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,9 +20,10 @@ capability: "CAP-014"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
-  - "v1.1: Three-input model alignment — Precondition 4 corrected: nonexistent PATH is an I/O error (recorded in io_errors), not a startup config/usage error. Preconditions 3 and 4 now cite verdict::exit_code parameter names. Invariants updated to name all three inputs."
-  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.4: (exit-code ruling) PC4 updated: removed 'no unrecognized flags' from config_error description — unrecognized flags are handled by clap before app::run() and do not set config_error. config_error = true has exactly one trigger: invalid --ignore glob pattern. Added note clarifying --help/--version are outside this BC's scope."
   - "v1.3: (EC-collision) EC-009 renamed to EC-184 (EC-009 canonical owner is BC-2.01.004 per test-vectors.md registry)."
+  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.1: Three-input model alignment — Precondition 4 corrected: nonexistent PATH is an I/O error (recorded in io_errors), not a startup config/usage error. Preconditions 3 and 4 now cite verdict::exit_code parameter names. Invariants updated to name all three inputs."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -43,7 +44,7 @@ configuration errors occurred. This is the success exit code. In terms of the pu
 1. All scanning and reporting is complete.
 2. No `broken` verdict links were found.
 3. No I/O errors occurred — no unreadable files and no nonexistent PATH arguments. (Corresponds to `io_errors = []` in `verdict::exit_code`.) Note: a nonexistent PATH argument is an I/O error, NOT a startup configuration error; it goes into `io_errors`, not `config_error`.
-4. No startup configuration errors occurred — no unrecognized flags and no invalid `--ignore` glob pattern. (Corresponds to `config_error = false` in `verdict::exit_code`.)
+4. No configuration error occurred — specifically, no invalid `--ignore` glob pattern was detected (the sole trigger for `config_error = true`). This corresponds to `config_error = false` in `verdict::exit_code`. Note: unrecognized flags are handled by clap before `app::run()` is called and do NOT set `config_error`; `--help`/`--version` are similarly handled by clap before `app::run()` and are outside the scope of this BC.
 
 ## Postconditions
 1. Process exit code: 0.

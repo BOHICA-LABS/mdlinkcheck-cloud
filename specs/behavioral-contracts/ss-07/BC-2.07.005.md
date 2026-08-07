@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "a53c532"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,8 +20,9 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
-  - "v1.1: corrected verdict for plain directory links (no fragment) from broken to clean, aligning with test-vectors TV-029/TV-030 and feasibility-review SF-002; added fragment-present case (broken/target-is-directory); added routing note that path_resolver.rs makes both decisions"
+  - "v1.3: (DirIndex-scope ruling) Precondition 2 clarified: 'exists on the filesystem and is a directory' is determined via EntryKind::Dir in DirIndex; Pass 1.5a ensures DirIndex is populated for all link destination types including directory links, so this routing decision is always available to path_resolver without I/O."
   - "v1.2: P2-M09 — replaced non-conforming EC-NEW-3 with registry-compliant EC-164"
+  - "v1.1: corrected verdict for plain directory links (no fragment) from broken to clean, aligning with test-vectors TV-029/TV-030 and feasibility-review SF-002; added fragment-present case (broken/target-is-directory); added routing note that path_resolver.rs makes both decisions"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -49,7 +50,7 @@ for directory targets. `path_resolver.rs` owns this routing decision.
 
 ## Preconditions
 1. A link destination has been resolved to an absolute path.
-2. The resolved path exists on the filesystem and is a directory (not a regular file).
+2. The resolved path exists on the filesystem and is a directory (not a regular file). `path_resolver` determines this via `EntryKind::Dir` in `DirIndex`. Pass 1.5a populates `DirIndex` for every extracted link destination — including directory links — so this information is always present without additional I/O.
 
 ## Postconditions
 1. If the link has **no fragment**: verdict is `clean`. The directory exists; this is a

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,8 +20,9 @@ capability: "CAP-014"
 lifecycle_status: active
 introduced: v1.3.0
 modified:
-  - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.6: (exit-code ruling b.3) Added Invariant 4: clap intercepts --help/--version before app::run(); verdict::exit_code is never invoked; no DirIndex, AnchorIndex, Vec<Finding>, or Vec<IoError> is constructed."
   - "v1.5: (P4-016) Removed incorrect SS-11 subsystem label from cli.rs; removed fabricated ADR-007 parenthetical '(--help/--version are cli module concerns)' — ADR-007 does not contain that clause."
+  - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,6 +54,7 @@ trigger false exits.
 1. `--help` and `--version` always exit 0.
 2. No scanning side-effects occur (no file I/O beyond the flag parse).
 3. The version string matches the `version` field in `Cargo.toml`.
+4. clap intercepts `--help`/`--version` before `app::run()` is called; `verdict::exit_code` is never invoked for these cases; no `DirIndex`, `AnchorIndex`, `Vec<Finding>`, or `Vec<IoError>` is ever constructed.
 
 ## Edge Cases
 | EC | Description |

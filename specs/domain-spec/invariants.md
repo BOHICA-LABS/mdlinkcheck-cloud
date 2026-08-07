@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: invariants
-version: "1.9"
+version: "1.10"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -14,6 +14,9 @@ inputs:
 input-hash: "62dc24f"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.10"
+    date: 2026-08-06
+    change: "DirIndex-scope ruling: DI-009 Pass 1.5 termination argument re-derived for broad DirIndex population (all link destination types, not only missing-.md targets). Bound restated as O(unique parent dirs of all link destinations) with explicit derivation: LinkMap is fixed after Pass 1, DirIndex scope = all scan-set source link destinations, each unique parent dir visited at most once, no recursion. Removed stale 'out-of-scan-set' qualifier from termination text."
   - version: "1.9"
     date: 2026-08-06
     change: "CV5-001 / D-043 survivor fix: introductory paragraph 'ALL platforms' narrowed to 'the macOS platform'. The phrase 'ALL platforms' in the section preamble was a residual multi-platform claim that survived the D-043 sweep applied to DI-002 and DI-009 in v1.8."
@@ -233,17 +236,30 @@ completing all anchor-table construction before Pass 2 begins.
 
 File traversal terminates for any directory tree, including trees with directory
 symlink cycles, overlapping path arguments, zero markdown files, or paths escaping
-the scan root. Pass 1.5's out-of-scan-set directory reads also terminate: each directory is visited at
-most once (deduplicated by NFC-normalized, lexically-normalized key — NOT
-`fs::canonicalize`, which case-normalizes on macOS APFS and would conflict with DI-002;
-the architect's key-form specification defines the exact form), and no recursion into
-sub-directories occurs — only the immediate parent directory of each link destination is
-read (bounded by the DI-006 one-level, non-transitive rule).
+the scan root.
+
+Pass 1.5 directory reads also terminate. The termination argument is derived as follows:
+
+1. **Fixed input set.** `LinkMap` is written in Pass 1 and never modified in Pass 1.5.
+   Pass 1.5 derives its directory set entirely from `LinkMap`; it cannot add new entries
+   to `LinkMap` as a side-effect.
+2. **Broad scope, deduplication.** Pass 1.5a reads parent directories of **every
+   extracted link destination from scan-set sources** — all link types (.md, non-.md,
+   directory references). Each unique directory is visited at most once, enforced by a
+   visited set deduplicated by NFC-normalized, lexically-normalized (`.`/`..` collapsed),
+   NOT-`fs::canonicalize` key. (`fs::canonicalize` case-folds on macOS APFS, which would
+   conflict with DI-002; the non-canonicalizing key form is mandatory.) The second encounter
+   of any key is skipped.
+3. **No recursion.** Only the immediate parent directory of each link destination is read
+   (DI-006 one-level, non-transitive rule). Pass 1.5a never reads sub-directories of the
+   parent directories it visits.
+4. **Finite bound.** The number of `fs::read_dir` calls is bounded by
+   O(|unique parent directories of all scan-set link destinations|) ≤ O(|all scan-set links|),
+   which is finite for any finite `LinkMap`. This bound holds regardless of whether link
+   destinations are .md files, non-.md files, or directory references.
 
 **Why invariant:** Non-termination is a denial-of-service against CI pipelines.
 AMB-007 (symlink cycles), AMB-008 (overlapping args), AMB-009 (empty results).
-The DI-006 bound on the anchor-target universe ensures Pass 1.5 adds at most O(|links|)
-directory reads, preserving the termination guarantee under the widened invariant.
 
 ---
 

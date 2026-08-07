@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,6 +20,7 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.2: (DirIndex-scope ruling) Added Postcondition 5: DirIndex is fully populated for the parent directory of the resolved path before path_resolver is called (Pass 1.5a covers all link types). Closes BC-2.07.003 PC2 satisfiability gap for root-relative links."
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
@@ -46,6 +47,7 @@ fallback.
 2. If no git repo is found, resolved path = scan_root.join(destination.strip_prefix('/').unwrap()).
 3. The git repo root is determined once per run and cached; not re-computed per file.
 4. The fragment portion is stripped before path resolution (DI-003).
+5. The parent directory of the resolved path is present in `DirIndex` before `path_resolver` is called. Pass 1.5a populates `DirIndex` for every extracted link destination — all link types (.md, non-.md, directories) — so that `path_resolver` can perform NFC case-sensitive directory-entry comparison without I/O, regardless of whether the target is in the scan set.
 
 ## Invariants
 1. Root-relative links always use the same root for all files in the run.

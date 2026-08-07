@@ -2,18 +2,21 @@
 document_type: architecture-section
 level: L3
 section: system-overview
-version: "1.8"
+version: "1.9"
 status: draft
 producer: architect
-timestamp: 2026-08-05T21:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/specs/prd.md
   - .factory/specs/prd-supplements/nfr-catalog.md
-input-hash: "a328802"
+input-hash: "f9f12cd"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.9"
+    date: 2026-08-06
+    change: "DirIndex-scope ruling: restructured Pass 1.5 into two explicit sub-phases — Pass 1.5a (DirIndex population for every extracted link destination, all link types) and Pass 1.5b (AnchorIndex extension for missing .md targets only). Resolves purity-boundary-map.md vs. system-overview.md contradiction; closes BC-2.07.003 PC2 gap and BC-2.07.005/006 EntryKind routing gap. DI-009 termination comment updated to reference broad population set. Error handling table: config_error routing updated to explicit 'config_error=true → verdict::exit_code' (not process::exit bypass); unrecognized-flag row removed from config_error category."
   - version: "1.8"
     date: 2026-08-06
     change: "D-043 decisions applied: NFR-002 re-targeted to p95 ≤ 10 seconds on macos-latest (shared Apple Silicon M1) per PO decision; removed 'under D-043 review' placeholder from Performance Architecture section."
@@ -107,46 +110,60 @@ Pass 1 (parallel, rayon):
           LinkMap:     HashMap<PathBuf, Vec<ExtractedLink>>
 
 Pass 1.5 (shell only, sequential — app):
-  Purpose: ensure DI-006 — every link destination that is a .md file has an anchor
-           table, even if it was not reachable by the Pass 1 traversal.
+  Purpose: (1) build DirIndex for every extracted link destination — all link types
+           (.md, non-.md, directory references) — so that path_resolver can perform
+           NFC case-sensitive directory-entry comparison for any link target without I/O;
+           and (2) ensure DI-006 — every link destination that is a .md file has an
+           anchor table, even if it was not reachable by the Pass 1 traversal.
 
-  Identification mechanism (F-005): Pass 1.5 identifies out-of-scan .md targets
-  by AnchorIndex MEMBERSHIP — it collects every .md destination from LinkMap that
-  is NOT already a key in AnchorIndex. It does NOT re-check individual exclusion
-  mechanisms (gitignore patterns, dot-dir prefix, scan-root boundary) — AnchorIndex
-  membership is the single authoritative gate. This means any future exclusion
-  mechanism automatically becomes part of Pass 1.5 scope without code changes.
+  Both sub-phases iterate scan-set LinkMap only — link destinations from --ignore'd
+  source files are excluded. An --ignore'd file is excluded as a SOURCE; its anchor
+  table may still be built if it appears as a TARGET of a scan-set link.
 
-  Pass 1.5 iterates scan-set LinkMap only — link destinations from --ignore'd
-  source files are excluded. This prevents an ignored file's broken .md reference
-  from driving a Pass 1.5 read attempt and potentially contributing to io_errors.
-  (An --ignore'd file is excluded as a SOURCE; its anchor table may still be built
-  if it appears as a TARGET of a scan-set link.)
-
-  For each .md destination path (from scan-set sources) not in AnchorIndex:
-  a. Collect unique parent directories of all such missing paths
-  b. fs::read_dir each parent directory -> Vec<DirEntryInfo { name: OsString, kind: EntryKind }>
-     EntryKind distinguishes File / Dir / Symlink { dangling: bool }
-  c. For each missing .md file:
-     - If the file does not exist, is not a regular file, or cannot be read:
-       skip silently. No AnchorIndex entry is created. No IoError is recorded.
-       No diagnostic is emitted. Pass 2 will produce the normal verdict for that
-       destination (e.g., broken(file-not-found), broken(broken-symlink)).
-       Only I/O failures reading files IN the scan set contribute to io_errors.
-     - If the file exists and is readable: parse for its anchor table and add to AnchorIndex.
-  Result: DirIndex extended; AnchorIndex extended with out-of-scan entries
-
-  Bootstrapping order: Pass 1.5 runs after Pass 1 completes and before Pass 2 begins.
-    This guarantees AnchorIndex and DirIndex cover every path that Pass 2 will look up.
-  Termination / cycle safety (DI-009): each directory is visited at most once.
-    Deduplication key: NFC-normalized, lexically-normalized (`.`/`..` collapsed),
+  Pass 1.5a — DirIndex population (all link destination types):
+  Collect unique parent directories of every extracted link destination — all link
+  types (.md, non-.md, directories). For each unique parent directory:
+    fs::read_dir -> Vec<DirEntryInfo { name: OsString, kind: EntryKind }>
+    EntryKind distinguishes File / Dir / Symlink { dangling: bool }
+  Store results in DirIndex: HashMap<PathBuf, Vec<DirEntryInfo>>.
+  This guarantees that path_resolver can determine EntryKind and perform NFC
+  case-sensitive comparison for any resolved link target — including links to files
+  already in the scan set (in-scan-set .md files), links to non-.md files, and links
+  to directories — without performing any I/O at resolution time.
+  Deduplication key: NFC-normalized, lexically-normalized (`.`/`..` collapsed),
     NON-canonicalized (no `fs::canonicalize` — canonicalize case-folds on macOS
-    APFS, violating D-006 case-sensitivity and DI-001 determinism), scan-root-relative `PathBuf`.
-    The set of visited keys is checked before each `fs::read_dir` call; the second
-    encounter of any key is skipped. No recursion into sub-directories occurs —
-    only the immediate parent of each link destination is read (DI-006 one-level bound).
-    Note: this key form is the same canonical key form used for AnchorIndex and
-    DirIndex entries throughout the pipeline.
+    APFS, violating D-006 case-sensitivity and DI-001 determinism), scan-root-relative
+    `PathBuf`. The set of visited keys is checked before each `fs::read_dir` call;
+    the second encounter of any key is skipped. No recursion: only the immediate
+    parent directory of each link destination is read (DI-006 one-level bound).
+  Termination: DirIndex population terminates because LinkMap is fixed after Pass 1
+    (Pass 1.5 does not add new links) and each unique parent directory is visited at
+    most once. Bound: O(unique parent dirs of all link destinations) ≤ O(|all links|).
+    This key form is the same canonical key form used throughout the pipeline.
+
+  Pass 1.5b — AnchorIndex extension (missing .md targets only):
+  Identification mechanism (F-005): identifies out-of-scan .md targets by AnchorIndex
+  MEMBERSHIP — every .md destination from LinkMap that is NOT already a key in
+  AnchorIndex. Does NOT re-check individual exclusion mechanisms (gitignore patterns,
+  dot-dir prefix, scan-root boundary) — AnchorIndex membership is the single
+  authoritative gate. Any future exclusion mechanism automatically becomes part of
+  Pass 1.5 scope without code changes.
+  For each missing .md path:
+    - If the file does not exist, is not a regular file, or cannot be read:
+      skip silently. No AnchorIndex entry is created. No IoError is recorded.
+      No diagnostic is emitted. Pass 2 produces the normal verdict for that destination
+      (e.g., broken(file-not-found), broken(broken-symlink)).
+      Only I/O failures reading files IN the scan set contribute to io_errors.
+    - If the file exists and is readable: read and parse for its anchor table; add
+      the anchor table to AnchorIndex.
+  (Parent directory listings are already in DirIndex from Pass 1.5a; no additional
+   directory reads are needed to determine file existence or EntryKind.)
+  Result: DirIndex fully populated for all link destination types;
+          AnchorIndex extended with out-of-scan .md entries.
+
+  Bootstrapping order: Pass 1.5 (both sub-phases) runs after Pass 1 completes and
+    before Pass 2 begins. This guarantees AnchorIndex and DirIndex cover every path
+    that Pass 2 will look up.
 
 Pass 2 (pure only, parallel, rayon):  For each file in the scan set (NOT --ignore'd):
   a. For each extracted link, call the appropriate resolver:
@@ -237,20 +254,21 @@ into a separate `Vec<IoError>` that does not interrupt the scan (DD-007 no-fail-
 The final exit code is computed as a pure function over both collections.
 
 **Startup configuration errors are distinct from runtime I/O errors and are NOT subject
-to no-fail-fast.** If the tool detects a configuration problem before scanning begins —
-specifically, an invalid `--ignore` glob pattern that `globset` cannot compile
-(BC-2.11.004) — it exits immediately with code 2 and an error message on stderr.
-No file traversal occurs.
+to no-fail-fast.** The sole startup configuration error is an invalid `--ignore` glob
+pattern that `globset` cannot compile (BC-2.11.004). When detected, `app` sets
+`config_error = true` and calls `verdict::exit_code([], [], true)` — which returns 2.
+No file traversal occurs. **This is routed THROUGH `verdict::exit_code`** — it is not
+a `process::exit` bypass — so `verdict::exit_code` remains the single authority for
+every exit code and VP-005's Kani proof covers this path. Unrecognized flags are
+handled by clap before `app::run()` is called and do NOT set `config_error`.
 
 A `PATH` argument that does not exist or cannot be read is NOT a startup configuration
 error. Per DD-007 and interface-definitions.md, it is recorded into `Vec<IoError>` and
-scanning continues with any remaining valid paths. (Note: BC-2.01.009 requires
-reconciliation — if it prescribes immediate exit for a bad PATH, that BC conflicts with
-DD-007 and must be updated by the product owner.)
+scanning continues with any remaining valid paths.
 
 | Error class | When detected | Behaviour | DD rule |
 |-------------|--------------|-----------|---------|
-| Usage/config error (invalid --ignore glob) | Startup, before any traversal | Exit 2 immediately | BC-2.11.004 |
+| Configuration error: invalid `--ignore` glob (sole `config_error` trigger) | Startup, before traversal | `app` sets `config_error=true`; calls `verdict::exit_code([], [], true)` → exit 2 | BC-2.11.004 |
 | Non-existent or unreadable PATH argument | Startup or first access | Record into `Vec<IoError>`; scan continues with valid paths | DD-007 no-fail-fast |
 | Runtime I/O error (unreadable file, non-UTF-8) | During scan | Collect into `Vec<IoError>`; scan continues | DD-007 no-fail-fast |
 

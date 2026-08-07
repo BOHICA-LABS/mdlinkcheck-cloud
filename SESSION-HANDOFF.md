@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-057
+  Latest: §RESUME SNAPSHOT D-066
 -->
 
 ---
@@ -553,7 +553,7 @@ m. **True divergence count for BI-012 was 5, not 6.** FACT-4 (module→subsystem
 
 ---
 
-## §RESUME SNAPSHOT D-057
+## §RESUME SNAPSHOT D-057 [SUPERSEDED by D-066 — retained for audit]
 
 *Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-053.*
 
@@ -737,3 +737,122 @@ j. **BI-021:** `check-canonical-facts.py` exits 1 from `.worktrees/STORY-NNN/`. 
 k. **BI-022:** `rustup toolchain install nightly` in `fuzz-smoke` job still unpinned. Pin before Phase 6.
 
 l. **Wrappers at `.factory/bin/`** — pr-manager agents may phantom-report exit-127 looking at `plugins/vsdd-factory/bin/`. Pass the explicit path.
+
+---
+
+## §RESUME SNAPSHOT D-066
+
+*Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-057.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d, still 0 of 3 clean adversarial passes. PR #4 (bcbb4a5) and PR #5 (2776d94) MERGED this session — develop is now at 2776d94. SS-07 (DirIndex BROAD, D-061) and SS-14 (D-062/D-063) adjudicated and applied atomically; FACT-9 and FACT-10 added to canonical-facts.toml. PR #3 (`feature/spec-lint-hardening`) remains open at head `031ca5b` with **4 consecutive REQUEST_CHANGES** (B-7→B-8→B-9→B-11), all in `check-index-integrity.py`. DESIGN REASSESSMENT ordered (D-066) — read `cycles/phase-1d/design-ruling-index-integrity.md` before touching PR #3. **FIRST ACTION ON RESUME: read the design ruling; present Options A/B/C to operator; implement chosen option for PR #3.**
+
+### HEADS
+
+Verify each at resume before taking action.
+
+| Ref | SHA | Note |
+|-----|-----|------|
+| `origin/main` | `78a9f77` | CI workflows live; PR #1 merged |
+| `origin/develop` | `2776d94` | integration branch after PR #4 + PR #5 merged |
+| PR #3 `feature/spec-lint-hardening` | `031ca5b` | 4×REQUEST_CHANGES (B-11 blocking). DESIGN REASSESSMENT D-066 in progress. Do NOT push patch fixes; read design-ruling-index-integrity.md first. |
+| `origin/feature/bi-012-generators` | `78ef3a4` | stacked on PR #3; merge to develop only after PR #3 lands + FACT-7/8/9/10 negative tests (BI-035) |
+| `.factory` / `factory-artifacts` | resolve at resume via `git -C .factory log -1 --format=%H` — do NOT trust any literal SHA recorded here | latest burst = D-066 session wrap |
+
+- Main repo working tree: branch checked out: `feature/spec-lint-hardening`.
+- `.worktrees/ws-b-generators`: `feature/bi-012-generators` at `78ef3a4` (active; stacked on PR #3).
+- `.worktrees/sec-hardening`: **REMOVED** (fix/hardening-pins merged as PR #5 at 2776d94).
+- Stash list: **EMPTY in all remaining worktrees** (D-056 confirmed, still valid).
+- Local branch `fix/hardening-pins` needs `git branch -D fix/hardening-pins` (operator action).
+- `.factory/hooks/verify-sha-currency.sh`: NOT present — post-push hook verification gap (record only).
+
+### WORKSTREAMS
+
+**WS-1 (BLOCKING): PR #3 design ruling.** Read `cycles/phase-1d/design-ruling-index-integrity.md`. Present Options A/B/C to operator. Implement chosen option (Option C — generate from frontmatter reusing BI-012 infrastructure — is highest-weight per D-066). Re-review and merge. D-064 cycle exception granted.
+
+**WS-2 (after WS-1): Merge `feature/bi-012-generators`.** Rebase onto develop after PR #3 merges. Add FACT-7/8/9/10 negative tests (BI-035) before merge. Merge under D-028/D-031 autonomy.
+
+**WS-3 (after WS-2): Pass-6 skip-list re-audit.** Re-audit `check-counts`, `check-adr-consistency`, `check-title-sync` for positive-coverage soundness per D-057/D-060 (BI-034). Do NOT run concurrently with PR #3 fix burst.
+
+**WS-4 (after WS-3): ~306 findings remediation burst.** BI-024 (four unguarded axes: VP proof-method join, POLICY 5 substantiation, code-fence symbol validation, stale directives) + BI-023 (skip list structural bypasses) + BI-025 (five vacuous VPs) + BI-026 (BC-VP property join) + BI-027 (POLICY 5 fabrication) + BI-028 (VP code-fence symbols). Verify every fix at all restatement sites (lesson-18 standing rule).
+
+**WS-5: Pass 6 adversarial review.** Run after WS-1..WS-4 are complete. Three clean passes needed; streak resets from ZERO at the frozen HEAD used for pass 6.
+
+**WS-6: Phase 1 gate + Phase 2 kickoff.** After 3 clean passes: flip `spec-lint` to required status check (D-029/D-032). Human approval gate. Begin Phase 2 Story Decomposition.
+
+### PENDING USER-APPROVED WORK
+
+| Decision | Approval | Status |
+|----------|----------|--------|
+| D-028: Agents MAY merge PRs after full pr-manager review lifecycle | Granted by operator | In force |
+| D-029/D-032: Flip `spec-lint` to required status check at Phase 1 approval | Granted by operator | Not started — gated on 3 clean passes |
+| D-031: Autonomy level 4 | Granted by operator | In force |
+| D-043: macOS-only platform narrowing | Granted by operator | APPLIED |
+| D-046: Restricted-path waiver PR #3 + PR #4 | Granted by operator | CONSUMED (PR #4 merged; PR #3 still open) |
+| D-051: Pass-5 gate interpretation | Granted by operator | APPLIED |
+| D-052: Restricted-path waiver PR #5 | Granted by operator | CONSUMED (PR #5 merged) |
+| D-053: cargo-mutants on macos-latest | Granted by operator | APPLIED |
+| D-054: SS-10 descope DENIED | Operator ruling | RECORDED — do not re-propose |
+| D-057: D-050 correction (mutation NECESSARY BUT NOT SUFFICIENT) | Operator ruling | RECORDED — positive-coverage count required |
+| D-058: covered_sha hand-editing REJECTED | Operator ruling | RECORDED |
+| D-059: strict re-staleness; mechanical equivalence proof required | Operator ruling | RECORDED |
+| D-060: Pass-6 skip-list re-audit ordered | Operator ruling | PENDING — WS-3 |
+| D-061: SS-07 DirIndex scope BROAD (purity-boundary-map.md authoritative) | Operator ruling | APPLIED — BCs + DI-009 updated |
+| D-062: config_error = {invalid --ignore glob} ONLY | Operator ruling | APPLIED — SS-14 BCs + CAP-014 updated |
+| D-063: SS-14 mechanical corrections approved | Operator ruling | APPLIED |
+| D-064: PR #3 cycle-limit exception granted | Operator ruling | RECORDED |
+| D-065: D-040 scope clarification (subsuming backstop satisfies) | Operator ruling | RECORDED |
+| D-066: PR #3 patch-fixing HALTED; design reassessment ordered | Operator ruling | PENDING — WS-1 design ruling execution |
+
+### WORKTREE INVENTORY
+
+| Path | Branch | SHA | Status |
+|------|--------|-----|--------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` (root) | `feature/spec-lint-hardening` | `031ca5b` | active; PR #3 open; design reassessment D-066 |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | `git -C .factory log -1` | active |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/ws-b-generators` | `feature/bi-012-generators` | `78ef3a4` | active; stacked on PR #3; merge after PR #3 + BI-035 |
+
+Stash list EMPTY (D-056 still valid). No Phase 3 story worktrees exist.
+
+### DECISION DELTA
+
+Decisions D-001 through D-057 were committed in prior bursts. This wrap adds D-058..D-066 (exhaustive).
+
+| ID | Decision | Rationale | Phase | Date |
+|----|----------|-----------|-------|------|
+| D-058 | `covered_sha` hand-editing REJECTED as a merge-authorization mechanism. VINDICATED: review found two BLOCKING defects (B-7, B-8). | Editing the record to satisfy `check-stale-verdict.sh` defeats the control. | phase-1d | 2026-08-07 |
+| D-059 | `strict: true` re-staleness policy: a merge-only SHA change MAY retain its verdict ONLY with a MECHANICAL EQUIVALENCE PROOF that the PR's own patch is byte-identical before and after the update. | Distinguishes pure merge-commit from content change. First applied to PR #5. | phase-1d | 2026-08-07 |
+| D-060 | Pass-6 skip list: re-audit ALL THREE remaining entries (`check-counts`, `check-adr-consistency`, `check-title-sync`) for positive-coverage soundness. Admitted on D-050 mutation-only evidence — disproved by B-8. | D-050 mutation-only evidence is not sufficient per D-057. | phase-1d | 2026-08-07 |
+| D-061 | DirIndex scope: BROAD — `purity-boundary-map.md` AUTHORITATIVE. Every extracted link destination populates DirIndex. Narrow reading cornered by DI-002 and pure-core boundary. | DI-009 termination bound re-derived as `O(unique parent dirs of all link destinations)`. BC-2.07.002/003/005/006 and DI-009 updated atomically. | phase-1d | 2026-08-07 |
+| D-062 | `config_error` canonical list = {invalid `--ignore` glob} ONLY, routed THROUGH `verdict::exit_code`. `process::exit(2)` bypass REJECTED. | SS-14 exit-code domain ambiguity resolved. CAP-014 corrected. `--help`/`--version` in cli.rs outside the lattice. | phase-1d | 2026-08-07 |
+| D-063 | SS-14 mechanical corrections approved: CAP-014 label fixed; BC-2.14.004 Invariant 4 added; BC-2.14.002 Precondition 3 removed (self-contradiction). | Six artifacts agreed; CAP-014 was the outlier. | phase-1d | 2026-08-07 |
+| D-064 | Cycle-limit exception granted for PR #3 review at `031ca5b`. Extends D-049/D-038 lineage. | Four consecutive failures in `check-index-integrity.py`; design reassessment may resolve without additional review cycles. | phase-1d | 2026-08-07 |
+| D-065 | D-040 SCOPE CLARIFICATION: D-040 is SATISFIED when a defect is detected by a stronger subsuming backstop even if the narrower mutation no longer flips a test. | Mutation no longer flipping a test is acceptable if a stronger backstop catches the same defect class. Evidence: MUT-1 + MUT-3. | phase-1d | 2026-08-07 |
+| D-066 | PR #3 patch-fixing HALTED; DESIGN REASSESSMENT ordered. Four consecutive failures in `check-index-integrity.py`, each fix opening a new hole of the same shape. Option C (generate from frontmatter) is the one to weigh hardest. | Four consecutive failures in one component is a design signal, not a quality signal. Phase 3 not started so structural change is cheapest now. | phase-1d | 2026-08-07 |
+
+### CAVEATS
+
+a. **`.factory/hooks/verify-sha-currency.sh` ABSENT.** Post-push hook verification gap. Record only; not an implied pass.
+
+b. **`fix/hardening-pins` local branch** needs `git branch -D fix/hardening-pins` (operator).
+
+c. **`feature/bi-012-generators` (`78ef3a4`) stacked on PR #3** — merge to develop only after PR #3 lands + FACT-7/8/9/10 negative tests (BI-035).
+
+d. **D-040/D-057 skip-list discipline:** pass-6 skip list requires re-audit (WS-3, D-060). `check-ec-injectivity`, `check-id-resolution`, `check-placeholders` MUST NOT go on the pass-6 skip list. Positive-coverage counts required per D-057.
+
+e. **Streak reset:** 0/3 clean-pass counter re-counts from ZERO against whatever HEAD is frozen when pass 6 runs.
+
+f. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
+
+g. **Allowlists / skip-lists in checkers are FORBIDDEN (D-039).** Suppression is worse than editing the spec.
+
+h. **`prd.md` versioned changelog entries are IMMUTABLE (D-034).** Do not update them to reference newer VP/EC/BC ids.
+
+i. **BI-021:** `check-canonical-facts.py` exits 1 from `.worktrees/STORY-NNN/`. Fix before Phase 3 (`SPEC_LINT_REPO_OVERRIDE`).
+
+j. **BI-022:** `rustup toolchain install nightly` in `fuzz-smoke` job still unpinned. Pin before Phase 6.
+
+k. **Wrappers at `.factory/bin/`** — pr-manager agents may phantom-report exit-127 looking at `plugins/vsdd-factory/bin/`. Pass the explicit path.
+
+l. **PR #3 design reassessment (D-066):** Do NOT push incremental patches. Read `cycles/phase-1d/design-ruling-index-integrity.md` first. Option C (generate from frontmatter) is highest-weight. B-11 root cause: each fix moved the verification backstop one step downstream of the classifier — the defect followed. A structural fix is required.

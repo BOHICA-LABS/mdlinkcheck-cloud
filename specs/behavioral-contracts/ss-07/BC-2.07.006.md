@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.0"
+version: "1.1"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -19,7 +19,8 @@ subsystem: "SS-07"
 capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.1.0
-modified: []
+modified:
+  - "v1.1: (DirIndex-scope ruling) Precondition 2 clarified: 'exists as a regular file' is determined via EntryKind::File in DirIndex; Pass 1.5a ensures DirIndex is populated for non-.md link destination parent dirs so this routing decision is always available to path_resolver without I/O. Fixed pre-existing Edge Cases table cell-count error (EC-NEW-1/2 had extra column)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -42,7 +43,7 @@ to code files, images, PDFs, or any other non-Markdown file.
 
 ## Preconditions
 1. A link destination's path component has been resolved to an absolute filesystem path.
-2. The resolved path exists as a regular file (or a file symlink that resolves to a regular file).
+2. The resolved path exists as a regular file (or a file symlink that resolves to a regular file). `path_resolver` determines this via `EntryKind::File` (or `EntryKind::Symlink { dangling: false }`) in `DirIndex`. Pass 1.5a populates `DirIndex` for every extracted link destination — including non-.md files — so this routing decision is always available without additional I/O.
 3. The file's extension is NOT exactly `.md` (case-sensitive). Files with extension `.MD`, `.Md`,
    `.markdown`, `.mdx`, or any other non-`.md` extension fall into this contract (D-012: only `.md`
    files receive anchor resolution; all others get existence-check only).
@@ -66,8 +67,8 @@ to code files, images, PDFs, or any other non-Markdown file.
 |----|-------------|
 | EC-072 | `[x](notes.txt#section)` where `notes.txt` exists |
 | EC-073 | `[x](src/main.rs#L42-L50)` where `src/main.rs` exists |
-| EC-NEW-1 | `[x](assets/logo.png#anchor)` where `assets/logo.png` exists | clean — image file; fragment ignored |
-| EC-NEW-2 | `[x](scripts/build.sh)` where file does not exist | broken (file-not-found) |
+| EC-NEW-1 | `[x](assets/logo.png#anchor)` where `assets/logo.png` exists — clean (image file; fragment ignored) |
+| EC-NEW-2 | `[x](scripts/build.sh)` where file does not exist — broken (file-not-found) |
 
 ## Canonical Test Vectors
 | Link | Filesystem State | Expected Verdict | Notes |

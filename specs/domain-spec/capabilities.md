@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: capabilities
-version: "1.5"
+version: "1.6"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -11,9 +11,12 @@ inputs:
   - .factory/specs/product-brief.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "20e96e1"
+input-hash: "62dc24f"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.6"
+    date: 2026-08-06
+    change: "Exit-code ruling: CAP-014 updated with two fixes: (1) 'nonexistent PATH argument' moved from 'usage error' category to 'I/O error' category — it is recorded into io_errors and scanning continues per DD-007, consistent with all three SS-14 BCs and BC-2.01.009; (2) config_error canonical membership collapsed to sole trigger: invalid --ignore glob pattern, routed through verdict::exit_code with config_error=true. Unrecognized flags are handled by clap before app::run() and do not set config_error."
   - version: "1.5"
     date: 2026-08-06
     change: "P3-010 governance gap closure (DD-027): CAP-005 updated to reference DI-012 and DI-013 (anchor table correctness depends on slug computation fidelity and anchor-key uniqueness); CAP-006 updated to name DI-012 and DI-013 as its governing invariants."
@@ -227,13 +230,28 @@ DD-011, DD-023. **Priority: P1**
 
 ## CAP-014: Exit Code Determination
 
-Compute the process exit code as a pure function of three inputs: the verdict multiset,
-the I/O error list, and the usage error state. Exit rules: 0 = all verdicts `clean` or
-`indeterminate`, no I/O errors, no usage errors; 1 = any `broken` verdict; 2 = any I/O
-error OR any usage error (malformed flag, nonexistent PATH argument, invalid `--ignore`
-glob, unrecognized flag). Precedence: exit 2 > exit 1 (DI-011). `indeterminate` verdicts
-never raise the exit code. A usage error exits 2 even if no scan was performed and no
-findings exist. An `indeterminate`-only run always exits 0.
+Compute the process exit code as a pure function of three inputs: the verdict multiset
+(`findings`), the I/O error list (`io_errors`), and the configuration error flag
+(`config_error`). All three are passed to `verdict::exit_code(findings, io_errors, config_error)`.
+
+Exit rules:
+- **0** — all verdicts `clean` or `indeterminate`; `io_errors` is empty; `config_error` is false.
+- **1** — at least one `broken` verdict; `io_errors` is empty; `config_error` is false.
+- **2** — `io_errors` is non-empty (any I/O error: unreadable `.md` file, nonexistent PATH
+  argument) OR `config_error = true` (sole trigger: invalid `--ignore` glob pattern, the
+  sole `config_error` trigger — routed through `verdict::exit_code` with `config_error=true`; scan
+  does not start). Precedence: exit 2 > exit 1 (DI-011).
+
+**io_errors vs. config_error partition:**
+- `io_errors` receives: unreadable `.md` file encountered during scan; nonexistent PATH
+  argument (recorded into `Vec<IoError>`; scanning continues for remaining valid paths per
+  DD-007 no-fail-fast).
+- `config_error = true` receives: invalid `--ignore` glob pattern only (detected by
+  `globset` after clap parsing; `app` sets `config_error=true` before any traversal).
+- Unrecognized flags and `--help`/`--version` are handled by clap before `app::run()` is
+  called and do NOT set `config_error`. They never reach `verdict::exit_code`.
+
+`indeterminate` verdicts never raise the exit code. An `indeterminate`-only run always exits 0.
 
 **Grounding:** R7 — "Exit codes: 0 = no broken links; 1 = at least one broken link;
 2 = usage or I/O error." **Priority: P0**

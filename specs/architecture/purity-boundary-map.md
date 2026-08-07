@@ -2,17 +2,20 @@
 document_type: architecture-section
 level: L3
 section: purity-boundary-map
-version: "1.4"
+version: "1.5"
 status: draft
 producer: architect
-timestamp: 2026-08-05T22:00:00Z
+timestamp: 2026-08-06T00:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/domain-spec/capabilities.md
   - .factory/specs/domain-spec/invariants.md
-input-hash: "167d444"
+input-hash: "07f5a2c"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.5"
+    date: 2026-08-06
+    change: "DirIndex-scope ruling: DirIndex is built from every extracted link destination — all link types (.md, non-.md, directory references). Added explicit qualifier to DirIndex build description (step 1) to match authoritative broad-scope ruling. This closes the contradiction with system-overview.md v1.8 (which described only missing-.md-target parent dirs)."
   - version: "1.4"
     date: 2026-08-06
     change: "P4-028 remediation: corrected v1.2 changelog entry — 'scanner now feeds DirIndex via Pass 1.5 in app' → 'app now builds DirIndex via Pass 1.5 (scanner traverses only the scan root in Pass 1)'. The body was already correct (line 77/104 reference app); only the changelog text was wrong."
@@ -105,7 +108,7 @@ The scanner produces `ParsedFile` in Pass 1 by:
 3. Recording `into_offset_iter()` events and precomputing the line map (CPU)
 
 `app` builds `DirIndex` in Pass 1.5 by:
-1. Collecting all unique parent directories from every extracted link destination
+1. Collecting all unique parent directories from every extracted link destination — all link types (.md, non-.md, directories)
 2. Calling `fs::read_dir` on each (one I/O call per distinct directory)
 3. Storing `DirEntryInfo { name, kind }` keyed by directory PathBuf
 

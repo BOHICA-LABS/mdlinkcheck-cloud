@@ -211,3 +211,122 @@ fact_id = "FACT-8"
 file    = ".factory/specs/domain-spec/assumptions.md"
 note    = "ASM-004 platform matrix restatement — full clause captured up to backtick-quoted macos-latest"
 pattern = 'ASM-004 \| Platform matrix is (.*?) \('
+
+# ── FACT-9: DirIndex is populated from every extracted link destination ────────
+#
+# Ruling: Broad DirIndex scope — all link destination types (.md, non-.md,
+# directories) — not just missing-.md targets. Canonical phrasing is "every
+# extracted link destination" (the invariant that closes the purity boundary).
+#
+# Adversarial validation (ALL PASS):
+#   Real "...directories from every extracted link destination —..." → "every extracted link destination"
+#   Adv ".md files only"                → None (no match)
+#   Adv "all markdown files"            → None
+#   Adv "scan-set link destinations"    → None
+#   Real "`DirIndex` for every extracted link destination — all link types" → "every extracted link destination"
+#   Adv "`DirIndex` for all .md link destinations"      → None
+#   Adv "`DirIndex` for scan-set files"                 → None
+#   Adv "`DirIndex` for missing-.md-target parent dirs" → None
+
+[[fact]]
+id              = "FACT-9"
+description     = "DirIndex is populated from every extracted link destination — all link types (.md, non-.md, directories), not just missing-.md targets"
+canonical_value = "every extracted link destination"
+source          = ".factory/specs/architecture/purity-boundary-map.md:111"
+
+[[binding]]
+fact_id = "FACT-9"
+file    = ".factory/specs/architecture/purity-boundary-map.md"
+note    = "DirIndex build step 1 — authoritative scope declaration"
+pattern = 'directories from (every extracted link destination)'
+
+[[binding]]
+fact_id = "FACT-9"
+file    = ".factory/specs/architecture/system-overview.md"
+note    = "Pass 1.5 Purpose line — DirIndex build statement"
+pattern = 'build DirIndex for (every extracted link destination)'
+
+[[binding]]
+fact_id = "FACT-9"
+file    = ".factory/specs/architecture/system-overview.md"
+note    = "Pass 1.5a step — Collect unique parent directories"
+pattern = 'Collect unique parent directories of (every extracted link destination)'
+
+[[binding]]
+fact_id = "FACT-9"
+file    = ".factory/specs/behavioral-contracts/ss-07/BC-2.07.002.md"
+note    = "Postcondition 5 — DirIndex coverage guarantee"
+pattern = '`DirIndex` for (every extracted link destination)'
+
+[[binding]]
+fact_id = "FACT-9"
+file    = ".factory/specs/behavioral-contracts/ss-07/BC-2.07.005.md"
+note    = "Precondition 2 — directory-link routing guarantee"
+pattern = '`DirIndex` for (every extracted link destination)'
+
+[[binding]]
+fact_id = "FACT-9"
+file    = ".factory/specs/behavioral-contracts/ss-07/BC-2.07.006.md"
+note    = "Precondition 2 — non-.md file routing guarantee"
+pattern = '`DirIndex` for (every extracted link destination)'
+
+# ── FACT-10: config_error membership and routing ──────────────────────────────
+#
+# Ruling: config_error = true has exactly ONE trigger: invalid --ignore glob
+# pattern. Unrecognized flags handled by clap before app::run(); never reach
+# verdict::exit_code. Routing is THROUGH verdict::exit_code (not process::exit).
+#
+# Adversarial validation (ALL PASS):
+#   Real "sole trigger: invalid `--ignore` glob pattern..." → "invalid `--ignore` glob"
+#   Adv "invalid `--output` glob"      → None (wrong flag)
+#   Adv "invalid --ignore glob"        → None (no backticks → literal backtick in pattern prevents match)
+#   Adv "invalid `--ignore-case` glob" → None (extended flag name, trailing chars break match)
+#   Adv different phrasing without backticks → None
+
+[[fact]]
+id              = "FACT-10"
+description     = "config_error = true has exactly one trigger: invalid --ignore glob pattern (detected by globset after clap parsing; routed through verdict::exit_code)"
+canonical_value = 'invalid `--ignore` glob'
+source          = ".factory/specs/domain-spec/capabilities.md:241"
+
+[[binding]]
+fact_id = "FACT-10"
+file    = ".factory/specs/domain-spec/capabilities.md"
+note    = "CAP-014 exit-2 condition — sole trigger parenthetical"
+pattern = 'sole trigger: (invalid `--ignore` glob)'
+
+[[binding]]
+fact_id = "FACT-10"
+file    = ".factory/specs/domain-spec/capabilities.md"
+note    = "CAP-014 io_errors/config_error partition — receives: line"
+pattern = 'receives: (invalid `--ignore` glob)'
+
+[[binding]]
+fact_id = "FACT-10"
+file    = ".factory/specs/architecture/system-overview.md"
+note    = "Error Handling section — sole startup configuration error sentence"
+pattern = 'startup configuration error is an (invalid `--ignore` glob)'
+
+[[binding]]
+fact_id = "FACT-10"
+file    = ".factory/specs/architecture/system-overview.md"
+note    = "Error Handling table — Configuration error row label"
+pattern = 'Configuration error: (invalid `--ignore` glob)'
+
+[[binding]]
+fact_id = "FACT-10"
+file    = ".factory/specs/behavioral-contracts/ss-14/BC-2.14.001.md"
+note    = "Precondition 4 — config_error = false condition"
+pattern = 'no (invalid `--ignore` glob) pattern was detected'
+
+[[binding]]
+fact_id = "FACT-10"
+file    = ".factory/specs/behavioral-contracts/ss-14/BC-2.14.002.md"
+note    = "Precondition 2 — config_error = true sole trigger"
+pattern = 'is an (invalid `--ignore` glob) pattern'
+
+[[binding]]
+fact_id = "FACT-10"
+file    = ".factory/specs/behavioral-contracts/ss-14/BC-2.14.003.md"
+note    = "Precondition 4 — config_error = false condition"
+pattern = 'no (invalid `--ignore` glob) pattern was detected'

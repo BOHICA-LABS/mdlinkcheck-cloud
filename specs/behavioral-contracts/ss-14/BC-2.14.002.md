@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,8 +20,9 @@ capability: "CAP-014"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
-  - "v1.1: Three-input model alignment — Description, Precondition 2, and Invariant 3 updated to name verdict::exit_code(findings, io_errors, config_error). Nonexistent PATH explicitly classified as io_errors (not config_error). Mixed-case test vector added (good_dir + nonexistent_dir + broken link → exit 2). Architect v1.4 reconciliation."
+  - "v1.3: (exit-code ruling) Removed Precondition 3 (broken-link co-requirement); Description updated to make standalone exit 2 (io_error/config_error without broken links) explicit; PC2 config_error description tightened to canonical sole trigger (invalid --ignore glob); scope-exclusion note added for --help/--version."
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.1: Three-input model alignment — Description, Precondition 2, and Invariant 3 updated to name verdict::exit_code(findings, io_errors, config_error). Nonexistent PATH explicitly classified as io_errors (not config_error). Mixed-case test vector added (good_dir + nonexistent_dir + broken link → exit 2). Architect v1.4 reconciliation."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -33,16 +34,20 @@ removal_reason: null
 # BC-2.14.002: Exit Code 2 Takes Precedence Over Exit Code 1
 
 ## Description
-Exit code 2 takes strict precedence over exit code 1 (DI-011). If a run produces both broken
-links AND an I/O error (or startup config error), the process exits 2. The exit code is computed
-by the pure-core function `verdict::exit_code(findings, io_errors, config_error) → u8`: exit 2
-if `io_errors` is non-empty OR `config_error = true`; exit 1 if any finding has verdict `broken`
-and no 2-triggering condition; exit 0 otherwise. `indeterminate` findings never raise the exit code.
+Exit code 2 takes strict precedence over exit code 1 (DI-011). If a run encounters an I/O error
+OR a configuration error, the process exits 2 regardless of whether any broken links were found.
+This includes the standalone case: no broken links, but an I/O error occurred (e.g., an unreadable
+file or nonexistent PATH argument) — the exit is still 2. The exit code is computed by the
+pure-core function `verdict::exit_code(findings, io_errors, config_error) → u8`: exit 2 if
+`io_errors` is non-empty OR `config_error = true`; exit 1 if any finding has verdict `broken` and
+no 2-triggering condition; exit 0 otherwise. `indeterminate` findings never raise the exit code.
+
+Scope exclusion: `--help` and `--version` are intercepted by clap before `app::run()` is called;
+they never reach `verdict::exit_code` and are outside this BC's scope (see BC-2.14.004).
 
 ## Preconditions
 1. All scanning and reporting is complete.
-2. At least one condition that triggers exit 2 has occurred: `io_errors` is non-empty (I/O error during scan OR a nonexistent PATH argument — both are recorded into `Vec<IoError>`) OR `config_error = true` (startup configuration error, e.g., invalid `--ignore` glob pattern).
-3. At least one broken link was also found (would independently set exit 1).
+2. At least one condition that triggers exit 2 has occurred: `io_errors` is non-empty (I/O error during scan OR a nonexistent PATH argument — both are recorded into `Vec<IoError>`) OR `config_error = true`. The sole trigger for `config_error = true` is an invalid `--ignore` glob pattern (detected by `globset` after clap parsing); unrecognized flags are handled by clap before `app::run()` and do NOT set `config_error`.
 
 ## Postconditions
 1. Process exit code: 2.
