@@ -26,12 +26,12 @@ Holdout-only artifacts (NOT checked):
 
 Exit 1 if any violation found.
 """
-import os
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
-REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
+REPO = slp.find_repo_root(start=Path(__file__).resolve().parent)  # honors SPEC_LINT_REPO_OVERRIDE
 SPECS = REPO / ".factory" / "specs"
 FACTORY = REPO / ".factory"
 PRD = SPECS / "prd.md"
@@ -53,17 +53,22 @@ def parse_active_holdout_ec_ids() -> set[str]:
     m = re.search(r"Holdout vectors\s+\*\*\(([^)]+)\)\*\*", text)
     if m:
         raw = m.group(1)
-        for ec_m in re.finditer(r"EC-(\d+)", raw):
+        # BI-044: use shared EC grammar (EC_TOKEN_RE) instead of digits-only r"EC-(\d+)"
+        for ec_m in slp.EC_TOKEN_RE.finditer(raw):
             holdout_ids.add(f"EC-{ec_m.group(1)}")
 
     # Also cross-check HS-INDEX for active entries
     if HS_INDEX.exists():
-        for line in HS_INDEX.read_text(encoding="utf-8").splitlines():
+        for line in slp.cm_splitlines(HS_INDEX.read_text(encoding="utf-8")):
             # Active rows (not struck-through)
             if "~~" not in line:
-                ec_m = re.search(r"\|\s*(EC-(\d+))\s*\|", line)
-                if ec_m:
-                    holdout_ids.add(f"EC-{ec_m.group(2)}")
+                # BI-044: use split_table_cells + EC_TOKEN_RE instead of digits-only search
+                cells = slp.split_table_cells(line)
+                for c in cells:
+                    ec_m = slp.EC_TOKEN_RE.fullmatch(c)
+                    if ec_m:
+                        holdout_ids.add(f"EC-{ec_m.group(1)}")
+                        break
 
     return holdout_ids
 
@@ -111,7 +116,8 @@ def main() -> int:
 
     # Build sub-letter patterns for holdout base IDs
     # e.g. EC-079 is holdout -> also check EC-079a, EC-079b, EC-079c etc.
-    holdout_base_nums = {re.match(r"EC-(\d+)", h).group(1) for h in holdout_ids if re.match(r"EC-(\d+)", h)}
+    # BI-044: use shared EC_TOKEN_RE instead of digits-only r"EC-(\d+)"
+    holdout_base_nums = {slp.EC_TOKEN_RE.match(h).group(1) for h in holdout_ids if slp.EC_TOKEN_RE.match(h)}
     sub_letter_pattern = re.compile(
         r"\bEC-(" + "|".join(holdout_base_nums) + r")([a-z])\b"
     )
@@ -123,7 +129,7 @@ def main() -> int:
         if not should_check_file(md_file):
             continue
         files_checked += 1
-        lines = md_file.read_text(encoding="utf-8").splitlines()
+        lines = slp.cm_splitlines(md_file.read_text(encoding="utf-8"))
 
         # For prd.md, skip lines in the §5b holdout declaration block
         is_prd = (md_file == PRD)

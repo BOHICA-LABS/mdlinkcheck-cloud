@@ -47,12 +47,12 @@ Usage:
 --write mode: explicit opt-in for write mode.
 """
 import difflib
-import os
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
-REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
+REPO = slp.find_repo_root(start=Path(__file__).resolve().parent)  # honors SPEC_LINT_REPO_OVERRIDE
 SPECS = REPO / ".factory" / "specs"
 TV_FILE = SPECS / "prd-supplements" / "test-vectors.md"
 VP_018 = SPECS / "verification-properties" / "vp-018-slug-worked-examples.md"
@@ -93,7 +93,7 @@ def parse_tv_s_entries(tv_path: Path) -> list[dict]:
     """
     section = extract_tv_section(tv_path)
     entries: list[dict] = []
-    for line in section.splitlines():
+    for line in slp.cm_splitlines(section):
         m = re.match(r"^\|\s*(TV-S\d+)\s*\|([^|]+)\|([^|]+)\|([^|]+)\|", line)
         if not m:
             continue

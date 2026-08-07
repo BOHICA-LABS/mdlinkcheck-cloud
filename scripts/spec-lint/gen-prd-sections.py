@@ -25,8 +25,9 @@ Usage:
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
-REPO = Path(__file__).resolve().parent.parent.parent
+REPO = slp.find_repo_root(start=Path(__file__).resolve().parent)  # honors SPEC_LINT_REPO_OVERRIDE
 SPECS = REPO / ".factory" / "specs"
 BC_DIR = SPECS / "behavioral-contracts"
 PRD = SPECS / "prd.md"
@@ -61,7 +62,7 @@ def parse_frontmatter_end(lines: list[str]) -> int:
 
 def get_bc_h1_title(path: Path) -> str | None:
     """Return the BC title from H1 (strip 'BC-S.SS.NNN: ' prefix)."""
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
     start = parse_frontmatter_end(lines)
     for line in lines[start:]:
         if line.startswith("# "):
@@ -78,7 +79,7 @@ def collect_ss_bcs(ss_num: str) -> list[tuple[str, str, str]]:
     """
     bc_index = BC_DIR / "BC-INDEX.md"
     priorities: dict[str, str] = {}
-    for line in bc_index.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(bc_index.read_text(encoding="utf-8")):
         m = re.match(r"^\|\s*(BC-\d+\." + re.escape(ss_num) + r"\.\d+)\s*\|[^|]+\|\s*(P\d)\s*\|", line)
         if m:
             priorities[m.group(1)] = m.group(2)
@@ -169,8 +170,8 @@ def main() -> int:
     if dry_run:
         print(f"-- DRY RUN: would update {PRD} --")
         # Show what changed
-        orig_lines = original_content.splitlines()
-        new_lines = content.splitlines()
+        orig_lines = slp.cm_splitlines(original_content)
+        new_lines = slp.cm_splitlines(content)
         diffs = [(i+1, o, n) for i, (o, n) in enumerate(zip(orig_lines, new_lines)) if o != n]
         print(f"  {len(diffs)} lines changed")
         for lineno, old, new in diffs[:10]:

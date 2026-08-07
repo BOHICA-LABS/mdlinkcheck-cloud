@@ -18,12 +18,12 @@ Checks:
 
 Exit 1 if any violation found.
 """
-import os
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
-REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
+REPO = slp.find_repo_root(start=Path(__file__).resolve().parent)  # honors SPEC_LINT_REPO_OVERRIDE
 SPECS = REPO / ".factory" / "specs"
 ADR_DIR = SPECS / "architecture" / "decisions"
 ERROR_TAX = SPECS / "prd-supplements" / "error-taxonomy.md"
@@ -38,7 +38,7 @@ def extract_closed_reason_codes(taxonomy_path: Path) -> set[str]:
     if not taxonomy_path.exists():
         return codes
     in_catalog = False
-    for line in taxonomy_path.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(taxonomy_path.read_text(encoding="utf-8")):
         # Section 2 is the catalog
         if "## 2." in line:
             in_catalog = True
@@ -95,7 +95,7 @@ WRONG_EXIT_PATTERNS = [
 
 def check_adr(path: Path, valid_reason_codes: set[str]) -> list[str]:
     violations = []
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
 
     for lineno, line in enumerate(lines, 1):
         # Skip changelog and history sections (document what was wrong, not what is)

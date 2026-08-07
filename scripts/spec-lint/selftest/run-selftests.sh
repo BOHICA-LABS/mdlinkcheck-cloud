@@ -44,25 +44,32 @@ trap cleanup_all EXIT INT TERM
 # selftests (G1, G2) use these variables — there is no second copy of either
 # pattern anywhere in this file. This means any mutation to OVERRIDE_PATTERN
 # or SUPPRESSION_PATTERN will make both the pre-flight guard AND G1/G2 flip.
-OVERRIDE_PATTERN='^REPO[[:space:]]*=.*SPEC_LINT_REPO_OVERRIDE'
+OVERRIDE_PATTERN='^REPO[[:space:]]*=.*(slp\.find_repo_root|os\.environ\.get[^#]*SPEC_LINT_REPO_OVERRIDE)'
 SUPPRESSION_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET)[[:space:]]*[=:]'
+SPLITLINES_PATTERN='\.splitlines\(\)'
 
 run_override_guard() {
-    # Verify every check-*.py in $1, plus the two new generators introduced by this PR
-    # (gen-bc-traceability.py and gen-slug-corpus.py), have an active
-    # SPEC_LINT_REPO_OVERRIDE assignment. The two generators are listed explicitly
-    # rather than using gen-*.py because the pre-existing generators (gen-bc-index.py,
-    # gen-ec-registry.py, etc.) predate the isolated-tree testing model and are tracked
-    # separately. The two new generators share the same override pattern and must be
-    # included so they cannot regress without this guard firing.
+    # Verify every check-*.py in $1, plus all generators, have an active
+    # SPEC_LINT_REPO_OVERRIDE assignment (direct env-var check or via slp.find_repo_root,
+    # which honors SPEC_LINT_REPO_OVERRIDE internally — two-part check covers both forms).
+    # Stage 3 (BI-040): gen-bc-index.py, gen-ec-registry.py, gen-prd-sections.py, gen-rtm.py
+    # added to scope; they use slp.find_repo_root() and carry # honors SPEC_LINT_REPO_OVERRIDE.
     # D-057: prints runtime count of files scanned; fails if 0 files found.
+    # S2 (review cycle 2): uses a two-part check instead of the single OVERRIDE_PATTERN regex.
+    # Part 1: file has a line starting with REPO[[:space:]]*= (confirms REPO assignment exists).
+    # Part 2: stripping comments, file contains slp.find_repo_root( OR
+    #         os.environ.get(...SPEC_LINT_REPO_OVERRIDE (confirms live, not comment-only usage).
+    # This rejects files where slp.find_repo_root appears only in a comment on the REPO= line.
     # Returns 0 = all clear, 2 = guard fired (missing support, or no files found).
     local dir="$1"
     local count=0
-    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py"; do
+    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py" \
+             "$dir/gen-bc-index.py" "$dir/gen-ec-registry.py" "$dir/gen-prd-sections.py" "$dir/gen-rtm.py"; do
         [[ -f "$f" ]] || continue
         count=$((count + 1))
-        if ! grep -qE "$OVERRIDE_PATTERN" "$f" 2>/dev/null; then
+        if ! { grep -qE '^REPO[[:space:]]*=' "$f" \
+          && grep -v '^[[:space:]]*#' "$f" \
+             | grep -qE '(slp\.find_repo_root\(|os\.environ\.get\([^)]*SPEC_LINT_REPO_OVERRIDE)'; }; then
             echo "STRUCTURAL GUARD FAILED: $(basename "$f") lacks SPEC_LINT_REPO_OVERRIDE support"
             echo "  Add the standard REPO= line so tests can use isolated temp trees."
             echo "  Pattern: REPO = Path(os.environ.get(\"SPEC_LINT_REPO_OVERRIDE\", \"\")).resolve() if ..."
@@ -78,15 +85,14 @@ run_override_guard() {
 }
 
 run_suppression_guard() {
-    # Verify no check-*.py in $1, nor the two new generators (gen-bc-traceability.py,
-    # gen-slug-corpus.py), contain a hardcoded suppression allowlist construct.
-    # Same scoping rationale as run_override_guard: pre-existing generators are tracked
-    # separately; the two new generators are explicitly included.
+    # Verify no check-*.py in $1, nor any generator, contains a hardcoded suppression
+    # allowlist construct. Scope matches run_override_guard (Stage 3: all generators included).
     # D-057: prints runtime count of files scanned; fails if 0 files found.
     # Returns 0 = all clear, 2 = guard fired (suppression found, or no files found).
     local dir="$1"
     local count=0
-    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py"; do
+    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py" \
+             "$dir/gen-bc-index.py" "$dir/gen-ec-registry.py" "$dir/gen-prd-sections.py" "$dir/gen-rtm.py"; do
         [[ -f "$f" ]] || continue
         count=$((count + 1))
         if grep -qE "$SUPPRESSION_PATTERN" "$f" 2>/dev/null; then
@@ -102,6 +108,42 @@ run_suppression_guard() {
         return 2
     fi
     echo "Pre-flight guard passed: $count checkers/generators scanned, 0 suppression constructs found"
+    return 0
+}
+
+run_splitlines_guard() {
+    # Verify no .py file in $1 uses raw .splitlines() outside the two exempted files.
+    # Scans non-comment lines only (grep -v '^\s*#') so intentional comments
+    # documenting the old API do not trigger false positives.
+    # Exempt: spec_lint_primitives.py (defines cm_splitlines itself, and its docstring
+    #         mentions str.splitlines() as documentation) and test_spec_lint_primitives.py
+    #         (calls s.splitlines() intentionally to derive the divergent codepoint set).
+    # Widened from explicit list to "$dir"/*.py (W5 — BI-040) so any new module added
+    # to the directory is automatically covered, including spec_lint_primitives.py
+    # itself (detecting if a raw .splitlines() is added outside cm_splitlines).
+    # D-057: prints runtime count of files scanned; fails if 0 files found.
+    # Returns 0 = all clear, 2 = guard fired.
+    local dir="$1"
+    local count=0
+    for f in "$dir"/*.py; do
+        [[ -f "$f" ]] || continue
+        [[ "$(basename "$f")" == "spec_lint_primitives.py" ]] && continue
+        # Forward-looking: test_spec_lint_primitives.py lives in selftest/ (not $LINT_DIR),
+        # so this exemption is currently dead code (non-recursive glob). If $LINT_DIR is
+        # ever widened to include selftest/, this becomes live. Keep for intent clarity.
+        [[ "$(basename "$f")" == "test_spec_lint_primitives.py" ]] && continue
+        count=$((count + 1))
+        if grep -v '^\s*#' "$f" | grep -qE "$SPLITLINES_PATTERN" 2>/dev/null; then
+            echo "STRUCTURAL GUARD FAILED: $(basename "$f") uses raw .splitlines()"
+            echo "  Use slp.cm_splitlines() instead (BI-040)."
+            return 2
+        fi
+    done
+    if [[ "$count" -eq 0 ]]; then
+        echo "STRUCTURAL GUARD FAILED: no check-*.py files found in $dir — nothing scanned"
+        return 2
+    fi
+    echo "Pre-flight guard passed: $count files checked, 0 raw .splitlines() uses"
     return 0
 }
 
@@ -130,6 +172,32 @@ echo ""
 # be changed without also fixing guard 2's error-handling.
 echo "Pre-flight structural guard: checking for hardcoded suppression allowlists in all checkers..."
 if ! run_suppression_guard "$LINT_DIR"; then
+    exit 2
+fi
+echo ""
+
+# ── Pre-flight guard 3: primitive module unit tests (G3) ─────────────────
+# Verify spec_lint_primitives.py implements all public API functions correctly.
+# These tests run in a separate Python runner (test_primitives.sh) and do NOT
+# count toward EXPECTED_TEST_COUNT / TESTS_RUN — primitive unit tests are a
+# different category from checker selftests.
+# Stage: WS-3b Stage 1 (BI-040). If this guard fires, Stage 1 is incomplete.
+echo "Pre-flight structural guard: running spec_lint_primitives unit tests (G3)..."
+if ! bash "$LINT_DIR/selftest/test_primitives.sh"; then
+    exit 2
+fi
+echo ""
+
+# ── Pre-flight guard 4: no raw .splitlines() in migrated checkers (G4) ───
+# All check-*.py files and Stage-2 generators (gen-bc-traceability.py,
+# gen-slug-corpus.py) must use slp.cm_splitlines() instead of raw
+# .splitlines(). CommonMark recognizes only LF as a line ending; Python's
+# .splitlines() also splits on FF, VT, CR, FS, GS, RS, NEL, LS, PS — any
+# of which can create phantom lines in spec content. Stage 3 generators
+# are excluded until Stage 3 migration is complete.
+# Stage: WS-3b Stage 2 (BI-040). If this guard fires, a file regressed.
+echo "Pre-flight structural guard: checking for raw .splitlines() in migrated checkers (G4)..."
+if ! run_splitlines_guard "$LINT_DIR"; then
     exit 2
 fi
 echo ""
@@ -1427,8 +1495,13 @@ MD25
 # .git FILE at the worktree root — simulates a real git linked worktree
 printf "gitdir: ../../.git/worktrees/BI021-SIM\n" > "$T/.worktrees/BI021-SIM/.git"
 
-# Copy the script into the simulated secondary worktree
+# Copy the script and its co-located primitive module into the simulated secondary worktree.
+# spec_lint_primitives.py must be present because check-canonical-facts.py now imports it
+# (BI-040 §6: find_repo_root consolidated into the shared primitive). The walk used by
+# slp.find_repo_root() starts from spec_lint_primitives.py's own location (Path(__file__)),
+# which is now inside the simulated worktree — so the .git boundary stop fires correctly.
 cp "$LINT_DIR/check-canonical-facts.py" "$T/.worktrees/BI021-SIM/scripts/spec-lint/"
+cp "$LINT_DIR/spec_lint_primitives.py"  "$T/.worktrees/BI021-SIM/scripts/spec-lint/"
 
 # Clean pass: without SPEC_LINT_REPO_OVERRIDE, boundary stop fires at .git → exit non-zero
 # with guidance message naming SPEC_LINT_REPO_OVERRIDE.
@@ -1875,8 +1948,10 @@ DB30
 # inner/.git is a FILE (simulates git linked worktree — .git is a pointer file in worktrees)
 printf "gitdir: ../../.git/worktrees/inner\n" > "$T/inner/.git"
 
-# Copy the FIXED script into the simulated inner repository
+# Copy the FIXED script and its co-located primitive module into the simulated inner repository.
+# spec_lint_primitives.py is required because check-canonical-facts.py imports it (BI-040 §6).
 cp "$LINT_DIR/check-canonical-facts.py" "$T/inner/scripts/spec-lint/"
+cp "$LINT_DIR/spec_lint_primitives.py"  "$T/inner/scripts/spec-lint/"
 
 # Clean pass: boundary stop must fire and script must exit non-zero (fail-closed).
 # env -u ensures the ambient SPEC_LINT_REPO_OVERRIDE (set by the calling workflow per
@@ -2225,6 +2300,10 @@ if [ "$CLEAN_PASS" = "1" ]; then
     fi
 fi
 rm -rf "$T"
+
+# G4 proof arm (guard-selftest proving G4 fires on a planted .splitlines() defect)
+# is deferred to the W10 burst — same scope as the checker-level negative selftest
+# for the BI-040 bypass class. Track as S4 from review cycle 2.
 
 # ── Test A1: check-index-integrity — data row placed ABOVE the |---| separator ─
 # B-11: regression introduced by the F-12 scoping fix at 031ca5b.

@@ -1,0 +1,136 @@
+Pre-flight structural guard: checking SPEC_LINT_REPO_OVERRIDE in all checkers...
+Pre-flight guard passed: 15 checkers/generators support SPEC_LINT_REPO_OVERRIDE
+
+Pre-flight structural guard: checking for hardcoded suppression allowlists in all checkers...
+Pre-flight guard passed: 15 checkers/generators scanned, 0 suppression constructs found
+
+Pre-flight structural guard: running spec_lint_primitives unit tests (G3)...
+  PASS: test_cm_splitlines_closed_under_discovery
+  PASS: test_cm_strip_cell_closed_under_discovery
+  PASS: test_is_conforming_vp_cell
+  PASS: test_is_conforming_ec_cell
+  PASS: test_is_conforming_ec_token
+  PASS: test_split_table_cells
+  PASS: test_find_repo_root_fail_closed
+  PASS: test_find_repo_root_override_honored
+  PASS: test_find_repo_root_hermetic
+
+9/9 primitive tests passed
+
+Pre-flight structural guard: checking for raw .splitlines() in migrated checkers (G4)...
+Pre-flight guard passed: 15 files checked, 0 raw .splitlines() uses
+
+── selftest 1: check-id-resolution: unregistered EC-999 reference ──
+  PASS (clean-pass confirmed; unregistered EC-999 correctly detected)
+── selftest 1b: check-id-resolution: out-of-range T-17 trap reference ──
+  PASS (clean-pass confirmed; out-of-range T-17 correctly detected)
+── selftest 1c: check-id-resolution: unregistered R-99 requirement reference ──
+  PASS (clean-pass confirmed; unregistered R-99 correctly detected)
+── selftest 2: check-counts: BC frontmatter count mismatch ──
+  PASS (clean-pass confirmed; BC count mismatch correctly detected)
+── selftest 3: check-placeholders: test-sufficient in VP-NNN col ──
+  PASS (clean-pass confirmed; test-sufficient in VP-NNN col correctly detected)
+── selftest 4: check-placeholders: live VP-TBD in table row ──
+  PASS (clean-pass confirmed; VP-TBD in live table row correctly detected)
+── selftest 5: check-adr-consistency: exit 2 for broken-link outcome ──
+  PASS (clean-pass confirmed; exit 2 for broken link correctly detected)
+── selftest 6: check-ec-injectivity: 2-column EC description collision ──
+  PASS (clean-pass confirmed; EC-001 description collision correctly detected)
+── selftest 7: check-holdout-boundary: leaked holdout EC-079 concrete scenario ──
+  PASS (clean-pass confirmed; leaked holdout scenario correctly detected)
+── selftest 8: check-index-integrity: unlisted BC file ──
+  PASS (clean-pass confirmed; unlisted BC file correctly detected)
+── selftest 9: check-title-sync: BC-INDEX title vs H1 mismatch ──
+  PASS (clean-pass confirmed; H1 title mismatch correctly detected)
+── selftest 10: check-index-integrity: HS entry with no wave-scenarios file ──
+  PASS (clean-pass confirmed; orphan HS entry (HS-002→EC-999) correctly detected)
+── selftest 10b: check-index-integrity: wave-scenarios file with no HS-INDEX entry ──
+  PASS (clean-pass confirmed; orphan wave-scenarios file EC-998 correctly detected)
+── selftest 10c: check-index-integrity: duplicate HS-NNN ID in HS-INDEX ──
+  PASS (clean-pass confirmed; duplicate HS-001 ID (same-EC defect) correctly detected)
+── selftest 10d: check-index-integrity: HS entry with malformed EC cell ──
+  PASS (clean-pass confirmed; malformed EC cell in HS-002 correctly detected)
+── selftest 18: check-canonical-facts: binding site value divergence ──
+  PASS (clean-pass confirmed; DIVERGE [FACT-ST18] correctly reported for value mismatch)
+── selftest 19: check-canonical-facts: FACT-7 negative — macOS and Linux fails ──
+  PASS (clean-pass confirmed; DIVERGE [FACT-7-NEG] correctly reported for 'macOS and Linux')
+── selftest 20: check-canonical-facts: FACT-8 negative — macOS and Windows fails ──
+  PASS (clean-pass confirmed; DIVERGE [FACT-8-NEG] correctly reported for 'macOS and Windows')
+── selftest 21: check-canonical-facts: FACT-9 negative — narrow DirIndex scope fails ──
+  PASS (clean-pass confirmed; DIVERGE [FACT-9-NEG] correctly reported for narrow DirIndex scope)
+── selftest 22: check-canonical-facts: FACT-10 binding-25 production pattern — complete-replacement defect ──
+  PASS (clean-pass confirmed; DIVERGE [FACT-10-SELFTEST] correctly reported for complete-replacement defect)
+── selftest 22b: check-canonical-facts: FACT-10 binding-25 — prefix-extension vector DIVERGE (BI-042) ──
+  PASS (clean-pass confirmed with FP-guard; prefix-extension correctly detected; 'or unrecognized flag' in extracted value)
+── selftest 23: gen-bc-traceability --check: detects Architecture Module mismatch ──
+  PASS (clean-pass confirmed; --check correctly detects Architecture Module mismatch)
+── selftest 24: gen-slug-corpus --check: detects SLUG_CORPUS mismatch ──
+  PASS (clean-pass confirmed; --check correctly detects SLUG_CORPUS mismatch)
+── selftest 25: check-canonical-facts: linked-worktree refusal + SPEC_LINT_REPO_OVERRIDE override ──
+  PASS (clean-pass confirmed; linked-worktree refusal correct; SPEC_LINT_REPO_OVERRIDE override effective)
+── selftest 26: gen-bc-traceability: write mode fail-closed (BI-041 guard) ──
+  PASS (clean-pass confirmed; --write correctly blocked by BI-041 guard (Gate 2))
+── selftest 27: gen-bc-traceability: bare invocation is fail-safe (concurrency gate) ──
+  PASS (clean-pass confirmed; bare invocation refused and BC file byte-identical after)
+── selftest 28: gen-slug-corpus: bare invocation is fail-safe (concurrency gate) ──
+  PASS (clean-pass confirmed; bare invocation refused and VP-018 byte-identical after)
+── selftest 29: meta-guard: every check-*.py is in the active CHECKS array (both runners) ──
+  PASS (clean-pass confirmed; ci.yml and justfile arms detect commented-out entry; two-array fixture rejected)
+── selftest 30: check-canonical-facts: boundary stop prevents ancestor escape ──
+  PASS (clean-pass confirmed; boundary stop prevents false pass; without .git, decoy is found)
+── guard selftest G1: SPEC_LINT_REPO_OVERRIDE pre-flight guard fires ──
+  PASS (clean-pass confirmed; guard correctly detects checker lacking SPEC_LINT_REPO_OVERRIDE)
+── guard selftest G2: suppression-allowlist pre-flight guard fires ──
+  PASS (clean-pass confirmed; guard correctly detects KNOWN_COLLISIONS suppression allowlist)
+── selftest 10e: check-index-integrity: near-miss HS ID in HS-INDEX ──
+  PASS (clean-pass confirmed; near-miss ID 'hs-002' correctly detected)
+── selftest 10f: check-index-integrity: accounting invariant (unaccounted rows) ──
+  PASS (clean-pass confirmed; unaccounted data row correctly detected by accounting invariant)
+── selftest 10g: check-index-integrity: leading-whitespace bypass (B-9 / V-9) ──
+  PASS (clean-pass confirmed; leading-space HS rows correctly parsed and forward-checked)
+── guard selftest G3: guards fail closed when no check-*.py files found ──
+  PASS (clean-pass confirmed; both guards fail closed on empty checker directory)
+── selftest A1: check-index-integrity: data row above |---| separator (B-11 regression) ──
+  PASS (clean-pass confirmed; pre-separator HS-042→EC-999 correctly detected)
+── selftest A2a: check-index-integrity: empty first cell bypasses separator check (B-11) ──
+  PASS (clean-pass confirmed; empty first cell row correctly detected via accounting invariant)
+── selftest A2b: check-index-integrity: dash-only first cell bypasses separator check (B-11) ──
+  PASS (clean-pass confirmed; dash-only first cell row correctly detected via accounting invariant)
+── selftest B1: check-index-integrity: h3 subheading drops rows (BLOCKING-1) ──
+  PASS (clean-pass confirmed; orphan rows behind h3 subheading correctly detected)
+── selftest B2: check-index-integrity: bold HS ID above separator (BLOCKING-2) ──
+  PASS (clean-pass confirmed; bold HS ID above separator detected via accounting invariant)
+── selftest B3: check-index-integrity: pipeless GFM row counted (MAJOR-1) ──
+  PASS (clean-pass confirmed; pipeless GFM row correctly counted and detected)
+── selftest B4: check-index-integrity: phantom data row in column-header position (D-068 residual) ──
+  PASS (clean-pass confirmed; phantom data row in column-header position correctly detected)
+── D-069 property test: conservation law for 300 generated inputs ──
+D-069 property test: generating 300 cases (seed=42)...
+Property test passed: 300/300 cases verified (total_candidates == sum(buckets) for all inputs, seed=42)
+  PASS (300 generated cases all verified conservation law)
+── selftest D-069-A: #2 pseudo-heading kills section scope (fixture A) ──
+  PASS (clean-pass confirmed; #2 pseudo-heading treated as prose; phantom rows detected)
+── selftest D-069-A2: fenced-code heading kills section scope (fixture A2) ──
+  PASS (clean-pass confirmed; fenced heading treated as code content; phantom rows detected)
+── selftest D-069-A3: 4-space-indented ## kills section scope (fixture A3) ──
+  PASS (clean-pass confirmed; 4-space indented ## treated as prose; phantom rows detected)
+── selftest D-069-B: adjacent-pipe pipeless row uncounted (fixture B) ──
+  PASS (clean-pass confirmed; adjacent-pipe pipeless row correctly counted and detected)
+── selftest D-069-C: unbounded column-header exemption (fixture C / MINOR-1) ──
+  PASS (clean-pass confirmed; only last pre-separator row exempted; phantom row detected)
+── selftest D-070-A: tab-indented heading bypass (D-070 regression) ──
+  PASS (clean-pass confirmed; tab-indented heading treated as prose; phantom row detected)
+── selftest D-070-B: indented-fence bypass (D-070 regression) ──
+  PASS (clean-pass confirmed; indented fence treated as prose; phantom row detected)
+── selftest NV-1: check-placeholders: em-dash in VP-NNN column (R2-RULE) ──
+  PASS (clean-pass confirmed with FP-guard; em-dash in VP-NNN column correctly detected)
+── selftest NV-1b: check-placeholders: comma-only cell in VP-NNN column (BLOCK-1 guard) ──
+  PASS (clean-pass confirmed; comma-only cell in VP-NNN column correctly detected)
+── selftest NV-3: check-id-resolution: non-conforming EC ID in ID column (R3-A) ──
+  PASS (clean-pass confirmed with FP-guard; non-conforming EC-NEW-1 correctly detected)
+── selftest NV-4: check-id-resolution: class-level non-conforming ID shapes (R3-B) ──
+  PASS (clean-pass confirmed; both EC-DRAFT-7 and DI-PENDING-2 non-conforming shapes detected)
+── selftest NV-5: check-id-resolution: versioned-changelog positional scoping (R3-C D-081) ──
+  PASS (clean-pass confirmed with FP-guard; outside-versioned EC-NEW-42 correctly detected; versioned-section occurrence not flagged)
+
+Selftest passed: 55/55 negative tests verified (each proved clean-pass + defect-fail)

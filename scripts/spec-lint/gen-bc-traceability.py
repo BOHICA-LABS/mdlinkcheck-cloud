@@ -45,12 +45,12 @@ Usage:
   guard until annotation loss is adjudicated.
 """
 import difflib
-import os
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
-REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
+REPO = slp.find_repo_root(start=Path(__file__).resolve().parent)  # honors SPEC_LINT_REPO_OVERRIDE
 SPECS = REPO / ".factory" / "specs"
 BC_DIR = SPECS / "behavioral-contracts"
 BC_MODULE_MAP = SPECS / "architecture" / "bc-module-map.md"
@@ -91,7 +91,7 @@ def parse_bc_module_map() -> dict[str, dict]:
     text = BC_MODULE_MAP.read_text(encoding="utf-8")
     result: dict[str, dict] = {}
 
-    for line in text.splitlines():
+    for line in slp.cm_splitlines(text):
         # Match rows like: | BC-2.NN.NNN | `module` | ... | Pure | CRITICAL | ADR-NNN | ...
         m = re.match(
             r"^\|\s*(BC-\d+\.\d+\.\d+)\s*\|\s*(`[^`]+`)\s*\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|([^|]*)\|",

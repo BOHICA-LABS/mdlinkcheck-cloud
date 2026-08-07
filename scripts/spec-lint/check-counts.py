@@ -18,12 +18,12 @@ Recomputes the following counts from actual artifacts and compares to stated val
 
 Exit 1 if any count is wrong.
 """
-import os
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
-REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
+REPO = slp.find_repo_root(start=Path(__file__).resolve().parent)  # honors SPEC_LINT_REPO_OVERRIDE
 SPECS = REPO / ".factory" / "specs"
 FACTORY = REPO / ".factory"
 
@@ -31,7 +31,7 @@ FACTORY = REPO / ".factory"
 def parse_yaml_frontmatter(path: Path) -> dict:
     """Extract YAML frontmatter from a Markdown file."""
     text = path.read_text(encoding="utf-8")
-    lines = text.splitlines()
+    lines = slp.cm_splitlines(text)
     if not lines or lines[0].rstrip() != "---":
         return {}
     end = None
@@ -64,7 +64,7 @@ def count_bc_index_rows() -> tuple[int, int, int, set]:
     bc_index = SPECS / "behavioral-contracts" / "BC-INDEX.md"
     total = p0 = p1 = 0
     subsystems = set()
-    for line in bc_index.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(bc_index.read_text(encoding="utf-8")):
         m = re.match(r"^\|\s*(BC-\d+\.(\d+)\.\d+)\s*\|\s*(.+?)\s*\|\s*(P\d)\s*\|", line)
         if m:
             total += 1
@@ -84,7 +84,7 @@ def count_vp_index_rows() -> dict[str, int]:
     counts = {"total": 0, "kani": 0, "proptest": 0, "fuzz": 0, "integration": 0, "unit": 0,
               "P0": 0, "P1": 0, "test_sufficient": 0}
     in_catalog = False
-    for line in vp_index.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(vp_index.read_text(encoding="utf-8")):
         if "## VP Catalog" in line:
             in_catalog = True
             continue
@@ -117,7 +117,7 @@ def count_module_criticality_vp() -> dict[str, int]:
     """Return per-module VP counts from module-criticality.md table."""
     mc = SPECS / "module-criticality.md"
     result = {}
-    for line in mc.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(mc.read_text(encoding="utf-8")):
         # | `module` | path | tier | rationale | kill-rate | VP Count |
         m = re.match(r"^\|\s*`([^`]+)`\s*\|(?:[^|]*\|){4}\s*(\d+)\s*\|", line)
         if m:
@@ -130,7 +130,7 @@ def count_vp_by_module_from_index() -> dict[str, int]:
     vp_index = SPECS / "verification-properties" / "VP-INDEX.md"
     counts: dict[str, int] = {}
     in_catalog = False
-    for line in vp_index.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(vp_index.read_text(encoding="utf-8")):
         if "## VP Catalog" in line:
             in_catalog = True
             continue
@@ -152,7 +152,7 @@ def count_prd_rtm_rows() -> int:
     prd = SPECS / "prd.md"
     count = 0
     in_rtm = False
-    for line in prd.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(prd.read_text(encoding="utf-8")):
         if "## 7." in line:
             in_rtm = True
             continue
@@ -169,7 +169,7 @@ def count_active_holdouts() -> int:
     """Count active holdout entries from HS-INDEX.md."""
     hs_index = FACTORY / "holdout-scenarios" / "HS-INDEX.md"
     count = 0
-    for line in hs_index.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(hs_index.read_text(encoding="utf-8")):
         m = re.match(r"^\|\s*(HS-\d+)\s*\|", line)
         if m and "~~" not in line:  # non-struck-through
             count += 1
@@ -180,7 +180,7 @@ def count_domain_decisions() -> int:
     """Count DD-NNN entries in decisions.md."""
     decisions = SPECS / "domain-spec" / "decisions.md"
     ids: set[str] = set()
-    for line in decisions.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(decisions.read_text(encoding="utf-8")):
         for m in re.finditer(r"\bDD-(\d+)\b", line):
             if line.startswith("#") or line.startswith("**DD-"):
                 ids.add(f"DD-{m.group(1)}")
@@ -191,7 +191,7 @@ def count_policies() -> int:
     """Count policy entries in policies.yaml."""
     policies = FACTORY / "policies.yaml"
     count = 0
-    for line in policies.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(policies.read_text(encoding="utf-8")):
         if re.match(r"\s*-\s*id:\s*\d+", line):
             count += 1
     return count
@@ -312,7 +312,7 @@ def main() -> int:
     # policies.yaml doesn't declare a count in frontmatter currently,
     # but we can validate the IDs are sequential
     pol_ids = []
-    for line in policies_path.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(policies_path.read_text(encoding="utf-8")):
         m = re.match(r"\s*-\s*id:\s*(\d+)", line)
         if m:
             pol_ids.append(int(m.group(1)))
@@ -334,7 +334,7 @@ def main() -> int:
         # Count actual DD-NNN entries in decisions.md (first column of table rows)
         decisions_path = SPECS / "domain-spec" / "decisions.md"
         all_dd_ids: set[str] = set()
-        for line in decisions_path.read_text(encoding="utf-8").splitlines():
+        for line in slp.cm_splitlines(decisions_path.read_text(encoding="utf-8")):
             # Match rows where DD-NNN is the first table column: | DD-NNN | ...
             dd_m = re.match(r"^\|\s*(DD-\d+)\s*\|", line)
             if dd_m:
@@ -375,20 +375,20 @@ def main() -> int:
     # POL-16: EC registry = test-vectors.md table rows + holdout pool.
     # Any stated count must match the registered EC count exactly.
     prd_text = prd_path.read_text(encoding="utf-8")
-    ec_count_m = re.search(r"(\d+)\s+edge cases registered\s+\(EC-001\.\.EC-\d+\)", prd_text)
+    ec_count_m = re.search(r"(\d+)\s+edge cases registered\s+\(EC-001\.\.EC-\d{1,4}[a-z]?\)", prd_text)
     if ec_count_m:
         checks += 1
         declared_ec_count = int(ec_count_m.group(1))
         # Count unique base EC nums from test-vectors.md table rows
         ec_base_nums: set[int] = set()
-        for line in tv_path.read_text(encoding="utf-8").splitlines():
+        for line in slp.cm_splitlines(tv_path.read_text(encoding="utf-8")):
             if line.startswith("|"):
-                for m in re.finditer(r"\bEC-(\d+)\b", line):
+                for m in slp.EC_TOKEN_RE.finditer(line):
                     ec_base_nums.add(int(m.group(1)))
         # Plus holdout pool
         holdout_m = re.search(r"Holdout vectors\s+\*\*\(([^)]+)\)\*\*", prd_text)
         if holdout_m:
-            for m in re.finditer(r"\bEC-(\d+)\b", holdout_m.group(1)):
+            for m in slp.EC_TOKEN_RE.finditer(holdout_m.group(1)):
                 ec_base_nums.add(int(m.group(1)))
         actual_ec_count = len(ec_base_nums)
         if actual_ec_count != declared_ec_count:
@@ -412,7 +412,7 @@ def main() -> int:
         tv_text = tv_path.read_text(encoding="utf-8")
         tvs_ids: set[str] = set()
         in_s7 = False
-        for line in tv_text.splitlines():
+        for line in slp.cm_splitlines(tv_text):
             if "## §7." in line:
                 in_s7 = True
                 continue
@@ -435,7 +435,7 @@ def main() -> int:
     # all EC IDs in the §4 table fall within that declared range.
     tv_text = tv_path.read_text(encoding="utf-8")
     s4_header_m = re.search(
-        r"## §4\.[^\n]*EC-(\d+)\s+through\s+EC-(\d+)", tv_text
+        r"## §4\.[^\n]*EC-(\d{1,4})\s+through\s+EC-(\d{1,4})", tv_text
     )
     if s4_header_m:
         checks += 1
@@ -447,14 +447,14 @@ def main() -> int:
         # are PRESENT in the table but OUTSIDE the declared range.
         s4_out_of_range: list[tuple[int, int]] = []  # (ec_num, lineno)
         in_s4 = False
-        for lineno, line in enumerate(tv_text.splitlines(), 1):
+        for lineno, line in enumerate(slp.cm_splitlines(tv_text), 1):
             if "## §4." in line:
                 in_s4 = True
                 continue
             if in_s4 and re.match(r"^## §[5-9]", line):
                 in_s4 = False
             if in_s4 and line.startswith("|"):
-                for m in re.finditer(r"\bEC-(\d+)\b", line):
+                for m in slp.EC_TOKEN_RE.finditer(line):
                     ec_num = int(m.group(1))
                     if ec_num < s4_lo or ec_num > s4_hi:
                         s4_out_of_range.append((ec_num, lineno))

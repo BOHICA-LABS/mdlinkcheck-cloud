@@ -1,0 +1,100 @@
+=== check-placeholders.py ===
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.001.md:73: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.001.md:83: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.002.md:71: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.002.md:81: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.003.md:82: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.004.md:89: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.005.md:81: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.005.md:90: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.006.md:66: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.006.md:75: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.007.md:65: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.007.md:74: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.008.md:68: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.008.md:78: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.009.md:87: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-02/BC-2.02.001.md:73: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-02/BC-2.02.001.md:82: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-02/BC-2.02.002.md:95: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-02/BC-2.02.002.md:96: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-02/BC-2.02.002.md:105: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-02/BC-2.02.003.md:67: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-02/BC-2.02.003.md:77: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-02/BC-2.02.004.md:66: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-02/BC-2.02.004.md:75: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.001.md:83: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.002.md:99: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.003.md:78: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.003.md:88: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.004.md:69: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.004.md:70: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.004.md:80: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.005.md:70: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.005.md:79: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.006.md:68: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.006.md:69: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.006.md:79: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-04/BC-2.04.001.md:86: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-04/BC-2.04.002.md:79: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-04/BC-2.04.003.md:105: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.002.md:72: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.002.md:73: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.005.md:87: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.005.md:88: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.006.md:84: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.006.md:85: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.006.md:95: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md:73: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md:74: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.001.md:82: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.001.md:83: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.002.md:160: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.002.md:161: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.003.md:69: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.003.md:70: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.004.md:89: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.004.md:90: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.007.md:74: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.007.md:75: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.008.md:80: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.008.md:81: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.009.md:96: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.009.md:111: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.009.md:124: placeholder '[filled by story-writer]' [[filled by ...] (POL-14/15 generalized)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.010.md:85: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.010.md:86: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-11/BC-2.11.003.md:71: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-11/BC-2.11.004.md:76: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-11/BC-2.11.004.md:77: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.002.md:73: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.002.md:74: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.003.md:75: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.003.md:76: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.004.md:72: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.004.md:73: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.005.md:77: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.005.md:78: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-13/BC-2.13.002.md:68: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-13/BC-2.13.002.md:69: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-14/BC-2.14.004.md:75: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-14/BC-2.14.004.md:76: placeholder '—' [non-conforming VP-NNN column value '—' (POL-14)]
+
+   25  [filled by ...] (POL-14/15 generalized)
+   55  non-conforming VP-NNN column value '—' (POL-14)
+
+Check FAILED: 80 placeholder occurrences found (133 files checked)
+
+=== check-id-resolution.py ===
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-04/BC-2.04.001.md:63: non-conforming EC ID in ID column 'TV-BV013'
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.006.md:70: non-conforming EC ID in ID column 'EC-NEW-1'
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.006.md:71: non-conforming EC ID in ID column 'EC-NEW-2'
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-11/BC-2.11.004.md:64: non-conforming EC ID in ID column 'EC-NEW-10'
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-11/BC-2.11.004.md:65: non-conforming EC ID in ID column 'EC-NEW-11'
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.005.md:64: non-conforming EC ID in ID column 'EC-NEW-12'
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.005.md:65: non-conforming EC ID in ID column 'EC-NEW-13'
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-14/BC-2.14.004.md:62: non-conforming EC ID in ID column 'EC-NEW-14'
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-14/BC-2.14.004.md:63: non-conforming EC ID in ID column 'EC-NEW-15'
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-14/BC-2.14.004.md:64: non-conforming EC ID in ID column 'EC-NEW-16'
+
+Check FAILED: 10 unresolvable ID references found (134 files checked)

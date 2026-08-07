@@ -1,0 +1,11 @@
+  PASS: test_cm_splitlines_closed_under_discovery
+  PASS: test_cm_strip_cell_closed_under_discovery
+  PASS: test_is_conforming_vp_cell
+  PASS: test_is_conforming_ec_cell
+  PASS: test_is_conforming_ec_token
+  PASS: test_split_table_cells
+  PASS: test_find_repo_root_fail_closed
+  PASS: test_find_repo_root_override_honored
+  PASS: test_find_repo_root_hermetic
+
+9/9 primitive tests passed
