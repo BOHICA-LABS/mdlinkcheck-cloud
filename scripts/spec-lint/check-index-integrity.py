@@ -139,19 +139,30 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
       ec_id may be the sentinel "MALFORMED" if the EC cell is unrecognized.
       Reserved IDs (not-yet-authored) are NOT included.
 
-    hs_rows_seen: count of data rows in the Authored Scenarios table.
-      Incremented for every pipe-prefixed line in scope that is not classified
-      as a separator row or a non-HS header row.  Independent of the four regex
-      patterns (canonical, retired, malformed, near-miss) but NOT independent
-      of the structural pre-filters (non-pipe lines, empty-cell rows, and
-      confirmed-non-HS pre-separator rows are excluded).
-      Used for the D-057 / B-9 accounting invariant: every counted row must be
-      accounted for as either a canonical entry or a nonconforming entry, and
-      hs_rows_seen != hs_canonical + hs_nonconforming is a hard failure.
-      B-11 fix: rows that previously bypassed the counter via the separator
-      false-match (A2a: empty first cell; A2b: dash-only first cell with data
-      in other cells) or via the pre-separator gate (A1: HS-NNN row placed
-      before the |---| separator) are now counted and reported.
+    hs_rows_seen: count of candidate rows in the Authored Scenarios table.
+      Denominator of the D-057 / B-9 accounting invariant.
+
+      A "candidate row" is counted by count_and_classify() for each:
+        - In-scope pipe-prefixed post-separator row (normal data rows).
+        - In-scope pipe-prefixed pre-separator row that is NOT the positional
+          column header: all pre-separator rows except the last per sub-table,
+          which is discarded as the column header (BLOCKING-2 fix). Residual:
+          when a defect row is the ONLY pre-separator row (no column header
+          above it), it is discarded as the positional column header and not
+          counted; the accounting invariant holds vacuously for that row alone.
+        - In-scope pipeless line containing cell delimiters (MAJOR-1 fix: GFM
+          allows leading/trailing pipes to be omitted; such lines are now
+          counted and will fire the accounting invariant since none of the pipe-
+          anchored classifier patterns can match them).
+
+      NOT counted: heading lines; out-of-scope rows (outside the current h1/h2
+      section boundary); separator rows; the last pre-separator row per
+      sub-table (the positional column header).
+
+      B-11 fix: rows previously bypassed via separator false-match (A2a: empty
+      first cell; A2b: dash-only first cell with data in other cells) or via
+      the pre-separator shape gate (A1: HS-NNN row placed before the |---|
+      separator) are now counted and reported.
 
     near_misses: list of raw_id strings for each near-miss row (HS-like but
       non-canonical ID). One entry per row; duplicate rows are preserved so the
@@ -167,12 +178,20 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
       but defeated all ^\| anchors in the prior implementation (BI-023 / B-9).
 
     F-12 fix: detection is scoped to the ## Authored Scenarios section.
-      Non-HS-pattern rows before the separator (e.g. the column header row
-      "| HS ID | EC ID | …") are silently skipped and never counted.
-      HS-pattern rows before the separator (e.g. a data row accidentally placed
-      above the |---| line) fall through to be counted and classified by the
-      parser patterns below; the forward check or the accounting invariant will
-      then report them (B-11 fix: closes the A1 regression).
+
+    BLOCKING-1 fix: only h1/h2 headings delimit sections; h3+ subheadings
+      within ## Authored Scenarios remain in scope with independent separator
+      tracking per sub-table. Prior implementation used startswith("##") which
+      matched h3/h4, causing any sub-heading to set in_authored_scenarios=False
+      and silently drop every subsequent row before the counter. Now consistent
+      with :59 (VP), :91 (ARCH), :308 (L2) which all use startswith("## ").
+
+    BLOCKING-2 fix: pre-separator rows are buffered rather than gated by a
+      shape-regex allowlist. When the separator is seen, the last buffered row
+      is discarded positionally as the column header; earlier rows are counted
+      and classified as misplaced data rows. Prior implementation used a regex
+      (r"^\\|\\s*(?:~~)?(?:HS-\\d+|[Hh][Ss][-_])") that was a D-039-forbidden
+      allowlist in disguised form: only HS-shaped pre-separator rows were seen.
     """
     hs_index = FACTORY / "holdout-scenarios" / "HS-INDEX.md"
     mapping: dict[str, str] = {}
@@ -182,6 +201,43 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
     # (backward compat for selftest fixtures that omit section headings).
     in_authored_scenarios = True
     found_separator = False  # True once the table header separator row is seen
+    pending_pre_sep: list[str] = []  # BLOCKING-2: buffer pre-separator pipe rows
+
+    def count_and_classify(l: str) -> None:
+        """Increment hs_rows_seen and classify one in-scope candidate row.
+
+        Counts first, classifies second: hs_rows_seen is incremented before any
+        classifier pattern runs, so an unclassified row always fires the
+        accounting invariant regardless of its shape.
+        """
+        nonlocal hs_rows_seen
+        hs_rows_seen += 1
+        # Active entry: | HS-001 | EC-156 | ...
+        m = re.match(r"^\|\s*(HS-\d+)\s*\|\s*(EC-\d+)\s*\|", l)
+        if m:
+            mapping[m.group(1)] = m.group(2)
+            return
+        # Retired entry: | ~~HS-002~~ | ~~EC-157~~ | ...
+        m = re.match(r"^\|\s*~~(HS-\d+)~~\s*\|\s*~~(EC-\d+)~~\s*\|", l)
+        if m:
+            mapping[m.group(1)] = m.group(2)
+            return
+        # Malformed row: canonical HS-NNN cell but EC cell is unrecognized
+        # (partial strikethrough, TBD placeholder, etc.).
+        m = re.match(r"^\|\s*(?:~~)?(HS-\d+)(?:~~)?\s*\|", l)
+        if m:
+            mapping[m.group(1)] = "MALFORMED"
+            return
+        # Near-miss: HS-like but non-canonical ID (wrong case, underscore
+        # separator, annotation, trailing junk, etc.). Capture rather than
+        # silently skip (BI-023). Already scoped to Authored Scenarios data rows
+        # by the in_authored_scenarios guard above.
+        m = re.match(r"^\|\s*(?:~~)?([Hh][Ss][-_]\S[^\|]*?)(?:~~)?\s*\|", l)
+        if m:
+            raw_id = m.group(1).strip().rstrip("~").strip()
+            near_misses.append(raw_id)  # F-13: list, preserves duplicate rows
+            return
+        # Fallthrough: counted but unclassified → accounting invariant fires.
 
     for raw in hs_index.read_text(encoding="utf-8").splitlines():
         # B-9 fix: strip leading/trailing whitespace before any pattern matching.
@@ -189,75 +245,78 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
         # all ^\| anchors — normalise here rather than widening the anchor.
         line = raw.strip()
 
-        # Track section headings to scope detection to Authored Scenarios (F-12).
-        # A file with no ## headings keeps in_authored_scenarios=True throughout.
-        if line.startswith("##"):
-            in_authored_scenarios = "Authored Scenarios" in line
-            found_separator = False
-            continue
+        # BLOCKING-1 fix: gate section scope on heading level, not prefix alone.
+        # Level 1 (h1) and level 2 (h2) delimit sections; h3+ subheadings stay
+        # in scope. Consistent with :59 (VP), :91 (ARCH), :308 (L2) which all
+        # use startswith("## "). Prior startswith("##") matched h3/h4 and
+        # silently disabled all rows after any sub-heading inside the section.
+        if line.startswith("#"):
+            level = len(line) - len(line.lstrip("#"))
+            if level <= 2:
+                # h1/h2: section boundary. Flush any buffered pre-separator rows
+                # (section ended without a separator — count all as data rows).
+                for p in pending_pre_sep:
+                    count_and_classify(p)
+                pending_pre_sep = []
+                in_authored_scenarios = "Authored Scenarios" in line
+                found_separator = False
+            else:
+                # h3+: sub-heading within section. Stay in scope but reset
+                # separator tracking so each sub-table gets fresh buffering.
+                # Flush pending (no separator seen since last heading or table
+                # start — count buffered rows as data rows).
+                for p in pending_pre_sep:
+                    count_and_classify(p)
+                pending_pre_sep = []
+                found_separator = False
+            continue  # headings are never candidate rows
 
         if not in_authored_scenarios:
             continue
+
+        # MAJOR-1 fix: in-scope pipeless lines with cell delimiters are
+        # candidate rows. GFM allows leading/trailing pipes to be omitted.
+        # Count them; none of the pipe-anchored patterns below can classify them,
+        # so the accounting invariant fires and reports the row as unaccounted.
         if not line.startswith("|"):
+            if "|" in line and re.search(r"[^|]\|[^|]", line):
+                hs_rows_seen += 1  # counted; unclassified → accounting invariant fires
             continue
 
         # Detect separator rows via cell-splitting (independent of regex anchors).
         cells = [c.strip() for c in line.strip("|").split("|")]
-        if not cells:
-            continue
         first_cell = cells[0].strip("~").strip()
-        # B-11 fix (item 2 / A2a): require non-empty first_cell before the
-        # separator check — the empty set is a subset of everything, so the old
-        # `set(first_cell) <= set("-: ")` returned True vacuously for blank ID
-        # cells, misclassifying them as separator rows.
-        # B-11 fix (A2b): require ALL non-empty cells to be separator-like, not
-        # just the first cell — a row like "| - | EC-999 |" has a dash-only first
-        # cell but real data in other cells; it is not a separator row.
+        # B-11 fix (A2a): require non-empty first_cell — set("") is a subset of
+        # everything, so the vacuous True for blank ID cells misclassified them
+        # as separator rows. B-11 fix (A2b): require ALL non-empty cells to pass,
+        # not just first — "| - | EC-999 |" has a separator-like first cell but
+        # real data in other cells; it is not a separator row.
         if first_cell and all(set(c) <= set("-: ") for c in cells if c):
             found_separator = True
+            # BLOCKING-2: positional column-header identification. The last
+            # pre-separator row is the column header (GFM: header immediately
+            # precedes the separator); discard it. All earlier pre-separator rows
+            # are misplaced data rows — count and classify them.
+            for p in pending_pre_sep[:-1]:
+                count_and_classify(p)
+            pending_pre_sep = []
             continue
 
+        # BLOCKING-2: buffer all in-scope pre-separator pipe rows without a
+        # shape-based eligibility gate. D-039 forbids allowlists in any
+        # disguised form, including a regex deciding which rows are eligible
+        # to enter the accounting denominator.
         if not found_separator:
-            # Pre-separator row. Skip ONLY if it lacks an HS-like first cell
-            # (i.e. it looks like a column header such as "| HS ID | EC ID | …").
-            # HS-pattern rows placed before the separator (B-11 fix / A1: e.g. a
-            # data row accidentally above the |---| line) fall through so the
-            # parser can classify them and the forward check can report them.
-            if not re.match(r"^\|\s*(?:~~)?(?:HS-\d+|[Hh][Ss][-_])", line):
-                continue  # column-header row or similar non-HS pre-separator line
+            pending_pre_sep.append(line)
+            continue
 
-        # D-057 / B-9 accounting invariant denominator: count data rows by
-        # structural pre-filters (pipe-prefix, non-empty cells, non-separator,
-        # non-header).  Any row that reaches this point but is not classified by
-        # the four parser patterns below will cause the invariant to fire.
-        # Rows excluded earlier (non-pipe lines, empty-cell rows, confirmed header
-        # rows, separator rows) are correct non-data exclusions.
-        hs_rows_seen += 1
+        # Post-separator data row: count and classify directly.
+        count_and_classify(line)
 
-        # Active entry: | HS-001 | EC-156 | ...
-        m = re.match(r"^\|\s*(HS-\d+)\s*\|\s*(EC-\d+)\s*\|", line)
-        if m:
-            mapping[m.group(1)] = m.group(2)
-            continue
-        # Retired entry: | ~~HS-002~~ | ~~EC-157~~ | ...
-        m = re.match(r"^\|\s*~~(HS-\d+)~~\s*\|\s*~~(EC-\d+)~~\s*\|", line)
-        if m:
-            mapping[m.group(1)] = m.group(2)
-            continue
-        # Malformed row: canonical HS-NNN cell but EC cell is unrecognized
-        # (partial strikethrough, TBD placeholder, etc.).
-        m = re.match(r"^\|\s*(?:~~)?(HS-\d+)(?:~~)?\s*\|", line)
-        if m:
-            mapping[m.group(1)] = "MALFORMED"
-            continue
-        # Near-miss: HS-like but non-canonical ID (wrong case, underscore
-        # separator, annotation, trailing junk, etc.). Capture rather than
-        # silently skip (BI-023). Already scoped to Authored Scenarios data rows
-        # by the in_authored_scenarios + found_separator guards above.
-        m = re.match(r"^\|\s*(?:~~)?([Hh][Ss][-_]\S[^\|]*?)(?:~~)?\s*\|", line)
-        if m:
-            raw_id = m.group(1).strip().rstrip("~").strip()
-            near_misses.append(raw_id)  # F-13: list, preserves duplicate rows
+    # Flush any remaining buffered pre-separator rows (end of file or section
+    # ended without a separator). All are treated as data rows.
+    for p in pending_pre_sep:
+        count_and_classify(p)
 
     return mapping, hs_rows_seen, near_misses
 
@@ -471,15 +530,24 @@ def main() -> int:
 
         # D-057 / B-9 accounting invariant: every row counted by hs_rows_seen must
         # be accounted for as either a canonical entry or a nonconforming entry.
-        # hs_rows_seen is independent of the four regex parser patterns below, so
-        # any row that passes the structural pre-filters (pipe-prefix, non-empty
-        # cells, non-separator, non-header) but defeats the regex patterns will
-        # cause this invariant to fire.  Rows excluded by the structural pre-filters
-        # (non-pipe lines, empty-cell rows, column-header rows, separator rows) are
-        # not covered by this invariant — they are correctly excluded as non-data
-        # structural rows.  B-11: blank/punctuation-only ID cells (A2a, A2b) and
-        # HS-pattern rows placed before the separator (A1) are now counted, closing
-        # the third instance of the BI-023 shared-filter bypass.
+        # hs_rows_seen is incremented by count_and_classify() BEFORE any classifier
+        # pattern runs (D-068 structural fix: count first, classify second), so any
+        # row that reaches count_and_classify() but is not matched by the four
+        # parser patterns will cause this invariant to fire.
+        # Rows NOT covered by this invariant (not passed to count_and_classify()):
+        #   - Heading lines (structural markers, never candidate rows)
+        #   - Out-of-scope rows (after an h1/h2 section change, BLOCKING-1 fixed:
+        #     h3+ subheadings no longer exit scope)
+        #   - Separator rows (|---|--- rows, explicitly excluded)
+        #   - The last pre-separator pipe row per sub-table, discarded positionally
+        #     as the column header (BLOCKING-2 fixed: no shape-regex gate)
+        # Residual: when a defect row is the ONLY pre-separator row (no column
+        # header above it), it is discarded as the positional column header and the
+        # invariant holds vacuously for that row. All other pre-separator defect
+        # rows (when a column header is present above them) cause the invariant to
+        # fire by counting the displaced column header row as unclassified.
+        # B-11: blank/punctuation-only ID cells (A2a, A2b) and HS-pattern rows
+        # placed before the separator (A1) are now counted and reported.
         hs_canonical = sum(1 for v in hs_mapping.values() if v != "MALFORMED")
         hs_nonconforming = len(near_misses) + sum(1 for v in hs_mapping.values() if v == "MALFORMED")
         if hs_rows_seen != hs_canonical + hs_nonconforming:

@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=24
+EXPECTED_TEST_COUNT=27
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -1341,6 +1341,233 @@ if [ "$CLEAN_PASS" = "1" ]; then
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; dash-only first cell row correctly detected via accounting invariant)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test B1: check-index-integrity — h3 subheading silently drops rows (BLOCKING-1) ─
+# BLOCKING-1: prior startswith("##") also matched "###" and "####".  Any h3
+# subheading inside ## Authored Scenarios set in_authored_scenarios=False,
+# causing all subsequent rows to be dropped uncounted before the denominator.
+# After the BLOCKING-1 fix, only h1/h2 headings delimit sections; h3+
+# subheadings stay in scope with fresh separator tracking per sub-table.
+# This encodes Proof A from the D-068 ruling exactly.
+#
+# Mutation-flip: revert heading detection to startswith("##") (without the
+# level <= 2 check). The h3 heading resets in_authored_scenarios=False.
+# Rows behind ### Wave 2 are dropped before the counter; the checker exits 0
+# on the defect tree → B1 FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest B1: check-index-integrity: h3 subheading drops rows (BLOCKING-1) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: add ### Wave 2 subheading inside ## Authored Scenarios, then a
+    # second table with orphan rows. No EC-999 or EC-998 wave-scenarios files.
+    # Without BLOCKING-1 fix: ### Wave 2 resets scope to False; orphan rows are
+    # invisible; checker exits 0. With fix: h3 stays in scope; orphan rows are
+    # caught.
+    cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX_DEFECT'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+
+### Wave 2
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-042 | EC-999 | Orphan behind h3 subheading — no wave-scenarios file | Notes | BC | active |
+| hs_043 | ~~EC-998~~ | Near-miss ID behind h3 | Notes | BC | active |
+HSIX_DEFECT
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — h3 subheading hid orphan rows — BLOCKING-1 not fixed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; orphan rows behind h3 subheading correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test B2: check-index-integrity — bold HS ID above separator (BLOCKING-2) ─
+# BLOCKING-2: the prior shape-regex gate (r"^\|\s*(?:~~)?(?:HS-\d+|[Hh][Ss][-_])")
+# was a D-039-forbidden allowlist in disguised form: only rows whose first cell
+# matched the HS-shape pattern were passed through before the separator; all
+# other pre-separator rows (including bold/link/decorated IDs) were dropped
+# uncounted. After the BLOCKING-2 fix, all pre-separator rows are buffered; the
+# last is discarded positionally as the column header; earlier rows are counted.
+# The accounting invariant detects the displaced column header as unclassified.
+# This encodes Proof B (C4 probe) from the D-068 ruling exactly.
+#
+# Mutation-flip: restore the shape-regex gate (re-introduce
+# `if not re.match(r"^\|\s*(?:~~)?(?:HS-\d+|[Hh][Ss][-_])", line): continue`
+# before the pending_pre_sep.append). The column header row is dropped before
+# the buffer; bold **HS-042** is also dropped (** defeats the regex); hs_rows_seen
+# reflects only HS-001; invariant holds vacuously → checker exits 0 → B2 FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest B2: check-index-integrity: bold HS ID above separator (BLOCKING-2) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: insert a bold-decorated HS row ABOVE the separator. No EC-999 file.
+    # The bold ** prefix defeats the old shape-regex; with positional buffering
+    # the actual column header ("| HS ID |...") becomes a pre-separator row that
+    # is counted and unclassified → accounting invariant fires.
+    cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX_DEFECT'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+| **HS-042** | EC-999 | Bold-decorated ID above separator — no wave-scenarios file | Notes | BC | active |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX_DEFECT
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — bold HS-042 above separator not detected — BLOCKING-2 not fixed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; bold HS ID above separator detected via accounting invariant)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test B3: check-index-integrity — pipeless GFM row counted (MAJOR-1) ─────
+# MAJOR-1: GFM allows leading/trailing pipes to be omitted on table rows.
+# A pipeless row like "HS-042 | EC-999 | ..." was previously dropped uncounted
+# because `not line.startswith("|")` triggered a continue before the denominator.
+# After the MAJOR-1 fix, in-scope pipeless lines containing cell delimiters
+# increment hs_rows_seen; none of the pipe-anchored classifier patterns match,
+# so the accounting invariant fires.
+#
+# Mutation-flip: remove the MAJOR-1 counting branch (the `hs_rows_seen += 1`
+# inside the `if not line.startswith("|"):` block). The pipeless row is not
+# counted; hs_rows_seen equals the post-separator pipe row count alone;
+# invariant holds → checker exits 0 → B3 FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest B3: check-index-integrity: pipeless GFM row counted (MAJOR-1) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: append a pipeless row (no leading |) pointing at EC-999. No file.
+    # GFM allows omitting leading/trailing pipes. The checker must count this row.
+    printf 'HS-042 | EC-999 | Pipeless row — no wave-scenarios file | Notes | BC | active\n' \
+        >> "$T/.factory/holdout-scenarios/HS-INDEX.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — pipeless row dropped uncounted — MAJOR-1 not fixed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; pipeless GFM row correctly counted and detected)"
     fi
 fi
 rm -rf "$T"
