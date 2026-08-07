@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-085
+  Latest: §RESUME SNAPSHOT D-088
 -->
 
 ---
@@ -1293,7 +1293,7 @@ o. **BI-023 (skip-list bypasses — CORRECTED):** (a) `check-placeholders.py` em
 
 ---
 
-## §RESUME SNAPSHOT D-085
+## §RESUME SNAPSHOT D-085 [SUPERSEDED by D-088 — retained for audit]
 
 *Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-075.*
 
@@ -1394,3 +1394,87 @@ d. **Streak reset:** 0/3 clean-pass counter re-counts from ZERO against whatever
 e. **Burn-down MUST clear before Phase-1 gate (D-077):** 55 VP-col rows · 9 EC-NEW-* rows · BC-2.04.001:63 · BI-044 16 sites.
 
 f. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
+
+---
+
+## §RESUME SNAPSHOT D-088
+
+*Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-085.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d, still 0 of 3 clean adversarial passes. This session: PR #7 (`fix/ws3-spec-lint-integrity`) squash-merged to develop as `e1299b07` (develop `7b9aa6d`→`e1299b07`). 9-step pr-manager lifecycle, 3 review cycles, 5 blockers resolved. APPROVE at `791fc11` (freshness check NOT tautological — D-071 failure mode did not recur). CI 4/4 PASS; spec-lint ADVISORY FAIL accepted (D-029/D-032/D-077); SEC-001 LOW accepted. 55/55 selftests; check-canonical-facts OK (31 bindings, 11 facts); hermeticity confirmed. Baseline PRESERVED: 80 check-placeholders findings + 10 check-id-resolution findings. BI-042 CLOSED (selftest-22 rewritten with teeth-test: old tautological pattern exits 0 on prefix-extension vector; corrected pattern exits 1 with DIVERGE). BI-035 CLOSED (all FACT-7/8/9/10 production patterns verified sound; fully discharged). BI-023 items 2+3 CLOSED (checker repairs landed on develop); item 1 HELD per D-083; spec-row burn-down open. BI-045 already CLOSED. Worktree `.worktrees/ws3-spec-lint-integrity` removed; local branch `fix/ws3-spec-lint-integrity` force-deleted after `git diff 791fc11 e1299b07 --stat` returned EMPTY; `791fc11` reflog-recoverable. D-086/D-087/D-088 recorded. **FIRST ACTION ON RESUME: `/vsdd-factory:compact-state` (D-087) — MANDATORY before any new work. STATE.md at 269 lines against 200-line soft target.**
+
+### HEADS
+
+Verify each at resume before taking action. Resolve factory-artifacts HEAD via `git -C .factory log -1` — never trust a literal SHA recorded here for the current HEAD.
+
+| Ref | SHA | Note |
+|-----|-----|------|
+| develop | e1299b07 | PR #7 squash-merge |
+| factory-artifacts | run `git -C .factory log -1` | current HEAD — do not cite a literal SHA here |
+| `791fc11` | 791fc11e8b57e01326251daf0eb36dfffb59822a | pr-manager APPROVE commit; reflog-recoverable after worktree removal |
+
+### WORKSTREAMS
+
+Order is MANDATORY per D-072/D-079/D-086.
+
+1. **compact-state (D-087)** — `/vsdd-factory:compact-state` — FIRST ACTION before anything else. STATE.md at 269 lines.
+2. **BI-040 Stage 1** — create `scripts/spec-lint/spec_lint_primitives.py` + selftests; zero behavioral change to existing checkers. Landing gate: primitive layer unit-tested.
+3. **BI-040 Stages 2–3** — migrate all 14 affected files to use `spec_lint_primitives`; mandatory output-identity diff preserving 80 check-placeholders findings + 10 check-id-resolution findings EXACTLY.
+4. **WS-4 scope re-derivation BY EXECUTION (D-086) — MANDATORY GATE** — run the scope-derivation script BEFORE dispatching any WS-4 remediation. WS-4's ~306-finding estimate was sized by reading, not execution; the true size may differ significantly.
+5. **WS-4 remediation burst** — dispatch against re-derived scope.
+6. **WS-5 pass 6 + Phase-1 gate** — on 3 consecutive clean adversary passes, flip `spec-lint` to required status check (D-029/D-032).
+
+### STANDING DIRECTIVES
+
+| Directive | Rule |
+|-----------|------|
+| Autonomy | Level 4 — agents merge PRs after full pr-manager review lifecycle (D-028/D-031) |
+| spec-lint | ADVISORY until Phase-1 gate; flip to required at gate (D-029/D-032) |
+| Platform matrix | macOS-latest ONLY in CI (D-043) |
+| SS-10 `--online` | IN SCOPE — do not re-propose descope (D-054) |
+| Context wrap | Wrap at 430K at clean boundaries; no fan-outs above 350K |
+| Wrappers | At `.factory/bin/` (D-047) |
+| `gh pr review` | IMPOSSIBLE — use `gh pr comment --body-file` (BI-039) |
+| `gen-bc-traceability` write mode | PROHIBITED until adjudicated (BI-041) |
+| Allowlists/skip-lists in checkers | FORBIDDEN (D-039) |
+| `prd.md` changelog entries | IMMUTABLE (D-034) |
+| `git add -A` in state bursts | FORBIDDEN while any PR agent in flight — stage by explicit path (D-088) |
+| BI-022 fuzz nightly | Pin before Phase 6 |
+| WS-4 scope | MUST be re-derived BY EXECUTION after BI-040 lands (D-086) |
+| EC-registration | HOLD until BI-044 settles (D-083) |
+| compact-state | MANDATORY at next session start before new work (D-087) |
+
+### WORKTREE INVENTORY
+
+Exactly two worktrees after ws3 cleanup:
+
+| Path | Branch | HEAD | Note |
+|------|--------|------|------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | develop | `e1299b07` | main checkout |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | factory-artifacts | run `git -C .factory log -1` | factory artifacts |
+
+### DECISION DELTA (D-086 / D-087 / D-088)
+
+| ID | Decision | Rationale |
+|----|----------|-----------|
+| D-086 | WS-4 scope re-derivation BY EXECUTION is MANDATORY: FIRST act after BI-040 primitive layer lands, BEFORE any remediation dispatch. BI-040 filed at 2 members; measured at 54+63 sites, 31-codepoint family (≈15× filed size). WS-4 ~306-finding scope was sized by same reading method that misfiled four consecutive magnitudes. | D-082's executed-predicate constraint applied to WS-4's own sizing. |
+| D-087 | Run `/vsdd-factory:compact-state` at next session start, before any new work. | STATE.md at 269 lines against 200-line soft target. |
+| D-088 | State-manager must NOT use `git add -A` in state bursts while a PR agent is in flight; stage by explicit path. | Burst `7e0f02a` swept in another agent's in-flight `code-delivery/` artifacts. |
+
+### CAVEATS
+
+a. **`.factory/hooks/verify-sha-currency.sh` ABSENT.** Post-push hook verification gap. Record only; not an implied pass.
+
+b. **BI-040 OPEN (gates WS-4 per D-072).** Three-stage migration planned. Zero behavioral change guarantee required at Stage 2/3 boundary.
+
+c. **BI-044 OPEN (16 sites remaining; gates WS-4 per D-079).** Detection repaired in `check-id-resolution.py` on develop (`e1299b07`). Remaining sites: `check-counts.py` ×5, `check-holdout-boundary.py` ×3, `check-index-integrity.py` ×3, `check-ec-injectivity.py` ×2, `gen-ec-registry.py` ×1. Addressed by BI-040/D-084 shared primitive layer.
+
+d. **Streak reset:** 0/3 clean-pass counter re-counts from ZERO against whatever HEAD is frozen when pass 6 runs. Trajectory-tail →34→39→37→259.
+
+e. **Burn-down MUST clear before Phase-1 gate (D-077):** 55 VP-col rows / 34 BC files · 9 EC-NEW-* rows / 4 BC files · BC-2.04.001:63 · BI-044 16 sites.
+
+f. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
+
+g. **D-088:** Do NOT use `git add -A` or `git add .` in state-manager bursts while any PR agent is in flight.

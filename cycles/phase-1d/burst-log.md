@@ -796,3 +796,49 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 **Dim-7 Attestation:** Agents dispatched this session: architect (BI-042 adjudication), devops-engineer (WS-3 Phase 2 design, BI-040 design, BI-045 fix), state-manager (this burst). Develop-side: 4 commits by devops-engineer on `fix/ws3-spec-lint-integrity`. No adversary agent dispatched.
 
 **Closes:** BI-045 (non-hermetic selftests fixed, 54/54 hermetic). **Updates:** BI-002 (PR open, pr-manager IN PROGRESS). BI-023 (counts corrected: 9 live/4 files; BC-2.04.001:63 new defect). BI-035 (closes on PR merge). BI-040 (surface measured, design committed). BI-042 (APPLIED: 24/26 corrected; residual selftest-22 in open PR). **Opens:** BI-044 (17 EC-grammar sites, 16 remain after detection repair).
+
+---
+
+## Archived Current Phase Steps row (evicted from STATE.md by burst-18)
+
+| PR #3 stopgap landed (031ca5b→51e6be8); D-067 delta recorded | state-manager | COMPLETE | Operator authorized per architect design ruling; narrowed pre-filters close A1/A2a/A2b (exit 1 mutation-verified); suite 21→24/24; structural independence NOT achieved (counter position unchanged, honest documented residual at :142-147/:169-175/:472-482); fix/hardening-pins cleaned up; BI-038 CLOSED; BI-016 updated to 51e6be8; D-067 recorded |
+
+---
+
+## Burst 18 — PR #7 Merged; BI-042/035/023(items 2+3)/045 CLOSED; D-086/D-087/D-088 (2026-08-08)
+
+**Parent-commit:** `7e0f02a6d47073d89f48b31de2a402d7c472d8b3` (D-085 session wrap)
+
+**Session summary:** PR #7 (`fix/ws3-spec-lint-integrity`) completed full 9-step pr-manager lifecycle (3 review cycles, 5 blockers all resolved) and was squash-merged to `develop` as `e1299b07` (`develop` `7b9aa6d`→`e1299b07`). D-086, D-087, D-088 recorded. Worktree `ws3-spec-lint-integrity` removed (tree-identical diff verified). Three decisions recorded. Four blocking issues closed (BI-042, BI-035, BI-023 items 2+3, BI-045 already).
+
+**Key events:**
+
+1. **PR #7 MERGED** as `e1299b07` under autonomy level 4 (D-028/D-031). APPROVE at `covered_sha = 791fc11e8b57e01326251daf0eb36dfffb59822a`. Orchestrator independently confirmed `791fc11` was the ACTUAL branch head at merge — D-071 freshness failure mode did not recur. Review converged in 3 cycles, 5 blockers all resolved. Non-advisory CI 4/4 PASS. `Spec lint` ADVISORY FAIL accepted per D-029/D-032/D-077. Security review: 1 LOW finding SEC-001 accepted; no CRITICAL or HIGH.
+
+2. **Post-merge verification on `develop` at `e1299b07`** (orchestrator independent): `check-placeholders` exit 1, **80 findings** (55 new em-dash + 25 pre-existing `[filled by story-writer]`) — baseline PRESERVED. `check-id-resolution` exit 1, **10 findings** — baseline PRESERVED. `check-canonical-facts` OK (31 bindings, 11 facts). Selftests 55/55 (rose 54→55: one test added during review cycles). Identical with and without `SPEC_LINT_REPO_OVERRIDE` — hermeticity holds post-merge.
+
+3. **BI-042 CLOSED.** Selftest-22 rewritten to exercise production bindings via teeth-test: old tautological pattern exits 0 on prefix-extension vector; corrected pattern exits 1 with DIVERGE. BI-035 simultaneously closed (all FACT-7/8/9/10 patterns verified sound).
+
+4. **BI-023 items 2+3 CLOSED** (checker repairs). R2-RULE (VP-id whitelist) and R3-A/B/C (EC-shape triple-segment + historical scoping) now on `develop`. Item 1 (EC-NEW-* registration) still HELD per D-083. Spec-row burn-down still open: 55 VP-col / 34 files + 9 EC-NEW-* / 4 files + BC-2.04.001:63.
+
+5. **Worktree cleanup.** `.worktrees/ws3-spec-lint-integrity` removed; local branch `fix/ws3-spec-lint-integrity` force-deleted after `git diff 791fc11 e1299b07 --stat` returned EMPTY (tree-identical, content verified present on `develop`). `791fc11` is reflog-recoverable. Remote branch deleted. Final state: exactly TWO worktrees — root on `develop` at `e1299b07`, `.factory` on `factory-artifacts`.
+
+6. **D-086 recorded.** WS-4 scope re-derivation BY EXECUTION is MANDATORY: it is the FIRST act after the BI-040 primitive layer lands and BEFORE any remediation dispatch. Rationale: BI-040 was filed at 2 known members; execution measured 54+63 sites across 14 files and a 31-codepoint family — roughly 15× its filed size.
+
+7. **D-087 recorded.** Run `/vsdd-factory:compact-state` at next session start, before any new work. STATE.md at 266+ lines against 200-line soft target.
+
+8. **D-088 recorded.** State-manager must NOT use `git add -A` in state bursts while a PR agent is in flight; stage by explicit path. Burst `7e0f02a` incidentally committed another agent's in-flight `code-delivery/` artifacts.
+
+**Files touched (Dim-1): 5 unique files**
+
+- `.factory/STATE.md` — timestamp advanced; current_step updated; Last Updated advanced; Current Phase Steps: row 1 evicted (archived above), new burst-18 row added; Decisions Log: D-086/D-087/D-088 appended; Blocking Issues: BI-035 CLOSED (strikethrough), BI-042 CLOSED (strikethrough), BI-023 checker repairs noted landed, BI-044 detection on develop; Session Resume Checkpoint: D-088 snapshot; Concurrent Cycles updated; spec snapshot updated; ~270 lines
+- `.factory/SESSION-HANDOFF.md` — §RESUME SNAPSHOT D-085 marked SUPERSEDED by D-088; §RESUME SNAPSHOT D-088 appended
+- `.factory/cycles/phase-1d/burst-log.md` — evicted step row archived; this entry (burst 18)
+- `.factory/cycles/phase-1d/lessons.md` — lesson 45 appended
+- `.factory/cycles/phase-1d/blocking-issues-resolved.md` — BI-035 and BI-042 resolution rows appended
+
+**Codifications:** D-086/D-087/D-088 recorded. BI-042 CLOSED. BI-035 CLOSED. BI-023 items 2+3 CLOSED (checker repairs). BI-045 already closed in D-085 burst (no change).
+
+**Convergence:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. Nothing this session advanced the streak; it removed preconditions blocking pass 6. The streak re-counts from ZERO against whatever HEAD is frozen for pass 6. Pass 6 order: (1) compact-state (D-087); (2) BI-040 Stage 1; (3) BI-040 Stages 2–3 (mandatory output-identity diff); (4) WS-4 scope re-derivation BY EXECUTION (D-086 — MANDATORY GATE before any remediation dispatch); (5) WS-4 remediation; (6) WS-5 pass 6 + Phase-1 gate.
+
+**D-088 constraint:** staged by explicit path — `git add` invoked per-file, NOT `git add -A`. Files staged: STATE.md SESSION-HANDOFF.md cycles/phase-1d/burst-log.md cycles/phase-1d/lessons.md cycles/phase-1d/blocking-issues-resolved.md.
