@@ -739,19 +739,32 @@ def main() -> int:
         # four classifier patterns.
         #
         # Rows NOT in the data_row bucket (not passed to _classify()):
-        #   - Heading lines (CommonMark §4.2: #{1,6} + space/EOL, not 4-space-indented,
-        #     not inside a fenced code block — D-069 fix closes A/A2/A3 bypass class)
-        #   - Fenced code block lines (D-069: tracked via _FENCE_RE; lines inside fences
-        #     are fenced_code bucket — closes A2 bypass)
+        #   - Heading lines (CommonMark §4.2: #{1,6} + space/EOL, with < 4 COLUMNS
+        #     of leading indent — checked via _leading_columns(raw), which expands tabs
+        #     at 4-column stops per CommonMark §2.1 so '\t## X' is correctly treated as
+        #     4 columns, NOT a heading; the prior raw.startswith("    ") missed this —
+        #     D-070 fix).  Also excluded: inside a fenced code block.  D-069 + D-070
+        #     NARROW the A/A2/A3/tab bypass class; the class is NARROWED, not closed.
+        #     Known residual: Python's str.splitlines() treats \f (form feed) and \v
+        #     (vertical tab) as line boundaries; CommonMark does not. '\f## X' and
+        #     '\v## X' therefore reach this branch and can kill section scope — verified
+        #     at this head. Do NOT fix here (different root cause from indent; ad-hoc
+        #     changes opened new holes in three of the prior four rounds). Tracked to a
+        #     separate story as a named landing gate.
+        #   - Fenced code block lines (D-069 + D-070: tracked via _FENCE_RE with
+        #     _leading_columns(raw) < 4 guard; lines inside 0-3-column-indented fences
+        #     are fenced_code bucket.  NARROWS the A2 bypass; class is NARROWED, not
+        #     closed — 'fenced_code' remains an unbounded sink for any line inside a
+        #     fence, including phantom HS rows.)
         #   - Out-of-scope rows (after h1/h2 section change; h3+ subheadings stay in scope)
         #   - Separator rows (|---|--- rows, explicitly excluded)
         #   - The last pre-separator pipe row positively recognised by _is_column_header()
-        #     (D-069 MINOR-1: only pending[-1] is eligible — closes C bypass)
-        #   - In-scope non-pipe lines without '|' (prose bucket)
+        #     (D-069 MINOR-1: only pending[-1] is eligible — narrows C bypass)
+        #   - In-scope non-pipe lines without '|' (prose bucket — unbounded sink)
         #
         # D-069 changes to this invariant:
         #   - Adjacent-pipe pipeless rows ('HS-099||EC-999') now reach data_row and
-        #     fire B-9 (prior re.search gate removed — closes B bypass)
+        #     fire B-9 (prior re.search gate removed — narrows B bypass)
         #   - unclassified_lines detail added to violation message for diagnostics
         #     (does not change the invariant condition — B-9 remains load-bearing)
         hs_canonical = sum(1 for v in hs_mapping.values() if v != "MALFORMED")
