@@ -888,3 +888,53 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 **Dim-7 Attestation:** Agents dispatched this session: devops-engineer (BI-040 all stages), orchestrator (D-086 re-derivation executed verification), state-manager (this burst). No adversary agent dispatched.
 
 **Closes:** BI-044 (14 sites converted in BI-040 Stage 3; prior count of 16 was a miscount). **Updates:** BI-040 (code-CLOSED on `fix/bi-040-primitive-layer`; NOT merged; sequencing constraint recorded: must MERGE before WS-4). BI-043 (10-file evidence; scope ruling pending). BI-002 (compact-state DONE; D-017..D-020 restored; WS-4 re-derivation COMPLETE 286 actionable). No new decisions.
+
+---
+
+## Burst 20 — BI-040 PR #8 Merged; BI-043 Closed; BI-046 Opened; D-089 (Gate #28 Ruling)
+
+**Date:** 2026-08-07
+**Agent:** state-manager
+**Status:** COMPLETE
+
+### Evicted from Current Phase Steps (oldest row archived here)
+
+| Step | Agent | Status | Output |
+|------|-------|--------|--------|
+| PR #6 MERGED as `7b9aa6d`; D-072..D-074 (exhaustive); BI-041/042/043 OPEN; BI-035 re-scoped; session wrap D-074 | state-manager | COMPLETE | PR #6 squash-merged on develop; develop `651ee3a`→`7b9aa6d`; branch + worktree removed (`78ef3a4` recoverable). Landed: check-canonical-facts.py (188L), gen-bc-traceability.py (429L), gen-slug-corpus.py (494L); selftests 36→49; check-canonical-facts OK (31 bindings, 11 facts). D-072 (BI-040 before WS-4) + D-073 (BI-042 first) + D-074 (cherry-pick 78ef3a4, 5 review cycles). BI-041/042/043 OPENED. BI-035 re-scoped (FACT-7/8 sound; FACT-9/10 → BI-042). |
+
+### Burst Narrative
+
+PR #8 squash-merged to `develop` as `c2e5cf1b3aab5daafc89a18af7470123a946aebc` (develop `e1299b0`→`c2e5cf1`). 5 commits collapsed (Stages 1, 2A, 2B, 3, 4). Approved head `8a5a21c`; D-071 empty-diff check PASSED; remote branch `fix/bi-040-primitive-layer` deleted; worktree `.worktrees/bi-040-primitive-layer` removed. Exactly 2 worktrees remain.
+
+**Review was substantive, not tautological** — 3 cycles. Reviewer independently found defects neither the author nor design anticipated:
+- **B1** — real fail-open in `is_conforming_vp_cell`: a punctuation-only cell silently passed
+- **B2** — tautological test: `return [text]` survived 9/9 in `split_table_cells` coverage
+- **W2** — 5-digit EC ID truncation newly INTRODUCED by this PR (`EC-\d+` → `EC-\d{1,4}` narrowing)
+- **W7** — dropped `startswith` guard in `check-ec-injectivity`
+- **S2** — override-guard bypass via a comment line
+
+All verdicts mutation-verified. B2 fix mutation-verified: mutating `split_table_cells` to `return [line]` now FAILS 9/10 (explicit failure on "standard 3-cell row"), where the pre-fix test suite survived that mutation 9/9.
+
+**Baseline PRESERVED** on `develop` @ `c2e5cf1`: `check-placeholders.py` 80 findings / 133 files; `check-id-resolution.py` 10 findings / 134 files. 106 lines of checker output, 8 headline lines, 0 tracebacks, 0 ERRORs. `run-selftests.sh` 55/55; `test_primitives.sh` 10/10 (grew from 9 — reviewer added a case). CI: Format / Clippy / Test(macos-latest) / Build release(macos-latest) all PASS. `spec-lint` ADVISORY FAIL is expected D-077 baseline.
+
+**Security review:** 0 CRITICAL/HIGH, 2 LOW non-blocking.
+
+**Deferred out of PR #8:**
+- W1 — 5 remaining inline EC grammar literals → WS-4 intake
+- W10 / S4 / SUGGESTION-1 — G4 guard proof arm + dead `OVERRIDE_PATTERN` variable → next burst
+- W12 — text-only demo evidence, accepted for a CLI tool
+
+**BI-040 CLOSED** — shared primitive layer merged. WS-4 UNBLOCKED (gated on POLICY-5 predicate per gate #27 Q4).
+
+**BI-043 CLOSED** — zero `parent.parent.parent` occurrences remain in `scripts/spec-lint/` on merged develop; all 15 checkers/generators share one fail-closed repo-root resolver.
+
+**BI-046 OPENED** — reviewer identity/token independence required before phase-3 story PRs begin. Severity MEDIUM, owner devops-engineer, cross-ref BI-039.
+
+**D-089 RECORDED** — gate #28 operator ruling: review-as-comment + autonomy-L4 merge mechanism authorized; grounds: `develop` requires 0 approving reviews; real gate = 4 required CI status checks; `spec-lint` NOT among required checks; `enforce_admins: false`; no GitHub protection circumvented; standing designed-autonomy model (D-021→D-028→D-031); journal 2026-08-05 22:35 precedent; gate #5 revised 2026-08-06 09:15; BI-039 review-as-comment ruling. Residual: AI review independence nominal, not structural. Pre-Phase-3 condition: BI-046 required before story PRs begin.
+
+**Convergence counter:** UNCHANGED — 0 of 3 clean passes. Pass 6 (perimeter sweep) COMPLETE. Next adversary pass is pass 7, after WS-4 remediation. Trajectory-tail →34→39→37→259 preserved exactly.
+
+**Files touched:** `.factory/STATE.md`, `.factory/cycles/phase-1d/blocking-issues-resolved.md`, `.factory/cycles/phase-1d/burst-log.md`, `.factory/cycles/phase-1d/session-checkpoints.md`
+
+**Closes:** BI-040 (PR #8 merged `c2e5cf1`), BI-043 (zero parent.parent.parent on develop). **Opens:** BI-046 (reviewer independence, pre-phase-3). **Adds:** D-089 (gate #28 ruling).

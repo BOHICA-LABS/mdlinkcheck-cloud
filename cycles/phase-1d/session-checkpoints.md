@@ -139,4 +139,19 @@ PRD v1.11 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001
 
 ---
 
+## Session Resume Checkpoint burst-19 (2026-08-07) — archived from STATE.md by burst-20
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-07 |
+| **Position** | phase-1d; BI-040 code-CLOSED on fix/bi-040-primitive-layer (4 commits: 6340990/9228136/705e93a/b497d26), NOT merged; BI-044 CLOSED (14 sites, corrected from 16); BI-043 OPEN (10-file evidence, scope ruling pending); D-088 WS-4 re-derivation COMPLETE (286 actionable; 138 dispatchable); 0 of 3 clean passes |
+| **Convergence counter** | 0 of 3 clean passes; trajectory-tail →34→39→37→259 (pass-6 perimeter count UNRECONCILABLE; executed 249); pass 7 order: (1) BI-040 PR lifecycle; (2) WS-4 remediation (138 dispatchable; ~53 BI-027 fabrications pending pre-dispatch predicate; ~78 structural need operator scoping); (3) WS-5 pass 7 + Phase-1 gate |
+| **Next burst** | BI-040 PR lifecycle — open PR for branch fix/bi-040-primitive-layer (4 commits). Await operator scope ruling on BI-043 and WS-4 dispatch authorization. Burn-down: 55 VP-col / 34 files · 9 EC-NEW-* / 4 files · BC-2.04.001:63. Standing: autonomy L4; spec-lint ADVISORY; macOS-latest-only; SS-10 online in scope; wrap 430K; WS-4 blocked on BI-040 merge. |
+
+*Superseded by burst-20 state wrap.*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
