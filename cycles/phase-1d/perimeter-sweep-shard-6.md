@@ -21,6 +21,8 @@ project: mdlinkcheck-cloud
 
 # Adversarial Findings — Phase 1d — Pass 5 — Shard 6 / 8
 
+> **ERRATUM (operator ruling, gate #27 / PG-011):** This document's title says "Pass 5". Per the operator's ID-space-is-truth ruling, this perimeter sweep IS **pass 6** — matching the `P6-S*` finding IDs used throughout. The title is preserved unedited per D-034 spirit; this note is the correction. The separate `P5-*` finding population (36/37 findings, record only partially recoverable — see `adversary-pass-5.md`) is pass 5. The next adversary pass after remediation is **pass 7**.
+
 **Frozen HEAD reviewed:** `1d3ed17` (`factory-artifacts`)
 **Perimeter:** ADR-001/002/003/004/007 + dependency-graph.md + tooling-selection.md + feasibility-review.md + bc-module-map.md — all 9 read in full
 **Shard:** 6 of 8 (perimeter-closing sweep)

@@ -20,11 +20,13 @@ inputs:
   - cycles/phase-1d/perimeter-sweep-shard-6.md
   - cycles/phase-1d/perimeter-sweep-shard-7.md
   - cycles/phase-1d/perimeter-sweep-shard-8.md
-input-hash: "f1f33cd"
+input-hash: "401cd43"
 traces_to: STATE.md
 ---
 
 # Perimeter Sweep Cross-Shard Synthesis — phase-1d
+
+> **ERRATUM (operator ruling, gate #27 / PG-011):** This document's frontmatter (`pass: 5`) and in-body references self-describe this sweep as "Pass 5". Per the operator's ID-space-is-truth ruling, this perimeter sweep IS **pass 6** — matching the `P6-S*` finding IDs used throughout. The title is preserved unedited per D-034 spirit; this note is the correction. The separate `P5-*` finding population (36/37 findings, record only partially recoverable — see `adversary-pass-5.md`) is pass 5. The next adversary pass after remediation is **pass 7**.
 
 **Shards complete:** 1, 2, 3, 4, 5, 6, 7, 8 — SWEEP COMPLETE
 **Findings total:** 259 (40 CRITICAL) [^crit-correction]

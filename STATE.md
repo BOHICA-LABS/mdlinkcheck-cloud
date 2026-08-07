@@ -4,7 +4,7 @@ level: ops
 version: "2.7"
 status: draft
 producer: state-manager
-timestamp: 2026-08-07T23:30:00Z
+timestamp: 2026-08-07T23:46:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
@@ -60,7 +60,7 @@ dtu_required: false
 | pass-3 fix burst | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39→37 |
 | pass-4 adversary | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39→37 |
 | pass-4 fix burst | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39→37 |
-| pass-5 adversary (perimeter sweep — 8 shards) | COMPLETE | 2026-08-07 | 2026-08-07 | — | →0→32→34→39→37→259 (executed 249; see D-086) |
+| pass-6 adversary (perimeter sweep — 8 shards; PG-011 RESOLVED gate #27) | COMPLETE | 2026-08-07 | 2026-08-07 | — | →0→32→34→39→37→259 (executed 249; see D-086) |
 
 ## Current Phase Steps
 
@@ -76,13 +76,13 @@ dtu_required: false
 
 ## Convergence Status
 
-Trajectory →0→32→34→39→37→259 | trajectory-tail →34→39→37→259 | **NOTE: pass-5 perimeter count 259 is UNRECONCILABLE — executed re-derivation found 249 (shard-7: 44→35; shard-8: 40→39; 9 ID gaps); both preserved per D-086**
+Trajectory →0→32→34→39→37→259 | trajectory-tail →34→39→37→259 | **NOTE: pass-6 perimeter count 259 is UNRECONCILABLE — executed re-derivation found 249 (shard-7: 44→35; shard-8: 40→39; 9 ID gaps); both preserved per D-086**
 
 pass count: 0 of 3 required clean passes
 
 Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT the magnitude. Zero of 37 findings fall in the 7 enforced classes (title-sync, EC-injectivity, id-resolution, counts, holdout-boundary, ADR-consistency, index-integrity) — that noise floor is eliminated and verified. The residual defect mass is a SPEC-TOPOLOGY problem, not a spec-quality problem: ~15 documents hand-maintain restatements of the same facts with no generated source of truth. Regression audit found 8 of 12 prior fixes were applied to the primary artifact but not its siblings/dependents. Adversary recommended NOT running pass 5 against the current topology.
 
-**Pass 5 COMPLETE (perimeter sweep — 8 shards, 259 findings; executed: 249):** All 66 BC bodies, all 8 ADRs, all spec shards read in full for the first time. Perimeter closed. Clean-pass count remains ZERO. Remediation burst required against four unguarded axes (BI-024) before pass 6. Structural checker bypasses confirmed (BI-023). WS-4 scope re-derived by execution (D-086): 286 actionable / 138 dispatchable. BI-040 code-closed on branch, NOT merged.
+**Pass 6 COMPLETE (perimeter sweep — 8 shards, 259 findings; executed: 249; pass 6 per PG-011 ruling):** All 66 BC bodies, all 8 ADRs, all spec shards read in full for the first time. Perimeter closed. Clean-pass count remains ZERO. Remediation burst required against four unguarded axes (BI-024) before pass 7. Structural checker bypasses confirmed (BI-023). WS-4 scope re-derived by execution (D-086): 286 actionable / 138 dispatchable. BI-040 code-closed on branch, NOT merged.
 
 | Pass | Findings | Delta | Status |
 |------|----------|-------|--------|
@@ -90,7 +90,7 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | 2 | 34 (7C/19M/8m) | +2 | FINDINGS_REMAIN (REGRESSION) — REMEDIATED |
 | 3 | 39 (5C/26M/8m) | +5 | FINDINGS_REMAIN (REGRESSION) — REMEDIATED (mechanical enforcement) |
 | 4 | 37 (3C/19M/15m) | -2 | FINDINGS_REMAIN — composition changed: ZERO findings in the 7 mechanically-enforced classes |
-| 5 | 259 (~42C); executed 249 (shard-7: 44→35; shard-8: 40→39; 9 ID gaps) | +222 (scope expansion: first full read of all 66 BC bodies, all 8 ADRs, all spec shards) | FINDINGS_REMAIN — perimeter closed; WS-4 re-derived 286 actionable / 138 dispatchable; BI-040 code-closed NOT merged |
+| 6 (perimeter sweep; PG-011) | 259 (~42C); executed 249 (shard-7: 44→35; shard-8: 40→39; 9 ID gaps) | +222 (scope expansion: first full read of all 66 BC bodies, all 8 ADRs, all spec shards) | FINDINGS_REMAIN — perimeter closed; WS-4 re-derived 286 actionable / 138 dispatchable; BI-040 code-closed NOT merged |
 
 ## Decisions Log
 
@@ -202,7 +202,7 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 
 | ID | Issue | Severity | Blocking Phase | Owner | Resolution |
 |----|-------|----------|----------------|-------|------------|
-| BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 5 COMPLETE (259 findings ~42C; executed 249); perimeter CLOSED; root cause SPEC-TOPOLOGY (D-035) + 4 unguarded axes (BI-024) + structural checker bypasses (BI-023) | HIGH | phase-1 gate | orchestrator | compact-state DONE (a70306d); D-017..D-020 (exhaustive) restored (002111a); BI-040 code-CLOSED on fix/bi-040-primitive-layer (NOT merged); BI-044 CLOSED (14 sites); D-088 WS-4 re-derivation COMPLETE (286 actionable / 138 dispatchable). Next: BI-040 PR lifecycle → WS-4 remediation → WS-5 pass 6 + Phase-1 gate. Blocker remaining: BI-040 must MERGE before WS-4 dispatch (D-072). |
+| BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 6 COMPLETE (259 findings ~42C; executed 249; pass 6 per PG-011 ruling); perimeter CLOSED; root cause SPEC-TOPOLOGY (D-035) + 4 unguarded axes (BI-024) + structural checker bypasses (BI-023) | HIGH | phase-1 gate | orchestrator | compact-state DONE (a70306d); D-017..D-020 (exhaustive) restored (002111a); BI-040 code-CLOSED on fix/bi-040-primitive-layer (NOT merged); BI-044 CLOSED (14 sites); D-088 WS-4 re-derivation COMPLETE (286 actionable / 138 dispatchable). Next: BI-040 PR lifecycle → WS-4 remediation → WS-5 pass 7 + Phase-1 gate. Blocker remaining: BI-040 must MERGE before WS-4 dispatch (D-072). |
 | BI-007 | VP-026 is SPECIFIED but UNIMPLEMENTED — no Rust workspace exists yet (Phase 3 not started). FM-002 risk until Phase 3 implements the differential proptest. | HIGH | phase-6 (formal hardening) | implementer | Phase 3 must implement VP-026; story traced to VP-026 required in Phase 2. |
 | BI-010 | VP-025 authored against non-existent API types. Harness cannot compile. Architect rewrote VP-025; INC-MAP-001 SPEC-RESOLVED/IMPL-PENDING (D-048). | CRITICAL | phase-3 | architect | INC-MAP-001 closes only when Phase 3 implements it. |
 | BI-017 | Phase 3 CI obligation: NO perf-gate/benchmark job exists. Both NFR-008 and NFR-002 benchmark jobs MUST run on `macos-latest` when created in Phase 3. | MEDIUM | phase-3 | devops-engineer | Recorded in vp-022-regression-gate.md and tooling-selection.md §Phase 3 CI Obligations. |
@@ -228,7 +228,7 @@ Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT burst-19`
 |-------|-------|
 | **Date** | 2026-08-07 |
 | **Position** | phase-1d; BI-040 code-CLOSED on fix/bi-040-primitive-layer (4 commits: 6340990/9228136/705e93a/b497d26), NOT merged; BI-044 CLOSED (14 sites, corrected from 16); BI-043 OPEN (10-file evidence, scope ruling pending); D-088 WS-4 re-derivation COMPLETE (286 actionable; 138 dispatchable); 0 of 3 clean passes |
-| **Convergence counter** | 0 of 3 clean passes; trajectory-tail →34→39→37→259 (pass-5 perimeter count UNRECONCILABLE; executed 249); pass 6 order: (1) BI-040 PR lifecycle; (2) WS-4 remediation (138 dispatchable; ~53 BI-027 fabrications pending pre-dispatch predicate; ~78 structural need operator scoping); (3) WS-5 pass 6 + Phase-1 gate |
+| **Convergence counter** | 0 of 3 clean passes; trajectory-tail →34→39→37→259 (pass-6 perimeter count UNRECONCILABLE; executed 249); pass 7 order: (1) BI-040 PR lifecycle; (2) WS-4 remediation (138 dispatchable; ~53 BI-027 fabrications pending pre-dispatch predicate; ~78 structural need operator scoping); (3) WS-5 pass 7 + Phase-1 gate |
 | **Next burst** | BI-040 PR lifecycle — open PR for branch fix/bi-040-primitive-layer (4 commits). Await operator scope ruling on BI-043 and WS-4 dispatch authorization. Burn-down: 55 VP-col / 34 files · 9 EC-NEW-* / 4 files · BC-2.04.001:63. Standing: autonomy L4; spec-lint ADVISORY; macOS-latest-only; SS-10 online in scope; wrap 430K; WS-4 blocked on BI-040 merge. |
 
 Spec snapshot: PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-204 (205 ids) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-088 (exhaustive). D-017..D-020 (exhaustive) restored by reconstruction; see process-gap-register PG-010. Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/034/035/036/038/042/044/045. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/037/039/040 (code-closed NOT merged)/041/043.
