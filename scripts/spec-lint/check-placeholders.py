@@ -42,6 +42,7 @@ import os
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
 REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 SPECS = REPO / ".factory" / "specs"
@@ -60,59 +61,8 @@ _VP_TABLE_HEADER_CELL = "VP-NNN"
 # A conforming VP-NNN cell value: single VP-NNN token (canonical 3-digit form)
 _VP_TOKEN_RE = re.compile(r"^VP-\d{3}$")
 
-# Separator row detection: cells matching :?-{2,}:? (ignoring spaces)
-_SEP_CELL_RE = re.compile(r"^:?-{2,}:?$")
-
-# Pattern to detect if VP-TBD/SS-TBD is inside a quoted changelog entry.
-# Changelog entries look like: - "v1.x: some description VP-TBD something"
-# The version prefix may be inside or outside the quotes.
-_CHANGELOG_QUOTED = re.compile(r'"[^"]*v\d+\.\d+[^"]*"')
-
-
-def is_historical_changelog_line(line: str, matched_text: str) -> bool:
-    """Return True if matched_text appears inside a quoted changelog entry on this line.
-
-    A quoted changelog entry is a YAML list item like:
-      - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
-    or:
-      - v1.4: "D-019/P2-M08 — ..."
-
-    We detect this by checking if the match is bracketed by double-quotes
-    on the same line AND the line looks like a changelog item (contains v\\d.\\d).
-    """
-    # Find the position of matched_text in the line
-    pos = line.find(matched_text)
-    if pos == -1:
-        return False
-    # Check if there's an opening quote before the match and version-like text
-    before = line[:pos]
-    after = line[pos + len(matched_text):]
-    in_quotes = ('"' in before and '"' in after) or _CHANGELOG_QUOTED.search(line) is not None
-    has_version = bool(re.search(r"v\d+\.\d+", line))
-    return in_quotes and has_version
-
-
-def _split_table_cells(line: str) -> list:
-    """Split a markdown table row into stripped cell values.
-
-    Handles ragged rows: returns whatever cells are present.
-    E.g. '| VP-001 | some text | unit test |' -> ['VP-001', 'some text', 'unit test']
-    """
-    parts = line.split("|")
-    # parts[0] is empty (before leading |), parts[-1] may be empty (after trailing |)
-    if len(parts) < 2:
-        return []
-    # Strip leading/trailing empty parts
-    inner = parts[1:]
-    if inner and inner[-1].strip() == "":
-        inner = inner[:-1]
-    return [p.strip() for p in inner]
-
-
-def _is_separator_row(cells: list) -> bool:
-    """Return True if all non-empty cells look like table separators (e.g. '---', ':---:', etc.)."""
-    non_empty = [c for c in cells if c]
-    return bool(non_empty) and all(_SEP_CELL_RE.match(c) for c in non_empty)
+# Table cell parsing and changelog scoping use shared primitives (BI-040 Stage 2):
+#   slp.split_table_cells(), slp.is_table_separator_row(), slp.is_historical_changelog_line()
 
 
 def _is_valid_vp_cell(first_cell: str, proof_method: str) -> bool:
@@ -188,9 +138,9 @@ def check_file_lines(md_file: Path, lines: list) -> list:
         # is suppressed (fenced content is documentation, not live spec data).
         if not in_fenced_code:
             if line.startswith("|"):
-                cells = _split_table_cells(line)
+                cells = slp.split_table_cells(line)
                 if cells:
-                    if _is_separator_row(cells):
+                    if slp.is_table_separator_row(cells):
                         # Separator row: transition to data mode if header was VP-NNN
                         if table_header_first_cell == _VP_TABLE_HEADER_CELL:
                             in_vp_table_data = True
@@ -228,7 +178,7 @@ def check_file_lines(md_file: Path, lines: list) -> list:
                 # Skip VP-TBD / SS-TBD if they are inside a historical
                 # changelog entry (quoted string with a version prefix).
                 if matched in ("VP-TBD", "SS-TBD"):
-                    if is_historical_changelog_line(line, matched):
+                    if slp.is_historical_changelog_line(line, matched):
                         continue
                 violations.append((filepath, lineno, matched, name))
 
@@ -246,7 +196,7 @@ def main() -> int:
         if not should_check(md_file):
             continue
         files_checked += 1
-        lines = md_file.read_text(encoding="utf-8").splitlines()
+        lines = slp.cm_splitlines(md_file.read_text(encoding="utf-8"))
         violations.extend(check_file_lines(md_file, lines))
 
     if violations:

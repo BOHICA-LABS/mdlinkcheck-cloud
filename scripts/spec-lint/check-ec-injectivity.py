@@ -23,6 +23,7 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
+import spec_lint_primitives as slp
 
 REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 SPECS = REPO / ".factory" / "specs"
@@ -103,25 +104,28 @@ def extract_ec_rows(path: Path) -> list[tuple[str, str, str, int]]:
     Parse a Markdown file for EC table rows.
     Returns list of (ec_id, description, verdict_raw, lineno).
     Handles both 2-column (EC-ID | desc) and 3-column (EC-ID | desc | verdict) formats.
+
+    BI-044: uses slp.split_table_cells() + slp.EC_TOKEN_RE to enforce the shared
+    conforming EC grammar (EC-\d{1,4}[a-z]?) instead of an inline pattern.
     """
     rows = []
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
     start = parse_frontmatter_end(lines)
 
     for lineno, line in enumerate(lines[start:], start=start + 1):
-        # Match table rows starting with EC-NNN (possibly sub-lettered)
-        # Use flexible match: EC-ID followed by at least one more column
-        m = re.match(r"^\|\s*(EC-(\d+[a-z]?))\s*\|(.+)", line)
-        if not m:
+        cells = slp.split_table_cells(line)
+        if not cells:
             continue
-        ec_id = m.group(1)
-        rest = m.group(3)
-        # Split remaining columns, skip separator rows (e.g. |---|---|)
-        cols = [c.strip() for c in rest.split("|") if c.strip() and not re.match(r"^-+$", c.strip())]
-        if not cols:
+        # Require first cell to be a non-struck-through conforming EC ID (BI-044)
+        if not slp.EC_TOKEN_RE.fullmatch(cells[0]):
             continue
-        desc = cols[0]
-        verdict_raw = cols[1] if len(cols) > 1 else ""
+        ec_id = cells[0]
+        # Remaining cells; exclude separator-pattern cells (e.g. '---')
+        rest_cells = [c for c in cells[1:] if c and not re.match(r"^-+$", c)]
+        if not rest_cells:
+            continue
+        desc = rest_cells[0]
+        verdict_raw = rest_cells[1] if len(rest_cells) > 1 else ""
         rows.append((ec_id, desc, verdict_raw, lineno))
     return rows
 
@@ -131,19 +135,21 @@ def extract_tv_rows(path: Path) -> list[tuple[str, str, str, int]]:
     Parse test-vectors.md for EC references.
     TV rows look like: | TV-NNN | EC-NNN | Description | ... | exit_code | verdict | reason |
     Returns list of (ec_id, description, verdict_raw, lineno).
+
+    BI-044: EC ID column now uses the shared grammar (EC-\d{1,4}[a-z]?) via EC_TOKEN_RE.pattern.
     """
     rows = []
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
     for lineno, line in enumerate(lines, 1):
-        # Match TV table row that contains an EC-NNN column
+        # Match TV table row that contains an EC-NNN column (BI-044: \d{1,4} shared grammar)
         m = re.match(
-            r"^\|\s*(TV-[\w]+)\s*\|\s*(EC-(\d+[a-z]?))\s*\|\s*(.+?)\s*\|.*?\|\s*(\d|n/a)\s*\|\s*(.+?)\s*\|",
+            r"^\|\s*(TV-[\w]+)\s*\|\s*(EC-\d{1,4}[a-z]?)\s*\|\s*(.+?)\s*\|.*?\|\s*(\d|n/a)\s*\|\s*(.+?)\s*\|",
             line,
         )
         if m:
             ec_id = m.group(2)
-            desc = m.group(4).strip()
-            verdict_raw = m.group(6).strip()
+            desc = m.group(3).strip()
+            verdict_raw = m.group(5).strip()
             rows.append((ec_id, desc, verdict_raw, lineno))
     return rows
 

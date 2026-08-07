@@ -56,6 +56,7 @@ import os
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
 REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 SPECS = REPO / ".factory" / "specs"
@@ -74,25 +75,9 @@ POLICIES = FACTORY / "policies.yaml"
 ADR_DIR = SPECS / "architecture" / "decisions"
 BC_DIR = SPECS / "behavioral-contracts"
 
-# R3-B: class-level non-conforming ID shape (would-be identifiers, D-069).
-# Triple-segment shape: <FAMILY>-<alphabetic-word>-<digits>.
-# An alphabetic word was interpolated where only registry digits belong.
-# Precision: 12/12 true positives, 0 false positives on 133-file corpus
-# (ws3-phase2-checker-repair-design.md §3.5).
-_WOULD_BE_ID_RE = re.compile(
-    r"\b(CAP|DI|DD|VP|NFR|BC|ADR|HS|POL|EC)-([A-Za-z][A-Za-z0-9]*)-(\d+)\b"
-)
-
-# R3-C: historical-changelog scoping (ported from check-placeholders.py).
-# A line whose match is inside a quoted YAML changelog string
-# (version marker present) is a historical record, not a live reference.
-_IR_CHANGELOG_QUOTED = re.compile(r'"[^"]*v\d+\.\d+[^"]*"')
-
-# R3-A: conforming EC-column first cell pattern (strikethrough-tolerant)
-_EC_ID_CELL_RE = re.compile(r"^~{0,2}EC-\d{1,4}[a-z]?~{0,2}$")
-
-# Table separator cell pattern
-_TABLE_SEP_CELL_RE = re.compile(r"^:?-{2,}:?$")
+# R3-B, R3-A, table cell parsing, and changelog scoping use shared primitives (BI-040 Stage 2):
+#   slp.WOULD_BE_ID_RE (R3-B), slp.is_conforming_ec_cell (R3-A),
+#   slp.split_table_cells(), slp.is_table_separator_row(), slp.is_historical_changelog_line()
 
 # R3-C extended (D-081): versioned-changelog heading positional scoping.
 # A ### vN.N ATX heading (exactly level 3, starting with a version token) marks
@@ -104,50 +89,13 @@ _TABLE_SEP_CELL_RE = re.compile(r"^:?-{2,}:?$")
 _VERSIONED_CHANGELOG_HEADING_RE = re.compile(r"^### v\d+\.\d+")
 
 
-def is_historical_changelog_line(line: str, matched_text: str) -> bool:
-    """Return True if matched_text appears inside a quoted changelog entry on this line.
-
-    R3-C: ported from check-placeholders.is_historical_changelog_line.
-    A quoted changelog entry is a YAML list item like:
-      - "v1.2: P2-M09 — replaced non-conforming EC-NEW-3 with registry-compliant EC-164"
-
-    The predicate: the match is bracketed by double-quotes on the same line
-    AND the line contains a version marker (v\\d+.\\d+).
-    Implemented as a function (not a named set) per the suppression guard (D-039).
-    """
-    pos = line.find(matched_text)
-    if pos == -1:
-        return False
-    before = line[:pos]
-    after = line[pos + len(matched_text):]
-    in_quotes = ('"' in before and '"' in after) or _IR_CHANGELOG_QUOTED.search(line) is not None
-    has_version = bool(re.search(r"v\d+\.\d+", line))
-    return in_quotes and has_version
-
-
-def _split_cells(line: str) -> list:
-    """Split a markdown table row into stripped cell values (ragged-safe)."""
-    parts = line.split("|")
-    if len(parts) < 2:
-        return []
-    inner = parts[1:]
-    if inner and inner[-1].strip() == "":
-        inner = inner[:-1]
-    return [p.strip() for p in inner]
-
-
-def _is_separator_row(cells: list) -> bool:
-    """Return True if all non-empty cells are table separator cells (---, :--:, etc.)."""
-    non_empty = [c for c in cells if c]
-    return bool(non_empty) and all(_TABLE_SEP_CELL_RE.match(c) for c in non_empty)
-
 
 def build_heading_ids(path: Path, pattern: str) -> set[str]:
     """Extract IDs from # headings matching `pattern` (e.g. 'CAP-\\d+')."""
     if not path.exists():
         return set()
     ids: set[str] = set()
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(path.read_text(encoding="utf-8")):
         m = re.search(pattern, line)
         if m and line.startswith("#"):
             ids.add(m.group(0))
@@ -159,7 +107,7 @@ def build_table_ids(path: Path, pattern: str) -> set[str]:
     if not path.exists():
         return set()
     ids: set[str] = set()
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(path.read_text(encoding="utf-8")):
         if not line.startswith("|"):
             continue
         for m in re.finditer(pattern, line):
@@ -184,7 +132,7 @@ def build_yaml_ids(path: Path, pattern: str) -> set[str]:
     if not path.exists():
         return set()
     ids: set[str] = set()
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(path.read_text(encoding="utf-8")):
         for m in re.finditer(pattern, line):
             ids.add(m.group(0))
     return ids
@@ -221,7 +169,7 @@ def build_valid_ec_ids() -> set[str]:
     # From test-vectors.md: scan TABLE ROWS ONLY (lines starting with |).
     # Any EC-NNN that appears in a table row is registered.
     if TEST_VECTORS.exists():
-        for line in TEST_VECTORS.read_text(encoding="utf-8").splitlines():
+        for line in slp.cm_splitlines(TEST_VECTORS.read_text(encoding="utf-8")):
             if not line.startswith("|"):
                 continue  # skip prose, blockquotes, section headers
             for m in re.finditer(r"\bEC-(\d+)\b", line):
@@ -289,7 +237,7 @@ def build_valid_r_ids() -> set[str]:
         "R003", "R004", "R005", "R006", "R007", "R008", "R009",
     }
     if BRIEF.exists():
-        for line in BRIEF.read_text(encoding="utf-8").splitlines():
+        for line in slp.cm_splitlines(BRIEF.read_text(encoding="utf-8")):
             for m in re.finditer(r"\bR-?(\d+[a-c]?)\b", line):
                 num_str = m.group(1)
                 # Store all equivalent reference forms so lookup succeeds
@@ -313,7 +261,7 @@ def build_valid_pol_ids() -> set[str]:
     """Return POL-NN IDs from policies.yaml."""
     ids: set[str] = set()
     if POLICIES.exists():
-        for line in POLICIES.read_text(encoding="utf-8").splitlines():
+        for line in slp.cm_splitlines(POLICIES.read_text(encoding="utf-8")):
             m = re.match(r"\s*-\s*id:\s*(\d+)", line)
             if m:
                 ids.add(f"POL-{int(m.group(1))}")
@@ -350,7 +298,7 @@ def check_file(path: Path) -> list[str]:
     if str(path) in REGISTRY_FILES:
         return violations
     text = path.read_text(encoding="utf-8")
-    lines = text.splitlines()
+    lines = slp.cm_splitlines(text)
 
     def v(lineno, ref, family, valid_set):
         if ref not in valid_set:
@@ -387,9 +335,9 @@ def check_file(path: Path) -> list[str]:
 
         if not in_fenced_code:
             if line.startswith("|"):
-                cells = _split_cells(line)
+                cells = slp.split_table_cells(line)
                 if cells:
-                    if _is_separator_row(cells):
+                    if slp.is_table_separator_row(cells):
                         # Separator row: determine if this table's header was EC.
                         # "ID" is intentionally excluded: prd.md uses "| ID | Differentiator |"
                         # whose first-column cells are KD-NNN (Key Differentiators), not EC IDs.
@@ -403,7 +351,7 @@ def check_file(path: Path) -> list[str]:
                         # Data row in an EC-column table: apply R3-A
                         first_cell = cells[0]
                         r3a_first_cell = first_cell  # mark for R3-B suppression
-                        if not _EC_ID_CELL_RE.match(first_cell):
+                        if not slp.is_conforming_ec_cell(first_cell):
                             violations.append(
                                 f"{path}:{lineno}: non-conforming EC ID in ID column '{first_cell}'"
                             )
@@ -510,14 +458,14 @@ def check_file(path: Path) -> list[str]:
         # well-formed ID (digits-only suffix). Zero FPs on 133-file corpus.
         # Gated: suppressed inside fenced code blocks (CommonMark §4.5).
         if not in_fenced_code:
-            for m in _WOULD_BE_ID_RE.finditer(line):
+            for m in slp.WOULD_BE_ID_RE.finditer(line):
                 token = m.group(0)
                 # R3-A priority: skip tokens already handled by R3-A on this line
                 # (avoids double-reporting the same first-cell violation)
                 if r3a_first_cell is not None and token == r3a_first_cell:
                     continue
                 # R3-C(1): quoted YAML-changelog line — not a live reference
-                if is_historical_changelog_line(line, token):
+                if slp.is_historical_changelog_line(line, token):
                     continue
                 # R3-C(2): versioned-changelog section positional scoping (D-081).
                 # Under a `### vN.N` heading, the entry is an immutable historical

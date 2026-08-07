@@ -13,6 +13,7 @@ import os
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
 REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
 SPECS = REPO / ".factory" / "specs"
@@ -32,7 +33,7 @@ def parse_frontmatter_end(lines):
 
 def get_bc_h1(path: Path) -> tuple[str | None, int]:
     """Return (title, line_number) from the first H1 after frontmatter, or (None, -1)."""
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
     start = parse_frontmatter_end(lines)
     for i, line in enumerate(lines[start:], start=start):
         if line.startswith("# "):
@@ -46,7 +47,7 @@ def get_bc_h1(path: Path) -> tuple[str | None, int]:
 def parse_bc_index_rows() -> dict[str, tuple[str, int]]:
     """Parse BC-INDEX.md and return {bc_id: (title, line_number)}."""
     result = {}
-    lines = BC_INDEX.read_text(encoding="utf-8").splitlines()
+    lines = slp.cm_splitlines(BC_INDEX.read_text(encoding="utf-8"))
     for lineno, line in enumerate(lines, 1):
         # Match table rows like: | BC-2.SS.NNN | Title | Priority | [file](file) |
         m = re.match(r"^\|\s*(BC-\d+\.\d+\.\d+)\s*\|\s*(.+?)\s*\|\s*P[012]\s*\|", line)
@@ -60,7 +61,7 @@ def parse_bc_index_rows() -> dict[str, tuple[str, int]]:
 def parse_prd_bc_rows() -> dict[str, tuple[str, int]]:
     """Parse prd.md §2.x tables and return {bc_id: (title, line_number)}."""
     result = {}
-    lines = PRD.read_text(encoding="utf-8").splitlines()
+    lines = slp.cm_splitlines(PRD.read_text(encoding="utf-8"))
     # Only look in section 2 (lines between "## 2." and "## 3.")
     in_section_2 = False
     for lineno, line in enumerate(lines, 1):
