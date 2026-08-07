@@ -999,3 +999,116 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 **Dim-7 Attestation:** Agents dispatched this burst: state-manager only (spec file already edited and orchestrator-verified before burst start). No adversary agent dispatched.
 
 **Closes:** (nothing — BC-2.05.003 was an open POLICY-5 finding, not a formal BI). **Updates:** BI-002 (WS-4-G Shard-A COMPLETE, 177 remaining), BI-027 (MEANING-INVERTED CLOSED; 39 FABRICATED remain). **Adds:** D-091 (WS-4-G Shard-A burst wrap).
+
+---
+
+## Burst: burst 22 — WS-4 Shards A–E: 40 POLICY-5 FABRICATED + 50 proof-method joins repaired across 49 BC files (2026-08-07)
+
+**Parent-commit:** D-091 factory-artifacts HEAD (WS-4-G Shard-A, single BC file)
+
+**Adversary verdict:** No adversary pass this burst. Convergence counter UNCHANGED — 0 of 3 clean passes. WS-4 Shards A–E are the remediation payload for pass-6's POLICY-5 axis (BI-027) and proof-method axis (BI-026). Pass 7 gated until PR feature/pol14-test-sufficient merges and 15 remaining non-blocked items are cleared.
+
+**Shard summary (normalized POLICY-5 FABRICATED / proof-method join repairs):**
+- Shard A (ss-01, ss-02): 5 FABRICATED / 1 proof-method
+- Shard B (ss-03..ss-06): 7 FABRICATED (10 raw) / 20 proof-method
+- Shard C (ss-07..ss-09): 11 FABRICATED / 14 proof-method
+- Shard D (ss-10, ss-13): 8 FABRICATED / 5 proof-method
+- Shard E (ss-11, ss-12, ss-14): 9 FABRICATED / 10 proof-method
+- **TOTAL: 40 normalized / 43 raw FABRICATED repaired; 50 proof-method join repairs**
+
+**CORRECTIONS REGISTER (understatements — opposite of all prior corrections which were overstatements):**
+- Recorded 39 FABRICATED remaining → execution found 40. UNDERSTATEMENT by 1.
+- Recorded 43 proof-method join repairs → execution found 50. UNDERSTATEMENT of 7.
+- Rate 30.3% → refined 31.1% (41/132: 40 FABRICATED + 1 MEANING-INVERTED from D-091).
+- 1 of 55 mechanically-fixable em-dash rows → execution found 0 of 55. The cross-check confirmed BC-2.10.002:160-161 has a real VP (VP-007) that does NOT match those rows — they are misfiled, not fixable here.
+
+**Citation population independently re-derived:** 132 (66 BC files × exactly 2 per file). MATCHES original predicate population exactly.
+
+**Uniform structural pattern:** Fabrication confined to the `L2 Capability` row; the adjacent `Capability Anchor Justification` row already carried the verbatim capability title — two rows contradicted each other in place. Repairs substituted the verbatim capabilities.md section title and moved any gloss OUTSIDE the quotation marks.
+
+**Ancillary structural repairs (not POLICY-5, not proof-method — discovered during shard execution):**
+- `BC-2.04.001`: Edge Cases table had 3 cells in a 2-column table (`TV-BV013` row); Shard B expanded header to `| EC | Description | Notes |` and padded 5 rows. TV-BV013 content byte-for-byte unchanged.
+- `BC-2.06.001`: One VP-table row covered VP-001 AND VP-018; Shard B split it into two rows.
+- Shards A, B, E corrected stale `input-hash` values (`c3e82ce` → `07d983a`) to satisfy `validate-input-hash` hook.
+
+**Baselines PRESERVED on develop @ `c2e5cf1` (orchestrator re-ran all checkers post-burst — ZERO regressions):**
+- `check-placeholders.py` 80 / 133 files — PRESERVED (55 em-dash + 25 Stories, both correctly untouched)
+- `check-id-resolution.py` 10 / 134 files — PRESERVED
+- `check-counts` PASSED (37 checks) · `check-title-sync` PASSED (66 titles) · `check-index-integrity` PASSED (80 checks; BC 66, VP 26) · `check-adr-consistency` PASSED (8 ADRs) · `check-ec-injectivity` PASSED (205 EC IDs, injective) · `check-holdout-boundary` PASSED (134 files, no leaks)
+- `run-selftests.sh` 55/55 — PRESERVED
+- `test_primitives.sh` 10/10 — PRESERVED
+
+**Standing lesson:** The "138 mechanical items" figure was wrong IN KIND, not merely in magnitude — its single largest category (55 rows, 40% of that scope) required an operator ruling rather than a remediation burst. Dispatching the recorded plan verbatim would have driven five subagents toward fabricating VP ids.
+
+**Residual:** 55 em-dash rows BLOCKED on PR #9 (feature/pol14-test-sufficient). After merge: 2 residual findings (BC-2.10.002:160-161 misfiled rows — probable move to BC-2.10.007/BC-2.10.010, not yet adjudicated). 10 id-resolution rows + 5 vacuous VP rewrites remain queued.
+
+**`.factory/hooks/verify-sha-currency.sh` STILL ABSENT** — post-push hook verification gap. Heads verified directly by orchestrator. ZERO regressions confirmed by orchestrator re-run of all checkers.
+
+**Files touched (Dim-1): 51 unique files (factory-artifacts only — no develop-side changes this burst)**
+
+- `.factory/specs/behavioral-contracts/ss-01/BC-2.01.001.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-01/BC-2.01.002.md` — POLICY-5 FABRICATED repair
+- `.factory/specs/behavioral-contracts/ss-01/BC-2.01.003.md` — POLICY-5 FABRICATED repair
+- `.factory/specs/behavioral-contracts/ss-01/BC-2.01.004.md` — POLICY-5 FABRICATED repair
+- `.factory/specs/behavioral-contracts/ss-01/BC-2.01.005.md` — POLICY-5 FABRICATED repair + stale input-hash corrected (c3e82ce → 07d983a)
+- `.factory/specs/behavioral-contracts/ss-01/BC-2.01.009.md` — POLICY-5 FABRICATED repair
+- `.factory/specs/behavioral-contracts/ss-03/BC-2.03.001.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-03/BC-2.03.002.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-03/BC-2.03.003.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-03/BC-2.03.004.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-03/BC-2.03.005.md` — proof-method join (no POLICY-5 fabrication in this file)
+- `.factory/specs/behavioral-contracts/ss-04/BC-2.04.001.md` — POLICY-5 FABRICATED repair + structural Edge Cases table repair (TV-BV013 row: 3 cells → 2-column table; header expanded to `| EC | Description | Notes |`; 5 rows padded) + stale input-hash corrected
+- `.factory/specs/behavioral-contracts/ss-04/BC-2.04.002.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-04/BC-2.04.003.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-05/BC-2.05.002.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-05/BC-2.05.003.md` — POLICY-5 FABRICATED repair (builds on D-091 v1.3 citation-authority repair)
+- `.factory/specs/behavioral-contracts/ss-06/BC-2.06.001.md` — POLICY-5 FABRICATED repair + VP-table row split (single row VP-001+VP-018 → two rows)
+- `.factory/specs/behavioral-contracts/ss-06/BC-2.06.002.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.001.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.002.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.003.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.004.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.006.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.007.md` — POLICY-5 FABRICATED repair + proof-method join (frontmatter version/modified changelog discrepancy: ancillary finding logged for pass-7, not fixed here)
+- `.factory/specs/behavioral-contracts/ss-08/BC-2.08.001.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-08/BC-2.08.002.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-08/BC-2.08.003.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-08/BC-2.08.004.md` — POLICY-5 FABRICATED repair + proof-method join (frontmatter version/modified changelog discrepancy: ancillary finding logged for pass-7, not fixed here)
+- `.factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-09/BC-2.09.002.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-10/BC-2.10.001.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-10/BC-2.10.003.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-10/BC-2.10.004.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-10/BC-2.10.005.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-10/BC-2.10.006.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-10/BC-2.10.007.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-10/BC-2.10.008.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.002.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.004.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-12/BC-2.12.001.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-12/BC-2.12.002.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-12/BC-2.12.003.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-12/BC-2.12.004.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-13/BC-2.13.001.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-13/BC-2.13.002.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-14/BC-2.14.001.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-14/BC-2.14.002.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/specs/behavioral-contracts/ss-14/BC-2.14.003.md` — POLICY-5 FABRICATED repair + proof-method join
+- `.factory/STATE.md` — timestamp 2026-08-07T23:57:00Z, version 2.9→3.0; current_step, Last Updated, Current Phase Steps (WS-4-G-Shard-A row superseded by WS-4-Shards-A–E row), BI-002 resolution, BI-026/BI-027 counts, Session Resume Checkpoint, Concurrent Cycles, D-092/D-093 appended to Decisions Log, CORRECTIONS entries
+- `.factory/cycles/phase-1d/burst-log.md` — this entry (burst 22)
+
+**Codifications:** D-092 (POL-14 test-sufficient sentinel — VP-INDEX cross-check required; mutation/negative tests required per D-040/D-050/D-057; PR #9 OPEN, NOT merged), D-093 (spec-lint REQUIRED at Phase-1 gate with Stories field exempt until Phase 2; resolves D-029/D-032 unsatisfiable-as-written contradiction; PR #9 OPEN, NOT merged).
+
+**Artifact state at burst close:**
+PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-204 (205 ids) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-093 (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/034/035/036/038/040/042/043/044/045. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/037/039/041/046.
+
+**Dim-2 Attestation:** No `canonical-facts.toml` mutation this burst. `check-canonical-facts.py` last reported exit 0 at burst-20 close. No FACT-N entries added or modified. Canonical facts corpus unchanged.
+
+**Dim-5 Attestation:** STATE.md — timestamp 2026-08-07T23:57:00Z, version 3.0, status: draft, producer: state-manager. burst-log.md — 22 bursts. SESSION-HANDOFF.md — D-090 snapshot; NOT updated this burst (no session-wrap performed; shards A–E state fully captured in STATE.md and this burst-log entry).
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. WS-4 Shards A–E COMPLETE. WS-4 remaining: 70 items — 55 em-dash BLOCKED on PR #9 (feature/pol14-test-sufficient) + 10 id-resolution + 5 vacuous VP rewrites. 2 residual after merge per BC-2.10.002 adjudication.
+
+**Dim-7 Attestation:** Agents dispatched this burst: product-owner ×5 (one per shard) for spec edits; state-manager for factory-artifacts commit. No adversary agent dispatched.
+
+**Closes:** (nothing — all 49 BC file edits address open BI-026/BI-027 findings; no formal BI closed by spec repairs alone). **Updates:** BI-002 (WS-4 Shards A–E COMPLETE; 70 remaining; 55 BLOCKED on PR #9), BI-026 (50 proof-method joins repaired; residual rows in deferred BCs), BI-027 (40 FABRICATED repaired; 0 remain; corrected rate 31.1%/132). **Adds:** D-092, D-093.

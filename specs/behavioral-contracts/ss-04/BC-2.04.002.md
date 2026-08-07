@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (WS-4-B) Proof-method join repair: both VP-014 rows 'unit test' → 'integration' (VP-INDEX authority)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -65,8 +66,8 @@ use regex-based link extraction.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-014 | Indented code blocks yield no links | unit test |
-| VP-014 | HTML comments yield no links | unit test |
+| VP-014 | Indented code blocks yield no links | integration |
+| VP-014 | HTML comments yield no links | integration |
 
 ## Traceability
 | Field | Value |

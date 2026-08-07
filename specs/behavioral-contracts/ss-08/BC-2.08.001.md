@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,6 +20,7 @@ capability: "CAP-008"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.3: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string was fabricated description; corrected to verbatim section title 'Anchor Resolution' per capabilities.md §CAP-008; gloss moved outside quotes. VP-015 proof method corrected from 'unit test' to 'integration' per VP-INDEX authority. VP-025 proof method corrected from 'Kani/proptest' to 'proptest' per VP-INDEX authority."
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
   - "v1.2: (EC-collision) EC-060→EC-191 (EC-060 canonical owner is BC-2.08.001 corrected: was coliding with BC-2.06.001); EC-075→EC-194 (empty-anchor case; three-equivalent-forms case stays in test-vectors.md). (C4-006) VP-025 added to Verification Properties."
 deprecated: null
@@ -72,14 +73,14 @@ and looked up in the anchor table. If found, verdict is clean; if not, verdict i
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-015 | Anchor-only links resolved in same-file table | unit test |
-| VP-015 | Case mismatch → anchor-not-found | unit test |
-| VP-025 | Anchor-resolver totality (every input resolves to Hit or non-panic outcome) | Kani/proptest |
+| VP-015 | Anchor-only links resolved in same-file table | integration |
+| VP-015 | Case mismatch → anchor-not-found | integration |
+| VP-025 | Anchor-resolver totality (every input resolves to Hit or non-panic outcome) | proptest |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-008 ("Resolve anchor fragments by looking up the fragment in the pre-built anchor table") per capabilities.md §CAP-008 |
+| L2 Capability | CAP-008 ("Anchor Resolution") per capabilities.md §CAP-008 — resolve anchor fragments by looking up the fragment in the pre-built anchor table |
 | Capability Anchor Justification | CAP-008 ("Anchor Resolution") per capabilities.md §CAP-008 |
 | L2 Domain Invariants | DI-003, DI-008 |
 | Brief Requirement | R5, AMB-053 |

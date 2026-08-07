@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -23,6 +23,7 @@ modified:
   - "v1.1: INCONSISTENCY-001/D-014 — replaced 'clean' with 'alive' in test vector (liveness outcome is alive; link verdict is clean per DD-022)"
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
   - "v1.3: CV5-001/D-043 — T13 removed from Brief Requirement field; T13 is retired by D-043 macOS-only platform directive"
+  - "v1.4: (WS-4/POLICY-5) L2 Capability fabricated quotation repaired: replaced invented excerpt with verbatim CAP-010 heading per capabilities.md §CAP-010; gloss moved outside quotes"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -72,7 +73,7 @@ share one 10-second budget).
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-010 ("10-second per-URL timeout; timeout → indeterminate") per capabilities.md §CAP-010 |
+| L2 Capability | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 — 10-second per-URL total timeout; timeout → indeterminate (http-timeout) |
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
 | L2 Domain Invariants | DI-010 |
 | Brief Requirement | R5 |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -20,6 +20,7 @@ capability: "CAP-014"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - v1.5: "WS-4 Shard E: POLICY-5 repair — L2 Capability fabricated quote replaced with verbatim CAP-014 title ('Exit Code Determination'); VP-006 proof method corrected to 'kani' (was 'unit test') per VP-INDEX authority."
   - "v1.4: (exit-code ruling) PC4 updated: removed 'no unrecognized flags' from config_error description — unrecognized flags are handled by clap before app::run() and do not set config_error. config_error = true has exactly one trigger: invalid --ignore glob pattern. Added note clarifying --help/--version are outside this BC's scope."
   - "v1.3: (EC-collision) EC-009 renamed to EC-184 (EC-009 canonical owner is BC-2.01.004 per test-vectors.md registry)."
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
@@ -74,13 +75,13 @@ configuration errors occurred. This is the success exit code. In terms of the pu
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-006 | Exit 0 with only indeterminate findings | unit test |
-| VP-006 | Exit 0 with no files | unit test |
+| VP-006 | Exit 0 with only indeterminate findings | kani |
+| VP-006 | Exit 0 with no files | kani |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-014 ("Determine final exit code from scan results: 0 no broken links, 1 broken links, 2 usage/IO error") per capabilities.md §CAP-014 |
+| L2 Capability | CAP-014 ("Exit Code Determination") per capabilities.md §CAP-014 |
 | Capability Anchor Justification | CAP-014 ("Exit Code Determination") per capabilities.md §CAP-014 |
 | L2 Domain Invariants | DI-010, DI-011 |
 | Brief Requirement | R7 |

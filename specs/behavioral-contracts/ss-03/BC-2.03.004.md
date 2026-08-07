@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (WS-4-B) Citation-authority repair: L2 Capability row — fabricated excerpt 'Distinguish link kinds: ... external-http, non-http' (uses ... elision, not verbatim) replaced with verbatim title 'Link Extraction'; gloss moved outside quotes."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -72,7 +73,7 @@ explicit scope decision (DD-009), documented as a known limitation.
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-003 ("Distinguish link kinds: ... external-http, non-http") per capabilities.md §CAP-003 |
+| L2 Capability | CAP-003 ("Link Extraction") per capabilities.md §CAP-003 — classifies external-http and non-http link kinds |
 | Capability Anchor Justification | CAP-003 ("Link Extraction") per capabilities.md §CAP-003 |
 | L2 Domain Invariants | DI-005 |
 | Brief Requirement | R2c, DD-009, AMB-047 |

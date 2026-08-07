@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -23,6 +23,7 @@ modified:
   - v1.3: "D-011 — --insecure is an explicit non-goal. Removed all --insecure-conditional postconditions. TLS handshake failure is always broken (tls-error). EC-079d removed."
   - "v1.4: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.5: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.6: (WS-4) VP-007 proof method corrected from 'unit test with mock TLS server' to 'kani (P0)' per VP-INDEX authority"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -67,7 +68,7 @@ non-goal per D-011). Users with non-standard CAs must configure the system CA st
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | TLS failure → tls-error (broken) always | unit test with mock TLS server |
+| VP-007 | TLS failure → tls-error (broken) always | kani (P0) |
 
 ## Traceability
 | Field | Value |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,6 +20,7 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.3: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string was fabricated percent-encode description; corrected to verbatim section title 'Relative Path Resolution' per capabilities.md §CAP-007; gloss moved outside quotes. VP-004 proof method corrected from 'unit test' to 'kani' per VP-INDEX authority."
   - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
   - "v1.2: (EC-collision) EC-034→EC-189 (EC-034 canonical owner is BC-2.07.008 per test-vectors.md registry)."
 deprecated: null
@@ -70,13 +71,13 @@ slug comparison (DI-003).
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-004 | Fragment split precedes percent-decode (trap T9) | unit test |
-| VP-004 | %20 in path decoded to space | unit test |
+| VP-004 | Fragment split precedes percent-decode (trap T9) | kani |
+| VP-004 | %20 in path decoded to space | kani |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-007 ("Percent-encode awareness: decode path before comparison, fragment before anchor lookup, fragment split BEFORE decode") per capabilities.md §CAP-007 |
+| L2 Capability | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 — percent-encode awareness: decode path before comparison, fragment split BEFORE decode (DI-003) |
 | Capability Anchor Justification | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 |
 | L2 Domain Invariants | DI-002, DI-003 |
 | Brief Requirement | R5, R6, T9 |

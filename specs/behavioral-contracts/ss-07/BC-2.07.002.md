@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -20,6 +20,7 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.3: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string contained fabricated extension 'root-relative links resolved from git root'; corrected to verbatim section title 'Relative Path Resolution' per capabilities.md §CAP-007; gloss moved outside quotes."
   - "v1.2: (DirIndex-scope ruling) Added Postcondition 5: DirIndex is fully populated for the parent directory of the resolved path before path_resolver is called (Pass 1.5a covers all link types). Closes BC-2.07.003 PC2 satisfiability gap for root-relative links."
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
@@ -75,7 +76,7 @@ fallback.
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-007 ("Relative Path Resolution — root-relative links resolved from git root") per capabilities.md §CAP-007 |
+| L2 Capability | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 — root-relative links resolved from git root |
 | Capability Anchor Justification | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 |
 | L2 Domain Invariants | DI-002, DI-003 |
 | Brief Requirement | R5, AMB-017 |

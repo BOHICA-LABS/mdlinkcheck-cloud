@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,6 +20,7 @@ capability: "CAP-012"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - v1.4: "WS-4 Shard E: POLICY-5 repair — L2 Capability fabricated quote replaced with verbatim CAP-012 title (dropped appended '; --format text explicit alias accepted' clause)."
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
   - "v1.3: (P4-016) Removed incorrect SS-11 subsystem label from cli.rs secondary module reference."
 deprecated: null
@@ -75,7 +76,7 @@ a usage error.
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-012 ("Text Report Generation; --format text explicit alias accepted") per capabilities.md §CAP-012 |
+| L2 Capability | CAP-012 ("Text Report Generation") per capabilities.md §CAP-012 |
 | Capability Anchor Justification | CAP-012 ("Text Report Generation") per capabilities.md §CAP-012 |
 | Brief Requirement | R6, AMB-092 |
 | Architecture Module | `cli.rs` (effectful shell, LOW tier) primary; `reporter.rs` (SS-12, pure core, HIGH tier) secondary — `--format text` flag selects format_text — ADR-005 |

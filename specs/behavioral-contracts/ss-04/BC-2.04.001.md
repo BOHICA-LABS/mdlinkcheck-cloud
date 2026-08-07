@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (WS-4-B) Citation-authority repair: L2 Capability row — fabricated excerpt with ... elisions replaced with verbatim title 'Code Context Exclusion'; gloss moved outside quotes. Proof-method join: VP-014 row-1 'property test (fuzz...)' → 'integration'; row-2 'integration test' → 'integration' (VP-INDEX authority). Edge Cases table: added Notes column header to accommodate pre-existing TV-BV013 3-cell row (TV-BV013 content unchanged)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -53,13 +54,13 @@ produces a `Tag::Link` event. This is DI-004 applied to the most common code con
 3. An unclosed fence swallows all content to EOF (CommonMark behavior).
 
 ## Edge Cases
-| EC | Description |
-|----|-------------|
-| EC-103 | Double-backtick span containing link syntax |
-| EC-104 | Fenced block with `[x](missing.md)` inside |
-| EC-105 | `~~~`-fenced block |
-| EC-108 | Unclosed fence at EOF with links inside |
-| EC-109 | Fence inside list item |
+| EC | Description | Notes |
+|----|-------------|-------|
+| EC-103 | Double-backtick span containing link syntax | |
+| EC-104 | Fenced block with `[x](missing.md)` inside | |
+| EC-105 | `~~~`-fenced block | |
+| EC-108 | Unclosed fence at EOF with links inside | |
+| EC-109 | Fence inside list item | |
 | TV-BV013 | BRIEF.md lines 18-19: inline code spans | Exit 0 (canonical self-test) |
 
 ## Canonical Test Vectors
@@ -72,13 +73,13 @@ produces a `Tag::Link` event. This is DI-004 applied to the most common code con
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-014 | No link in any code context is ever extracted | property test (fuzz with random links in code blocks) |
-| VP-014 | BRIEF.md self-test exits 0 | integration test |
+| VP-014 | No link in any code context is ever extracted | integration |
+| VP-014 | BRIEF.md self-test exits 0 | integration |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-004 ("Identify regions...constituting code context...Exclusion is structural (AST event matching), not heuristic") per capabilities.md §CAP-004 |
+| L2 Capability | CAP-004 ("Code Context Exclusion") per capabilities.md §CAP-004 — exclusion is structural (AST event matching), not heuristic; primary code contexts: fenced blocks and inline spans |
 | Capability Anchor Justification | CAP-004 ("Code Context Exclusion") per capabilities.md §CAP-004 — fenced blocks and inline spans are the primary code contexts |
 | L2 Domain Invariants | DI-004 |
 | Brief Requirement | R4, BV-013 |

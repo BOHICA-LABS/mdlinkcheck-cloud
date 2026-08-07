@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -23,6 +23,7 @@ modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
   - "v1.3: (WS-4-G) Citation-authority repair: replaced misreferenced DD-007 with DD-003 in Description; corrected fabricated CAP-005 excerpt to verbatim title 'Anchor Table Construction'; added missing DI-007 to L2 Domain Invariants; replaced wrong brief requirement R5/DD-007 with R2b/D-007."
+  - "v1.4: (WS-4-B) Proof-method join repair: VP-020 'unit test' → 'integration' (VP-INDEX authority)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -71,7 +72,7 @@ legacy `<a name="top">` patterns and explicit id anchors in documentation.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-020 | id/name values added verbatim to anchor table | unit test |
+| VP-020 | id/name values added verbatim to anchor table | integration |
 
 ## Traceability
 | Field | Value |

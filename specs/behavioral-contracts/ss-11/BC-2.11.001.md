@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,6 +20,7 @@ capability: "CAP-011"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - v1.6: "WS-4 Shard E: POLICY-5 repair — L2 Capability fabricated quote replaced with verbatim CAP-011 title ('Filter Application'); VP-016 row 2 proof method corrected to 'integration' (was 'unit test') per VP-INDEX authority."
   - v1.3: "DI-006 four-mechanism note added to Invariants: --ignore is one of four source-exclusion mechanisms that share the DI-006 anchor-target carve-out property."
   - v1.5: "Fix 1 (POL-18 holdout boundary): EC-074 citation removed from edge-case table. The anchor-target carve-out property is stated in PC3 and Invariant 4; corpus-fixture holdout details remain hidden. EC-071..EC-073 provide sufficient visible edge coverage."
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
@@ -77,12 +78,12 @@ crate dialect. `**` crosses directory boundaries. The pattern is anchored at CWD
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | VP-016 | --ignore excludes source, not anchor target | integration test |
-| VP-016 | globset dialect: ** crosses directories | unit test |
+| VP-016 | globset dialect: ** crosses directories | integration |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-011 ("Apply --ignore glob patterns (globset dialect, source-only per DD-008) and --allow URL prefix exemptions") per capabilities.md §CAP-011 |
+| L2 Capability | CAP-011 ("Filter Application") per capabilities.md §CAP-011 |
 | Capability Anchor Justification | CAP-011 ("Filter Application") per capabilities.md §CAP-011 — --ignore is the primary filter mechanism |
 | L2 Domain Invariants | DI-006 |
 | Brief Requirement | R6, DD-008 |

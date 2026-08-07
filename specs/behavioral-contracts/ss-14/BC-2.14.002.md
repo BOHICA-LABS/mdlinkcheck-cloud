@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -20,6 +20,7 @@ capability: "CAP-014"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - v1.4: "WS-4 Shard E: POLICY-5 repair — L2 Capability fabricated quote replaced with verbatim CAP-014 title ('Exit Code Determination'); VP-005 proof method corrected to 'kani' (was 'unit test') per VP-INDEX authority."
   - "v1.3: (exit-code ruling) Removed Precondition 3 (broken-link co-requirement); Description updated to make standalone exit 2 (io_error/config_error without broken links) explicit; PC2 config_error description tightened to canonical sole trigger (invalid --ignore glob); scope-exclusion note added for --help/--version."
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
   - "v1.1: Three-input model alignment — Description, Precondition 2, and Invariant 3 updated to name verdict::exit_code(findings, io_errors, config_error). Nonexistent PATH explicitly classified as io_errors (not config_error). Mixed-case test vector added (good_dir + nonexistent_dir + broken link → exit 2). Architect v1.4 reconciliation."
@@ -76,13 +77,13 @@ they never reach `verdict::exit_code` and are outside this BC's scope (see BC-2.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-005 | Exit 2 beats exit 1 | unit test |
-| VP-005 | No fail-fast: broken links still reported with I/O error | unit test |
+| VP-005 | Exit 2 beats exit 1 | kani |
+| VP-005 | No fail-fast: broken links still reported with I/O error | kani |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-014 ("Exit 2 takes precedence over exit 1; no fail-fast") per capabilities.md §CAP-014 |
+| L2 Capability | CAP-014 ("Exit Code Determination") per capabilities.md §CAP-014 |
 | Capability Anchor Justification | CAP-014 ("Exit Code Determination") per capabilities.md §CAP-014 |
 | L2 Domain Invariants | DI-011 |
 | Brief Requirement | R7, DD-007, BV-005 |

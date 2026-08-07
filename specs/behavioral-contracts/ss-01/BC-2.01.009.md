@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T22:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -24,6 +24,7 @@ modified:
   - "v1.2: P2-C06 convergence with architect v1.4 — EC-012 corrected: removed 'before scan begins' wording that implied immediate abort. A nonexistent PATH argument is a runtime I/O error recorded into Vec<IoError>; it is NOT a startup configuration error and does NOT cause immediate exit. Added mixed-case test vector (EC-014) that distinguishes the two readings: good_dir IS scanned and its findings ARE reported; exit 2 is produced at the end because exit 2 beats exit 1. Description rewritten to make no-fail-fast explicit for all I/O error classes."
   - "v1.3: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
   - "v1.4: (EC-collision) EC-014 renamed to EC-185 (EC-014 canonical owner is BC-2.02.003 per test-vectors.md registry)."
+  - "v1.5: (WS-4/POLICY-5) Proof-method join repair — VP-005 Proof Method corrected from 'unit/integration test' to 'kani' per VP-INDEX authority."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -74,7 +75,7 @@ for `nonexistent_dir/`, and exits 2 (exit 2 beats exit 1 per DI-011).
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-005 | Exit 2 when any I/O error occurs; exit 2 beats exit 1 | unit/integration test |
+| VP-005 | Exit 2 when any I/O error occurs; exit 2 beats exit 1 | kani |
 
 ## Traceability
 | Field | Value |

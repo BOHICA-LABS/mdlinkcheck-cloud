@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (WS-4-B) Citation-authority repair: L2 Capability row — fabricated excerpt 'Build and cache a per-file anchor table from headings (slugged per github-slugger v2 with duplicate-suffix counters) and HTML id/name attributes' (invented paraphrase, not in capabilities.md) replaced with verbatim title 'Anchor Table Construction'; gloss moved outside quotes. Proof-method join: VP-018 'unit test (NFR-006)' → 'unit' (VP-INDEX authority)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -70,12 +71,12 @@ github-slugger v2 semantics.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-018 | github-slugger v2 worked examples all pass | unit test (NFR-006) |
+| VP-018 | github-slugger v2 worked examples all pass | unit |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-005 ("Build and cache a per-file anchor table from headings (slugged per github-slugger v2 with duplicate-suffix counters) and HTML id/name attributes") per capabilities.md §CAP-005 |
+| L2 Capability | CAP-005 ("Anchor Table Construction") per capabilities.md §CAP-005 — enumerates headings from AST and extracts HTML id/name attributes |
 | Capability Anchor Justification | CAP-005 ("Anchor Table Construction") per capabilities.md §CAP-005 |
 | L2 Domain Invariants | DI-008 |
 | Brief Requirement | R5 |

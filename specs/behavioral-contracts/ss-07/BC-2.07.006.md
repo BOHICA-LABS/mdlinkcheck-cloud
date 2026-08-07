@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -20,6 +20,7 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.1.0
 modified:
+  - "v1.2: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string was fabricated paraphrase; corrected to verbatim section title 'Relative Path Resolution' per capabilities.md §CAP-007."
   - "v1.1: (DirIndex-scope ruling) Precondition 2 clarified: 'exists as a regular file' is determined via EntryKind::File in DirIndex; Pass 1.5a ensures DirIndex is populated for non-.md link destination parent dirs so this routing decision is always available to path_resolver without I/O. Fixed pre-existing Edge Cases table cell-count error (EC-NEW-1/2 had extra column)."
 deprecated: null
 deprecated_by: null
@@ -87,7 +88,7 @@ to code files, images, PDFs, or any other non-Markdown file.
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-007 ("Resolve relative file destinations using source-file-directory-relative path joins, with NFC normalization and case-sensitive exact-match against directory entries") per capabilities.md §CAP-007 |
+| L2 Capability | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 |
 | Capability Anchor Justification | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 — routing the non-Markdown target decision to path_resolver.rs is a path resolution responsibility, not an anchor resolution responsibility |
 | L2 Domain Invariants | — |
 | Brief Requirement | R5, EC-072, EC-073 |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -23,6 +23,7 @@ modified:
   - v1.3: "Architect required change: Invariant 3 now specifies dedicated rayon thread pool of size 32 (not general rayon worker pool). Test vectors rewritten to assert observed concurrent connections at mock server, not internal thread counts."
   - "v1.4: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.5: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.6: (WS-4/POLICY-5) L2 Capability fabricated quotation repaired: replaced invented excerpt with verbatim CAP-010 heading per capabilities.md §CAP-010; gloss moved outside quotes"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -83,7 +84,7 @@ mock server), not internal thread counts or pool sizes.
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-010 ("Parallelism: 32 global / 4 per-host concurrent requests via rayon") per capabilities.md §CAP-010 |
+| L2 Capability | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 — parallel liveness checks: 32 global / 4 per-host concurrent requests via rayon |
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
 | Brief Requirement | R2c, R8 |
 | Architecture Module | `http_client.rs` (SS-10, effectful shell, MEDIUM tier) — ADR-004 (ureq sync HTTP), ADR-005 (rayon pool; 32-global / 4-per-host caps) |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-013) added PC7 — top-level errors array for file-level I/O failures; target-unreadable entries go in errors[], not results[]; updated invariants and test vectors. (F-023) fixed PC4 sort key to specify NFC-normalized file path per DI-001"
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (WS-4/POLICY-5) L2 Capability fabricated quotation repaired: replaced invented excerpt with verbatim CAP-013 heading per capabilities.md §CAP-013; gloss moved outside quotes. VP-011 proof method corrected from 'integration test (jq)' to 'proptest (P1)'; VP-021 proof method corrected from 'unit test' to 'integration (test-sufficient)' — per VP-INDEX authority"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -85,14 +86,14 @@ indeterminate). Clean links are never included. The object is compact (not prett
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-011 | JSON output is valid and parseable | integration test (jq) |
-| VP-021 | No ANSI codes in JSON output | unit test |
-| VP-021 | Field order consistent | unit test |
+| VP-011 | JSON output is valid and parseable | proptest (P1) |
+| VP-021 | No ANSI codes in JSON output | integration (test-sufficient) |
+| VP-021 | Field order consistent | integration (test-sufficient) |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-013 ("Generate JSON-format report: {schema_version:1, results:[...]} to stdout; same sort order as text") per capabilities.md §CAP-013 |
+| L2 Capability | CAP-013 ("JSON Report Generation") per capabilities.md §CAP-013 — emits {schema_version:1, results:[...], errors:[...]} to stdout; same sort order as text output |
 | Capability Anchor Justification | CAP-013 ("JSON Report Generation") per capabilities.md §CAP-013 |
 | L2 Domain Invariants | DI-001 (NFC-normalized sort order enforced in PC4) |
 | Brief Requirement | R6 |

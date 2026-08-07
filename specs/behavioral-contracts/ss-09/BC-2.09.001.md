@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,6 +20,7 @@ capability: "CAP-009"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.2: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string was fabricated WHATWG description; corrected to verbatim section title 'External URL Syntax Validation' per capabilities.md §CAP-009; gloss moved outside quotes."
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
 deprecated_by: null
@@ -76,7 +77,7 @@ syntactic correctness using the WHATWG URL parser. A URL that fails WHATWG parse
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-009 ("Validate external URL syntax using WHATWG URL parsing — malformed URLs are broken even in offline mode") per capabilities.md §CAP-009 |
+| L2 Capability | CAP-009 ("External URL Syntax Validation") per capabilities.md §CAP-009 — malformed URLs are broken even in offline mode; WHATWG URL grammar is the authority |
 | Capability Anchor Justification | CAP-009 ("External URL Syntax Validation") per capabilities.md §CAP-009 |
 | Brief Requirement | R5, R6, T11 |
 | Architecture Module | `url_classifier.rs` (SS-09, pure core, HIGH tier) — ADR-007 (verdict model — classification drives routing) |

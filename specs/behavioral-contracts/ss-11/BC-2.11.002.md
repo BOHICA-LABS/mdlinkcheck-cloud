@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,6 +20,7 @@ capability: "CAP-011"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - v1.6: "WS-4 Shard E: proof-method join repair — VP-010 proof method corrected to 'proptest' (was 'unit test') per VP-INDEX authority."
   - v1.3: "F-017 — this is now the CANONICAL --allow contract (owned by SS-11/CAP-011). BC-2.09.002 is a pointer to this BC. Added explicit normalize-then-prefix-match ordering in description and postconditions."
   - v1.4: "D-019/P2-M08 — added WHATWG-fail fallback to raw-string prefix match at component boundary for malformed URLs. P2-M09 — renamed EC-090/091/092 to EC-161/162/163 (deduplicated from BC-2.10.002's legitimate HTTP block use of those IDs). P2-m05 — fixed L2 Capability title; corrected Brief Requirement from R6 to R5."
   - "v1.5: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
@@ -95,8 +96,8 @@ matching `https://example.com.evil.tld`. A naive `starts_with` is never used.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-010 | Component boundary prevents bypass (trap T16) | unit test |
-| VP-010 | Exact match (no trailing /) is exempt | unit test |
+| VP-010 | Component boundary prevents bypass (trap T16) | proptest |
+| VP-010 | Exact match (no trailing /) is exempt | proptest |
 
 ## Traceability
 | Field | Value |

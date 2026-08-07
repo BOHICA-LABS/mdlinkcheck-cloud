@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,6 +20,7 @@ capability: "CAP-009"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.6: (WS-4/Shard-C) VP-010 proof method corrected from 'unit test (owned by SS-11 tests)' to 'proptest' per VP-INDEX authority."
   - v1.3: "F-017 — converted to pointer. --allow specification is now OWNED by BC-2.11.002 (SS-11/CAP-011). This BC exists only to note the SS-09 side-effect of --allow (URL is not validated). Duplicate postconditions removed; readers reference BC-2.11.002 for full matching algorithm."
   - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
   - "v1.5: (EC-collision) EC-090→EC-200 (EC-090 canonical owner is BC-2.10.009 per test-vectors.md registry)."
@@ -73,7 +74,7 @@ See BC-2.11.002 for the authoritative test vectors including ordering and bounda
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-010 | Component boundary prevents bypass — see BC-2.11.002 | unit test (owned by SS-11 tests) |
+| VP-010 | Component boundary prevents bypass — see BC-2.11.002 | proptest |
 
 ## Traceability
 | Field | Value |

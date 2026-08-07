@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -23,6 +23,7 @@ modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
   - "v1.3: (EC-collision) EC-087→EC-199 (EC-087 canonical owner is test-vectors.md TV-087 self-signed TLS). (P4-015) PC3 rewritten for RFC 9110 §10.2.3 compliance (delta-seconds + HTTP-date + malformed fallback); new PC6 (120s clamp); new Invariant 4 (bounded total pause); EC-087d/e/f added."
+  - "v1.4: (WS-4/POLICY-5) L2 Capability fabricated quotation repaired: replaced invented excerpt with verbatim CAP-010 heading per capabilities.md §CAP-010; gloss moved outside quotes"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -92,7 +93,7 @@ URL that triggered the 429 receives verdict `indeterminate (http-indeterminate)`
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-010 ("429 pauses the host per Retry-After header (default 60s); queued requests resume after pause") per capabilities.md §CAP-010 |
+| L2 Capability | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 — 429 rate-limit handling: pause host per Retry-After header (default 60s); queued requests resume after pause |
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
 | L2 Domain Invariants | DI-010 |
 | Brief Requirement | R5, AMB-088 |

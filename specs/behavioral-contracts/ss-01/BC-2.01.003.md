@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - v1.5: "Fix 1 (POL-18 holdout boundary): EC-074 citation removed from edge-case table. EC-074 is a corpus-fixture holdout; its generic behavior is already covered by Invariant 2, BC-2.08.004, and TV-152/EC-152. This BC's scope is .gitignore traversal (DI-006 case 2); the removed row incorrectly cited an --ignore scenario (DI-006 case 1)."
   - "v1.6: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
+  - "v1.7: (WS-4/POLICY-5) L2 Capability citation-fidelity repair — fabricated quoted excerpt replaced with verbatim CAP-001 heading 'File Discovery' per capabilities.md §CAP-001."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -74,7 +75,7 @@ directories from blowing the R8 performance budget.
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-001 ("Recursively discover Markdown files...applying traversal constraints") per capabilities.md §CAP-001 |
+| L2 Capability | CAP-001 ("File Discovery") per capabilities.md §CAP-001 |
 | Capability Anchor Justification | CAP-001 ("File Discovery") per capabilities.md §CAP-001 — .gitignore exclusion is a traversal constraint within CAP-001 |
 | L2 Domain Invariants | DI-006, DI-009 |
 | Brief Requirement | R1 (implied), AMB-003 |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -24,6 +24,7 @@ modified:
   - "v1.2: (F-029) fixed PC2 self-contradiction (split into non-empty and empty-heading cases); added PC3 stating counter is keyed on computed slug; added emoji-collision edge cases EC-059/EC-060"
   - "v1.3: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
   - "v1.4: (P4-001) Corrected Invariant 2: HTML element visible text IS retained (ADR-008 §HTML-Text Rendering Adjudication, DI-012 rule 1). Supersedes v1.1 Invariant-2 entry which stated the opposite. (EC-collision) EC-060→EC-190 (EC-060 canonical owner is BC-2.08.001 per test-vectors.md registry). (C4-003/C4-006) L2 Domain Invariants DI-008→DI-012; VP-026 added to Verification Properties."
+  - "v1.5: (WS-4-B) Citation-authority repair: L2 Capability row — fabricated excerpt 'Compute heading anchor slugs using the pinned github-slugger v2 algorithm' (invented paraphrase, not in capabilities.md) replaced with verbatim title 'Heading Slug Computation'; gloss moved outside quotes. Proof-method join: split combined VP-001/VP-018 row into two rows (VP-001 'unit test' → 'kani'; VP-018 'unit test' → 'unit'); VP-002 rows 'unit test' → 'kani'; VP-026 'differential oracle' → 'proptest' (all per VP-INDEX authority)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -106,15 +107,16 @@ v2 output for all inputs in the test vector corpus.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-001, VP-018 | All DD-015 worked examples produce correct slugs | unit test (NFR-006) |
-| VP-002 | Space→hyphen is 1:1 (trap T1) | unit test |
-| VP-002 | Unicode word chars preserved (trap T2) | unit test |
-| VP-026 | Differential oracle against github-slugger@2.0.0 | differential oracle |
+| VP-001 | Slug function is total — terminates without panic for any input | kani |
+| VP-002 | Space→hyphen is 1:1 (trap T1) | kani |
+| VP-002 | Unicode word chars preserved (trap T2) | kani |
+| VP-018 | All DD-015 worked examples produce correct slugs | unit |
+| VP-026 | Differential oracle against github-slugger@2.0.0 | proptest |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-006 ("Compute heading anchor slugs using the pinned github-slugger v2 algorithm") per capabilities.md §CAP-006 |
+| L2 Capability | CAP-006 ("Heading Slug Computation") per capabilities.md §CAP-006 — verbatim github-slugger v2 algorithm with 0-based duplicate counter |
 | Capability Anchor Justification | CAP-006 ("Heading Slug Computation") per capabilities.md §CAP-006 — this BC is the core slug algorithm contract |
 | L2 Domain Invariants | DI-012 (slug computation fidelity — all 7 rules) |
 | Brief Requirement | R2b, DD-015 |

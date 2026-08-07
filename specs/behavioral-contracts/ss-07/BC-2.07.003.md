@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -20,6 +20,7 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.5: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string was fabricated description; corrected to verbatim section title 'Relative Path Resolution' per capabilities.md §CAP-007; gloss moved outside quotes. VP-009 proof method corrected from 'unit test' to 'proptest' per VP-INDEX authority."
   - "v1.4: (DirIndex-scope ruling) Precondition 2 clarified: 'parent directory is readable' operationalized as 'present in DirIndex' — Pass 1.5a guarantees this for all link destination types. VP-008 proof method corrected: 'integration test (macOS only per D-043)' was wrong (D-043 edit changed platform scope, not proof method); corrected to 'proptest (macOS only per D-043)' matching VP-INDEX (authoritative) and vp-008 file."
   - "v1.3: (D-043) macOS-only platform directive: Description restated with canonical D-006 determinism rationale; Invariant 3 replaced with D-043 canonical wording; Postcondition 4 scoped to macOS; VP-008 proof method updated to macOS-only."
   - "v1.2: (EC-collision) EC-029→EC-186 (EC-029 canonical owner is BC-2.07.005); EC-030→EC-187 (NFC/NFD normalization case); EC-031→EC-188 (Unicode mixed-case case)."
@@ -82,12 +83,12 @@ grounds per D-043 and not contingent on cross-platform parity.
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | VP-008 | Case mismatch always detected on macOS (never delegated to APFS case-folding) | proptest (macOS only per D-043) |
-| VP-009 | NFC-normalized comparison is applied | unit test |
+| VP-009 | NFC-normalized comparison is applied | proptest |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-007 ("NFC normalization and case-sensitive exact-match against directory entries — never delegate to OS filesystem") per capabilities.md §CAP-007 |
+| L2 Capability | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 — NFC normalization and case-sensitive exact-match; never delegate to OS filesystem |
 | Capability Anchor Justification | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 — NFC+case-sensitive comparison is the core correctness property of CAP-007 |
 | L2 Domain Invariants | DI-002 |
 | Brief Requirement | R2a |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -9,7 +9,7 @@ phase: 1a
 inputs:
   - .factory/specs/product-brief.md
   - .factory/specs/domain-spec/L2-INDEX.md
-input-hash: "c08cb30"
+input-hash: "2a2b80f"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -18,6 +18,7 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.4.0
 modified:
+  - "v1.6: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string 'Relative Path Resolution Against Source File's Directory' was fabricated extension of section title; corrected to verbatim 'Relative Path Resolution' per capabilities.md §CAP-007; existing gloss preserved outside quotes."
   - v1.5: "Fix 3 (VP elevation): replaced test-sufficient with VP-023 per VP-INDEX v1.2 architect decision. Empty destination → Malformed(_) totality requires proptest to eliminate the NonHttp misclassification risk."
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
@@ -72,7 +73,7 @@ deterministic single-verdict for EC-031/TV-031 (F-012).
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-007 ("Relative Path Resolution Against Source File's Directory") per capabilities.md §CAP-007 — empty destination rejected at classification, before resolution |
+| L2 Capability | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 — empty destination rejected at classification, before resolution |
 | Capability Anchor Justification | CAP-007 ("Relative Path Resolution") per capabilities.md §CAP-007 — this BC constrains the path resolution entry point |
 | L2 Domain Invariants | DI-005 |
 | Brief Requirement | R2a |

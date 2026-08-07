@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "19b62d8"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: added explicit acceptance criteria for both link_extractor.rs and anchor_table.rs per SF-003 in architecture feasibility-review.md; clarified cross-module testing obligation"
   - "v1.2: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.3: (WS-4-B) Proof-method join repair: both VP-014 rows 'unit test (...)' → 'integration' (VP-INDEX authority); contextual annotations preserved."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -91,8 +92,8 @@ heading-like lines inside fenced code.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-014 | Heading-like lines in code blocks not extracted as links | unit test (link_extractor.rs) |
-| VP-014 | `anchor_table::build` produces no entry for heading-like lines inside fenced code | unit test (anchor_table.rs) — **new test required in this story** |
+| VP-014 | Heading-like lines in code blocks not extracted as links | integration (link_extractor.rs) |
+| VP-014 | `anchor_table::build` produces no entry for heading-like lines inside fenced code | integration (anchor_table.rs) — new test required in this story |
 
 ## Traceability
 | Field | Value |

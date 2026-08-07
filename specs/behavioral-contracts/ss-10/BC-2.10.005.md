@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: (WS-4/POLICY-5) L2 Capability fabricated quotation repaired: replaced invented excerpt with verbatim CAP-010 heading per capabilities.md §CAP-010; gloss moved outside quotes. VP-007 proof method corrected from 'unit test with mock DNS resolver' to 'kani (P0)' per VP-INDEX authority"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -65,12 +66,12 @@ a non-existent hostname is unlikely to be transient.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | DNS failure → broken (dns-failure) | unit test with mock DNS resolver |
+| VP-007 | DNS failure → broken (dns-failure) | kani (P0) |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-010 ("DNS failure: broken (dns-failure)") per capabilities.md §CAP-010 |
+| L2 Capability | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 — DNS resolution failure (dns-failure) maps to liveness broken → link verdict broken |
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
 | Brief Requirement | R2c |
 | Architecture Module | `http_verdict.rs` (SS-10, pure core, CRITICAL tier) primary; `http_client.rs` (SS-10, effectful, MEDIUM tier) secondary — detects DNS failure; encodes into Attempt enum for http_verdict — ADR-004, ADR-007 |

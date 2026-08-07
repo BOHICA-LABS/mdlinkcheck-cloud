@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,6 +20,7 @@ capability: "CAP-011"
 lifecycle_status: active
 introduced: v1.3.0
 modified:
+  - v1.6: "WS-4 Shard E: POLICY-5 repair — L2 Capability fabricated quote replaced with verbatim CAP-011 title ('Filter Application')."
   - "v1.4: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
   - "v1.5: (Task-8) Removed incorrect SS-11 subsystem label from cli.rs (cli.rs is not an SS-11 module); fixed pre-existing Edge Cases table header cell count."
 deprecated: null
@@ -79,7 +80,7 @@ rejects, or empty patterns (implementation must define empty-glob behavior).
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-011 ("Apply --ignore glob patterns (globset dialect, source-only per DD-008)") per capabilities.md §CAP-011 |
+| L2 Capability | CAP-011 ("Filter Application") per capabilities.md §CAP-011 |
 | Capability Anchor Justification | CAP-011 ("Filter Application") per capabilities.md §CAP-011 — startup validation of --ignore globs is part of filter application setup |
 | L2 Domain Invariants | — |
 | Brief Requirement | R6, DD-008 |

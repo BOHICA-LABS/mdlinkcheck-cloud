@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -20,6 +20,7 @@ capability: "CAP-014"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - v1.4: "WS-4 Shard E: POLICY-5 repair — L2 Capability fabricated quote replaced with verbatim CAP-014 title ('Exit Code Determination'); VP-005 and VP-006 proof methods corrected to 'kani' (was 'unit test') per VP-INDEX authority."
   - "v1.3: (exit-code ruling) PC4 updated: removed 'unrecognized flags' from config_error description — unrecognized flags are handled by clap before app::run() and do not set config_error; config_error = true has exactly one trigger (invalid --ignore glob); scope-exclusion note added for --help/--version."
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
   - "v1.1: Three-input model alignment — Preconditions 3 and 4 now cite verdict::exit_code parameter names (io_errors and config_error). Precondition 3 clarifies that nonexistent PATH arguments count as I/O errors. Architect v1.4 reconciliation."
@@ -71,13 +72,13 @@ links; the calling script should treat this as a CI failure.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-005 | Exit 1 when broken links found, no I/O errors | unit test |
-| VP-006 | Indeterminate does not trigger exit 1 | unit test |
+| VP-005 | Exit 1 when broken links found, no I/O errors | kani |
+| VP-006 | Indeterminate does not trigger exit 1 | kani |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-014 ("Exit 1: at least one broken link; exit 0: no broken links") per capabilities.md §CAP-014 |
+| L2 Capability | CAP-014 ("Exit Code Determination") per capabilities.md §CAP-014 |
 | Capability Anchor Justification | CAP-014 ("Exit Code Determination") per capabilities.md §CAP-014 |
 | L2 Domain Invariants | DI-010, DI-011 |
 | Brief Requirement | R7 |

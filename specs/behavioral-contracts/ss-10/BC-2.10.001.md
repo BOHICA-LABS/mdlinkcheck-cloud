@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -23,6 +23,7 @@ modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: INCONSISTENCY-001/D-014 — replaced 'clean' with 'alive' in test vectors and postconditions (liveness outcome is alive; link verdict is clean per DD-022)"
   - "v1.3: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.4: (WS-4/POLICY-5) L2 Capability fabricated quotation repaired: replaced invented excerpt with verbatim CAP-010 heading per capabilities.md §CAP-010; gloss moved outside quotes"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -85,7 +86,7 @@ DNS-level error), a GET request is attempted. The final verdict is based on the 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-010 ("Issue HTTP HEAD requests with GET fallback on {400,403,404,405,501,999} and transport failures") per capabilities.md §CAP-010 |
+| L2 Capability | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 — HEAD-then-GET fallback protocol with GET triggered on {400,403,404,405,501,999} and transport failures |
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
 | Brief Requirement | R5, DD-016, T12 |
 | Architecture Module | `http_client.rs` (SS-10, effectful shell, MEDIUM tier) primary; `http_verdict.rs` (SS-10, pure core, CRITICAL tier) secondary — classifies the response from the HEAD/GET protocol — ADR-004, ADR-005, ADR-007 |

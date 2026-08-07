@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,6 +20,7 @@ capability: "CAP-008"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.3: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string was fabricated DI-003 description; corrected to verbatim section title 'Anchor Resolution' per capabilities.md §CAP-008; gloss moved outside quotes. VP-004 proof method corrected from 'unit test' to 'kani'; VP-013 proof method corrected from 'unit test' to 'fuzz'; both per VP-INDEX authority."
   - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
   - "v1.2: (EC-collision) EC-076→EC-197 (double-hash malformed fragment case; EC-076 canonical owner is BC-2.05.001 per test-vectors.md)."
 deprecated: null
@@ -69,13 +70,13 @@ treated as a fragment separator; it is decoded to `#` and is part of the path.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-004 | %23 not treated as fragment separator (trap T9) | unit test |
-| VP-013 | First # is split point | unit test |
+| VP-004 | %23 not treated as fragment separator (trap T9) | kani |
+| VP-013 | First # is split point | fuzz |
 
 ## Traceability
 | Field | Value |
 |-------|-------|
-| L2 Capability | CAP-008 ("Fragment split is at the first unescaped `#`, BEFORE percent-decode — a `%23` in the path is NOT a separator") per capabilities.md §CAP-008 |
+| L2 Capability | CAP-008 ("Anchor Resolution") per capabilities.md §CAP-008 — fragment split at first unescaped #, BEFORE percent-decode; %23 in path is NOT a separator (DI-003) |
 | Capability Anchor Justification | CAP-008 ("Anchor Resolution") per capabilities.md §CAP-008 |
 | L2 Domain Invariants | DI-003 |
 | Brief Requirement | R5, T9 |
