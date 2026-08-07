@@ -131,9 +131,11 @@ def _is_valid_vp_cell(first_cell: str, proof_method: str) -> bool:
     if first_cell == "VP-NONE":
         return bool(proof_method.strip())
 
-    # Comma- or slash-separated list of VP-NNN tokens
-    tokens = re.split(r"[,/]", first_cell)
-    return bool(tokens) and all(_VP_TOKEN_RE.match(t.strip()) for t in tokens if t.strip())
+    # Comma- or slash-separated list of VP-NNN tokens.
+    # Filter empty tokens BEFORE the all() call: re.split(",", ",") yields ['', ''],
+    # and all() over an empty iterator returns True — silently passing punctuation-only cells.
+    tokens = [t.strip() for t in re.split(r"[,/]", first_cell) if t.strip()]
+    return bool(tokens) and all(_VP_TOKEN_RE.match(t) for t in tokens)
 
 
 # Files/paths to exclude (they document the pattern)
@@ -180,43 +182,44 @@ def check_file_lines(md_file: Path, lines: list) -> list:
             in_vp_table_data = False
             table_header_first_cell = None
             continue
-        if in_fenced_code:
-            continue  # skip all content inside fenced code blocks
-
-        # ── Table-context state machine (R2-RULE) ────────────────────────────
-        if line.startswith("|"):
-            cells = _split_table_cells(line)
-            if cells:
-                if _is_separator_row(cells):
-                    # Separator row: transition to data mode if header was VP-NNN
-                    if table_header_first_cell == _VP_TABLE_HEADER_CELL:
-                        in_vp_table_data = True
+        # ── Table-context state machine (R2-RULE, gated: suppressed inside fenced blocks) ──
+        # VP-TBD, SS-TBD, and [filled by] are still checked inside fenced blocks via
+        # PLACEHOLDER_PATTERNS below. Only the structural R2-RULE VP-NNN column check
+        # is suppressed (fenced content is documentation, not live spec data).
+        if not in_fenced_code:
+            if line.startswith("|"):
+                cells = _split_table_cells(line)
+                if cells:
+                    if _is_separator_row(cells):
+                        # Separator row: transition to data mode if header was VP-NNN
+                        if table_header_first_cell == _VP_TABLE_HEADER_CELL:
+                            in_vp_table_data = True
+                        else:
+                            in_vp_table_data = False
+                        # Separator rows have no ID content; skip other checks
+                        continue
+                    elif in_vp_table_data:
+                        # Data row inside a VP-NNN-headed table: apply R2-RULE
+                        first_cell = cells[0] if cells else ""
+                        proof_method = cells[2] if len(cells) > 2 else ""
+                        if not _is_valid_vp_cell(first_cell, proof_method):
+                            violations.append((filepath, lineno, first_cell,
+                                               f"non-conforming VP-NNN column value '{first_cell}' (POL-14)"))
+                        # Do NOT apply the general PLACEHOLDER_PATTERNS to this row
+                        # (the first cell is a structural ID, not free text)
+                        # Still check non-first cells for [filled by] etc. below
+                        # by falling through to PLACEHOLDER_PATTERNS after skipping
+                        # the first-cell check — but we do that by not continuing here.
+                        # Actually: run PLACEHOLDER_PATTERNS on the full line (VP-TBD etc.
+                        # in the Property or Proof Method cells are still violations).
                     else:
+                        # Header candidate row (no separator seen yet for this table)
+                        table_header_first_cell = cells[0] if cells else None
                         in_vp_table_data = False
-                    # Separator rows have no ID content; skip other checks
-                    continue
-                elif in_vp_table_data:
-                    # Data row inside a VP-NNN-headed table: apply R2-RULE
-                    first_cell = cells[0] if cells else ""
-                    proof_method = cells[2] if len(cells) > 2 else ""
-                    if not _is_valid_vp_cell(first_cell, proof_method):
-                        violations.append((filepath, lineno, first_cell,
-                                           f"non-conforming VP-NNN column value '{first_cell}' (POL-14)"))
-                    # Do NOT apply the general PLACEHOLDER_PATTERNS to this row
-                    # (the first cell is a structural ID, not free text)
-                    # Still check non-first cells for [filled by] etc. below
-                    # by falling through to PLACEHOLDER_PATTERNS after skipping
-                    # the first-cell check — but we do that by not continuing here.
-                    # Actually: run PLACEHOLDER_PATTERNS on the full line (VP-TBD etc.
-                    # in the Property or Proof Method cells are still violations).
-                else:
-                    # Header candidate row (no separator seen yet for this table)
-                    table_header_first_cell = cells[0] if cells else None
-                    in_vp_table_data = False
-        else:
-            # Non-| line: leave any current table context
-            table_header_first_cell = None
-            in_vp_table_data = False
+            else:
+                # Non-| line: leave any current table context
+                table_header_first_cell = None
+                in_vp_table_data = False
 
         # ── General placeholder pattern scan ─────────────────────────────────
         for pattern, name in PLACEHOLDER_PATTERNS:

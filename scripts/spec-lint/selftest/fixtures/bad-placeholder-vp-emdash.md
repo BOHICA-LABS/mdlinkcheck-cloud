@@ -14,3 +14,4 @@ deprecated: null
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | — | Directory link with fragment → broken (target-is-directory) | unit test |
+| , | comma-only (regression guard: all-over-empty hole in _is_valid_vp_cell) | unit test |

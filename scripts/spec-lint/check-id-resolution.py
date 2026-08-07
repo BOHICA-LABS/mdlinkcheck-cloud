@@ -377,54 +377,54 @@ def check_file(path: Path) -> list[str]:
             in_ec_id_column_table = False
             table_header_first_cell = None
             continue
-        if in_fenced_code:
-            continue  # skip content inside fenced code blocks
-
-        # ── Table-state tracking for R3-A ─────────────────────────────────────
+        # ── Table-state tracking for R3-A (gated: suppressed inside fenced blocks) ──
         # Track whether we are in the data section of an EC/ID-column table.
         # r3a_first_cell is set when R3-A checks the first cell; used to
         # suppress R3-B double-reporting on the same token.
+        # The existing EC/CAP/DI/DD/VP/NFR/BC/ADR/HS/POL resolution checks below
+        # run regardless of in_fenced_code — only R3-A and R3-B are suppressed.
         r3a_first_cell = None
 
-        if line.startswith("|"):
-            cells = _split_cells(line)
-            if cells:
-                if _is_separator_row(cells):
-                    # Separator row: determine if this table's header was EC.
-                    # "ID" is intentionally excluded: prd.md uses "| ID | Differentiator |"
-                    # whose first-column cells are KD-NNN (Key Differentiators), not EC IDs.
-                    if table_header_first_cell == "EC":
-                        in_ec_id_column_table = True
+        if not in_fenced_code:
+            if line.startswith("|"):
+                cells = _split_cells(line)
+                if cells:
+                    if _is_separator_row(cells):
+                        # Separator row: determine if this table's header was EC.
+                        # "ID" is intentionally excluded: prd.md uses "| ID | Differentiator |"
+                        # whose first-column cells are KD-NNN (Key Differentiators), not EC IDs.
+                        if table_header_first_cell == "EC":
+                            in_ec_id_column_table = True
+                        else:
+                            in_ec_id_column_table = False
+                        # Separator rows carry no ID content; skip to next line
+                        continue
+                    elif in_ec_id_column_table:
+                        # Data row in an EC-column table: apply R3-A
+                        first_cell = cells[0]
+                        r3a_first_cell = first_cell  # mark for R3-B suppression
+                        if not _EC_ID_CELL_RE.match(first_cell):
+                            violations.append(
+                                f"{path}:{lineno}: non-conforming EC ID in ID column '{first_cell}'"
+                            )
+                        # Fall through so existing ID checks run on the full row
                     else:
+                        # Header-candidate row (no separator yet for this table)
+                        table_header_first_cell = cells[0]
                         in_ec_id_column_table = False
-                    # Separator rows carry no ID content; skip to next line
-                    continue
-                elif in_ec_id_column_table:
-                    # Data row in an EC-column table: apply R3-A
-                    first_cell = cells[0]
-                    r3a_first_cell = first_cell  # mark for R3-B suppression
-                    if not _EC_ID_CELL_RE.match(first_cell):
-                        violations.append(
-                            f"{path}:{lineno}: non-conforming EC ID in ID column '{first_cell}'"
+            else:
+                # Non-| line: leave any current table context
+                table_header_first_cell = None
+                in_ec_id_column_table = False
+                # D-081: update versioned-changelog section state on ATX headings.
+                # Level 1-3 headings (# / ## / ###) change the section scope;
+                # level 4+ are subsections that inherit the current scope.
+                if line.startswith("#"):
+                    m_hd = re.match(r"^(#{1,6})\s", line)
+                    if m_hd and len(m_hd.group(1)) <= 3:
+                        in_versioned_changelog_section = bool(
+                            _VERSIONED_CHANGELOG_HEADING_RE.match(line)
                         )
-                    # Fall through so existing ID checks run on the full row
-                else:
-                    # Header-candidate row (no separator yet for this table)
-                    table_header_first_cell = cells[0]
-                    in_ec_id_column_table = False
-        else:
-            # Non-| line: leave any current table context
-            table_header_first_cell = None
-            in_ec_id_column_table = False
-            # D-081: update versioned-changelog section state on ATX headings.
-            # Level 1-3 headings (# / ## / ###) change the section scope;
-            # level 4+ are subsections that inherit the current scope.
-            if line.startswith("#"):
-                m_hd = re.match(r"^(#{1,6})\s", line)
-                if m_hd and len(m_hd.group(1)) <= 3:
-                    in_versioned_changelog_section = bool(
-                        _VERSIONED_CHANGELOG_HEADING_RE.match(line)
-                    )
 
         # ── Existing ID resolution checks ─────────────────────────────────────
 
@@ -508,26 +508,28 @@ def check_file(path: Path) -> list[str]:
         # Any token of shape <FAMILY>-<alpha-segment>-<digits> is a non-conforming
         # would-be ID. The alpha segment distinguishes a placeholder from a
         # well-formed ID (digits-only suffix). Zero FPs on 133-file corpus.
-        for m in _WOULD_BE_ID_RE.finditer(line):
-            token = m.group(0)
-            # R3-A priority: skip tokens already handled by R3-A on this line
-            # (avoids double-reporting the same first-cell violation)
-            if r3a_first_cell is not None and token == r3a_first_cell:
-                continue
-            # R3-C(1): quoted YAML-changelog line — not a live reference
-            if is_historical_changelog_line(line, token):
-                continue
-            # R3-C(2): versioned-changelog section positional scoping (D-081).
-            # Under a `### vN.N` heading, the entry is an immutable historical
-            # record (D-034) — flagging it would create a permanently-unresolvable
-            # finding. Positional state, not a named set.
-            if in_versioned_changelog_section:
-                continue
-            family = m.group(1)
-            violations.append(
-                f"{path}:{lineno}: non-conforming {family} ID shape '{token}' "
-                f"(expected {family}-NNN)"
-            )
+        # Gated: suppressed inside fenced code blocks (CommonMark §4.5).
+        if not in_fenced_code:
+            for m in _WOULD_BE_ID_RE.finditer(line):
+                token = m.group(0)
+                # R3-A priority: skip tokens already handled by R3-A on this line
+                # (avoids double-reporting the same first-cell violation)
+                if r3a_first_cell is not None and token == r3a_first_cell:
+                    continue
+                # R3-C(1): quoted YAML-changelog line — not a live reference
+                if is_historical_changelog_line(line, token):
+                    continue
+                # R3-C(2): versioned-changelog section positional scoping (D-081).
+                # Under a `### vN.N` heading, the entry is an immutable historical
+                # record (D-034) — flagging it would create a permanently-unresolvable
+                # finding. Positional state, not a named set.
+                if in_versioned_changelog_section:
+                    continue
+                family = m.group(1)
+                violations.append(
+                    f"{path}:{lineno}: non-conforming {family} ID shape '{token}' "
+                    f"(expected {family}-NNN)"
+                )
 
     return violations
 

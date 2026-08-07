@@ -1098,23 +1098,57 @@ rm -rf "$T"
 #   the old tautological pattern. Proved to have teeth:
 #   - OLD tautological: exit 0 on prefix-extension text (false negative confirmed)
 #   - PRODUCTION corrected: exit 1 + DIVERGE with 'or unrecognized flag' in extracted value
+
+# ── Derive FACT-10 binding-25 pattern from production canonical-facts.toml ──────────────
+# Tests 22 and 22b gate the PRODUCTION binding, not a hardcoded snapshot copy.
+# If binding-25 is ever edited, these tests automatically use the new pattern.
+# Resolve the .factory worktree path via git's common dir so this works from
+# any worktree (not just the main repo where $REPO/.factory is directly accessible).
+_GIT_COMMON=$(git -C "$REPO" rev-parse --git-common-dir 2>/dev/null)
+if [[ "$_GIT_COMMON" != /* ]]; then
+    # Relative path (main worktree): normalize to absolute
+    _GIT_COMMON="$(cd "$REPO/$_GIT_COMMON" && pwd)"
+fi
+_MAIN_REPO="$(dirname "$_GIT_COMMON")"
+BINDING25_PATTERN=$(python3 - "$_MAIN_REPO/.factory/specs/canonical-facts.toml" <<'PY'
+import sys, pathlib
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib  # Python < 3.11 fallback
+toml_path = pathlib.Path(sys.argv[1])
+d = tomllib.loads(toml_path.read_text())
+# "sole trigger parenthetical" is the discriminator for binding-25 specifically:
+#   note = "CAP-014 exit-2 condition — sole trigger parenthetical"
+# Other FACT-10 bindings also contain "sole trigger" but not "parenthetical".
+pats = [b["pattern"] for b in d.get("binding", [])
+        if b.get("fact_id") == "FACT-10" and "sole trigger parenthetical" in b.get("note", "")]
+assert len(pats) == 1, f"expected exactly 1 FACT-10 sole-trigger-parenthetical binding, got {len(pats)}"
+print(pats[0])
+PY
+)
+if [ -z "$BINDING25_PATTERN" ]; then
+    echo "FATAL: could not derive FACT-10 binding-25 pattern from canonical-facts.toml" >&2
+    exit 1
+fi
+
 TESTS_RUN=$((TESTS_RUN + 1))
 echo "── selftest 22: check-canonical-facts: FACT-10 binding-25 production pattern — complete-replacement defect ──"
 T=$(make_temp)
 mkdir -p "$T/.factory/specs"
 
-cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML22'
+cat > "$T/.factory/specs/canonical-facts.toml" <<TOML22
 [[fact]]
 id              = "FACT-10-SELFTEST"
 description     = "config_error sole trigger: invalid --ignore glob (production FACT-10 binding-25 pattern)"
-canonical_value = 'invalid `--ignore` glob'
+canonical_value = 'invalid \`--ignore\` glob'
 source          = "selftest"
 
 [[binding]]
 fact_id = "FACT-10-SELFTEST"
 file    = ".factory/specs/selftest-fact10.md"
 note    = "sole trigger parenthetical (FACT-10 binding-25 production context)"
-pattern = '\(sole trigger: ([^\n,]+?) pattern,'
+pattern = '$BINDING25_PATTERN'
 TOML22
 
 cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22CLEAN'
@@ -1160,18 +1194,18 @@ TESTS_RUN=$((TESTS_RUN + 1))
 echo "── selftest 22b: check-canonical-facts: FACT-10 binding-25 — prefix-extension vector DIVERGE (BI-042) ──"
 
 # Rewrite canonical-facts.toml (Phase B uses same production pattern)
-cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML22B'
+cat > "$T/.factory/specs/canonical-facts.toml" <<TOML22B
 [[fact]]
 id              = "FACT-10-SELFTEST"
 description     = "config_error sole trigger: invalid --ignore glob (production FACT-10 binding-25 pattern)"
-canonical_value = 'invalid `--ignore` glob'
+canonical_value = 'invalid \`--ignore\` glob'
 source          = "selftest"
 
 [[binding]]
 fact_id = "FACT-10-SELFTEST"
 file    = ".factory/specs/selftest-fact10.md"
 note    = "sole trigger parenthetical (FACT-10 binding-25 production context)"
-pattern = '\(sole trigger: ([^\n,]+?) pattern,'
+pattern = '$BINDING25_PATTERN'
 TOML22B
 
 # Phase B clean-pass: canonical text
