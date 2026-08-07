@@ -12,15 +12,17 @@ Checks that every index is consistent with the files it indexes, in both directi
 
 Exit 1 if any phantom index entry or unlisted file found.
 """
-import os
 import re
 import sys
 from pathlib import Path
 import spec_lint_primitives as slp
 
-REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
-SPECS = REPO / ".factory" / "specs"
-FACTORY = REPO / ".factory"
+REPO = (  # honors SPEC_LINT_REPO_OVERRIDE via slp.find_repo_root; None in --property-test mode
+    None if (len(sys.argv) > 1 and sys.argv[1] == "--property-test")
+    else slp.find_repo_root(start=Path(__file__).resolve().parent)
+)
+SPECS = REPO / ".factory" / "specs" if REPO else None
+FACTORY = REPO / ".factory" if REPO else None
 
 # ── CommonMark ATX heading and fenced-code-block regexes (D-069 / D-070) ──────
 # _CM_HEADING_RE: matches #{1,6} followed by space or EOL (CommonMark §4.2).

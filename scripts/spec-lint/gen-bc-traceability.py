@@ -45,13 +45,12 @@ Usage:
   guard until annotation loss is adjudicated.
 """
 import difflib
-import os
 import re
 import sys
 from pathlib import Path
 import spec_lint_primitives as slp
 
-REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
+REPO = slp.find_repo_root(start=Path(__file__).resolve().parent)  # honors SPEC_LINT_REPO_OVERRIDE
 SPECS = REPO / ".factory" / "specs"
 BC_DIR = SPECS / "behavioral-contracts"
 BC_MODULE_MAP = SPECS / "architecture" / "bc-module-map.md"
