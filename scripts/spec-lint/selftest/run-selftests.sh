@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=36
+EXPECTED_TEST_COUNT=49
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -48,12 +48,18 @@ OVERRIDE_PATTERN='^REPO[[:space:]]*=.*SPEC_LINT_REPO_OVERRIDE'
 SUPPRESSION_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET)[[:space:]]*[=:]'
 
 run_override_guard() {
-    # Verify every check-*.py in $1 has an active SPEC_LINT_REPO_OVERRIDE assignment.
+    # Verify every check-*.py in $1, plus the two new generators introduced by this PR
+    # (gen-bc-traceability.py and gen-slug-corpus.py), have an active
+    # SPEC_LINT_REPO_OVERRIDE assignment. The two generators are listed explicitly
+    # rather than using gen-*.py because the pre-existing generators (gen-bc-index.py,
+    # gen-ec-registry.py, etc.) predate the isolated-tree testing model and are tracked
+    # separately. The two new generators share the same override pattern and must be
+    # included so they cannot regress without this guard firing.
     # D-057: prints runtime count of files scanned; fails if 0 files found.
     # Returns 0 = all clear, 2 = guard fired (missing support, or no files found).
     local dir="$1"
     local count=0
-    for f in "$dir"/check-*.py; do
+    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py"; do
         [[ -f "$f" ]] || continue
         count=$((count + 1))
         if ! grep -qE "$OVERRIDE_PATTERN" "$f" 2>/dev/null; then
@@ -67,17 +73,20 @@ run_override_guard() {
         echo "STRUCTURAL GUARD FAILED: no check-*.py files found in $dir — nothing scanned"
         return 2
     fi
-    echo "Pre-flight guard passed: $count checkers support SPEC_LINT_REPO_OVERRIDE"
+    echo "Pre-flight guard passed: $count checkers/generators support SPEC_LINT_REPO_OVERRIDE"
     return 0
 }
 
 run_suppression_guard() {
-    # Verify no check-*.py in $1 contains a hardcoded suppression allowlist construct.
+    # Verify no check-*.py in $1, nor the two new generators (gen-bc-traceability.py,
+    # gen-slug-corpus.py), contain a hardcoded suppression allowlist construct.
+    # Same scoping rationale as run_override_guard: pre-existing generators are tracked
+    # separately; the two new generators are explicitly included.
     # D-057: prints runtime count of files scanned; fails if 0 files found.
     # Returns 0 = all clear, 2 = guard fired (suppression found, or no files found).
     local dir="$1"
     local count=0
-    for f in "$dir"/check-*.py; do
+    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py"; do
         [[ -f "$f" ]] || continue
         count=$((count + 1))
         if grep -qE "$SUPPRESSION_PATTERN" "$f" 2>/dev/null; then
@@ -92,7 +101,7 @@ run_suppression_guard() {
         echo "STRUCTURAL GUARD FAILED: no check-*.py files found in $dir — nothing scanned"
         return 2
     fi
-    echo "Pre-flight guard passed: $count checkers scanned, 0 suppression constructs found"
+    echo "Pre-flight guard passed: $count checkers/generators scanned, 0 suppression constructs found"
     return 0
 }
 
@@ -824,6 +833,976 @@ if [ "$CLEAN_PASS" = "1" ]; then
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; malformed EC cell in HS-002 correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 18: check-canonical-facts — binding site divergence ──────────────
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 18: check-canonical-facts: binding site value divergence ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+
+# Clean tree: one fact with one binding whose FLEXIBLE pattern captures the value.
+# Using a flexible pattern (not literal canonical) means the defect hits the
+# m.group(1) != canonical branch — the specific branch mutation-verify targets.
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOMLCLEAN'
+[[fact]]
+id              = "FACT-ST18"
+description     = "selftest fact — canonical value is selftest-canonical"
+canonical_value = "selftest-canonical"
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-ST18"
+file    = ".factory/specs/selftest-binding.md"
+note    = "selftest binding"
+pattern = "canonical value: ([a-z-]+)"
+TOMLCLEAN
+
+cat > "$T/.factory/specs/selftest-binding.md" <<'MDCLEAN'
+# Selftest Binding File
+The canonical value: selftest-canonical
+MDCLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (fact and binding match)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: overwrite binding file with a DIFFERENT value that the flexible pattern
+    # still matches — this forces the m.group(1) != canonical comparison branch to fire.
+    # (Using a literal pattern would test "pattern did not match" instead — not the != branch.)
+    cat > "$T/.factory/specs/selftest-binding.md" <<'MDBAD'
+# Selftest Binding File (defect — wrong value)
+The canonical value: wrong-diverging
+MDBAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch canonical-facts value divergence)"
+        FAILURES=$((FAILURES + 1))
+    else
+        # D-040: assert on specific violation message, not just exit code
+        CF_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF_OUTPUT" | grep -q "DIVERGE \[FACT-ST18\]"; then
+            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-ST18] correctly reported for value mismatch)"
+        else
+            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-ST18]' not in output)"
+            echo "  Actual output: $CF_OUTPUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 19: check-canonical-facts — FACT-7 negative (macOS-only platform matrix) ───────
+# BI-035: FACT-7 canonical_value = "macOS". Negative vector: "macOS and Linux"
+# (the multi-platform claim D-043 ruled out). Pattern captures content between
+# quotes so the != branch fires — not the "pattern did not match" branch.
+# Mutation-verify: neutralizing != flips this test to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 19: check-canonical-facts: FACT-7 negative — macOS and Linux fails ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML19'
+[[fact]]
+id              = "FACT-7-NEG"
+description     = "platform matrix is macOS-only (D-043)"
+canonical_value = "macOS"
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-7-NEG"
+file    = ".factory/specs/selftest-fact7.md"
+note    = "platform matrix declaration"
+pattern = 'platform matrix: "(.*?)"'
+TOML19
+
+cat > "$T/.factory/specs/selftest-fact7.md" <<'MD19CLEAN'
+**Platform Matrix Section**
+platform matrix: "macOS"
+MD19CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean FACT-7 tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Negative vector: "macOS and Linux" — the multi-platform claim D-043 ruled out.
+    # The flexible pattern captures this, forcing the m.group(1) != canonical branch.
+    cat > "$T/.factory/specs/selftest-fact7.md" <<'MD19BAD'
+**Platform Matrix Section**
+platform matrix: "macOS and Linux"
+MD19BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — 'macOS and Linux' should DIVERGE from 'macOS')"
+        FAILURES=$((FAILURES + 1))
+    else
+        CF_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF_OUTPUT" | grep -q "DIVERGE \[FACT-7-NEG\]"; then
+            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-7-NEG] correctly reported for 'macOS and Linux')"
+        else
+            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-7-NEG]' not in output)"
+            echo "  Actual output: $CF_OUTPUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 20: check-canonical-facts — FACT-8 negative (ASM-004 macOS only) ───────────────
+# BI-035: FACT-8 canonical_value = "macOS only". Negative vector: "macOS and Windows"
+# (a multi-platform phrasing that could appear in an undisciplined ASM-004 restatement).
+# Pattern captures content between quotes so the != branch fires.
+# Mutation-verify: neutralizing != flips this test to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 20: check-canonical-facts: FACT-8 negative — macOS and Windows fails ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML20'
+[[fact]]
+id              = "FACT-8-NEG"
+description     = "ASM-004 platform restatement is macOS only (D-043)"
+canonical_value = "macOS only"
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-8-NEG"
+file    = ".factory/specs/selftest-fact8.md"
+note    = "ASM-004 platform restatement"
+pattern = 'platform restatement: "(.*?)"'
+TOML20
+
+cat > "$T/.factory/specs/selftest-fact8.md" <<'MD20CLEAN'
+ASM-004 details:
+platform restatement: "macOS only"
+MD20CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean FACT-8 tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Negative vector: "macOS and Windows" — a spurious multi-platform restatement.
+    cat > "$T/.factory/specs/selftest-fact8.md" <<'MD20BAD'
+ASM-004 details:
+platform restatement: "macOS and Windows"
+MD20BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — 'macOS and Windows' should DIVERGE from 'macOS only')"
+        FAILURES=$((FAILURES + 1))
+    else
+        CF_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF_OUTPUT" | grep -q "DIVERGE \[FACT-8-NEG\]"; then
+            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-8-NEG] correctly reported for 'macOS and Windows')"
+        else
+            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-8-NEG]' not in output)"
+            echo "  Actual output: $CF_OUTPUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 21: check-canonical-facts — FACT-9 negative (DirIndex narrow scope) ───────────
+# BI-035: FACT-9 canonical_value = "every extracted link destination".
+# Negative vector: "missing-.md file destinations only" — the narrow D-061-rejected reading
+# that limits DirIndex to missing-.md targets only, ignoring non-.md and directory links.
+# This is the exact claim D-061 ruled out (BROAD scope, all link types).
+# Pattern uses flexible quotes-capture so the != branch fires.
+# Mutation-verify: neutralizing != flips this test to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 21: check-canonical-facts: FACT-9 negative — narrow DirIndex scope fails ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML21'
+[[fact]]
+id              = "FACT-9-NEG"
+description     = "DirIndex covers every extracted link destination (D-061 BROAD)"
+canonical_value = "every extracted link destination"
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-9-NEG"
+file    = ".factory/specs/selftest-fact9.md"
+note    = "DirIndex scope declaration"
+pattern = 'DirIndex scope: "(.*?)"'
+TOML21
+
+cat > "$T/.factory/specs/selftest-fact9.md" <<'MD21CLEAN'
+Pass 1.5 builds:
+DirIndex scope: "every extracted link destination"
+MD21CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean FACT-9 tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Negative vector: "missing-.md file destinations only" — the narrow D-061-rejected reading.
+    # An author who writes this believes DirIndex is only for missing-.md link checking,
+    # ignoring non-.md links and directory links — exactly the claim D-061 ruled out.
+    cat > "$T/.factory/specs/selftest-fact9.md" <<'MD21BAD'
+Pass 1.5 builds:
+DirIndex scope: "missing-.md file destinations only"
+MD21BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — narrow scope should DIVERGE from broad scope)"
+        FAILURES=$((FAILURES + 1))
+    else
+        CF_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF_OUTPUT" | grep -q "DIVERGE \[FACT-9-NEG\]"; then
+            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-9-NEG] correctly reported for narrow DirIndex scope)"
+        else
+            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-9-NEG]' not in output)"
+            echo "  Actual output: $CF_OUTPUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 22: check-canonical-facts — FACT-10 negative (second config_error trigger) ─────
+# BI-035: FACT-10 canonical_value = 'invalid `--ignore` glob'.
+# Negative vector: 'invalid `--ignore` glob or unrecognized flag' — adds a second spurious
+# trigger, which D-062 explicitly ruled out (unrecognized flags are handled by clap before
+# app::run(); they never reach verdict::exit_code). Exactly one trigger exists.
+# Pattern uses flexible quotes-capture so the != branch fires even with backtick content.
+# Mutation-verify: neutralizing != flips this test to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 22: check-canonical-facts: FACT-10 negative — second config_error trigger fails ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML22'
+[[fact]]
+id              = "FACT-10-NEG"
+description     = "config_error has exactly one trigger: invalid --ignore glob (D-062)"
+canonical_value = 'invalid `--ignore` glob'
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-10-NEG"
+file    = ".factory/specs/selftest-fact10.md"
+note    = "sole trigger declaration"
+pattern = 'config error trigger: "(.*?)"'
+TOML22
+
+cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22CLEAN'
+Exit-2 conditions:
+config error trigger: "invalid `--ignore` glob"
+MD22CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean FACT-10 tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Negative vector: adds unrecognized flag as a second spurious trigger (D-062 rejected).
+    # Clap handles unrecognized flags before app::run(); they never reach verdict::exit_code.
+    cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22BAD'
+Exit-2 conditions:
+config error trigger: "invalid `--ignore` glob or unrecognized flag"
+MD22BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — two-trigger claim should DIVERGE from sole-trigger canonical)"
+        FAILURES=$((FAILURES + 1))
+    else
+        CF_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF_OUTPUT" | grep -q "DIVERGE \[FACT-10-NEG\]"; then
+            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-10-NEG] correctly reported for second trigger)"
+        else
+            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-10-NEG]' not in output)"
+            echo "  Actual output: $CF_OUTPUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 23: gen-bc-traceability --check detects Architecture Module mismatch ────────────
+# Operator-endorsed landing gate (Task 2). Uses a pre-populated isolated temp tree:
+# the BC file already contains the correct @GENERATED block with the expected generated
+# value (computed from the generator's format_arch_module_value logic for this fixture).
+# Write mode is fail-closed (BI-041 guard), so normal-mode setup is not used.
+# Clean pass: --check exits 0 (fixture already matches generated output).
+# Defect:     corrupt the Architecture Module value → --check exits 1.
+# Confirms --check is read-only w.r.t. canonical-facts.toml (not in temp tree).
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 23: gen-bc-traceability --check: detects Architecture Module mismatch ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-99"
+
+# Minimal bc-module-map.md: BC-2.99.001, test-mod, Pure, CRITICAL, ADR-999
+cat > "$T/.factory/specs/architecture/bc-module-map.md" <<'BCMAP'
+| BC ID | Primary Module | Secondary | P/E | Tier | Key ADRs | Formal VPs |
+|-------|----------------|-----------|-----|------|----------|------------|
+| BC-2.99.001 | `test-mod` | — | Pure | CRITICAL | ADR-999 | — |
+BCMAP
+
+# BC file pre-populated with correct @GENERATED content.
+# Expected value (from format_arch_module_value with no ADR title files):
+#   `test-mod.rs` (SS-99, pure core, CRITICAL tier) — ADR-999
+# No ADR decisions/ dir → adr_titles empty → ADR-999 appears without title.
+cat > "$T/.factory/specs/behavioral-contracts/ss-99/BC-2.99.001.md" <<'BCFILE'
+# BC-2.99.001: Selftest BC
+
+## Traceability
+<!-- @GENERATED:BEGIN bc-arch-module -->
+| Architecture Module | `test-mod.rs` (SS-99, pure core, CRITICAL tier) — ADR-999 |
+<!-- @GENERATED:END bc-arch-module -->
+BCFILE
+
+# Clean pass: --check exits 0 (fixture matches generated output)
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --check > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: --check failed on pre-populated correct fixture"
+    CHECK_ERR=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --check 2>&1)
+    echo "  Output: $CHECK_ERR"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: corrupt the generated Architecture Module value in the BC file
+    BC_FILE="$T/.factory/specs/behavioral-contracts/ss-99/BC-2.99.001.md"
+    sed -i.bak 's/Architecture Module | .*/Architecture Module | corrupted-stale-value |/' "$BC_FILE"
+    CHECK_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --check 2>&1)
+    if [ $? -eq 0 ]; then
+        echo "  FAIL (--check returned 0 — did NOT detect Architecture Module mismatch)"
+        FAILURES=$((FAILURES + 1))
+    else
+        if echo "$CHECK_OUT" | grep -q "FAIL"; then
+            echo "  PASS (clean-pass confirmed; --check correctly detects Architecture Module mismatch)"
+        else
+            echo "  FAIL (--check exited non-zero but expected 'FAIL' not in output)"
+            echo "  Actual output: $CHECK_OUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 24: gen-slug-corpus --check detects SLUG_CORPUS content mismatch ────────────────
+# Operator-endorsed landing gate (Task 2). Uses isolated temp tree: run generator with
+# --write to establish a known-good state, verify --check exits 0 (clean pass),
+# then corrupt the generated corpus block and verify --check exits 1 (defect pass).
+# Confirms --check is read-only w.r.t. canonical-facts.toml (not in temp tree).
+# Setup uses --write (explicit opt-in) because the concurrency guard (selftest 28)
+# prevents bare invocation from writing.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 24: gen-slug-corpus --check: detects SLUG_CORPUS mismatch ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/verification-properties"
+
+# Minimal test-vectors.md with one TV-S entry in §7
+cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TVFILE'
+# Test Vectors
+
+## §7. Slug Test Vectors (TV-S)
+
+| TV-ID | Heading Text | Expected Slug | Source |
+|-------|-------------|---------------|--------|
+| TV-S999 | `Hello World` | `hello-world` | DD-001 |
+
+---
+TVFILE
+
+# Minimal vp-018 with SLUG_CORPUS array ready for insertion (no markers yet)
+cat > "$T/.factory/specs/verification-properties/vp-018-slug-worked-examples.md" <<'VP018FILE'
+# VP-018 Selftest Fixture
+
+```rust
+const SLUG_CORPUS: &[(&str, &str)] = &[
+];
+```
+VP018FILE
+
+# Clean pass: run generator with --write first, then --check on the result.
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" --write > /dev/null 2>&1; then
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" --check > /dev/null 2>&1; then
+        TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+        CLEAN_PASS=1
+    else
+        echo "  STRUCTURAL FAIL: --check failed immediately after --write run (should be identical)"
+        FAILURES=$((FAILURES + 1))
+    fi
+else
+    echo "  STRUCTURAL FAIL: generator --write run failed on minimal VP-018 fixture"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: corrupt the generated SLUG_CORPUS entry (change expected slug)
+    VP018="$T/.factory/specs/verification-properties/vp-018-slug-worked-examples.md"
+    sed -i.bak 's/"hello-world"/"hello_world"/g' "$VP018"
+    CHECK_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" --check 2>&1)
+    if [ $? -eq 0 ]; then
+        echo "  FAIL (--check returned 0 — did NOT detect SLUG_CORPUS mismatch)"
+        FAILURES=$((FAILURES + 1))
+    else
+        if echo "$CHECK_OUT" | grep -q "FAIL"; then
+            echo "  PASS (clean-pass confirmed; --check correctly detects SLUG_CORPUS mismatch)"
+        else
+            echo "  FAIL (--check exited non-zero but expected 'FAIL' not in output)"
+            echo "  Actual output: $CHECK_OUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 25: check-canonical-facts — linked-worktree refusal + SPEC_LINT_REPO_OVERRIDE ──
+# Documents the REAL behavior from a secondary git worktree. BI-021 (open): from a linked
+# worktree, the .git boundary stop fires before the walk reaches the main checkout's
+# .factory/ — the checker exits 1 with guidance to set SPEC_LINT_REPO_OVERRIDE.
+# This IS the correct, expected behavior (fail-closed). SPEC_LINT_REPO_OVERRIDE is the
+# supported path from secondary worktrees.
+#
+# Fixture: .worktrees/BI021-SIM/.git is a FILE (pointer, as in a real git linked worktree).
+# canonical-facts.toml is at the temp root (accessible via SPEC_LINT_REPO_OVERRIDE).
+#
+# Clean pass: without SPEC_LINT_REPO_OVERRIDE, boundary stop fires → exit 1 with
+#             SPEC_LINT_REPO_OVERRIDE mentioned in output.
+# Defect:     SPEC_LINT_REPO_OVERRIDE set to repo root → exits 0 (override is effective).
+#
+# Mutation-verify: removing the .git boundary stop allows the walk to escape past .git to
+# $T/, find canonical-facts.toml, and exit 0 without SPEC_LINT_REPO_OVERRIDE — flipping
+# the clean-pass assertion (which expects exit non-zero) to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 25: check-canonical-facts: linked-worktree refusal + SPEC_LINT_REPO_OVERRIDE override ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+mkdir -p "$T/.worktrees/BI021-SIM/scripts/spec-lint"
+
+# canonical-facts.toml at the repo root — reachable only via SPEC_LINT_REPO_OVERRIDE
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML25'
+[[fact]]
+id              = "FACT-BI021"
+description     = "BI-021 worktree path resolution selftest"
+canonical_value = "bi021-pass"
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-BI021"
+file    = ".factory/specs/selftest-bi021.md"
+note    = "worktree resolution binding"
+pattern = 'bi021 value: (bi021-pass)'
+TOML25
+
+cat > "$T/.factory/specs/selftest-bi021.md" <<'MD25'
+# BI-021 Selftest Binding
+bi021 value: bi021-pass
+MD25
+
+# .git FILE at the worktree root — simulates a real git linked worktree
+printf "gitdir: ../../.git/worktrees/BI021-SIM\n" > "$T/.worktrees/BI021-SIM/.git"
+
+# Copy the script into the simulated secondary worktree
+cp "$LINT_DIR/check-canonical-facts.py" "$T/.worktrees/BI021-SIM/scripts/spec-lint/"
+
+# Clean pass: without SPEC_LINT_REPO_OVERRIDE, boundary stop fires at .git → exit non-zero
+# with guidance message naming SPEC_LINT_REPO_OVERRIDE.
+CLEAN_PASS=0
+BI021_OUT=$(python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+BI021_EXIT=$?
+if [ "$BI021_EXIT" -ne 0 ] && echo "$BI021_OUT" | grep -q "SPEC_LINT_REPO_OVERRIDE"; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+elif [ "$BI021_EXIT" -eq 0 ]; then
+    echo "  STRUCTURAL FAIL: script exited 0 without SPEC_LINT_REPO_OVERRIDE (false pass — boundary stop missing)"
+    echo "  Output: $BI021_OUT"
+    FAILURES=$((FAILURES + 1))
+else
+    echo "  STRUCTURAL FAIL: script exited $BI021_EXIT but output did not name SPEC_LINT_REPO_OVERRIDE"
+    echo "  Output: $BI021_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: SPEC_LINT_REPO_OVERRIDE=$T → override bypasses boundary stop, exits 0 (correct)
+    OVERRIDE_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" \
+        python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+    OVERRIDE_EXIT=$?
+    if [ "$OVERRIDE_EXIT" -eq 0 ]; then
+        echo "  PASS (clean-pass confirmed; linked-worktree refusal correct; SPEC_LINT_REPO_OVERRIDE override effective)"
+    else
+        echo "  FAIL (SPEC_LINT_REPO_OVERRIDE set but checker still exited non-zero — override not effective)"
+        echo "  Output: $OVERRIDE_OUT"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 26: gen-bc-traceability write mode is fail-closed (BI-041 guard) ────────────────
+# The generator's model destroys hand-authored INC-MAP annotations in Architecture Module
+# rows. Write mode must unconditionally refuse until BI-041 is adjudicated.
+# --dry-run and --check modes must remain unblocked (they never write files).
+#
+# Clean pass: generator with --dry-run exits 0 on a valid BC fixture.
+# Defect:     generator with --write exits non-zero with BI-041 guard message.
+#             (--write is the explicit opt-in that passes the concurrency gate, Gate 1,
+#              but must still be refused by the BI-041 gate, Gate 2 — two independent gates.)
+#
+# Mutation-verify status: NOT independently verifiable. Removing only Gate 2 does not
+# flip this test to FAIL: --write then hits the function-level RuntimeError in
+# update_bc_file, whose message also contains "BI-041" — the grep still matches and
+# the suite stays green. Both Gate 2 AND the function-level guard must be removed
+# simultaneously for --write to succeed and for exit code to become 0.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 26: gen-bc-traceability: write mode fail-closed (BI-041 guard) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-99"
+
+# Minimal valid BC fixture (same as test 23)
+cat > "$T/.factory/specs/architecture/bc-module-map.md" <<'BCMAP26'
+| BC ID | Primary Module | Secondary | P/E | Tier | Key ADRs | Formal VPs |
+|-------|----------------|-----------|-----|------|----------|------------|
+| BC-2.99.001 | `test-mod` | — | Pure | CRITICAL | — | — |
+BCMAP26
+
+cat > "$T/.factory/specs/behavioral-contracts/ss-99/BC-2.99.001.md" <<'BCFILE26'
+# BC-2.99.001: Selftest BC
+
+## Traceability
+| Architecture Module | existing-value |
+BCFILE26
+
+# Clean pass: --dry-run must exit 0 (non-destructive modes are not blocked)
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --dry-run > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: --dry-run unexpectedly failed (should be unblocked by BI-041 guard)"
+    DR_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --dry-run 2>&1)
+    echo "  Output: $DR_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: --write passes the concurrency gate (Gate 1) but must still exit non-zero
+    # with the BI-041 guard message from Gate 2.
+    GUARD_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --write 2>&1)
+    GUARD_EXIT=$?
+    if [ "$GUARD_EXIT" -eq 0 ]; then
+        echo "  FAIL (--write returned 0 — BI-041 guard (Gate 2) not active; BC files could be corrupted)"
+        FAILURES=$((FAILURES + 1))
+    else
+        # D-040: assert on specific guard message, not just exit code
+        if echo "$GUARD_OUT" | grep -q "BI-041"; then
+            echo "  PASS (clean-pass confirmed; --write correctly blocked by BI-041 guard (Gate 2))"
+        else
+            echo "  FAIL (--write exited non-zero but expected 'BI-041' not in output)"
+            echo "  Actual output: $GUARD_OUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 27: gen-bc-traceability bare invocation is fail-safe (concurrency gate) ─────────
+# Verifies that Gate 1 (concurrency safety gate) refuses bare invocation and does not
+# write any BC file. Uses --dry-run for the clean pass (proves the fixture is valid).
+#
+# Clean pass: --dry-run exits 0 (non-destructive, unblocked by either gate).
+# Defect:     bare invocation exits non-zero (Gate 1 fires) AND BC file is byte-identical
+#             (no write occurred before the guard refused).
+#
+# Mutation note: removing ONLY Gate 1 does not flip this test. --write is not
+# passed in the defect step so Gate 2 is irrelevant; the byte-identical assertion
+# passes because the function-level RuntimeError in update_bc_file prevents any
+# write. Only removing Gate 1 AND that RuntimeError simultaneously allows writes.
+# Full isolation of Gate 1 requires removing BOTH gates — tested jointly.
+# For an independently mutation-verifiable bare-invocation test, see selftest 28
+# (gen-slug-corpus, which has no Gate 2 analogue).
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 27: gen-bc-traceability: bare invocation is fail-safe (concurrency gate) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-99"
+
+cat > "$T/.factory/specs/architecture/bc-module-map.md" <<'BCMAP27'
+| BC ID | Primary Module | Secondary | P/E | Tier | Key ADRs | Formal VPs |
+|-------|----------------|-----------|-----|------|----------|------------|
+| BC-2.99.001 | `test-mod` | — | Pure | CRITICAL | — | — |
+BCMAP27
+
+cat > "$T/.factory/specs/behavioral-contracts/ss-99/BC-2.99.001.md" <<'BCFILE27'
+# BC-2.99.001: Selftest BC (concurrency gate fixture)
+
+## Traceability
+| Architecture Module | existing-value |
+BCFILE27
+
+BC27="$T/.factory/specs/behavioral-contracts/ss-99/BC-2.99.001.md"
+
+# Clean pass: --dry-run must exit 0 (non-destructive modes are never gated)
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --dry-run > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: --dry-run unexpectedly failed (should not be gated)"
+    DR27_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --dry-run 2>&1)
+    echo "  Output: $DR27_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    BEFORE27=$(cat "$BC27")
+    # Defect: bare invocation must exit non-zero (concurrency gate fires)
+    BARE27_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" 2>&1)
+    BARE27_EXIT=$?
+    if [ "$BARE27_EXIT" -eq 0 ]; then
+        echo "  FAIL (bare invocation returned 0 — concurrency gate not active)"
+        FAILURES=$((FAILURES + 1))
+    else
+        # Confirm BC file was not modified (no write occurred)
+        AFTER27=$(cat "$BC27")
+        if [ "$BEFORE27" = "$AFTER27" ]; then
+            echo "  PASS (clean-pass confirmed; bare invocation refused and BC file byte-identical after)"
+        else
+            echo "  FAIL (gate refused but BC file was still modified — write occurred before gate check)"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 28: gen-slug-corpus bare invocation is fail-safe (concurrency gate) ────────────
+# Verifies that the concurrency gate refuses bare invocation and VP-018 is byte-identical
+# after refusal. This test IS fully mutation-verifiable: removing the gate causes bare
+# invocation to write VP-018, flipping the file-identical assertion to FAIL.
+#
+# Clean pass: --dry-run exits 0 on an unpopulated VP-018 fixture (proves fixture is valid).
+# Defect:     bare invocation exits non-zero (concurrency gate fires) AND VP-018 is
+#             byte-identical (no write occurred).
+#
+# Mutation-verify: removing the concurrency guard block in gen-slug-corpus.py causes bare
+# invocation to write VP-018 (inserting the corpus block), the BEFORE/AFTER comparison
+# fails, and this test's defect-fail assertion flips to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 28: gen-slug-corpus: bare invocation is fail-safe (concurrency gate) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/verification-properties"
+
+cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TVFILE28'
+# Test Vectors
+
+## §7. Slug Test Vectors (TV-S)
+
+| TV-ID | Heading Text | Expected Slug | Source |
+|-------|-------------|---------------|--------|
+| TV-S998 | `Bare Guard` | `bare-guard` | selftest-28 |
+
+---
+TVFILE28
+
+# VP-018 with no @GENERATED markers yet — generator WOULD insert corpus block if not gated
+cat > "$T/.factory/specs/verification-properties/vp-018-slug-worked-examples.md" <<'VP018_28'
+# VP-018 Selftest Fixture (test 28)
+
+```rust
+const SLUG_CORPUS: &[(&str, &str)] = &[
+];
+```
+VP018_28
+
+VP28="$T/.factory/specs/verification-properties/vp-018-slug-worked-examples.md"
+
+# Clean pass: --dry-run must exit 0 (non-destructive, not gated)
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" --dry-run > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: --dry-run unexpectedly failed (should not be gated)"
+    DR28_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" --dry-run 2>&1)
+    echo "  Output: $DR28_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    BEFORE28=$(cat "$VP28")
+    # Defect: bare invocation must exit non-zero (concurrency gate fires)
+    BARE28_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" 2>&1)
+    BARE28_EXIT=$?
+    if [ "$BARE28_EXIT" -eq 0 ]; then
+        echo "  FAIL (bare invocation returned 0 — concurrency gate not active; VP-018 may have been written)"
+        FAILURES=$((FAILURES + 1))
+    else
+        # Confirm VP-018 was not modified (no write occurred before the gate refused)
+        AFTER28=$(cat "$VP28")
+        if [ "$BEFORE28" = "$AFTER28" ]; then
+            echo "  PASS (clean-pass confirmed; bare invocation refused and VP-018 byte-identical after)"
+        else
+            echo "  FAIL (gate refused but VP-018 was still modified — write occurred before gate check)"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 29: meta-guard — every check-*.py on disk is in the ACTIVE CHECKS array ─────────
+# BLOCKING-1 meta-guard. The guard must grade against what bash ACTUALLY EXECUTES, not
+# what appears anywhere in the file text. A commented-out entry (`# "check-name"`) passes
+# a grep-based text search but IS NOT EXECUTED — commenting out is the ordinary way a
+# check gets disabled. The guard must not be defeated by it.
+#
+# Implementation: extract CHECKS=(...) array content from each runner file via awk, drop
+# blank lines and lines starting with '#', strip quotes, and compare the derived live list
+# against check-*.py on disk. This proves semantic presence, not textual presence.
+#
+# Clean pass: all check-*.py on disk appear in the ACTIVE (non-commented) CHECKS arrays
+#             of BOTH ci.yml and justfile.
+# Defect A:   temp ci.yml with "check-canonical-facts" COMMENTED OUT → detected (ci arm).
+# Defect B:   temp justfile with "check-canonical-facts" COMMENTED OUT → detected (just arm).
+# Both arms verified independently. Mutation-verify: replacing the awk extraction with a
+# simple grep (not stripping comments) causes both defects to pass undetected, flipping
+# both assertions to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 29: meta-guard: every check-*.py is in the active CHECKS array (both runners) ──"
+
+# Extract non-commented entries from the CHECKS=( ... ) block in a runner file.
+# Returns one name per line, without surrounding quotes.
+# FAILS LOUDLY (exit 1, message to stderr) if the file contains more than one
+# CHECKS=( block: a second block would make it ambiguous which entries bash
+# actually executes; silently unioning both could include demoted checkers as
+# if still active.  If more than one block is found, the guard's assumption has
+# been invalidated — update the guard to name the authoritative array.
+_get_active_checks() {
+    local file="$1"
+    local block_count
+    block_count=$(awk '/CHECKS=\(/{c++} END{print c+0}' "$file")
+    if [ "$block_count" -ne 1 ]; then
+        echo "META-GUARD ERROR: $file contains $block_count CHECKS=( block(s) — expected exactly 1." >&2
+        echo "  The guard's assumption (one authoritative array per runner file) has been invalidated." >&2
+        echo "  Update the guard to name the authoritative array before proceeding." >&2
+        return 1
+    fi
+    awk '
+        /CHECKS=\(/ { in_array=1; next }
+        in_array && /\)/ { in_array=0 }
+        in_array {
+            sub(/^[[:space:]]+/, "")
+            if ($0 == "" || substr($0, 1, 1) == "#") next
+            gsub(/"/, "")
+            if ($0 != "") print $0
+        }
+    ' "$file"
+}
+
+RUNNER_MISSING=0
+MISSING_IN_CI=()
+MISSING_IN_JUST=()
+CI_ACTIVE=$(_get_active_checks "$REPO/.github/workflows/ci.yml")
+JUST_ACTIVE=$(_get_active_checks "$REPO/justfile")
+
+for py_file in "$LINT_DIR"/check-*.py; do
+    [[ -f "$py_file" ]] || continue
+    name=$(basename "$py_file" .py)
+    if ! echo "$CI_ACTIVE" | grep -qx "$name"; then
+        MISSING_IN_CI+=("$name")
+        RUNNER_MISSING=1
+    fi
+    if ! echo "$JUST_ACTIVE" | grep -qx "$name"; then
+        MISSING_IN_JUST+=("$name")
+        RUNNER_MISSING=1
+    fi
+done
+
+CLEAN_PASS=0
+if [ "$RUNNER_MISSING" -eq 0 ]; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL (clean-pass): checker(s) absent from active CHECKS array:"
+    for m in "${MISSING_IN_CI[@]+"${MISSING_IN_CI[@]}"}"; do echo "    MISSING from ci.yml active array: $m"; done
+    for m in "${MISSING_IN_JUST[@]+"${MISSING_IN_JUST[@]}"}"; do echo "    MISSING from justfile active array: $m"; done
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    T=$(make_temp)
+    ALL_ARM_DEFECTS_DETECTED=1
+
+    # Defect A: ci.yml arm — COMMENT OUT (not delete) the check-canonical-facts entry
+    sed 's/"check-canonical-facts"/# "check-canonical-facts"/' \
+        "$REPO/.github/workflows/ci.yml" > "$T/ci-defect.yml"
+    CI_DEFECT=$(_get_active_checks "$T/ci-defect.yml")
+    CI_ARM_MISSED=0
+    for py_file in "$LINT_DIR"/check-*.py; do
+        [[ -f "$py_file" ]] || continue
+        name=$(basename "$py_file" .py)
+        if ! echo "$CI_DEFECT" | grep -qx "$name"; then
+            CI_ARM_MISSED=1
+        fi
+    done
+    if [ "$CI_ARM_MISSED" -eq 0 ]; then
+        echo "  FAIL (ci.yml arm: commented-out entry NOT detected — guard is defeated by comments)"
+        FAILURES=$((FAILURES + 1))
+        ALL_ARM_DEFECTS_DETECTED=0
+    fi
+
+    # Defect B: justfile arm — COMMENT OUT the check-canonical-facts entry
+    sed 's/"check-canonical-facts"/# "check-canonical-facts"/' \
+        "$REPO/justfile" > "$T/justfile-defect"
+    JUST_DEFECT=$(_get_active_checks "$T/justfile-defect")
+    JUST_ARM_MISSED=0
+    for py_file in "$LINT_DIR"/check-*.py; do
+        [[ -f "$py_file" ]] || continue
+        name=$(basename "$py_file" .py)
+        if ! echo "$JUST_DEFECT" | grep -qx "$name"; then
+            JUST_ARM_MISSED=1
+        fi
+    done
+    if [ "$JUST_ARM_MISSED" -eq 0 ]; then
+        echo "  FAIL (justfile arm: commented-out entry NOT detected — guard is defeated by comments)"
+        FAILURES=$((FAILURES + 1))
+        ALL_ARM_DEFECTS_DETECTED=0
+    fi
+
+    # Defect C: two-array fixture — guard must reject files with multiple CHECKS=( blocks.
+    # Mutation-verify: removing the block_count check from _get_active_checks causes
+    # _get_active_checks to return 0 (success) instead of 1 (failure), flipping this
+    # arm's defect-detected assertion to FAIL.
+    cat > "$T/ci-twoarray.yml" <<'TWOARRAY_EOF'
+CHECKS=(
+  "check-first"
+  "check-second"
+)
+# Advisory checks (not yet blocking)
+CHECKS=(
+  "check-advisory"
+)
+TWOARRAY_EOF
+    if _get_active_checks "$T/ci-twoarray.yml" >/dev/null 2>&1; then
+        echo "  FAIL (two-array fixture: guard did NOT reject file with two CHECKS=( blocks)"
+        FAILURES=$((FAILURES + 1))
+        ALL_ARM_DEFECTS_DETECTED=0
+    fi
+
+    if [ "$ALL_ARM_DEFECTS_DETECTED" -eq 1 ]; then
+        echo "  PASS (clean-pass confirmed; ci.yml and justfile arms detect commented-out entry; two-array fixture rejected)"
+    fi
+    rm -rf "$T"
+fi
+
+# ── Test 30: check-canonical-facts — boundary stop prevents ancestor escape (MAJOR-2) ───
+# The .git boundary stop in _find_repo_root() prevents the walk from escaping the current
+# repository when .factory/ is unmounted (or when running from a linked worktree). Without
+# the stop, the walk exits the inner repository, binds a decoy canonical-facts.toml from
+# an ancestor, and exits 0 (false pass). With the stop, it exits 1 (fail-closed, correct).
+#
+# Test structure:
+#   $T/
+#     .factory/specs/canonical-facts.toml  — decoy (in ancestor, must NOT be found)
+#     .factory/specs/decoy-binding.md       — binding file that matches the decoy
+#     inner/
+#       .git                                — FILE, simulates a linked worktree
+#       scripts/spec-lint/
+#         check-canonical-facts.py          — copy of fixed script
+#
+# Clean pass: boundary stop fires at inner/.git; no canonical-facts.toml found within
+#             the inner repository → script exits non-zero (fail-closed, correct).
+# Defect:     remove inner/.git; walk now escapes to $T/, finds decoy canonical-facts.toml,
+#             binds it, all bindings match → script exits 0 (false pass — defect confirmed).
+#
+# Mutation-verify: removing `if (candidate / ".git").exists(): return None` from
+# _find_repo_root() causes the walk to escape past inner/.git even when it exists,
+# finds the decoy, and exits 0 — flipping the clean-pass assertion to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 30: check-canonical-facts: boundary stop prevents ancestor escape ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+mkdir -p "$T/inner/scripts/spec-lint"
+
+# Decoy canonical-facts.toml in ancestor — must NEVER be reached by the inner script
+cat > "$T/.factory/specs/canonical-facts.toml" <<'CF30'
+[[fact]]
+id = "FACT-DECOY30"
+description = "Decoy — inner-repo script must not bind this"
+canonical_value = "decoy-pass"
+source = "selftest-30"
+
+[[binding]]
+fact_id = "FACT-DECOY30"
+file = ".factory/specs/decoy-binding.md"
+note = "decoy binding for boundary stop test"
+pattern = 'decoy: (decoy-pass)'
+CF30
+
+cat > "$T/.factory/specs/decoy-binding.md" <<'DB30'
+# Decoy Binding (boundary stop test — selftest 30)
+decoy: decoy-pass
+DB30
+
+# inner/.git is a FILE (simulates git linked worktree — .git is a pointer file in worktrees)
+printf "gitdir: ../../.git/worktrees/inner\n" > "$T/inner/.git"
+
+# Copy the FIXED script into the simulated inner repository
+cp "$LINT_DIR/check-canonical-facts.py" "$T/inner/scripts/spec-lint/"
+
+# Clean pass: boundary stop must fire and script must exit non-zero (fail-closed)
+CLEAN_PASS=0
+BOUND_OUT=$(python3 "$T/inner/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+BOUND_EXIT=$?
+if [ "$BOUND_EXIT" -ne 0 ]; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: boundary stop did not fire — script exited 0 (false pass against decoy)"
+    echo "  Output: $BOUND_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: remove inner/.git — the boundary stop no longer fires; walk escapes to
+    # $T/ and finds the decoy canonical-facts.toml, producing a false pass (exit 0)
+    rm "$T/inner/.git"
+    DEFECT_OUT=$(python3 "$T/inner/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+    DEFECT_EXIT=$?
+    if [ "$DEFECT_EXIT" -eq 0 ]; then
+        echo "  PASS (clean-pass confirmed; boundary stop prevents false pass; without .git, decoy is found)"
+    else
+        echo "  FAIL (without .git boundary marker, script still exited non-zero — walk did not escape to decoy)"
+        echo "  Output: $DEFECT_OUT"
+        FAILURES=$((FAILURES + 1))
     fi
 fi
 rm -rf "$T"
