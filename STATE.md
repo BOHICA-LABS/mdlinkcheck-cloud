@@ -4,21 +4,21 @@ level: ops
 version: "2.5"
 status: draft
 producer: state-manager
-timestamp: 2026-08-06T23:30:00Z
+timestamp: 2026-08-06T23:55:55Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; shards 4,6,7,8 persisted; BI-025..BI-031 opened (vacuous VPs, proof-method join, POLICY 5, code-fence symbols, SS-07 block, exit-code domain, D-043 survivors); trajectory-tail →34→39→37→259; GitHub Actions RECOVERED; merge queue PR #4→#3→#5 UNBLOCKED; D-046..D-057 (exhaustive)"
+current_step: "phase-1d; closing burst: SESSION-HANDOFF.md D-057 factory-artifacts SHA self-corrected; sidecar-learning.md committed; BI-025..BI-031 verified in blocking-issues table and Open list; trajectory-tail →34→39→37→259; D-046..D-057 (exhaustive)"
 current_cycle: ""
 dtu_required: false
 ---
 
 <!--
   STATE.md SIZE BUDGET:
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 219 = 281. 219 lines (wc-l, post-burst-13).
+  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 219 = 281. 219 lines (wc-l, post-burst-14).
   Hard cap: 500 lines.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
@@ -37,7 +37,7 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-07 — shards 4,6,7,8 persisted; BI-025..BI-031 opened; trajectory-tail →34→39→37→259; GitHub Actions RECOVERED; merge queue PR #4→#3→#5 UNBLOCKED; D-054..D-057 (exhaustive) |
+| **Last Updated** | 2026-08-07 — closing burst: SESSION-HANDOFF.md D-057 factory-artifacts SHA self-corrected; sidecar-learning.md committed; BI-025..BI-031 verified; trajectory-tail →34→39→37→259; D-046..D-057 (exhaustive) |
 | **Current Phase** | phase-1d |
 | **Current Step** | Pass-5 perimeter sweep COMPLETE (8 shards, 259 findings ~42C). BI-025..BI-031 opened. GitHub Actions RECOVERED (D-055); merge queue PR #4→PR #3→PR #5 UNBLOCKED. FIRST ACTION ON RESUME: execute merge queue, then remediation burst. |
 
@@ -216,4 +216,4 @@ Spec snapshot: PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC r
 | Lessons learned | `cycles/phase-1d/lessons.md` |
 | Resolved blockers | `cycles/phase-1d/blocking-issues-resolved.md` |
 
-Last Updated: 2026-08-07 — shards 4,6,7,8 persisted; BI-025..BI-031 opened; GitHub Actions RECOVERED; merge queue PR #4→#3→#5 UNBLOCKED; D-054..D-057 (exhaustive); trajectory-tail →34→39→37→259
+Last Updated: 2026-08-07 — closing burst: SESSION-HANDOFF.md D-057 factory-artifacts SHA self-corrected; sidecar-learning.md committed; BI-025..BI-031 verified; trajectory-tail →34→39→37→259; D-046..D-057 (exhaustive)

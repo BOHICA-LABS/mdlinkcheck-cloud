@@ -572,7 +572,7 @@ Verify each at resume before taking action.
 | PR #4 `chore/macos-only-ci` | `6503d3baacaa7aef2b9e6fe44f27aadb13d239ae` | APPROVE 1 cycle; all 4 required contexts GREEN on CI run 31122163633; NO rebase needed |
 | PR #3 `feature/spec-lint-hardening` | `6d954ab88f52795bd1cd1c3bf22b5cba31dec495` | 17/17 mutation-verified suite; `covered_sha` MUST be updated to `6d954ab` before merge — pr-reviewer APPROVE covered superseded `a9b9be0` and `check-stale-verdict.sh` will correctly refuse it; rebase OPTIONAL not blocking |
 | PR #5 `fix/hardening-pins` | `b054694ef565cb9a95f59858ee7bee75d74df045` | APPROVE 2 cycles; D-052 restricted-path waiver |
-| `.factory` / `factory-artifacts` | `git -C .factory log -1 --format='%H'` | this session-wrap commit |
+| `.factory` / `factory-artifacts` | resolve at resume via `git -C .factory log -1 --format=%H` — do NOT trust a literal SHA recorded here, this row is always one commit behind by construction | `40e9907` was the D-057 wrap commit; `32cb08d` followed (ADDITIVE: shards 4/6/7/8 persisted, BI-025..BI-031 opened); snapshot substance unchanged |
 | Frozen pass-5 HEAD | `1d3ed17` | reference HEAD for the 36-finding pass-5 report |
 
 - Main repo working tree: branch checked out: `feature/spec-lint-hardening`.
