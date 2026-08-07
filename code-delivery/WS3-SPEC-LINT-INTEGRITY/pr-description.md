@@ -4,8 +4,9 @@
 **Mode:** fix-pr (checker-only, no spec content changes)
 **Branch:** `fix/ws3-spec-lint-integrity` → `develop`
 **Base SHA:** `7b9aa6d`
+**Current head:** `791fc11e8b57e01326251daf0eb36dfffb59822a` (6 commits)
 
-![Selftests](https://img.shields.io/badge/selftests-54%2F54-brightgreen)
+![Selftests](https://img.shields.io/badge/selftests-55%2F55-brightgreen)
 ![CI Required](https://img.shields.io/badge/required_checks-green-brightgreen)
 ![Spec Lint](https://img.shields.io/badge/spec_lint-ADVISORY_fail-yellow)
 ![Security](https://img.shields.io/badge/GitGuardian-PASS-brightgreen)
@@ -119,7 +120,7 @@ flowchart LR
 
 ---
 
-## What Changed (4 commits, 8 files, +774/-64)
+## What Changed (6 commits, 9+ files, +980/-70 approx.)
 
 ### `2b99642` — BI-023 R2+R3 spec-lint checker repairs
 
@@ -168,6 +169,16 @@ flowchart LR
 - New test case added to `run-selftests.sh` validating that `prd.md:721` (the immutable
   D-034 record) does NOT produce a false positive.
 
+### `7e80443` — Review cycle 1 fixes (BLOCK-1 + BLOCK-2 + BLOCK-3)
+
+- **BLOCK-1:** `_is_valid_vp_cell` punctuation-only-cell hole — filter moved into list comprehension so empty token list returns `False`.
+- **BLOCK-2:** Fence `continue` scope narrowed in both files — pre-existing checks (VP-TBD, SS-TBD, [filled by], all ID resolution) now run inside fenced blocks; only R2/R3 are gated on `not in_fenced_code`.
+- **BLOCK-3:** Selftests 22/22b derive FACT-10 binding-25 dynamically from `canonical-facts.toml` via `git rev-parse --git-common-dir` + tomllib. The `origin/factory-artifacts` branch already carries the D-076 corrected pattern at `7e0f02a` (pushed 2026-08-07T07:48). Suite 55/55.
+
+### `791fc11` — Review cycle 2 fix (BLOCK-5)
+
+- **BLOCK-5:** Separate fixture `bad-placeholder-vp-punctuation-only.md` created (comma-only VP-NNN row, no em-dash). NV-1b test case added after NV-1, using only the comma fixture. EXPECTED_TEST_COUNT 55. Teeth verified: reverting the BLOCK-1 fix gives 54/55 (NV-1b fails, NV-1 passes).
+
 ### `70794e3` — BI-045 selftest hermeticity
 
 - Selftests 25 and 30: removed ambient `SPEC_LINT_REPO_OVERRIDE` dependency. Both now
@@ -182,9 +193,9 @@ flowchart LR
 
 | Metric | Value |
 |--------|-------|
-| Selftest suite total | **54 / 54 PASS** |
-| Suite hermetic (ambient override absent) | **54 / 54 PASS** |
-| Suite hermetic (ambient override set) | **54 / 54 PASS** |
+| Selftest suite total | **55 / 55 PASS** |
+| Suite hermetic (ambient override absent) | **55 / 55 PASS** |
+| Suite hermetic (ambient override set) | **55 / 55 PASS** |
 | R2 live tree findings | **80** (55 new em-dash + 25 pre-existing `[filled by]`) |
 | R3 live tree findings | **10** (9 live EC-NEW rows + 1 genuine `TV-BV013` in EC column at `ss-04/BC-2.04.001.md:63`) |
 | `check-canonical-facts` | **OK** — 31 bindings, 11 facts, 0 non-conforming |
