@@ -1,0 +1,14 @@
+  PASS: test_cm_splitlines_closed_under_discovery
+  PASS: test_cm_strip_cell_closed_under_discovery
+  PASS: test_is_conforming_vp_cell
+  PASS: test_is_conforming_ec_cell
+  PASS: test_is_conforming_ec_token
+  PASS: test_split_table_cells
+--
+Pre-flight structural guard: checking for raw .splitlines() in migrated checkers (G4)...
+Pre-flight guard passed: 15 files checked, 0 raw .splitlines() uses
+
+── selftest 1: check-id-resolution: unregistered EC-999 reference ──
+  PASS (clean-pass confirmed; unregistered EC-999 correctly detected)
+── selftest 1b: check-id-resolution: out-of-range T-17 trap reference ──
+  PASS (clean-pass confirmed; out-of-range T-17 correctly detected)
