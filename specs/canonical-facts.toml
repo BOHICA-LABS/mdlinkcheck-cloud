@@ -18,6 +18,11 @@
 #
 # Use TOML literal strings (single-quoted) for pattern values so backslashes
 # are literal (no double-escaping needed for regex metacharacters).
+#
+# BI-042 D-076 remediation (2026-08-07): all 26 tautological patterns replaced
+# with bounded-wildcard patterns. Capture group is now a wildcard terminated
+# by a reliable right-side delimiter; the canonical value is never embedded
+# in the capture group. This closes the prefix-extension false-negative class.
 
 # ── FACT-1: Four-field sort key includes link_target ──────────────────────────
 
@@ -31,49 +36,49 @@ source          = ".factory/specs/domain-spec/invariants.md:57-58"
 fact_id = "FACT-1"
 file    = ".factory/specs/architecture/module-decomposition.md"
 note    = "sort_unstable_by_key tuple in reporter.rs pseudocode"
-pattern = 'sort_unstable_by_key[^;]*(link_target)'
+pattern = 'sort_unstable_by_key[^\n;]*\.([a-z_]+)\)\)'
 
 [[binding]]
 fact_id = "FACT-1"
 file    = ".factory/specs/prd-supplements/interface-definitions.md"
 note    = "text output Ordering field"
-pattern = 'Ordering.*?sorted by .{0,5}\(NFC-normalized[^)]*?(link_target)'
+pattern = 'Ordering.*?sorted by [^\n]{0,5}\([^)]*,\s*([^)\n]+)\)'
 
 [[binding]]
 fact_id = "FACT-1"
 file    = ".factory/specs/prd-supplements/interface-definitions.md"
 note    = "JSON output Ordering field (results sorted-by)"
-pattern = 'results.*?is sorted by \([^)]*?(link_target)'
+pattern = 'results.*?is sorted by \([^)]*,\s*([^)\n]+)\)'
 
 [[binding]]
 fact_id = "FACT-1"
 file    = ".factory/specs/behavioral-contracts/BC-INDEX.md"
 note    = "DI-001 row in BC-INDEX invariant table"
-pattern = 'DI-001[^\n]*(link_target)'
+pattern = 'DI-001[^\n]*,\s*([^)\n]+)\)'
 
 [[binding]]
 fact_id = "FACT-1"
 file    = ".factory/specs/behavioral-contracts/ss-12/BC-2.12.001.md"
 note    = "description sort-key (multi-line tuple)"
-pattern = 'sorted deterministically by.{0,10}\([^)]*?(link_target)'
+pattern = 'sorted deterministically by.{0,10}\([^)]*,\s*([^)\n]+)\)'
 
 [[binding]]
 fact_id = "FACT-1"
 file    = ".factory/specs/behavioral-contracts/ss-12/BC-2.12.001.md"
 note    = "postcondition 5 sort-key"
-pattern = 'Findings are sorted by \([^)]*?(link_target)'
+pattern = 'Findings are sorted by \([^)]*,\s*([^\s)\n]+)\s+asc\)'
 
 [[binding]]
 fact_id = "FACT-1"
 file    = ".factory/specs/behavioral-contracts/ss-13/BC-2.13.001.md"
 note    = "postcondition 4 results sorted-by"
-pattern = 'results.*?is sorted by \([^)]*?(link_target)'
+pattern = 'results.*?is sorted by \([^)]*,\s*([^)\n]+)\)'
 
 [[binding]]
 fact_id = "FACT-1"
 file    = ".factory/specs/behavioral-contracts/ss-03/BC-2.03.002.md"
 note    = "invariant 4 sort-key uniqueness"
-pattern = 'sort key \([^)]*?(link_target)'
+pattern = 'sort key \([^)]*,\s*([^)\n]+)\)'
 
 # ── FACT-2: AnchorTable is a newtype — no phantom file field ─────────────────
 
@@ -87,7 +92,7 @@ source          = ".factory/specs/architecture/api-surface.md"
 fact_id = "FACT-2"
 file    = ".factory/specs/domain-spec/entities.md"
 note    = "AnchorTable § newtype declaration"
-pattern = 'AnchorTable.*?is a newtype.*?(AnchorTable\(HashSet<String>\))'
+pattern = 'AnchorTable.*?is a newtype:\s*`([^`\n]+)`'
 
 # ── FACT-3: Three-phase pipeline (Pass 1.5 introduced) ────────────────────────
 
@@ -101,13 +106,13 @@ source          = ".factory/specs/architecture/ARCH-INDEX.md"
 fact_id = "FACT-3"
 file    = ".factory/specs/domain-spec/entities.md"
 note    = "MarkdownFile table anchor-table row — pipeline phase description"
-pattern = 'anchor-table.*?(Pass 1\.5)'
+pattern = 'anchor-table[^\n]*Pass 1 → ([^;\n]+?);'
 
 [[binding]]
 fact_id = "FACT-3"
 file    = ".factory/specs/prd.md"
 note    = "prd.md KD-001 table BC-2.05.001 row"
-pattern = 'BC-2\.05\.001.*?(Pass 1\.5)'
+pattern = 'BC-2\.05\.001[^\n]*Pass 1 → ([^→\n]+?) →'
 
 # ── FACT-5a: BC-2.06.001 and BC-2.06.002 cite ADR-008 ────────────────────────
 
@@ -144,6 +149,12 @@ note    = "Traceability: Architecture Module field"
 pattern = 'Architecture Module.*?anchor_table\.rs.*?— (ADR-\d+)'
 
 # ── FACT-6a: VP-018 SLUG_CORPUS covers TV-S007 (leading emoji) ───────────────
+#
+# STRUCTURAL LIMITATION (BI-042 D-076): These are ID-presence checks.
+# The pattern must match a specific TV-SNNN ID inside a @GENERATED block.
+# A bounded-wildcard pattern cannot be constructed here without either (a)
+# matching the wrong ID (first TV-SNNN in the block) or (b) remaining
+# tautological. Left unchanged pending a per-ID structured checker approach.
 
 [[fact]]
 id              = "FACT-6a"
@@ -158,6 +169,8 @@ note    = "@GENERATED slug-corpus block includes TV-S007 comment"
 pattern = '@GENERATED:BEGIN slug-corpus.*(TV-S007)'
 
 # ── FACT-6b: VP-018 SLUG_CORPUS covers TV-S010 (`--online` flag) ─────────────
+#
+# STRUCTURAL LIMITATION (BI-042 D-076): same as FACT-6a above.
 
 [[fact]]
 id              = "FACT-6b"
@@ -218,15 +231,18 @@ pattern = 'ASM-004 \| Platform matrix is (.*?) \('
 # directories) — not just missing-.md targets. Canonical phrasing is "every
 # extracted link destination" (the invariant that closes the purity boundary).
 #
+# BI-042 D-076 remediation: capture group is now ([^\n]+?) terminated by ' —'
+# (space + U+2014 em-dash), which appears after the canonical phrase at all six
+# binding sites. Line-bounded via [^\n].
+#
 # Adversarial validation (ALL PASS):
 #   Real "...directories from every extracted link destination —..." → "every extracted link destination"
-#   Adv ".md files only"                → None (no match)
-#   Adv "all markdown files"            → None
-#   Adv "scan-set link destinations"    → None
+#   Adv "every extracted link destination but only .md files —"      → captured, ≠ canonical → DIVERGE
+#   Adv ".md file destinations —"                                     → captured, ≠ canonical → DIVERGE
 #   Real "`DirIndex` for every extracted link destination — all link types" → "every extracted link destination"
-#   Adv "`DirIndex` for all .md link destinations"      → None
-#   Adv "`DirIndex` for scan-set files"                 → None
-#   Adv "`DirIndex` for missing-.md-target parent dirs" → None
+#   Adv "`DirIndex` for all .md link destinations —"                  → captured, ≠ canonical → DIVERGE
+#   Adv "`DirIndex` for scan-set files —"                             → captured, ≠ canonical → DIVERGE
+#   Adv "`DirIndex` for missing-.md-target parent dirs —"             → captured, ≠ canonical → DIVERGE
 
 [[fact]]
 id              = "FACT-9"
@@ -238,37 +254,37 @@ source          = ".factory/specs/architecture/purity-boundary-map.md:111"
 fact_id = "FACT-9"
 file    = ".factory/specs/architecture/purity-boundary-map.md"
 note    = "DirIndex build step 1 — authoritative scope declaration"
-pattern = 'directories from (every extracted link destination)'
+pattern = 'directories from ([^\n]+?) —'
 
 [[binding]]
 fact_id = "FACT-9"
 file    = ".factory/specs/architecture/system-overview.md"
 note    = "Pass 1.5 Purpose line — DirIndex build statement"
-pattern = 'build DirIndex for (every extracted link destination)'
+pattern = 'build DirIndex for ([^\n]+?) —'
 
 [[binding]]
 fact_id = "FACT-9"
 file    = ".factory/specs/architecture/system-overview.md"
 note    = "Pass 1.5a step — Collect unique parent directories"
-pattern = 'Collect unique parent directories of (every extracted link destination)'
+pattern = 'Collect unique parent directories of ([^\n]+?) —'
 
 [[binding]]
 fact_id = "FACT-9"
 file    = ".factory/specs/behavioral-contracts/ss-07/BC-2.07.002.md"
 note    = "Postcondition 5 — DirIndex coverage guarantee"
-pattern = '`DirIndex` for (every extracted link destination)'
+pattern = '`DirIndex` for ([^\n]+?) —'
 
 [[binding]]
 fact_id = "FACT-9"
 file    = ".factory/specs/behavioral-contracts/ss-07/BC-2.07.005.md"
 note    = "Precondition 2 — directory-link routing guarantee"
-pattern = '`DirIndex` for (every extracted link destination)'
+pattern = '`DirIndex` for ([^\n]+?) —'
 
 [[binding]]
 fact_id = "FACT-9"
 file    = ".factory/specs/behavioral-contracts/ss-07/BC-2.07.006.md"
 note    = "Precondition 2 — non-.md file routing guarantee"
-pattern = '`DirIndex` for (every extracted link destination)'
+pattern = '`DirIndex` for ([^\n]+?) —'
 
 # ── FACT-10: config_error membership and routing ──────────────────────────────
 #
@@ -276,12 +292,25 @@ pattern = '`DirIndex` for (every extracted link destination)'
 # pattern. Unrecognized flags handled by clap before app::run(); never reach
 # verdict::exit_code. Routing is THROUGH verdict::exit_code (not process::exit).
 #
+# BI-042 D-076 remediation: all 7 patterns now use line-bounded wildcards
+# terminated by per-site right delimiters. The canonical value is not embedded
+# in any capture group.
+#
+# Binding 25: \( left-anchors to the CAP-014 parenthetical (not changelog entry
+#   at pos 720 which lacks the opening paren). Right delimiter: ' pattern,'
+# Binding 26: `config_error = true` left anchor avoids io_errors "receives:" at
+#   pos 12810. Right delimiter: ' pattern '
+# Binding 27: line-end capture ([^\n]+) terminated by \n (line 257 ends at "glob").
+# Binding 28: right delimiter ' (' (opening paren of sole-trigger qualifier).
+# Bindings 29,31: right delimiter ' pattern was detected' (noun phrase follows).
+# Binding 30: right delimiter ' pattern \(' (parenthesized qualifier follows).
+#
 # Adversarial validation (ALL PASS):
-#   Real "sole trigger: invalid `--ignore` glob pattern..." → "invalid `--ignore` glob"
-#   Adv "invalid `--output` glob"      → None (wrong flag)
-#   Adv "invalid --ignore glob"        → None (no backticks → literal backtick in pattern prevents match)
-#   Adv "invalid `--ignore-case` glob" → None (extended flag name, trailing chars break match)
-#   Adv different phrasing without backticks → None
+#   Real "(sole trigger: invalid `--ignore` glob pattern, ..." → "invalid `--ignore` glob"
+#   Adv "(sole trigger: invalid `--output` glob pattern, ..."  → captured, ≠ canonical → DIVERGE
+#   Adv "(sole trigger: invalid --ignore glob pattern, ..."    → captured, ≠ canonical → DIVERGE
+#   Real "startup configuration error is an invalid `--ignore` glob\n" → "invalid `--ignore` glob"
+#   Adv "startup configuration error is an invalid `--ignore` glob or bad path\n" → captured, ≠ canonical → DIVERGE
 
 [[fact]]
 id              = "FACT-10"
@@ -293,40 +322,40 @@ source          = ".factory/specs/domain-spec/capabilities.md:241"
 fact_id = "FACT-10"
 file    = ".factory/specs/domain-spec/capabilities.md"
 note    = "CAP-014 exit-2 condition — sole trigger parenthetical"
-pattern = 'sole trigger: (invalid `--ignore` glob)'
+pattern = '\(sole trigger: ([^\n,]+?) pattern,'
 
 [[binding]]
 fact_id = "FACT-10"
 file    = ".factory/specs/domain-spec/capabilities.md"
 note    = "CAP-014 io_errors/config_error partition — receives: line"
-pattern = 'receives: (invalid `--ignore` glob)'
+pattern = '`config_error = true`\s*receives: ([^\n(]+?) pattern '
 
 [[binding]]
 fact_id = "FACT-10"
 file    = ".factory/specs/architecture/system-overview.md"
 note    = "Error Handling section — sole startup configuration error sentence"
-pattern = 'startup configuration error is an (invalid `--ignore` glob)'
+pattern = 'startup configuration error is an ([^\n]+)\n'
 
 [[binding]]
 fact_id = "FACT-10"
 file    = ".factory/specs/architecture/system-overview.md"
 note    = "Error Handling table — Configuration error row label"
-pattern = 'Configuration error: (invalid `--ignore` glob)'
+pattern = 'Configuration error: ([^\n(]+?)\s*\('
 
 [[binding]]
 fact_id = "FACT-10"
 file    = ".factory/specs/behavioral-contracts/ss-14/BC-2.14.001.md"
 note    = "Precondition 4 — config_error = false condition"
-pattern = 'no (invalid `--ignore` glob) pattern was detected'
+pattern = 'no ([^\n(]+?) pattern was detected'
 
 [[binding]]
 fact_id = "FACT-10"
 file    = ".factory/specs/behavioral-contracts/ss-14/BC-2.14.002.md"
 note    = "Precondition 2 — config_error = true sole trigger"
-pattern = 'is an (invalid `--ignore` glob) pattern'
+pattern = 'is an ([^\n(]+?) pattern \('
 
 [[binding]]
 fact_id = "FACT-10"
 file    = ".factory/specs/behavioral-contracts/ss-14/BC-2.14.003.md"
 note    = "Precondition 4 — config_error = false condition"
-pattern = 'no (invalid `--ignore` glob) pattern was detected'
+pattern = 'no ([^\n(]+?) pattern was detected'

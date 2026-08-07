@@ -737,3 +737,62 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 **Dim-7 Attestation:** Agents dispatched this session: state-manager (this burst). WS-3 Phase 1 audit executed in prior commit `3734c1e` (devops-engineer / orchestrator). No new agent dispatches in this wrap burst.
 
 **Closes:** BI-034 (pass-6 skip-list re-audit complete; all three entries KEEP). **Updates:** BI-002 (WS-3 Phase 1 DONE; BI-034 RESOLVED; next: BI-042 PREEMPTIVE + WS-3 Phase 2 items 2+3). BI-023 (corrected counts: 34 files/55 rows, 5 files EC-NEW-).
+
+---
+
+## Burst: burst 17 — BI-042 adjudication + WS-3 Phase 2 + BI-040 design; D-076..D-085 (exhaustive) (2026-08-07)
+
+**Parent-commit:** `17ed288` (factory(phase-1d): D-075 session wrap — WS-3 Phase 1 COMPLETE; BI-034 RESOLVED; BI-023 corrected; lessons 37-40)
+
+**Evicted Current Phase Steps row (archived per 5-row rule):** "PR #4+#5 MERGED; SS-07 DirIndex BROAD; SS-14 corrections; FACT-9+FACT-10; PR #3 B-11 REQUEST_CHANGES; design ruling written" — pr-manager + architect + state-manager — COMPLETE — PR #4 bcbb4a5 MERGED (develop→bcbb4a5); PR #5 2776d94 MERGED; SS-07 adjudicated (purity-boundary-map.md AUTHORITATIVE D-061); SS-14 CAP-014+BC-2.14.002/004 corrected (D-063); FACT-9+FACT-10 added; PR #3 head 031ca5b 4×REQUEST_CHANGES (B-11: hs_rows_seen++ after pre-filters); design-ruling-index-integrity.md written; D-058..D-066 (exhaustive); BI-018/020/029/030 CLOSED; BI-036..038 OPENED.
+
+**Adversary verdict:** No new adversary pass this burst. This burst is: (1) BI-042 adjudication and `.toml` pattern corrections; (2) WS-3 Phase 2 checker repair design (read-only, no code applied); (3) BI-040 shared primitive layer design (read-only, no code applied); (4) D-076..D-085 (exhaustive) recorded; (5) BI-044/BI-045 opened; BI-045 FIXED.
+
+**Headline outcomes:**
+
+1. **BI-042 `.toml` side APPLIED (D-076).** Adjudication complete at `cycles/phase-1d/bi-042-binding-adjudication.md`. Prior "17 of 31 tautological" corrected to **26 of 31**. The FACT-1 family (8 bindings) and FACT-2 were entirely omitted from the prior count. 24 of 26 corrected: FACT-6a/6b left as structural limitation (ID-presence checks; verified BENIGN — `None → DIVERGE` catches ID substitution; prefix-pass structurally impossible given actual comment format `),  // TV-XNNN`). Checker reports `OK — all 31 bindings match (11 facts)`. Selftest-22 rewrite specified at §9.4; goes into PR `fix/ws3-spec-lint-integrity` per D-080. Closes BI-035 when PR merges.
+
+2. **BI-023 magnitudes corrected (D-082 executed predicate).** Item (a): 55 rows / 34 BC files, all U+2014, confirmed exactly by Python `Counter` sweep. Item (b): **9 live defects / 4 files** (not 11/5) — prior figure conflated live defects with Class H historical changelog records; `BC-2.07.005.md:24` carries no live defect (records that EC-NEW-3 was already replaced by EC-164). ROOT CAUSE corrected: `check-placeholders.py` was not missing em-dash detection; it carried a value-blacklist on `test-sufficient` which occurs ZERO times in live tree. NEW DEFECT found by repaired checker: `BC-2.04.001.md:63` carries `TV-BV013` in the EC column (non-conforming ID) AND three cells in a two-column table — added to burn-down.
+
+3. **WS-3 Phase 2 checker repair design committed** (`cycles/phase-1d/ws3-phase2-checker-repair-design.md`). No code applied. R2-RULE (VP-id column shape-whitelist, closes VP em-dash bypass; expected: 80 findings, 55 new + 25 baseline) and R3-A/B/C (EC-shape triple-segment predicate + historical-changelog scoping; expected: 9 findings / 4 files). Both repair rules characterized with: exact bypass mechanism, executed predicate confirmation both bugs exist (`PH_EXIT=0` and `IR_EXIT=0` on defective trees), false-positive landscape measured (211+ non-ID tokens characterized), candidate fixture vectors NV-1 and NV-2 specified.
+
+4. **BI-044 OPENED (HIGH, blocks WS-4).** Digits-only EC grammar replicated at 17 sites across 6 files: `check-counts.py` ×5, `check-id-resolution.py` ×3, `check-holdout-boundary.py` ×3, `check-index-integrity.py` ×3, `check-ec-injectivity.py` ×2, `gen-ec-registry.py` ×1. Detection repaired in `check-id-resolution.py` (commit `2b99642` in PR); 16 sites remain. D-083: HOLD EC-registration until BI-044 settles.
+
+5. **BI-045 OPENED AND FIXED.** Three non-hermetic selftest invocations (test 25 clean-pass, test 30 clean-pass, test 30 DEFECT phase) inherited ambient `SPEC_LINT_REPO_OVERRIDE`, making assertions vacuous. Test 30's defect phase had been passing vacuously regardless of hermeticity. Fixed: suite reports 54/54 identically with and without the variable set. PR commit `70794e3`.
+
+6. **BI-040 primitive layer design committed** (`cycles/phase-1d/bi-040-primitive-layer-design.md`). Surface measured (D-082): **54 raw `splitlines()` sites + 63 `.strip()` sites across 14 files**. Family proven closed-under-discovery by iterating all 1,114,112 Unicode codepoints: **8** CommonMark-divergent splitlines codepoints (U+000B U+000C U+001C U+001D U+001E U+0085 U+2028 U+2029) and **23** CommonMark-divergent strip codepoints (including U+00A0, U+3000). Independently corroborated against prior GFM reviewer finding (exactly the 8 splitlines members). Three-stage migration planned. WS-3b is a PHASE-1D REMEDIATION ITEM (D-085), not a Phase-2 story.
+
+7. **Develop-side state:** Branch `fix/ws3-spec-lint-integrity` off `develop` (`7b9aa6d`), 4 commits, 8 files, +774/−64: `2b99642` (BI-023 R2+R3), `ada4afa` (BI-042 selftest 22), `2e27b10` (D-081 scoping), `70794e3` (BI-045 hermeticity). PR open; pr-manager review lifecycle IN PROGRESS. Verified on branch: R2 exit 1 with 80 findings (55 new + 25 baseline); R3 exit 1 with exactly 10; `check-canonical-facts` OK; selftests 54/54 hermetic both ways. No merge outcome recorded — PR has not been merged.
+
+**Files touched (Dim-1): 9 unique files/directories**
+
+- `.factory/STATE.md` — version 2.5→2.6; timestamp advanced; current_step updated; Last Updated advanced; Current Phase Steps: row 1 evicted (archived above), new burst-17 row added; Decisions Log: D-076..D-085 (exhaustive) appended; Blocking Issues: BI-023 corrected (9 live/4 files, BC-2.04.001:63 new defect), BI-035 updated (closes on PR merge), BI-042 updated (APPLIED, residual selftest-22), BI-040 updated (surface measured), BI-044 OPENED, BI-045 OPENED+CLOSED; Session Resume Checkpoint: D-085 snapshot; Concurrent Cycles updated; Historical Content rows added; spec snapshot D-001..D-085; 266 lines (wc-l)
+- `.factory/specs/canonical-facts.toml` — 24 tautological binding patterns rewritten to bounded line-bounded wildcards (FACT-1×8, FACT-2×1, FACT-3×2, FACT-9×6, FACT-10×7); FACT-6a/6b unchanged (structural limitation)
+- `.factory/cycles/phase-1d/bi-042-binding-adjudication.md` — NEW: full adjudication document (31 bindings, adversarial proofs, before/after table, selftest-22 rewrite spec)
+- `.factory/cycles/phase-1d/ws3-phase2-checker-repair-design.md` — NEW: WS-3 Phase 2 items 2+3 repair spec (R2-RULE, R3-A/B/C, measured false-positive landscapes, fixture vectors NV-1/NV-2)
+- `.factory/cycles/phase-1d/bi-040-primitive-layer-design.md` — NEW: shared primitive layer design (measured surface, programmatic divergence derivation, three-stage migration)
+- `.factory/cycles/phase-1d/burst-log.md` — evicted row archived; this entry (burst 17)
+- `.factory/cycles/phase-1d/lessons.md` — lessons 41-44 appended
+- `.factory/SESSION-HANDOFF.md` — D-075 marked SUPERSEDED by D-085; §RESUME SNAPSHOT D-085 appended
+- `.factory/code-delivery/WS3-SPEC-LINT-INTEGRITY/` — pr-description.md + pr-review.md (PR artifacts for fix/ws3-spec-lint-integrity)
+
+**Codifications:** D-076..D-085 (exhaustive) recorded. BI-044 OPENED. BI-045 OPENED+CLOSED. BI-042 re-characterized (APPLIED, partial). BI-023 counts corrected again.
+
+**Burn-down ledger (MUST clear before Phase-1 convergence gate per D-077):**
+- 55 VP-column rows / 34 BC files (em-dash in VP-NNN column)
+- 9 `EC-NEW-*` rows / 4 BC files (live placeholder IDs)
+- `BC-2.04.001.md:63` (TV-BV013 non-conforming ID in EC column, three cells in two-column table)
+- BI-044: 16 remaining EC-grammar sites
+
+**Artifact state at burst close:**
+PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-204 (205 ids) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-085 (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/034/036/038/045. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/035/037/039/040/041/042/043/044.
+
+**Dim-2 Attestation:** `.factory/specs/canonical-facts.toml` corrected — 24 bindings rewritten, FACT-6a/6b structural limitation documented. `check-canonical-facts.py` exit 0 on all 31 bindings, 11 facts, after corrections. Selftest-22 rewrite specified (production pattern, prefix-extension DIVERGE assertion).
+
+**Dim-5 Attestation:** STATE.md — 266 lines (wc-l), timestamp 2026-08-08T08:00:00Z, version 2.6, status: draft, producer: state-manager. burst-log.md — 17 bursts. lessons.md — 44 lessons. SESSION-HANDOFF.md — §RESUME SNAPSHOT D-085 appended; D-075 marked SUPERSEDED. canonical-facts.toml — all 31 bindings match (11 facts). Three new cycle files committed: bi-042-binding-adjudication.md, ws3-phase2-checker-repair-design.md, bi-040-primitive-layer-design.md.
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. Pass 6 blocked: land PR `fix/ws3-spec-lint-integrity` → WS-3 item 1 (D-083) → WS-3b (D-085) → WS-4 (BLOCKED on BI-040 AND BI-042/BI-044) → WS-5.
+
+**Dim-7 Attestation:** Agents dispatched this session: architect (BI-042 adjudication), devops-engineer (WS-3 Phase 2 design, BI-040 design, BI-045 fix), state-manager (this burst). Develop-side: 4 commits by devops-engineer on `fix/ws3-spec-lint-integrity`. No adversary agent dispatched.
+
+**Closes:** BI-045 (non-hermetic selftests fixed, 54/54 hermetic). **Updates:** BI-002 (PR open, pr-manager IN PROGRESS). BI-023 (counts corrected: 9 live/4 files; BC-2.04.001:63 new defect). BI-035 (closes on PR merge). BI-040 (surface measured, design committed). BI-042 (APPLIED: 24/26 corrected; residual selftest-22 in open PR). **Opens:** BI-044 (17 EC-grammar sites, 16 remain after detection repair).

@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-075
+  Latest: §RESUME SNAPSHOT D-085
 -->
 
 ---
@@ -1171,7 +1171,7 @@ n. **BI-042 (FACT-9/10 tautological):** FIRST work item per D-073. 17 of 31 bind
 
 ---
 
-## §RESUME SNAPSHOT D-075
+## §RESUME SNAPSHOT D-075 [SUPERSEDED by D-085 — retained for audit]
 
 *Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-074.*
 
@@ -1290,3 +1290,107 @@ m. **BI-041 (gen-bc-traceability LOSSY):** DO NOT enable write mode until annota
 n. **BI-042 (FACT-9/10 tautological):** FIRST work item per D-073/D-075 PREEMPTIVE — once `.factory/specs` frees up. 17 of 31 bindings literal-baked prefix-presence. Selftest 22 negative vector passes the real FACT-10 production pattern. Adjudicate value-mismatch capture form before closing. DOES NOT block checker-only work (D-075).
 
 o. **BI-023 (skip-list bypasses — CORRECTED):** (a) `check-placeholders.py` em-dash bypass: 34 BC files / 55 rows (not 12+). (b) `check-id-resolution.py` EC-NEW- gap: 11 occurrences across 5 files (BC-2.07.005 included). WS-3 Phase 2 items 2+3 address checker fixes (NOT specs-gated, runnable immediately). Item 1 (register EC-NEW-N rows in test-vectors.md) IS specs-gated — same gate as BI-042 per D-075.
+
+---
+
+## §RESUME SNAPSHOT D-085
+
+*Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-075.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d, still 0 of 3 clean adversarial passes. This session: BI-042 `.toml` side APPLIED (D-076) — 24 of 26 tautological binding patterns corrected; FACT-6a/6b structural limitation documented and verified BENIGN; checker reports OK (all 31 bindings, 11 facts). Count corrected 17→26 of 31 tautological. WS-3 Phase 2 checker repair design committed (`ws3-phase2-checker-repair-design.md`): R2-RULE (VP-id shape whitelist) and R3-A/B/C (EC-shape triple-segment predicate + historical scoping). BI-040 shared primitive layer design committed (`bi-040-primitive-layer-design.md`): 54+63 call sites measured, 8+23 CommonMark-divergent codepoints derived programmatically. BI-044 OPENED (17 EC-grammar sites across 6 files; detection repaired in `check-id-resolution.py`; 16 sites remain). BI-045 OPENED AND FIXED (three non-hermetic selftests, 54/54 hermetic). BI-023 corrected: 9 live defects / 4 files (not 11/5); new defect BC-2.04.001.md:63 found by repaired checker. D-076..D-085 (exhaustive) recorded. PR `fix/ws3-spec-lint-integrity` open (4 commits, 8 files, +774/−64), pr-manager review IN PROGRESS. **FIRST ACTION ON RESUME: complete pr-manager review lifecycle on PR `fix/ws3-spec-lint-integrity` (D-028/D-031/D-080) — do NOT merge without completing it.**
+
+### HEADS
+
+Verify each at resume before taking action. Resolve factory-artifacts HEAD via `git -C .factory log -1` — never trust a literal SHA recorded here for the current HEAD.
+
+| Ref | SHA | Note |
+|-----|-----|------|
+| `origin/main` | `78a9f77` | CI workflows live; PR #1 merged |
+| `origin/develop` | `7b9aa6d` | integration branch after PR #6 merged (squash) |
+| `fix/ws3-spec-lint-integrity` | `70794e3` | open PR branch (4 commits off `7b9aa6d`); pr-manager review IN PROGRESS |
+| `.factory` / `factory-artifacts` | resolve via `git -C .factory log -1 --format=%H` | latest burst = D-085 session wrap |
+
+- Main repo working tree: branch `develop`, tree clean.
+- `fix/ws3-spec-lint-integrity` branch exists locally and remotely; 4 commits ahead of `develop`.
+- No story worktrees exist (Phase 3 not started).
+- Stash list: EMPTY in all worktrees (D-056 still valid).
+- `.factory/hooks/verify-sha-currency.sh`: NOT present — post-push hook verification gap (record only).
+
+### WORKSTREAMS
+
+**FIRST: Land PR `fix/ws3-spec-lint-integrity` (D-028/D-031/D-080).** Full pr-manager review lifecycle required. Contents: BI-023 R2-RULE (VP-id whitelist) + R3-A/B/C (EC-shape detection) + BI-042 selftest-22 rewrite + D-081 versioned-changelog scoping + BI-045 hermeticity. Verified on branch: R2 exit 1 with 80 findings (55 new + 25 baseline); R3 exit 1 with exactly 10; `check-canonical-facts` OK; selftests 54/54 hermetic.
+
+**WS-3 item 1 (specs-gated, HELD per D-083):** Register EC-NEW-N live table rows in test-vectors.md for 9 rows across 4 files (`ss-07/BC-2.07.006.md`, `ss-11/BC-2.11.004.md`, `ss-12/BC-2.12.005.md`, `ss-14/BC-2.14.004.md`). HELD until BI-044 settles — do not allocate EC IDs against a counting toolchain known broken at 16 sites.
+
+**WS-3b / BI-040 (Phase-1d remediation item per D-085):** Build shared spec-lint primitive layer (D-084). Design at `cycles/phase-1d/bi-040-primitive-layer-design.md`. Three-stage migration. MANDATORY landing gate: assert family closed-under-discovery. Must close BEFORE WS-4 begins (D-072).
+
+**Burn-down ledger (MUST clear before Phase-1 convergence gate per D-077):**
+- 55 VP-column rows / 34 BC files (em-dash in VP-NNN column, R2-RULE)
+- 9 `EC-NEW-*` rows / 4 BC files (live placeholder IDs, WS-3 item 1)
+- `BC-2.04.001.md:63` (TV-BV013 non-conforming ID in EC column; three cells in two-column table)
+- BI-044: 16 remaining EC-grammar sites (after detection repaired in PR)
+
+**WS-4 (BLOCKED on BI-040 AND BI-042/BI-044 settling per D-072):** ~306-finding remediation burst covering BI-024 (four unguarded axes) + BI-023 checker bypasses + BI-025 (five vacuous VPs) + BI-026 (BC-VP property join) + BI-027 (POLICY 5 fabrication) + BI-028 (VP code-fence symbols). DO NOT START until all blockers close.
+
+**WS-5: Pass 6 adversarial review + Phase 1 gate.** Three clean passes needed. After 3 clean passes: flip `spec-lint` to required status check (D-029/D-032). Human approval gate. Begin Phase 2 Story Decomposition.
+
+### STANDING DIRECTIVES
+
+| Directive | Status |
+|-----------|--------|
+| Autonomy level 4 — agents merge ONLY after full pr-manager review lifecycle | IN FORCE (D-028/D-031) |
+| One PR per selftest-number allocation period — no concurrent PRs editing run-selftests.sh | IN FORCE (D-080) |
+| `spec-lint` CI job ADVISORY until Phase-1 convergence gate | IN FORCE (D-029/D-032) |
+| macOS-latest ONLY for Test + Build release jobs | IN FORCE (D-043) |
+| SS-10 `--online` IN scope — do not re-propose descope | IN FORCE (D-054) |
+| PASS-6 HARD CONSTRAINT: quantitative claims must come from EXECUTED predicates | IN FORCE (D-082) |
+| BI-040 must close BEFORE WS-4 begins — hard ordering | D-072 |
+| BI-044: HOLD EC-registration until BI-044 settles | D-083 |
+| WS-3b is a PHASE-1D REMEDIATION ITEM, NOT a Phase-2 story artifact | D-085 |
+| gen-bc-traceability write mode PROHIBITED until adjudicated (BI-041) | D-074 |
+| `gh pr review --request-changes` IMPOSSIBLE — use `gh pr comment --body-file` | BI-039 |
+| Wrap at 430K tokens at a clean boundary | STANDING |
+| No multi-agent fan-outs above 350K tokens | STANDING |
+| Wrappers at `.factory/bin/` (NOT `plugins/vsdd-factory/bin/`) | IN FORCE (D-047) |
+
+### WORKTREE INVENTORY
+
+| Path | Branch | SHA | Status |
+|------|--------|-----|--------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` (root) | `develop` | `7b9aa6d` | active; tree clean |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | `git -C .factory log -1` | active |
+
+`fix/ws3-spec-lint-integrity` local branch at `70794e3`; PR open; pr-manager review IN PROGRESS. No Phase 3 story worktrees exist. Stash list EMPTY (D-056 still valid).
+
+### DECISION DELTA
+
+Decisions D-001 through D-075 were committed in prior bursts. This wrap adds D-076..D-085 (exhaustive).
+
+| ID | Decision | Rationale | Phase | Date |
+|----|----------|-----------|-------|------|
+| D-076 | BI-042 binding-pattern rule ADOPTED: bounded wildcard, line-bounded (`[^\n]`), right-side delimiter, modeled on FACT-7/FACT-8. 24 of 26 corrections applied; FACT-6a/6b structural limitation verified BENIGN. | Prefix-extension false negatives; "17 of 31" wrong (FACT-1 family of 8 omitted). | phase-1d | 2026-08-07 |
+| D-077 | Sequencing (c)→(a): land checker detection now, accept redder ADVISORY spec-lint, burn down before Phase-1 convergence gate. | Detection must precede remediation. | phase-1d | 2026-08-07 |
+| D-078 | `VP-NONE` sentinel admitted ONLY alongside non-empty Proof Method, as admitted grammar, never a skip-set. | Em-dash is ambiguous; sentinel is greppable and reviewable. | phase-1d | 2026-08-07 |
+| D-079 | BI-044 OPENED. EC-shape detection repaired in check-id-resolution.py; 16 sites remain, BLOCK WS-4. | Oracle-integrity principle (D-072). | phase-1d | 2026-08-07 |
+| D-080 | One PR (`fix/ws3-spec-lint-integrity`) for all develop-side spec-lint integrity work. | Both BI-042 and WS-3 Phase 2 edit the 3250-line run-selftests.sh; concurrent PRs would reproduce D-074 situation. | phase-1d | 2026-08-07 |
+| D-081 | R3-C extended to scope out non-conforming IDs beneath `### vN.N` versioned-changelog headings by document position (a function, not a named set). | `prd.md:721` is immutable per D-034; permanent-red invites skip-list. | phase-1d | 2026-08-07 |
+| D-082 | PASS-6 HARD CONSTRAINT: quantitative claims MUST come from EXECUTED predicates, not reading or counting. | Four consecutive magnitudes misfiled by enumeration-by-reading. | phase-1d | 2026-08-07 |
+| D-083 | HOLD EC-registration (WS-3 item 1) until BI-044 settles. | Do not allocate IDs against a counting toolchain known broken at 16 sites. | phase-1d | 2026-08-07 |
+| D-084 | Build SHARED spec-lint primitive layer closing BI-040, BI-044, BI-021/BI-043 together. Design at `cycles/phase-1d/bi-040-primitive-layer-design.md`. | 14 checkers/generators re-derive line splitting, ID grammar, repo-root resolution independently; each re-derivation is an independent failure chance. | phase-1d | 2026-08-07 |
+| D-085 | WS-3b is a PHASE-1D REMEDIATION ITEM (design doc + fix PR), NOT a Phase-2 story artifact. | `.factory/stories/` holds only `.gitkeep`; Phase 2 has not started; a story file cannot substitute for closing BI-040. | phase-1d | 2026-08-07 |
+
+### CAVEATS
+
+a. **`.factory/hooks/verify-sha-currency.sh` ABSENT.** Post-push hook verification gap. Record only; not an implied pass.
+
+b. **BI-042 PARTIALLY CLOSED.** `.toml` side APPLIED. Full closure requires selftest-22 rewrite (PR `fix/ws3-spec-lint-integrity`). BI-035 closes when PR merges.
+
+c. **BI-044 OPEN (16 sites remaining).** EC-grammar fix in `check-id-resolution.py` landed in PR; 16 sites across 5 other checkers/generators still use digits-only grammar. Shared primitive layer (D-084) is the structural fix.
+
+d. **Streak reset:** 0/3 clean-pass counter re-counts from ZERO against whatever HEAD is frozen when pass 6 runs.
+
+e. **Burn-down MUST clear before Phase-1 gate (D-077):** 55 VP-col rows · 9 EC-NEW-* rows · BC-2.04.001:63 · BI-044 16 sites.
+
+f. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
