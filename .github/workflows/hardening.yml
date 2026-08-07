@@ -9,8 +9,9 @@
 #
 # All action versions pinned to full commit SHAs.
 # SHA inventory:
-#   actions/checkout     v4.2.2  11bd71901bbe5b1630ceea73d27597364c9af683
-#   Swatinem/rust-cache  v2.7.5  82a92a6e8fbeee089604da2575dc567ae9ddeaab
+#   actions/checkout        v4.2.2  11bd71901bbe5b1630ceea73d27597364c9af683
+#   Swatinem/rust-cache     v2.7.5  82a92a6e8fbeee089604da2575dc567ae9ddeaab
+#   actions/upload-artifact v4.3.2  1746f4ab65b179e0ea60a494b83293b640dd5bba
 
 name: Hardening
 
@@ -27,9 +28,6 @@ concurrency:
 
 permissions:
   contents: read
-  # issues: write is needed for the schedule path to open a tracking issue
-  # when a job fails.  Uncomment when the repo has a remote and issues enabled.
-  # issues: write
 
 env:
   CARGO_TERM_COLOR: always
@@ -45,9 +43,13 @@ jobs:
     name: cargo-audit
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Guard — skip if no Cargo workspace
         id: guard
@@ -74,9 +76,13 @@ jobs:
     name: cargo-deny
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Guard — skip if no Cargo workspace
         id: guard
@@ -103,9 +109,13 @@ jobs:
     name: Semgrep
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Install Semgrep
         run: pip install semgrep==1.75.0
@@ -122,11 +132,22 @@ jobs:
   # ─────────────────────────────────────────────────────────────────
   mutants:
     name: cargo-mutants (smoke)
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # D-043/D-044: mutation testing MUST run on macos-latest, not ubuntu.
+    # cargo-mutants requires a passing unmutated baseline before it can mutate.
+    # Per D-043, the test suite's required CI contexts are macos-latest only
+    # (branch protection: "Test (macos-latest)").  On ubuntu, the baseline
+    # would fail — ubuntu is not a valid platform for this suite, not merely
+    # "less sensitive".  Running mutants on an invalid baseline produces no
+    # useful mutation signal.  Cost premium (~10x) accepted; see D-043/D-045.
+    runs-on: macos-latest
+    timeout-minutes: 90
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Guard — skip if no Cargo workspace
         id: guard
@@ -180,9 +201,13 @@ jobs:
     name: Fuzz smoke (nightly)
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Install nightly toolchain
         # rust-toolchain.toml pins 1.97.0 for production; fuzzing needs nightly.
@@ -194,7 +219,9 @@ jobs:
           key: fuzz-nightly
 
       - name: Install cargo-fuzz
-        run: cargo +nightly install cargo-fuzz --locked
+        # SEC-2 fix: pinned to exact version to prevent supply-chain substitution.
+        # Version verified against crates.io on 2026-08-06 (latest stable = 0.13.2).
+        run: cargo +nightly install cargo-fuzz --version 0.13.2 --locked
 
       - name: Smoke run all fuzz targets
         # 30 second per-target budget; exits 1 if any target crashes.
@@ -205,7 +232,10 @@ jobs:
             echo "No fuzz/ directory found — skipping smoke run."
             exit 0
           fi
-          for target in $(cargo +nightly fuzz list 2>/dev/null); do
+          # Capture target list first — this IS covered by set -e, unlike
+          # a command substitution directly in the for-loop word list.
+          targets="$(cargo +nightly fuzz list)"
+          for target in $targets; do
             echo "Fuzzing target: ${target} (30s)"
             cargo +nightly fuzz run "${target}" -- -max_total_time=30 -max_len=65536
           done
@@ -221,9 +251,13 @@ jobs:
     name: cargo-kani
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
       - name: Restore Cargo cache
         uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
@@ -231,7 +265,9 @@ jobs:
           key: kani
 
       - name: Install Kani verifier
-        run: cargo install --locked kani-verifier
+        # SEC-1 fix: pinned to exact version to prevent supply-chain substitution.
+        # Version verified against crates.io on 2026-08-06 (latest stable = 0.67.0).
+        run: cargo install kani-verifier --version 0.67.0 --locked
 
       - name: Kani setup (downloads solver binaries)
         run: cargo kani setup
@@ -240,7 +276,7 @@ jobs:
         # Exits 0 if no proof harnesses exist.
         run: |
           set -euo pipefail
-          if ! grep -rq '#\[kani::proof\]' src/ 2>/dev/null; then
+          if ! grep -rq '#\[kani::proof\]' . --include='*.rs' 2>/dev/null; then
             echo "No Kani proof harnesses found — skipping."
             exit 0
           fi
