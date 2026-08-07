@@ -49,18 +49,17 @@ SUPPRESSION_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KN
 SPLITLINES_PATTERN='\.splitlines\(\)'
 
 run_override_guard() {
-    # Verify every check-*.py in $1, plus the two new generators introduced by this PR
-    # (gen-bc-traceability.py and gen-slug-corpus.py), have an active
-    # SPEC_LINT_REPO_OVERRIDE assignment. The two generators are listed explicitly
-    # rather than using gen-*.py because the pre-existing generators (gen-bc-index.py,
-    # gen-ec-registry.py, etc.) predate the isolated-tree testing model and are tracked
-    # separately. The two new generators share the same override pattern and must be
-    # included so they cannot regress without this guard firing.
+    # Verify every check-*.py in $1, plus all generators, have an active
+    # SPEC_LINT_REPO_OVERRIDE assignment (direct env-var check or via slp.find_repo_root,
+    # which honors SPEC_LINT_REPO_OVERRIDE internally — pattern matches both forms).
+    # Stage 3 (BI-040): gen-bc-index.py, gen-ec-registry.py, gen-prd-sections.py, gen-rtm.py
+    # added to scope; they use slp.find_repo_root() and carry # honors SPEC_LINT_REPO_OVERRIDE.
     # D-057: prints runtime count of files scanned; fails if 0 files found.
     # Returns 0 = all clear, 2 = guard fired (missing support, or no files found).
     local dir="$1"
     local count=0
-    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py"; do
+    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py" \
+             "$dir/gen-bc-index.py" "$dir/gen-ec-registry.py" "$dir/gen-prd-sections.py" "$dir/gen-rtm.py"; do
         [[ -f "$f" ]] || continue
         count=$((count + 1))
         if ! grep -qE "$OVERRIDE_PATTERN" "$f" 2>/dev/null; then
@@ -79,15 +78,14 @@ run_override_guard() {
 }
 
 run_suppression_guard() {
-    # Verify no check-*.py in $1, nor the two new generators (gen-bc-traceability.py,
-    # gen-slug-corpus.py), contain a hardcoded suppression allowlist construct.
-    # Same scoping rationale as run_override_guard: pre-existing generators are tracked
-    # separately; the two new generators are explicitly included.
+    # Verify no check-*.py in $1, nor any generator, contains a hardcoded suppression
+    # allowlist construct. Scope matches run_override_guard (Stage 3: all generators included).
     # D-057: prints runtime count of files scanned; fails if 0 files found.
     # Returns 0 = all clear, 2 = guard fired (suppression found, or no files found).
     local dir="$1"
     local count=0
-    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py"; do
+    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py" \
+             "$dir/gen-bc-index.py" "$dir/gen-ec-registry.py" "$dir/gen-prd-sections.py" "$dir/gen-rtm.py"; do
         [[ -f "$f" ]] || continue
         count=$((count + 1))
         if grep -qE "$SUPPRESSION_PATTERN" "$f" 2>/dev/null; then
@@ -112,13 +110,14 @@ run_splitlines_guard() {
     # documenting the old API do not trigger false positives.
     # Exempt: spec_lint_primitives.py (defines cm_splitlines itself) and
     #         test_spec_lint_primitives.py (tests the primitive).
-    # Stage 2 scope: check-*.py + gen-bc-traceability.py + gen-slug-corpus.py.
-    # Stage 3 generators (gen-bc-index.py etc.) remain exempt until Stage 3.
+    # Stage 3 scope (BI-040): check-*.py + all generators (gen-bc-traceability.py,
+    # gen-slug-corpus.py, gen-bc-index.py, gen-ec-registry.py, gen-prd-sections.py, gen-rtm.py).
     # D-057: prints runtime count of files scanned; fails if 0 files found.
     # Returns 0 = all clear, 2 = guard fired.
     local dir="$1"
     local count=0
-    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py"; do
+    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py" \
+             "$dir/gen-bc-index.py" "$dir/gen-ec-registry.py" "$dir/gen-prd-sections.py" "$dir/gen-rtm.py"; do
         [[ -f "$f" ]] || continue
         [[ "$(basename "$f")" == "spec_lint_primitives.py" ]] && continue
         [[ "$(basename "$f")" == "test_spec_lint_primitives.py" ]] && continue

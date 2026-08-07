@@ -36,8 +36,9 @@ Usage:
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
-REPO = Path(__file__).resolve().parent.parent.parent
+REPO = slp.find_repo_root(start=Path(__file__).resolve().parent)  # honors SPEC_LINT_REPO_OVERRIDE
 SPECS = REPO / ".factory" / "specs"
 BC_DIR = SPECS / "behavioral-contracts"
 PRD = SPECS / "prd.md"
@@ -48,7 +49,7 @@ MARKER_END = "<!-- END GENERATED: prd-s7-rtm -->"
 
 def parse_frontmatter(path: Path) -> dict[str, str]:
     """Parse YAML frontmatter as a flat key:value dict."""
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
     if not lines or lines[0].rstrip() != "---":
         return {}
     result: dict[str, str] = {}
@@ -66,7 +67,7 @@ def parse_traceability_section(path: Path) -> dict[str, str]:
     Parse the Traceability table from a BC file.
     Returns {field: value} for all rows in the Traceability table.
     """
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
     in_traceability = False
     result: dict[str, str] = {}
     for line in lines:
@@ -91,7 +92,7 @@ def get_bc_priorities() -> dict[str, str]:
     """Get BC priorities from BC-INDEX.md."""
     priorities: dict[str, str] = {}
     bc_index = BC_DIR / "BC-INDEX.md"
-    for line in bc_index.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(bc_index.read_text(encoding="utf-8")):
         m = re.match(r"^\|\s*(BC-\d+\.\d+\.\d+)\s*\|[^|]+\|\s*(P\d)\s*\|", line)
         if m:
             priorities[m.group(1)] = m.group(2)
@@ -102,7 +103,7 @@ def get_existing_test_types() -> dict[str, str]:
     """Parse existing RTM in prd.md to preserve Test Type values."""
     test_types: dict[str, str] = {}
     content = PRD.read_text(encoding="utf-8")
-    for line in content.splitlines():
+    for line in slp.cm_splitlines(content):
         # | BC-S.SS.NNN | CAP-NNN | DI-... | R... | P0 | test-type |
         m = re.match(
             r"^\|\s*(BC-\d+\.\d+\.\d+)\s*\|[^|]+\|[^|]+\|[^|]+\|\s*P\d\s*\|\s*([^|]+)\s*\|",
@@ -196,7 +197,7 @@ def main() -> int:
     test_types = get_existing_test_types()
     rtm_table = build_rtm_table(priorities, test_types)
     # Count actual BC rows in the built table (for accurate reporting)
-    actual_row_count = sum(1 for line in rtm_table.splitlines() if re.match(r"^\|\s*BC-", line))
+    actual_row_count = sum(1 for line in slp.cm_splitlines(rtm_table) if re.match(r"^\|\s*BC-", line))
 
     new_content, injected = inject_generated_region(content, rtm_table)
 

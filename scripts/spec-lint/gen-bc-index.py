@@ -29,8 +29,9 @@ Usage:
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
-REPO = Path(__file__).resolve().parent.parent.parent
+REPO = slp.find_repo_root(start=Path(__file__).resolve().parent)  # honors SPEC_LINT_REPO_OVERRIDE
 SPECS = REPO / ".factory" / "specs"
 BC_DIR = SPECS / "behavioral-contracts"
 BC_INDEX = BC_DIR / "BC-INDEX.md"
@@ -46,7 +47,7 @@ def parse_frontmatter_end(lines: list[str]) -> int:
 
 def get_bc_h1_title(path: Path) -> str | None:
     """Return the BC title from H1 (strip 'BC-S.SS.NNN: ' prefix)."""
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
     start = parse_frontmatter_end(lines)
     for line in lines[start:]:
         if line.startswith("# "):
@@ -58,7 +59,7 @@ def get_bc_h1_title(path: Path) -> str | None:
 
 def get_bc_priority(path: Path) -> str:
     """Extract priority from BC frontmatter. Default to P0 if not found."""
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
     end = parse_frontmatter_end(lines)
     # Look in BC-INDEX.md for the priority (it's not in BC frontmatter directly)
     # Instead, parse from BC-INDEX.md
@@ -72,7 +73,7 @@ def collect_bc_data() -> dict[str, dict]:
     """
     # First get priorities from existing BC-INDEX.md
     priorities: dict[str, str] = {}
-    for line in BC_INDEX.read_text(encoding="utf-8").splitlines():
+    for line in slp.cm_splitlines(BC_INDEX.read_text(encoding="utf-8")):
         m = re.match(r"^\|\s*(BC-\d+\.\d+\.\d+)\s*\|[^|]+\|\s*(P\d)\s*\|", line)
         if m:
             priorities[m.group(1)] = m.group(2)

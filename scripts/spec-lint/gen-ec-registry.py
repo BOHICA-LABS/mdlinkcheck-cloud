@@ -21,8 +21,9 @@ Usage:
 import re
 import sys
 from pathlib import Path
+import spec_lint_primitives as slp
 
-REPO = Path(__file__).resolve().parent.parent.parent
+REPO = slp.find_repo_root(start=Path(__file__).resolve().parent)  # honors SPEC_LINT_REPO_OVERRIDE
 SPECS = REPO / ".factory" / "specs"
 TV_FILE = SPECS / "prd-supplements" / "test-vectors.md"
 OUTPUT = SPECS / "prd-supplements" / "ec-registry.md"
@@ -63,16 +64,16 @@ def parse_tv_ec_rows(path: Path) -> list[tuple[str, str, str, str]]:
     rows: list[tuple[str, str, str, str]] = []
     seen: set[str] = set()
 
-    for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for lineno, line in enumerate(slp.cm_splitlines(path.read_text(encoding="utf-8")), 1):
         # Skip HOLDOUT WARNING block
         if "HOLDOUT" in line.upper():
             continue
         # Match TV table row: | TV-NNN | EC-NNN | desc... | flags | exit | verdict | reason |
         m = re.match(
-            r"^\|\s*(TV-[\w]+)\s*\|\s*(EC-\d+[a-z]?)\s*\|\s*(.+?)\s*\|"
+            r"^\|\s*(TV-[\w]+)\s*\|\s*(EC-\d{1,4}[a-z]?)\s*\|\s*(.+?)\s*\|"
             r".*?\|\s*(\d+|n/a)\s*\|\s*(.+?)\s*\|",
             line,
-        )
+        )  # EC grammar aligned with slp.EC_TOKEN_RE: 1–4 digits, optional letter (BI-044)
         if m:
             tv_id = m.group(1)
             ec_id = m.group(2)
