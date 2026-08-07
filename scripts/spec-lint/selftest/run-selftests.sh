@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=55
+EXPECTED_TEST_COUNT=62
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -3672,6 +3672,333 @@ MDNV5BAD
             echo "  Actual output: $NV5_OUT"
             FAILURES=$((FAILURES + 1))
         fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-1: check-placeholders — test-sufficient where VP-INDEX assigns real VP ──
+# Change 1 (POL-14 operator ruling): 'test-sufficient' in VP-NNN column is accepted
+# ONLY when VP-INDEX classifies the BC as test-sufficient. If VP-INDEX assigns a real
+# VP to that BC, the sentinel must be REJECTED with a distinct message.
+#
+# Mutation-flip: accept test-sufficient unconditionally (remove the VP-INDEX cross-check).
+# Under mutation: defect tree exits 0 (sentinel accepted despite VP-INDEX saying VP-001)
+# → defect-fail assertion fires → FAILS. Proves the VP-INDEX check is load-bearing.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-1: check-placeholders: test-sufficient but VP-INDEX has real VP ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+
+# VP-INDEX with BC-0.00.001 classified as VP-001 (has a real VP)
+cat > "$T/.factory/specs/verification-properties/VP-INDEX.md" <<'VPIX'
+| BC | Title (abbreviated) | VP(s) | Notes |
+|----|---------------------|-------|-------|
+| BC-0.00.001 | Test BC | VP-001 | has a real verification property |
+VPIX
+
+CLEAN_PASS=0
+# Clean tree: VP-INDEX present, but no BC file with test-sufficient
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (VP-INDEX present, no BC files)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: BC file uses test-sufficient but VP-INDEX assigns VP-001 to this BC
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-0.00.001.md" <<'BCFILE'
+## Verification Properties
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| test-sufficient | some property | integration test |
+BCFILE
+    P141_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    P141_EXIT=$?
+    if [ "$P141_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT reject test-sufficient when VP-INDEX assigns VP-001)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$P141_OUT" | grep -qF "VP-INDEX classifies 'BC-0.00.001' as 'VP-001'"; then
+        echo "  PASS (clean-pass confirmed; test-sufficient correctly rejected with VP-INDEX cross-check message)"
+    else
+        echo "  FAIL (checker exited non-zero but expected VP-INDEX-cross-check message not in output)"
+        echo "  Actual output: $P141_OUT"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-2: check-placeholders — test-sufficient where VP-INDEX has no row ──
+# Change 1 (POL-14 operator ruling): 'test-sufficient' is rejected when the BC has
+# no row at all in VP-INDEX — the operator must consciously classify it.
+#
+# Mutation-flip: accept test-sufficient unconditionally.
+# Under mutation: defect tree exits 0 → defect-fail fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-2: check-placeholders: test-sufficient but VP-INDEX has no row ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+
+# VP-INDEX with no rows (empty BC-to-VP table)
+cat > "$T/.factory/specs/verification-properties/VP-INDEX.md" <<'VPIX'
+| BC | Title (abbreviated) | VP(s) | Notes |
+|----|---------------------|-------|-------|
+VPIX
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (empty VP-INDEX, no BC files)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: BC file uses test-sufficient but has no row in VP-INDEX
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-0.00.002.md" <<'BCFILE'
+## Verification Properties
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| test-sufficient | some property | integration test |
+BCFILE
+    P142_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    P142_EXIT=$?
+    if [ "$P142_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT reject test-sufficient when BC has no VP-INDEX row)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$P142_OUT" | grep -qF "'BC-0.00.002' has no row in VP-INDEX"; then
+        echo "  PASS (clean-pass confirmed; test-sufficient correctly rejected with no-VP-INDEX-row message)"
+    else
+        echo "  FAIL (checker exited non-zero but expected no-VP-INDEX-row message not in output)"
+        echo "  Actual output: $P142_OUT"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-3: check-placeholders — test-sufficient where VP-INDEX agrees ──
+# Change 1 (POL-14 operator ruling): 'test-sufficient' MUST be accepted when
+# VP-INDEX classifies the BC as test-sufficient.
+#
+# This tests the acceptance path (green path). The mutation proves it can still
+# fail: removing the VP-INDEX row flips the clean-pass to a structural fail,
+# demonstrating the clean-pass assertion has real teeth (not a tautology).
+#
+# Mutation-flip: remove the test-sufficient acceptance (revert sentinel to always-reject).
+# Under mutation: clean tree exits 1 → STRUCTURAL FAIL fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-3: check-placeholders: test-sufficient accepted when VP-INDEX agrees ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+
+# Clean tree: BC file uses test-sufficient AND VP-INDEX classifies it as test-sufficient
+cat > "$T/.factory/specs/verification-properties/VP-INDEX.md" <<'VPIX'
+| BC | Title (abbreviated) | VP(s) | Notes |
+|----|---------------------|-------|-------|
+| BC-0.00.003 | Test BC | test-sufficient | covered by integration test suite |
+VPIX
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-0.00.003.md" <<'BCFILE'
+## Verification Properties
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| test-sufficient | some property | integration test |
+BCFILE
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker rejected test-sufficient even though VP-INDEX agrees — acceptance path broken"
+    P143_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P143_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: remove BC-0.00.003 row from VP-INDEX — now sentinel has no backing
+    cat > "$T/.factory/specs/verification-properties/VP-INDEX.md" <<'VPIX_BAD'
+| BC | Title (abbreviated) | VP(s) | Notes |
+|----|---------------------|-------|-------|
+VPIX_BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — test-sufficient accepted even after VP-INDEX row removed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; removing VP-INDEX row correctly rejects test-sufficient sentinel)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-4: check-placeholders — em-dash in VP-NNN column still fails ──
+# After Change 1, em-dash (U+2014) in a VP-NNN column data row must STILL be rejected.
+# This is the R2-RULE unchanged-behavior regression test.
+#
+# Mutation-flip: accept '—' as a valid VP cell value.
+# Under mutation: defect tree exits 0 → defect-fail fires → FAILS.
+# (NV-1 also covers em-dash, but that test pre-dates Change 1; this test proves
+# the em-dash path survived the test-sufficient sentinel addition.)
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-4: check-placeholders: em-dash in VP-NNN col still fails after Change 1 ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+# VP-INDEX present but empty (not needed for em-dash rejection)
+cat > "$T/.factory/specs/verification-properties/VP-INDEX.md" <<'VPIX'
+| BC | Title (abbreviated) | VP(s) | Notes |
+|----|---------------------|-------|-------|
+VPIX
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (empty BC dir, empty VP-INDEX)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    cp "$FIXTURE_DIR/bad-placeholder-vp-emdash.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-vp-emdash-p14.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch em-dash in VP-NNN col after Change 1)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; em-dash in VP-NNN col correctly rejected after Change 1)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-5: check-placeholders — [filled by] in non-Stories Traceability field ──
+# Change 2 (POL-14/15 operator ruling): [filled by ...] exemption is ONLY for the
+# Traceability 'Stories' field. Any other field (Architecture Module, L2 Capability,
+# etc.) must still be rejected.
+#
+# Mutation-flip: blanket-exempt ALL [filled by ...] occurrences.
+# Under mutation: defect tree exits 0 → defect-fail fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-5: check-placeholders: [filled by] in non-Stories Traceability field ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (empty ss-01 dir)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    cp "$FIXTURE_DIR/bad-placeholder-stories-nonstories-field.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-nonstories.md"
+    P145_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    P145_EXIT=$?
+    if [ "$P145_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] in non-Stories Traceability field)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$P145_OUT" | grep -qF "[filled by architect]"; then
+        echo "  PASS (clean-pass confirmed; [filled by] in non-Stories field correctly detected)"
+    else
+        echo "  FAIL (checker exited non-zero but '[filled by architect]' not in output)"
+        echo "  Actual output: $P145_OUT"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-6: check-placeholders — [filled by] in Stories Traceability field passes ──
+# Change 2 (POL-14/15 operator ruling): [filled by ...] in '| Stories | ... |' rows is
+# EXEMPT. This tests the acceptance path (green path).
+#
+# Mutation-flip: remove the Stories-field exemption (Shape 1).
+# Under mutation: clean tree exits 1 → STRUCTURAL FAIL fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-6: check-placeholders: [filled by] in Stories Traceability row passes ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree: [filled by story-writer] in the Stories Traceability field
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-stories-clean.md" <<'BCCLEAN'
+## Traceability
+| Field | Value |
+|-------|-------|
+| L2 Capability | CAP-001 |
+| Architecture Module | scanner.rs |
+| Stories | [filled by story-writer] |
+BCCLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker rejected [filled by story-writer] in Stories field — exemption not working"
+    P146_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P146_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: rename Stories field to Architecture Module — [filled by] no longer exempt
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-stories-clean.md" <<'BCBAD'
+## Traceability
+| Field | Value |
+|-------|-------|
+| L2 Capability | CAP-001 |
+| Architecture Module | [filled by story-writer] |
+| Stories | scanner.rs |
+BCBAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] after moving to non-Stories field)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; [filled by] detected after moving from Stories to Architecture Module field)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-7: check-placeholders — [filled by] in ordinary prose still fails ──
+# Change 2 exempts ONLY the two Stories-context shapes. [filled by ...] anywhere
+# in ordinary prose must remain a violation.
+#
+# Mutation-flip: blanket-exempt ALL [filled by ...] occurrences.
+# Under mutation: defect tree exits 0 → defect-fail fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-7: check-placeholders: [filled by] in prose still fails after Change 2 ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (empty ss-01 dir)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    cp "$FIXTURE_DIR/bad-placeholder-filled-by-prose.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-filled-by-prose.md"
+    P147_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    P147_EXIT=$?
+    if [ "$P147_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] in ordinary prose)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$P147_OUT" | grep -qF "[filled by the product owner]"; then
+        echo "  PASS (clean-pass confirmed; [filled by] in prose correctly detected)"
+    else
+        echo "  FAIL (checker exited non-zero but expected prose [filled by] message not in output)"
+        echo "  Actual output: $P147_OUT"
+        FAILURES=$((FAILURES + 1))
     fi
 fi
 rm -rf "$T"
