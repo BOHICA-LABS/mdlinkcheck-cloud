@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-088
+  Latest: §RESUME SNAPSHOT burst-19
 -->
 
 ---
@@ -1397,7 +1397,7 @@ f. **Never dispatch a burst onto a branch another burst may merge or delete (D-0
 
 ---
 
-## §RESUME SNAPSHOT D-088
+## §RESUME SNAPSHOT D-088 [SUPERSEDED by burst-19 — retained for audit]
 
 *Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-085.*
 
@@ -1478,3 +1478,91 @@ e. **Burn-down MUST clear before Phase-1 gate (D-077):** 55 VP-col rows / 34 BC 
 f. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
 
 g. **D-088:** Do NOT use `git add -A` or `git add .` in state-manager bursts while any PR agent is in flight.
+
+---
+
+## §RESUME SNAPSHOT burst-19
+
+*Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-088.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d, still 0 of 3 clean adversarial passes. This session: compact-state DONE (commit `a70306d`, STATE.md 269→253 lines, 16 CLOSED blockers archived, D-002 superseded decision archived, `current_cycle` pointer set to `phase-1d`). D-017..D-020 (exhaustive) RESTORED (commit `002111a`, Decisions Log 83→87 rows, 4 decisions reconstructed from prd.md/BC-2.11.002.md, process-gap-register PG-010 filed). BI-040 ALL THREE STAGES COMPLETE on branch `fix/bi-040-primitive-layer` (4 commits: `6340990` Stage 1 primitive module + 9 unit tests; `9228136` Stage 2A 6 checkers; `705e93a` Stage 2B 5 files + G4 guard; `b497d26` Stage 3 4 generators + 15 files). Output-identity byte-exact on both SPEC_LINT_REPO_OVERRIDE and no-override CI paths. 55/55 selftests + 9/9 primitive tests. BI-044 CLOSED — 14 sites (NOT 16; prior count was miscount: 17 filed − 3 already fixed on develop = 14). BI-043 OPEN (10-file evidence, scope ruling pending). D-086 WS-4 re-derivation BY EXECUTION COMPLETE: "~306" is UNRECONCILABLE — executed 249+37+1=287 max, CV5-001 closed → 286 actionable / 138 dispatchable. New sequencing constraint: BI-040 MUST MERGE to develop before any WS-4 dispatch. Pass 6 NOT run — gated to operator per standing directive.
+
+### HEADS
+
+Verify each at resume before taking action. Resolve factory-artifacts HEAD via `git -C .factory log -1` — never trust a literal SHA recorded here for the current HEAD.
+
+| Ref | SHA | Note |
+|-----|-----|------|
+| develop | `e1299b07` | unchanged from D-088 snapshot; no develop commits this session |
+| `fix/bi-040-primitive-layer` | `b497d26` | BI-040 code-closed branch; NOT merged, NOT pushed, no PR |
+| factory-artifacts | run `git -C .factory log -1` | current HEAD — do not cite a literal SHA here |
+
+### WORKSTREAMS
+
+Order is MANDATORY per D-072/D-086.
+
+1. **BI-040 PR lifecycle** — open PR for `fix/bi-040-primitive-layer` (4 commits: `6340990`/`9228136`/`705e93a`/`b497d26`). Full pr-manager review lifecycle per D-028/D-031. BI-040 MUST MERGE before WS-4 dispatch (D-072 + D-086 new constraint).
+2. **WS-4 scope confirmation** — after BI-040 merges: re-run the executed predicate (D-086 derived 286 actionable / 138 dispatchable) against merged develop HEAD to confirm scope before dispatch.
+3. **WS-4 remediation burst** — dispatch 138 dispatchable items. Pre-dispatch: ~53 BI-027 fabrication fixes need substring-presence predicate run (D-082); ~78 structural items need operator scoping.
+4. **WS-5 pass 6 + Phase-1 gate** — on 3 consecutive clean adversary passes, flip `spec-lint` to required status check (D-029/D-032).
+
+**Awaiting operator ruling (do NOT proceed without):**
+- BI-043 scope: does the fix scope cover all 10 files or only the `SPEC_LINT_REPO_OVERRIDE` ternary? (BI-040 Stage 3 under-delivers vs BI-043 filed scope)
+- WS-4 dispatch authorization: operator must authorize before any remediation dispatch
+
+### STANDING DIRECTIVES
+
+| Directive | Rule |
+|-----------|------|
+| Autonomy | Level 4 — agents merge PRs after full pr-manager review lifecycle (D-028/D-031) |
+| spec-lint | ADVISORY until Phase-1 gate; flip to required at gate (D-029/D-032) |
+| Platform matrix | macOS-latest ONLY in CI (D-043) |
+| SS-10 `--online` | IN SCOPE — do not re-propose descope (D-054) |
+| Context wrap | Wrap at 430K at clean boundaries; no fan-outs above 350K |
+| Wrappers | At `.factory/bin/` (D-047) |
+| `gh pr review` | IMPOSSIBLE — use `gh pr comment --body-file` (BI-039) |
+| `gen-bc-traceability` write mode | PROHIBITED until adjudicated (BI-041) |
+| Allowlists/skip-lists in checkers | FORBIDDEN (D-039) |
+| `prd.md` changelog entries | IMMUTABLE (D-034) |
+| `git add -A` in state bursts | FORBIDDEN while any PR agent in flight — stage by explicit path (D-088) |
+| BI-022 fuzz nightly | Pin before Phase 6 |
+| WS-4 scope | CONFIRMED by execution: 286 actionable / 138 dispatchable (D-086); re-confirm against merged HEAD |
+| EC-registration | HOLD until BI-044 settles — CLOSED; D-083 gate cleared |
+| BI-040 | MUST MERGE before WS-4 dispatch (D-072 + D-086 constraint) |
+
+### WORKTREE INVENTORY
+
+Exactly two worktrees (unchanged from D-088):
+
+| Path | Branch | HEAD | Note |
+|------|--------|------|------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | develop | `e1299b07` | main checkout |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | factory-artifacts | run `git -C .factory log -1` | factory artifacts |
+
+`fix/bi-040-primitive-layer` exists as a local branch (NOT pushed, no worktree). Check `git branch --list fix/bi-040-primitive-layer` to confirm before opening PR.
+
+### DECISION DELTA (this session — no new numbered decisions)
+
+No new operator-numbered decisions this session. D-086/D-087/D-088 were issued in the prior session and are the current latest. Operator has not yet ruled on BI-043 scope or WS-4 dispatch authorization — D-089+ MUST NOT be invented.
+
+### CAVEATS
+
+a. **`.factory/hooks/verify-sha-currency.sh` ABSENT.** Post-push hook verification gap. Record only; not an implied pass.
+
+b. **BI-040 code-CLOSED, NOT merged.** Branch `fix/bi-040-primitive-layer` exists locally only (4 commits, not pushed, no PR). Must go through full pr-manager review lifecycle before merge. Hard gate for WS-4 (D-072 + D-086).
+
+c. **BI-043 scope ruling PENDING.** 10 files still use `parent.parent.parent` as else-branch of `SPEC_LINT_REPO_OVERRIDE` ternary. BI-040 Stage 3 commit message initially claimed "closes BI-043" but was amended — tree SHA unchanged. Operator must rule on scope before BI-043 can be closed.
+
+d. **BI-044 CLOSED (14 sites).** Prior "16 sites remain" figure was a miscount: filed scope 17 − 3 already fixed on develop = 14 actual. D-083 gate cleared; EC-registration hold may be lifted once operator confirms.
+
+e. **WS-4 scope is EXECUTED (286 actionable / 138 dispatchable)** but must be re-confirmed against merged develop HEAD after BI-040 lands. The "~306" perimeter-sweep figure is UNRECONCILABLE and discarded per D-086.
+
+f. **Streak reset:** 0/3 clean-pass counter re-counts from ZERO against whatever HEAD is frozen when pass 6 runs. Trajectory-tail →34→39→37→259 (pass-5 perimeter count; executed 249).
+
+g. **Burn-down MUST clear before Phase-1 gate (D-077):** 55 VP-col rows / 34 BC files · 9 EC-NEW-* rows / 4 BC files · BC-2.04.001:63.
+
+h. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
+
+i. **D-088:** Do NOT use `git add -A` or `git add .` in state-manager bursts while any PR agent is in flight. Stage by explicit path.

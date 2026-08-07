@@ -4,22 +4,23 @@ level: ops
 version: "2.6"
 status: draft
 producer: state-manager
-timestamp: 2026-08-08T19:17:00Z
+timestamp: 2026-08-08T23:09:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; compact-state D-087 COMPLETE; 16 CLOSED blockers archived; D-002 superseded decision archived; D-086/D-087/D-088 recorded; 0 of 3 clean passes; trajectory-tail →34→39→37→259"
+current_step: "phase-1d; BI-040 code-CLOSED on branch fix/bi-040-primitive-layer (NOT merged); BI-044 CLOSED (14 sites); BI-043 OPEN (10 files, scope ruling pending); D-088 WS-4 re-derivation COMPLETE (286 actionable); 0 of 3 clean passes; trajectory-tail →34→39→37→259 (executed: 249)"
 current_cycle: phase-1d
 dtu_required: false
 ---
 
 <!--
   STATE.md SIZE BUDGET:
-  Soft target: ≤200 lines; margin from soft-target = 500 - 200 = 300; margin from actual = 500 - 257 = 243. 257 lines (wc-l, post-D-087 compact-state; +4 from D-017..D-020 (exhaustive) reconstruction).
-  Hard cap: 500 lines.
+  Soft target: ≤200 lines; hard cap: 500 lines.
+  257 lines (wc-l); margin from soft-target: +57 lines over 200; margin from actual: 243 lines to hard cap (500).
+  Still 57 lines above the 200-line soft target because the Decisions Log (87 rows) dominates; no further extraction performed since the remaining decisions are standing directives.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
 -->
@@ -37,9 +38,9 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-08 — D-087 compact-state: 16 CLOSED blockers archived; D-002 superseded decision archived; current_cycle pointer set to phase-1d; 0 of 3 clean passes; trajectory-tail →34→39→37→259 |
+| **Last Updated** | 2026-08-08 — burst-19: BI-040 code-CLOSED on fix/bi-040-primitive-layer (NOT merged, 4 commits); BI-044 CLOSED (14 sites, corrected from 16); BI-043 OPEN (10-file evidence, scope ruling pending); D-088 WS-4 re-derivation COMPLETE (286 actionable); 0 of 3 clean passes; trajectory-tail →34→39→37→259 (executed 249) |
 | **Current Phase** | phase-1d |
-| **Current Step** | PR #7 MERGED as `e1299b07` (develop `7b9aa6d`→`e1299b07`). BI-042 CLOSED (selftest-22 rewritten, teeth-test passed). BI-035 CLOSED (fully discharged). BI-023 checker repairs landed on develop; spec-row burn-down open. BI-040 OPEN + BI-044 OPEN (gate WS-4). D-086 (WS-4 scope re-derivation by execution mandatory). D-087 (compact-state at next session start). D-088 (stage by explicit path in state bursts). |
+| **Current Step** | compact-state DONE (a70306d); D-017..D-020 (exhaustive) restored (002111a); BI-040 code-CLOSED on fix/bi-040-primitive-layer (4 commits, NOT merged); BI-044 CLOSED (14 sites); BI-043 OPEN (10 files, scope ruling pending); D-088 WS-4 re-derivation COMPLETE (286 actionable); spec-row burn-down open; 0 of 3 clean passes. |
 
 ## Phase Progress
 
@@ -59,7 +60,7 @@ dtu_required: false
 | pass-3 fix burst | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39→37 |
 | pass-4 adversary | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39→37 |
 | pass-4 fix burst | COMPLETE | 2026-08-06 | 2026-08-06 | — | →0→32→34→39→37 |
-| pass-5 adversary (perimeter sweep — 8 shards) | COMPLETE | 2026-08-07 | 2026-08-07 | — | →0→32→34→39→37→259 |
+| pass-5 adversary (perimeter sweep — 8 shards) | COMPLETE | 2026-08-07 | 2026-08-07 | — | →0→32→34→39→37→259 (executed 249; see D-086) |
 
 ## Current Phase Steps
 
@@ -67,21 +68,21 @@ dtu_required: false
 
 | Step | Agent | Status | Output |
 |------|-------|--------|--------|
-| PR #3 MERGED as `651ee3a`; D-068..D-071 (exhaustive); BI-016/036 CLOSED; BI-039/040 OPEN; session wrap D-071 | state-manager | COMPLETE | PR #3 squash-merged on develop; develop `2776d94`→`651ee3a`; branch deleted; remote pruned; selftests 36/36; check-index-integrity exit 0; property test 300/300; D-068 (structural fix reversal) + D-069 (property-based restructure) + D-070 (bounded fix + Option-3 story) + D-071 (merge under level-4 autonomy); BI-039 (gh pr review impossible — gh pr comment fallback) + BI-040 (splitlines/strip bypass family deferred per D-070) opened |
 | PR #6 MERGED as `7b9aa6d`; D-072..D-074 (exhaustive); BI-041/042/043 OPEN; BI-035 re-scoped; session wrap D-074 | state-manager | COMPLETE | PR #6 squash-merged on develop; develop `651ee3a`→`7b9aa6d`; branch + worktree removed (`78ef3a4` recoverable). Landed: check-canonical-facts.py (188L), gen-bc-traceability.py (429L), gen-slug-corpus.py (494L); selftests 36→49; check-canonical-facts OK (31 bindings, 11 facts). D-072 (BI-040 before WS-4) + D-073 (BI-042 first) + D-074 (cherry-pick 78ef3a4, 5 review cycles). BI-041/042/043 OPENED. BI-035 re-scoped (FACT-7/8 sound; FACT-9/10 → BI-042). |
 | WS-3 Phase 1 audit COMPLETE; BI-034 RESOLVED; BI-023 corrected; D-075; session wrap D-075 | state-manager | COMPLETE | WS-3 Phase 1 read-only audit COMPLETE. Findings at `cycles/phase-1d/ws3-skip-list-audit.md` (commit `3734c1e`). BI-034 RESOLVED: all three skip-list entries KEEP (positive-coverage evidence per D-057). BI-023 corrected: (a) 34 BC files / 55 em-dash rows; (b) 11 `EC-NEW-` occurrences across 5 files (BC-2.07.005 omitted from audit list). D-075 (BI-042 PREEMPTIVE, not serializing). Lessons 37-40 committed. |
 | BI-042 .toml APPLIED (D-076); WS-3 Phase 2 repair design (D-077..D-081 exhaustive); BI-040 primitive layer design (D-084..D-085 exhaustive); BI-044 OPENED; BI-045 OPENED+FIXED; D-076..D-085 (exhaustive) | devops-engineer + architect + state-manager | COMPLETE | `.toml` corrections: 24/26 tautological bindings rewritten (FACT-6a/6b structural limitation, BENIGN verified); checker OK (all 31 match). Count corrected **17→26** tautological. WS-3 Phase 2 design: R2-RULE (VP-id whitelist) + R3-A/B/C (EC-shape triple-segment). BI-040 design: 54 splitlines + 63 strip sites measured, 8+23 CommonMark-divergent codepoints derived, three-stage migration planned. BI-044 OPENED (17 EC-grammar sites, detection repaired in check-id-resolution.py). ~~BI-045~~ OPENED+FIXED (3 non-hermetic selftests, 54/54 hermetic). PR `fix/ws3-spec-lint-integrity` open (4 commits: BI-023 R2+R3, BI-042 selftest 22, D-081 scoping, BI-045 hermeticity). Burn-down: 55 VP-col rows / 34 files · 9 EC-NEW-* rows / 4 files · BC-2.04.001:63 · BI-044 16 sites. |
 | PR #7 MERGED as `e1299b07`; BI-042/035 CLOSED; BI-023 checker repairs landed; D-086/D-087/D-088; worktree ws3 removed | state-manager | COMPLETE | PR #7 squash-merged develop `7b9aa6d`→`e1299b07`; 9-step pr-manager lifecycle, 3 review cycles, 5 blockers resolved; APPROVE at `791fc11` (freshness check not tautological — D-071 failure mode did not recur); CI 4/4 PASS; spec-lint ADVISORY FAIL accepted (D-029/D-032/D-077); SEC-001 LOW accepted; 55/55 selftests; check-canonical-facts OK; baseline PRESERVED (80 placeholders + 10 id-resolution findings). BI-042 CLOSED (selftest-22 teeth-test). BI-035 CLOSED. BI-023 items 2+3 CLOSED (checker repairs on develop). BI-045 already CLOSED. Worktree ws3 removed (tree-identical diff verified; `791fc11` reflog-recoverable). D-086/D-087/D-088. |
+| compact-state DONE (a70306d); D-017..D-020 (exhaustive) restored (002111a); BI-040 code-CLOSED on fix/bi-040-primitive-layer (4 commits, NOT merged); BI-044 CLOSED (14 sites); D-088 WS-4 re-derivation COMPLETE (286 actionable); 0 of 3 clean passes | state-manager | COMPLETE | compact-state: 16 CLOSED blockers archived, D-002 superseded decision archived, current_cycle pointer set. D-017..D-020 (exhaustive) restored: 4 decisions absent from Decisions Log reconstructed from prd.md/BC-2.11.002.md, PG-010 filed. BI-040 all 3 stages on branch fix/bi-040-primitive-layer: output-identity byte-exact, 55/55 selftests + 9/9 primitive tests. BI-044 CLOSED (14 sites). BI-043 OPEN (10-file evidence). D-088 WS-4 re-derivation: 286 actionable; 138 dispatchable; BI-040 must MERGE before WS-4 dispatch. |
 
 ## Convergence Status
 
-Trajectory →0→32→34→39→37→259 | trajectory-tail →34→39→37→259
+Trajectory →0→32→34→39→37→259 | trajectory-tail →34→39→37→259 | **NOTE: pass-5 perimeter count 259 is UNRECONCILABLE — executed re-derivation found 249 (shard-7: 44→35; shard-8: 40→39; 9 ID gaps); both preserved per D-086**
 
 pass count: 0 of 3 required clean passes
 
 Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT the magnitude. Zero of 37 findings fall in the 7 enforced classes (title-sync, EC-injectivity, id-resolution, counts, holdout-boundary, ADR-consistency, index-integrity) — that noise floor is eliminated and verified. The residual defect mass is a SPEC-TOPOLOGY problem, not a spec-quality problem: ~15 documents hand-maintain restatements of the same facts with no generated source of truth. Regression audit found 8 of 12 prior fixes were applied to the primary artifact but not its siblings/dependents. Adversary recommended NOT running pass 5 against the current topology.
 
-**Pass 5 COMPLETE (perimeter sweep — 8 shards, 259 findings):** All 66 BC bodies, all 8 ADRs, all spec shards read in full for the first time. Perimeter closed. Clean-pass count remains ZERO. Remediation burst required against four unguarded axes (BI-024) before pass 6. Structural checker bypasses confirmed (BI-023).
+**Pass 5 COMPLETE (perimeter sweep — 8 shards, 259 findings; executed: 249):** All 66 BC bodies, all 8 ADRs, all spec shards read in full for the first time. Perimeter closed. Clean-pass count remains ZERO. Remediation burst required against four unguarded axes (BI-024) before pass 6. Structural checker bypasses confirmed (BI-023). WS-4 scope re-derived by execution (D-086): 286 actionable / 138 dispatchable. BI-040 code-closed on branch, NOT merged.
 
 | Pass | Findings | Delta | Status |
 |------|----------|-------|--------|
@@ -89,7 +90,7 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | 2 | 34 (7C/19M/8m) | +2 | FINDINGS_REMAIN (REGRESSION) — REMEDIATED |
 | 3 | 39 (5C/26M/8m) | +5 | FINDINGS_REMAIN (REGRESSION) — REMEDIATED (mechanical enforcement) |
 | 4 | 37 (3C/19M/15m) | -2 | FINDINGS_REMAIN — composition changed: ZERO findings in the 7 mechanically-enforced classes |
-| 5 | 259 (~42C) | +222 (scope expansion: first full read of all 66 BC bodies, all 8 ADRs, all spec shards) | FINDINGS_REMAIN — perimeter closed; 4 unguarded axes; remediation burst required |
+| 5 | 259 (~42C); executed 249 (shard-7: 44→35; shard-8: 40→39; 9 ID gaps) | +222 (scope expansion: first full read of all 66 BC bodies, all 8 ADRs, all spec shards) | FINDINGS_REMAIN — perimeter closed; WS-4 re-derived 286 actionable / 138 dispatchable; BI-040 code-closed NOT merged |
 
 ## Decisions Log
 
@@ -201,7 +202,7 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 
 | ID | Issue | Severity | Blocking Phase | Owner | Resolution |
 |----|-------|----------|----------------|-------|------------|
-| BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 5 COMPLETE (259 findings ~42C); perimeter CLOSED; root cause SPEC-TOPOLOGY (D-035) + 4 unguarded axes (BI-024) + structural checker bypasses (BI-023) | HIGH | phase-1 gate | orchestrator | PR #7 MERGED as `e1299b07`; BI-042/035 CLOSED; BI-023 checker repairs on develop. Next: compact-state (D-087) → BI-040 Stage 1+2+3 → WS-4 scope re-derivation BY EXECUTION (D-086 — MANDATORY GATE) → WS-4 (~306-finding burst) → WS-5 pass 6 + Phase-1 gate. Blockers: BI-040 OPEN + BI-044 OPEN (both gate WS-4 per D-072/D-079). |
+| BI-002 | phase-1d not converged: 0 of 3 clean passes; pass 5 COMPLETE (259 findings ~42C; executed 249); perimeter CLOSED; root cause SPEC-TOPOLOGY (D-035) + 4 unguarded axes (BI-024) + structural checker bypasses (BI-023) | HIGH | phase-1 gate | orchestrator | compact-state DONE (a70306d); D-017..D-020 (exhaustive) restored (002111a); BI-040 code-CLOSED on fix/bi-040-primitive-layer (NOT merged); BI-044 CLOSED (14 sites); D-088 WS-4 re-derivation COMPLETE (286 actionable / 138 dispatchable). Next: BI-040 PR lifecycle → WS-4 remediation → WS-5 pass 6 + Phase-1 gate. Blocker remaining: BI-040 must MERGE before WS-4 dispatch (D-072). |
 | BI-007 | VP-026 is SPECIFIED but UNIMPLEMENTED — no Rust workspace exists yet (Phase 3 not started). FM-002 risk until Phase 3 implements the differential proptest. | HIGH | phase-6 (formal hardening) | implementer | Phase 3 must implement VP-026; story traced to VP-026 required in Phase 2. |
 | BI-010 | VP-025 authored against non-existent API types. Harness cannot compile. Architect rewrote VP-025; INC-MAP-001 SPEC-RESOLVED/IMPL-PENDING (D-048). | CRITICAL | phase-3 | architect | INC-MAP-001 closes only when Phase 3 implements it. |
 | BI-017 | Phase 3 CI obligation: NO perf-gate/benchmark job exists. Both NFR-008 and NFR-002 benchmark jobs MUST run on `macos-latest` when created in Phase 3. | MEDIUM | phase-3 | devops-engineer | Recorded in vp-022-regression-gate.md and tooling-selection.md §Phase 3 CI Obligations. |
@@ -215,29 +216,28 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | BI-028 | VP CODE-FENCE SYMBOL VALIDATION + FOUR UNDEFINED TYPES — symbols in VP Rust harnesses that resolve to nothing. Four types with NO definition anywhere: `PathVerdict`, `FailureReason`, `IoError`, `AllowPrefix`. All five VP-007 harnesses fail to compile. | HIGH | phase-1d fix burst | architect | Symbol-extraction linter over VP rust code fences; reconcile api-surface.md vs module-decomposition.md naming; add missing type definitions. |
 | BI-037 | F-15 MINOR / PR #3 — fail-open in `run_suppression_guard`. Reproduced in isolation but UNREACHABLE via the real entry point (guard 1 exits 2 first). Load-bearing guard ordering MUST be preserved in any refactor. | LOW | phase-2 (maintenance) | devops-engineer | Document ordering dependency explicitly. Do NOT change guard execution order without re-auditing all paths. |
 | BI-039 | `gh pr review --request-changes` IMPOSSIBLE on any PR in this repo: GitHub returns GraphQL "Can not request changes on your own pull request" — same root cause as D-021 (all PRs authored by `drbothen`). Working fallback: `gh pr comment --body-file`. Two pr-reviewer agents misdiagnosed as permission-classifier denial. Hook `validate-pr-review-posted` UNSATISFIABLE via `gh pr review` for every PR in this repo. | MEDIUM | phase-2 | devops-engineer | Switch pr-reviewer/pr-manager to `gh pr comment`; change hook's satisfaction condition to accept a PR comment as sufficient. |
-| BI-040 | `splitlines()`/`strip()` BYPASS FAMILY — surface MEASURED (D-082): **54 raw `splitlines()` sites + 63 `.strip()` sites across 14 files**. Family proven CLOSED-UNDER-DISCOVERY by full Unicode iteration: **8** codepoints where Python `splitlines()` diverges from CommonMark (U+000B U+000C U+001C U+001D U+001E U+0085 U+2028 U+2029) and **23** where `strip()` diverges (including U+00A0, U+3000). Primitive layer design at `cycles/phase-1d/bi-040-primitive-layer-design.md`. Still OPEN, still blocks WS-4 per D-072. | HIGH | phase-1 gate | architect + devops-engineer | Three-stage migration planned. WS-3b (design doc + fix PR per D-085). MANDATORY landing gate: assert family closed-under-discovery. Must close BEFORE WS-4 begins (D-072). |
+| BI-040 | `splitlines()`/`strip()` BYPASS FAMILY — surface MEASURED (D-082): **54 raw `splitlines()` sites + 63 `.strip()` sites across 14 files**. Family CLOSED-UNDER-DISCOVERY (8 splitlines-divergent + 23 strip-divergent codepoints, both re-derived by full U+0000–U+10FFFF iteration). **CODE-CLOSED** on branch `fix/bi-040-primitive-layer` (4 commits: `6340990` Stage 1 primitive module + 9 unit tests, `9228136` Stage 2A 6 checkers, `705e93a` Stage 2B 5 files + `run_splitlines_guard` G4, `b497d26` Stage 3 4 generators guards expanded 15 files). Output-identity HOLDS byte-exact on BOTH `SPEC_LINT_REPO_OVERRIDE` and no-override CI paths. 55/55 selftests + 9/9 primitive tests. BI-044 14 sites converted in Stage 3. NOT YET MERGED — awaiting PR lifecycle. | HIGH | phase-1 gate | architect + devops-engineer | Must MERGE to develop before WS-4 dispatch (D-072). New sequencing constraint (D-086 re-derivation session): all WS-4 classes edit BC files whose parsing BI-040 changes — BI-040 merge is a hard gate for WS-4. |
 | BI-041 | `gen-bc-traceability.py` write mode is LOSSY: regenerates BC `\| Architecture Module \|` row from `bc-module-map.md` and DESTROYS hand-authored annotations it does not model. Orchestrator confirmed 6 annotation-bearing lines removed with zero surviving; reviewer found ~20+ annotated rows unreproducible. Destroyed: INC-MAP-002, INC-MAP-003 (D-062 routing), INC-MAP-004 (VP-016 formal assignment). MITIGATION LANDED: Gate 1 concurrency (bare invocation refuses) + Gate 2 (`--write` refuses unconditionally); function-level RuntimeError; reviewer verified 14 argv x 2 generators x 6 env vars: zero paths reach a write. RESOLUTION requires adjudication of annotation handling. | HIGH | phase-3 | architect | DO NOT enable write mode until adjudicated. |
-| BI-043 | `parent.parent.parent` repo-root heuristic survives in 8 other checkers plus both new generators. Fails CLOSED (usability defect, not safety). A `.git`-less working tree can also escape to an ancestor and print OK. Fix uniformly before Phase 3 story worktrees launch. | LOW | phase-3 | devops-engineer | Fix before Phase 3 story worktrees. Addressed by BI-040/D-084 shared primitive layer. |
-| BI-044 | OPENED (HIGH, blocks WS-4). Digits-only EC grammar replicated at **17 sites across 6 files**: `check-counts.py` ×5, `check-id-resolution.py` ×3, `check-holdout-boundary.py` ×3, `check-index-integrity.py` ×3, `check-ec-injectivity.py` ×2, `gen-ec-registry.py` ×1. Consequence: non-conforming EC rows are simultaneously unresolvable, absent from injectivity DENOMINATOR, and missing from EC totals. | HIGH | phase-1 gate (WS-4) | devops-engineer | Detection repaired in `check-id-resolution.py` NOW ON DEVELOP (`e1299b07`). 16 sites remain: `check-counts.py` ×5, `check-holdout-boundary.py` ×3, `check-index-integrity.py` ×3, `check-ec-injectivity.py` ×2, `gen-ec-registry.py` ×1. Addressed by BI-040/D-084 shared primitive layer. |
+| BI-043 | `parent.parent.parent` repo-root heuristic survives as the **else-branch** of `SPEC_LINT_REPO_OVERRIDE` ternary (active CI path) in **10 files**: `check-counts.py`, `check-ec-injectivity.py`, `check-adr-consistency.py`, `check-id-resolution.py`, `check-placeholders.py`, `check-index-integrity.py`, `check-holdout-boundary.py`, `check-title-sync.py`, `gen-bc-traceability.py`, `gen-slug-corpus.py`. BI-040 Stage 3 commit message initially claimed "closes BI-043" — amended (tree SHA `faf67f0ed97f2038c5f3450d268965eef414b301` unchanged, message-only change). BI-040 design only routed `check-canonical-facts.py` and 4 exempt generators through `slp.find_repo_root` — under-delivers vs BI-043 stated scope. Awaiting operator scope ruling. | LOW | phase-3 | devops-engineer | Scope ruling PENDING. Usability defect (fails closed). Fix before Phase 3 story worktrees. |
 
 ## Session Resume Checkpoint
 
-Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-088`
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT burst-19`
 
 | Field | Value |
 |-------|-------|
 | **Date** | 2026-08-08 |
-| **Position** | phase-1d; PR #7 MERGED as `e1299b07`; develop `7b9aa6d`→`e1299b07`; BI-042 CLOSED (selftest-22 teeth-test); BI-035 CLOSED; BI-023 checker repairs on develop (spec-row burn-down open); BI-044 detection on develop (16 sites remain); BI-040 OPEN (gates WS-4 per D-072); 0 of 3 clean passes |
-| **Convergence counter** | 0 of 3 clean passes; trajectory-tail →34→39→37→259; pass 6 order: (1) compact-state D-087; (2) BI-040 Stage 1; (3) BI-040 Stages 2–3 (preserve 80+10 counts); (4) WS-4 scope re-derivation BY EXECUTION (D-086 — MANDATORY GATE); (5) WS-4 remediation; (6) WS-5 pass 6 + Phase-1 gate |
-| **Next burst** | compact-state (D-087), then BI-040 Stage 1. Burn-down: 55 VP-col / 34 files · 9 EC-NEW-* / 4 files · BC-2.04.001:63 · BI-044 16 sites. Standing: autonomy L4; spec-lint ADVISORY; macOS-latest-only; SS-10 online in scope; wrap 430K. |
+| **Position** | phase-1d; BI-040 code-CLOSED on fix/bi-040-primitive-layer (4 commits: 6340990/9228136/705e93a/b497d26), NOT merged; BI-044 CLOSED (14 sites, corrected from 16); BI-043 OPEN (10-file evidence, scope ruling pending); D-088 WS-4 re-derivation COMPLETE (286 actionable; 138 dispatchable); 0 of 3 clean passes |
+| **Convergence counter** | 0 of 3 clean passes; trajectory-tail →34→39→37→259 (pass-5 perimeter count UNRECONCILABLE; executed 249); pass 6 order: (1) BI-040 PR lifecycle; (2) WS-4 remediation (138 dispatchable; ~53 BI-027 fabrications pending pre-dispatch predicate; ~78 structural need operator scoping); (3) WS-5 pass 6 + Phase-1 gate |
+| **Next burst** | BI-040 PR lifecycle — open PR for branch fix/bi-040-primitive-layer (4 commits). Await operator scope ruling on BI-043 and WS-4 dispatch authorization. Burn-down: 55 VP-col / 34 files · 9 EC-NEW-* / 4 files · BC-2.04.001:63. Standing: autonomy L4; spec-lint ADVISORY; macOS-latest-only; SS-10 online in scope; wrap 430K; WS-4 blocked on BI-040 merge. |
 
-Spec snapshot: PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-204 (205 ids) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-088 (exhaustive). D-017..D-020 (exhaustive) restored by reconstruction from prd.md and cycle artifacts — original STATE.md rows lost; see process-gap-register PG-010. Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/034/035/036/038/042/045. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/037/039/040/041/043/044.
+Spec snapshot: PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-204 (205 ids) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-088 (exhaustive). D-017..D-020 (exhaustive) restored by reconstruction; see process-gap-register PG-010. Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/034/035/036/038/042/044/045. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/037/039/040 (code-closed NOT merged)/041/043.
 
 ## Concurrent Cycles
 
 | Cycle | Status | Notes |
 |-------|--------|-------|
-| phase-1d | in-progress | adversarial spec convergence; 0 of 3 clean passes; trajectory-tail →34→39→37→259; PR #7 MERGED (e1299b07); BI-042/035 CLOSED; BI-023 checker repairs on develop; BI-044 detection on develop; BI-040 OPEN (gates WS-4); D-086/087/088; next: compact-state then BI-040 |
+| phase-1d | in-progress | adversarial spec convergence; 0 of 3 clean passes; trajectory-tail →34→39→37→259 (executed 249); BI-040 code-CLOSED fix/bi-040-primitive-layer (NOT merged); BI-044 CLOSED (14 sites); D-088 WS-4 re-derivation COMPLETE (286 actionable); next: BI-040 PR lifecycle → WS-4 |
 
 ## Historical Content
 
@@ -254,4 +254,4 @@ Spec snapshot: PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies 
 | BI-040 shared primitive layer design | `cycles/phase-1d/bi-040-primitive-layer-design.md` |
 | Superseded decisions | `cycles/phase-1d/decisions-log.md` |
 
-Last Updated: 2026-08-08 — D-087 compact-state: 16 CLOSED blockers archived; D-002 superseded decision archived; current_cycle pointer set to phase-1d; 0 of 3 clean passes; trajectory-tail →34→39→37→259
+Last Updated: 2026-08-08 — burst-19: BI-040 code-CLOSED on fix/bi-040-primitive-layer (NOT merged, 4 commits); BI-044 CLOSED (14 sites); BI-043 OPEN (10-file evidence); D-088 WS-4 re-derivation COMPLETE (286 actionable); 0 of 3 clean passes; trajectory-tail →34→39→37→259 (executed 249)

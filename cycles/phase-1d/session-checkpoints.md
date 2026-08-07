@@ -124,4 +124,19 @@ PRD v1.11 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001
 
 ---
 
+## Session Resume Checkpoint D-088 (2026-08-08) — archived from STATE.md by burst-19
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-08 |
+| **Position** | phase-1d; PR #7 MERGED as `e1299b07`; develop `7b9aa6d`→`e1299b07`; BI-042 CLOSED (selftest-22 teeth-test); BI-035 CLOSED; BI-023 checker repairs on develop (spec-row burn-down open); BI-044 detection on develop (16 sites remain); BI-040 OPEN (gates WS-4 per D-072); 0 of 3 clean passes |
+| **Convergence counter** | 0 of 3 clean passes; trajectory-tail →34→39→37→259; pass 6 order: (1) compact-state D-087; (2) BI-040 Stage 1; (3) BI-040 Stages 2–3 (preserve 80+10 counts); (4) WS-4 scope re-derivation BY EXECUTION (D-086 — MANDATORY GATE); (5) WS-4 remediation; (6) WS-5 pass 6 + Phase-1 gate |
+| **Next burst** | compact-state (D-087), then BI-040 Stage 1. Burn-down: 55 VP-col / 34 files · 9 EC-NEW-* / 4 files · BC-2.04.001:63 · BI-044 16 sites. Standing: autonomy L4; spec-lint ADVISORY; macOS-latest-only; SS-10 online in scope; wrap 430K. |
+
+*Superseded by burst-19 state wrap.*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

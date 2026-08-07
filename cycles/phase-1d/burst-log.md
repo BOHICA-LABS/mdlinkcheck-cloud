@@ -842,3 +842,49 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 **Convergence:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. Nothing this session advanced the streak; it removed preconditions blocking pass 6. The streak re-counts from ZERO against whatever HEAD is frozen for pass 6. Pass 6 order: (1) compact-state (D-087); (2) BI-040 Stage 1; (3) BI-040 Stages 2–3 (mandatory output-identity diff); (4) WS-4 scope re-derivation BY EXECUTION (D-086 — MANDATORY GATE before any remediation dispatch); (5) WS-4 remediation; (6) WS-5 pass 6 + Phase-1 gate.
 
 **D-088 constraint:** staged by explicit path — `git add` invoked per-file, NOT `git add -A`. Files staged: STATE.md SESSION-HANDOFF.md cycles/phase-1d/burst-log.md cycles/phase-1d/lessons.md cycles/phase-1d/blocking-issues-resolved.md.
+
+---
+
+## Burst: burst 19 — compact-state DONE; D-017..D-020 restored; BI-040 code-CLOSED; BI-044 CLOSED; D-086 WS-4 re-derivation COMPLETE (2026-08-08)
+
+**Parent-commit:** `002111a` (factory(state): restore lost binding decisions D-017..D-020 to Decisions Log)
+
+**Adversary verdict:** No new adversary pass this burst. Pass 6 NOT run — gated to operator per standing directive. Trajectory UNCHANGED: →0→32→34→39→37→259 (pass-5 perimeter count; executed re-derivation 249; discrepancy UNRECONCILABLE — both preserved per D-086). pass count: 0 of 3.
+
+**Headline outcomes:**
+
+1. **D-087 compact-state COMPLETE (commit `a70306d`).** STATE.md 269→253 lines. 16 CLOSED blockers archived to `cycles/phase-1d/blocking-issues-resolved.md`. D-002 (only SUPERSEDED-marked row) archived to `cycles/phase-1d/decisions-log.md`. `current_cycle` frontmatter set to `phase-1d` (was empty — pointer gap). Decisions Log 83 rows after compaction (87 after D-017..D-020 restoration).
+
+2. **D-017..D-020 restored (commit `002111a`).** Decisions Log 83→87 rows. Pre-existing defect: four decisions cited as BINDING in `prd.md` and `BC-2.11.002.md` — and carrying open adversarial contradictions (P3-001, P3-005, P6-S7-007) — had no Decisions Log rows at `ea3cd2d` (before compaction). PG-010 filed in `cycles/phase-1d/process-gap-register.md`. An ID-continuity check over the Decisions Log would have caught the gap; no such gate exists.
+
+3. **BI-040 ALL THREE STAGES COMPLETE on branch `fix/bi-040-primitive-layer` (NOT merged, NOT pushed, no PR).** Four commits: `6340990` Stage 1 (primitive module `spec_lint_primitives.py` + 9 unit tests + `test_primitives.sh` G3 hook), `9228136` Stage 2A (6 checkers migrated), `705e93a` Stage 2B (5 files + `run_splitlines_guard` G4), `b497d26` Stage 3 (4 generators, guards expanded to 15 files). Orchestrator-verified by execution: output-identity HOLDS byte-exact on BOTH `SPEC_LINT_REPO_OVERRIDE` path AND no-override CI path (latter tested in CI-like scratch layout — a gap nobody had covered before). 106 lines each side, 8 headline lines, 0 tracebacks. 55/55 selftests + 9/9 primitive tests, identical with and without ambient override (BI-045 hermeticity class). Independent mutation tests confirm real teeth: reverting `cm_splitlines`→`str.splitlines()` or `cm_strip_cell`→`str.strip()` each FAILS the suite; `run_splitlines_guard` fires on a poisoned checker AND on a generator, and still fails on a zero-files-scanned directory. Corpus premise CONFIRMED: `.factory/specs/` = 134 `.md` files, `holdout-scenarios/` = 8; ZERO occurrences of 9 splitlines-divergent or 23 strip-divergent codepoints (both divergence sets independently re-derived by full U+0000–U+10FFFF iteration).
+
+4. **BI-044 CLOSED.** 14 sites converted by BI-040 Stage 3 (ec-injectivity ×2, holdout-boundary ×3, counts ×5, index-integrity ×3, gen-ec-registry ×1). Prior "16 sites remain" figure was a MISCOUNT: itemization sums to 14 (17 original − 3 already fixed on develop).
+
+5. **BI-043 remains OPEN — not closed by BI-040.** `Path(__file__).resolve().parent.parent.parent` survives as the else-branch of the `SPEC_LINT_REPO_OVERRIDE` ternary (active CI path) in 10 files: `check-counts.py`, `check-ec-injectivity.py`, `check-adr-consistency.py`, `check-id-resolution.py`, `check-placeholders.py`, `check-index-integrity.py`, `check-holdout-boundary.py`, `check-title-sync.py`, `gen-bc-traceability.py`, `gen-slug-corpus.py`. Stage 3 commit message initially claimed "closes BI-043" — amended (tree SHA `faf67f0ed97f2038c5f3450d268965eef414b301` unchanged). BI-040 design only routed `check-canonical-facts.py` and 4 exempt generators through `slp.find_repo_root`, under-delivering vs BI-043 stated scope. Awaiting operator scope ruling.
+
+6. **D-086 WS-4 scope re-derivation BY EXECUTION COMPLETE.** "~306" is UNRECONCILABLE — discard it. Executed divergences: perimeter sweep total 259→249 (shard-7 claims 44 has 35; shard-8 claims 40 has 39; 9 ID gaps); synthesis CRITICAL "~42"→40 by per-shard subtotals; "36 pass-5 actionable"→37; CV5 findings "11"→1 (CV5-001 only; 10 phantom IDs); BI-044 "16 remaining"→14; EC-NEW-* "11 across 5 files"→9 across 4 files. Total unique finding IDs: **469**. P6 OPEN: **249**. WS-4 dispatchable scope: **138 items** (55 VP-column `—` rows + 25 `[filled by ...]` = 80 ✓check-placeholders; 9 EC-NEW-* + 1 TV-BV013 = 10 ✓check-id-resolution; 43 BC VP-table proof-method join repairs; 5 vacuous VP rewrites). New sequencing constraint: **BI-040 must MERGE to develop before any WS-4 dispatch** (all WS-4 classes edit BC files whose parsing BI-040 changes). ~53 POLICY-5 fabrications (BI-027) NOT dispatchable — count is an estimate pending pre-dispatch predicate. ~78 P6 aggregate/structural findings require operator scoping.
+
+**Files touched (Dim-1): 6 unique files (factory-artifacts only — no develop-side changes this burst)**
+
+- `.factory/STATE.md` — timestamp, current_step, Last Updated, Current Phase Steps (row evicted; new burst-19 row), Convergence Status (trajectory discrepancy 259/249 noted; pass-5 row updated; sequencing constraint recorded), Blocking Issues (BI-040 CODE-CLOSED not-merged updated; BI-043 10-file evidence updated; BI-044 CLOSED and removed; BI-002 updated), Session Resume Checkpoint replaced (D-088 archived to session-checkpoints.md)
+- `.factory/SESSION-HANDOFF.md` — D-088 snapshot marked SUPERSEDED; §RESUME SNAPSHOT burst-19 appended
+- `.factory/cycles/phase-1d/burst-log.md` — evicted Current Phase Steps row archived; this entry (burst 19)
+- `.factory/cycles/phase-1d/lessons.md` — lesson 46 appended (zsh word-splitting false pass; policy candidates row added)
+- `.factory/cycles/phase-1d/blocking-issues-resolved.md` — BI-044 CLOSED row appended
+- `.factory/cycles/phase-1d/session-checkpoints.md` — D-088 checkpoint archived
+
+**Codifications:** No new D-NNN decisions this session. Operator has not ruled on BI-043 scope or WS-4 dispatch authorization.
+
+**Artifact state at burst close:**
+PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-204 (205 ids) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-088 (exhaustive). D-017..D-020 (exhaustive) restored. Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/034/035/036/038/042/044/045. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/037/039/040 (code-closed NOT merged)/041/043.
+
+**Dim-2 Attestation:** No `canonical-facts.toml` mutation this burst. `check-canonical-facts.py` last reported exit 0 (all 31 bindings match canonical values, 11 facts) at burst-18 close. No FACT-N entries added or modified. Canonical facts corpus unchanged; attestation is a pass-through.
+
+**Dim-5 Attestation:** STATE.md — timestamp 2026-08-08T23:00:00Z, version 2.6, status: draft, producer: state-manager. burst-log.md — 19 bursts. lessons.md — 46 lessons. blocking-issues-resolved.md — BI-044 closure row added. session-checkpoints.md — D-088 checkpoint archived.
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 (pass-5 perimeter count UNRECONCILABLE; executed 249; both preserved). Not converged. Pass 6 order: (1) BI-040 PR lifecycle (branch `fix/bi-040-primitive-layer`, 4 commits); (2) WS-4 remediation (138 dispatchable items; D-086 gate SATISFIED); (3) WS-5 pass 6 + Phase-1 gate. BI-040 must MERGE before WS-4 dispatch (D-072 + new sequencing constraint).
+
+**Dim-7 Attestation:** Agents dispatched this session: devops-engineer (BI-040 all stages), orchestrator (D-086 re-derivation executed verification), state-manager (this burst). No adversary agent dispatched.
+
+**Closes:** BI-044 (14 sites converted in BI-040 Stage 3; prior count of 16 was a miscount). **Updates:** BI-040 (code-CLOSED on `fix/bi-040-primitive-layer`; NOT merged; sequencing constraint recorded: must MERGE before WS-4). BI-043 (10-file evidence; scope ruling pending). BI-002 (compact-state DONE; D-017..D-020 restored; WS-4 re-derivation COMPLETE 286 actionable). No new decisions.
