@@ -483,3 +483,90 @@ PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001.
 **Dim-7 Attestation:** Agents dispatched in this burst: adversary (perimeter shards 1,2,3,5 — parallel shard runs at frozen HEAD 1d3ed17), state-manager (this burst: files, STATE.md, burst-log). Total: 2 agent roles.
 
 **Opens:** BI-023 (skip-list soundness gap), BI-024 (three unguarded axes). **Closes:** nothing. **Updates:** BI-002 (perimeter sweep in progress, shards 4,6,7,8 pending).
+
+---
+
+## Burst: burst 12 — Perimeter Sweep Shards 4,6,7,8 COMPLETE + BI-025..BI-031 OPENED (2026-08-07)
+
+**Parent-commit:** (factory-artifacts HEAD after burst 11; shards 1,2,3,5 complete; shards 4,6,7,8 running)
+
+**Adversary verdict:** No new formal adversary pass. Shards 4, 6, 7, 8 completed; perimeter CLOSED. 259 total findings (~42C) across all 8 shards. Trajectory UNCHANGED: →0→32→34→39→37. pass count: 0 of 3. D-055 (GitHub Actions RECOVERED), D-056 (stash EMPTY), D-057 (D-050 correction: mutation NBNS + positive-coverage gate) codified.
+
+**Files touched (Dim-1): 6 unique files**
+
+- `.factory/cycles/phase-1d/perimeter-sweep-shard-4.md` (NEW — shard 4: SS-08/09 + 3×SS-10, 32 findings, 7C; DI-005 NOT airtight; DirIndex scope contradiction; BI-029 root evidence)
+- `.factory/cycles/phase-1d/perimeter-sweep-shard-6.md` (NEW — shard 6: ADRs + arch-shards, 32 findings, 2C; ADR-004 inadequate; ADR-001/002/003 missing versioning)
+- `.factory/cycles/phase-1d/perimeter-sweep-shard-7.md` (NEW — shard 7: VPs, 44 findings, 6C; VP-015/016/017/019/023 outright vacuous; BC-VP proof-method join broken; BI-025/BI-026 root evidence)
+- `.factory/cycles/phase-1d/perimeter-sweep-shard-8.md` (NEW — shard 8: domain-spec + prd, 40 findings, 6C; R5 not defensible; CV5-001 CRITICAL: product-brief.md:89 "macOS, Linux, Windows" — L1 root not updated by D-043; BI-031 root evidence)
+- `.factory/cycles/phase-1d/perimeter-sweep-synthesis.md` (UPDATED — synthesis FINAL; perimeter CLOSED; all 8 shards complete; total 259 findings ~42C; 4 unguarded axes confirmed cross-shard)
+- `.factory/STATE.md` — BI-025..BI-031 opened; perimeter CLOSED notation; SESSION-HANDOFF.md §RESUME SNAPSHOT D-057 appended; D-055/D-056/D-057 recorded; stash EMPTY confirmed; convergence trajectory tail extended to →259
+
+**Key findings (governance-level):**
+
+1. **CV5-001 (CRITICAL) identified — BI-031 OPENED:** product-brief.md:89 "macOS, Linux, Windows" — L1 root of traceability chain not updated by D-043 sweep. Six downstream sites carry stale platform references; two weak residuals also identified.
+2. **FIVE VPs OUTRIGHT VACUOUS — BI-025 OPENED:** VP-015/016/017/019/023 each satisfied by no-op/constant implementation. Phase 6 formal-hardening gate could pass with 4 domain invariants unverified.
+3. **BC-VP PROOF-METHOD JOIN BROKEN — BI-026 OPENED:** At least 12 BC VP-table rows attribute properties the cited VP provably lacks. Highest-leverage mechanical fix in the session.
+4. **POLICY 5 QUOTED-EXCERPT FABRICATION — BI-027 OPENED:** ~40% fabrication rate confirmed across shards 2, 4, 8; inverts meaning in some cases.
+5. **VP CODE-FENCE SYMBOL VALIDATION — BI-028 OPENED:** 8 undefined symbols, 4 undefined types in VP Rust harnesses; all 5 VP-007 harnesses fail to compile.
+6. **SS-07 PHASE-2 BLOCK — BI-029 OPENED:** DirIndex population scope contradictory in 3 source documents; must NOT enter Phase 2 without ruling.
+7. **EXIT-CODE INPUT-DOMAIN — BI-030 OPENED:** `verdict::exit_code` input domain partitioned inconsistently across 4 definitions.
+8. **D-057 CORRECTION:** Mutation verification is NECESSARY BUT NOT SUFFICIENT for skip-list admission. Positive-coverage counts (not absence-of-known-string) required as durable admission criterion.
+
+**Codifications:** D-055 (GitHub Actions RECOVERED; PR #4 CI run 31122163633 green). D-056 (stash EMPTY confirmed, all 4 worktrees). D-057 (correction to D-050). BI-025..BI-031 OPENED. SESSION-HANDOFF.md §RESUME SNAPSHOT D-057 appended.
+
+**Artifact state at burst close:**
+PRD v1.9 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-057 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/019. Open: BI-007/010/016/017/018/020/021/022/023/024/025/026/027/028/029/030/031.
+
+**Closes:** nothing. **Opens:** BI-025..BI-031. **Updates:** BI-002 (perimeter CLOSED; 259 findings ~42C; 4 unguarded axes; remediation burst required). D-055/D-056/D-057 codified.
+
+---
+
+## Burst: burst 13 — CV5-001 CLOSED + canonical-facts.toml FACT-7+FACT-8 + PR #3 REQUEST_CHANGES (2026-08-07)
+
+**Parent-commit:** (factory-artifacts HEAD d013040 at session start, per live git log; D-057 snapshot cited wrong SHA — self-correcting-head rule confirmed)
+
+**Adversary verdict:** No new adversary pass. This is the CV5-001 fix burst. PR #3 pr-reviewer verdict: REQUEST_CHANGES (2 blocking: B-7/BI-032 vacuous suppression guard, B-8/BI-033 check-index-integrity zero-item false-pass). Trajectory UNCHANGED: →0→32→34→39→37→259. pass count: 0 of 3.
+
+**Files touched (Dim-1): 12 unique files**
+
+- `.factory/specs/product-brief.md` — platform matrix "macOS, Linux, Windows" → "macOS (human decision D-043; drives path-handling model)" (v1.0 → v1.1)
+- `.factory/specs/domain-spec/risks.md` — R-002 "T1–T16" → "T1–T12, T14–T16 (T13 retired by D-043)"; R-008 "NFR-002 (15s p95, Linux CI)" → "NFR-002 (10s p95, macos-latest)" (v1.1 → v1.2)
+- `.factory/specs/prd.md` — line 402 "on ALL platforms (not OS-delegated)" → "on macOS (not OS-delegated; D-043/D-006 determinism grounds)"; v1.11 amendment note at 554-558 recording prd.md:755 D-034 disposition (TV-036 falsification reachable on macOS via APFS; v1.7 mechanism superseded but historically accurate) (v1.10 → v1.11)
+- `.factory/specs/behavioral-contracts/ss-10/BC-2.10.003.md` — retired T13 citation removed: "R5, T13" → "R5" (v1.2 → v1.3)
+- `.factory/specs/domain-spec/differentiators.md` — "T9–T15" → "T9–T12, T14–T15" (v1.0 → v1.1)
+- `.factory/specs/domain-spec/invariants.md` — "ALL inputs, ALL platforms," → "ALL inputs, on the macOS platform," (v1.8 → v1.9)
+- `.factory/specs/domain-spec/failure-modes.md` — "case mismatch on any OS" → "case mismatch on macOS APFS" (v1.6 → v1.7)
+- `.factory/specs/canonical-facts.toml` — FACT-7 (product-brief.md:89 platform matrix, `canonical_value = "macOS"`, source `:89`) + FACT-8 (ASM-004 restatement, `canonical_value = "macOS only"`, source `domain-spec/assumptions.md:41`) added. Two separate facts required because the two sites use different canonical phrasings ("macOS" vs "macOS only"); a single fact cannot serve both without reintroducing a matching defect.
+- `.factory/code-delivery/SPEC-LINT-GATE/pr-review-6d954ab.md` (NEW — pr-reviewer report at head `6d954ab`; verdict REQUEST_CHANGES; 2 blocking: B-7 D-039 suppression guard vacuous; B-8 check-index-integrity zero-item false-pass)
+- `.factory/sidecar-learning.md` — observations updated
+- `.factory/logs/dispatcher-internal-2026-08-06.jsonl` — dispatcher log
+- `.factory/logs/events-2026-08-06.jsonl` — events log
+
+**Key findings (governance-level):**
+
+1. **FACT-7 first version had a false-pass hole:** Pattern `([^\s(]+)` captured only the first token; "macOS and Linux" and "macOS and Windows (D-043)" both returned GREEN. Re-anchored to capture full clause up to " (" terminator. Verification: FACT-7 `group(1)='macOS'` ✓; FACT-8 `group(1)='macOS only'` ✓; "macOS and Linux", "macOS, Linux, Windows", "macOS and Windows (D-043)", "Linux, macOS" all FAIL ✓. Caught by adversarial verification (orchestrator executed exact `re.search` contract), NOT by reading the report. **Known brittleness:** missing parenthetical reformat → false FAIL (fail-closed; do NOT loosen).
+
+2. **prd.md:755 D-034 disposition confirmed:** Line 755 sits under `### v1.7 — Test-Vectors Hotfix` changelog heading. D-034-immutable. prd.md:755 NOT edited. Disposition recorded at prd.md:554-558 as v1.11 amendment note. Line number and D-034 determination independently verified by orchestrator.
+
+3. **PR #3 REQUEST_CHANGES at `6d954ab`:** pr-reviewer found B-7 (suppression guard G1/G2 tests each re-declare an inline copy of the guard regex against stub files the test itself writes; real guard code path at ~:44-59 and ~:70-86 is never invoked; proven vacuous by neutering real `SUPPRESSION_PATTERN` + planting live violation → suite still prints 17/17) and B-8 (check-index-integrity `checks` increments unconditionally + silently drops 4 of 9 malformed HS-ID shapes; exits 0 printing "HS all consistent" having validated ZERO HS items). `covered_sha` hand-edit DECLINED — editing the record to satisfy `check-stale-verdict.sh` would defeat the control; a real review ran instead, vindicating the decision.
+
+4. **BI-023 recurrence — pass-6 skip list unsound again:** `check-index-integrity` admitted to pass-6 skip list on D-050 mutation evidence; B-8 disproves it. Orchestrator REMOVED it. Three remaining skip-list entries (check-counts, check-adr-consistency, check-title-sync) admitted on identical evidence — unknown soundness. Positive-coverage re-audit PENDING OPERATOR DECISION (b). Second existence proof for D-057.
+
+5. **Merge queue BLOCKED — environmental finding:** `workflow_dispatch`-triggered CI runs excluded from PR status-check rollup. GraphQL: 1 context (GitGuardian) on PR #4 and PR #3 vs all 10 on PR #5 (`pull_request`-triggered). Branch protection reports BLOCKED despite all required checks green. Close+reopen required for `pull_request`-typed run. `destructive-command-guard` blocks `gh pr close`. PENDING OPERATOR DECISION (a).
+
+6. **D-055 correction:** CI run 31122163633 was on superseded head `af54a65`, not PR #4's current head `6503d3b`. PR #4 current head had ZERO CI runs when D-055 was recorded. The "required checks green" status from D-055 does NOT transfer to `6503d3b`. Both PR #4 and PR #3 had zero CI at their current heads; workflow_dispatch runs were dispatched and all four required contexts (Format check, Clippy, Test macos-latest, Build release macos-latest) came back green — but these runs do not satisfy branch protection.
+
+**Codifications:** No new D-NNN decisions (three pending operator decisions recorded as PENDING, not approved). BI-031 CLOSED. BI-032..035 OPENED. check-index-integrity REMOVED from pass-6 skip list by orchestrator determination (pending operator ratification of re-audit scope as decision b).
+
+**Artifact state at burst close:**
+PRD v1.11 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-204 (205 ids) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-057 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/019/031. Open: BI-007/010/016/017/018/020/021/022/023/024/025/026/027/028/029/030/032/033/034/035.
+
+**Dim-2 Attestation:** check-canonical-facts.py: FACT-7 `group(1)='macOS'` matches `canonical_value='macOS'`; FACT-8 `group(1)='macOS only'` matches `canonical_value='macOS only'`. All conjunction/reorder mutation variants fail as intended. assumptions.md:41 needed no edit — ASM-004 was already correct from prior D-043 sweep.
+
+**Dim-5 Attestation:** STATE.md updated — timestamp advanced, BI-031 removed from open table, BI-032..035 added, BI-016/BI-018 updated, Session Resume Checkpoint updated, spec snapshot updated. burst-log.md — 13 bursts. lessons.md — 19 lessons. blocking-issues-resolved.md — BI-031 closure row added.
+
+**Dim-6 Attestation:** IN_PROGRESS. Convergence counter 0 of 3 required clean passes. Trajectory →0→32→34→39→37→259. Not converged. Remediation burst required: B-7+B-8 on PR #3; FACT-7/FACT-8 negative tests; BI-024 four unguarded axes; BI-025/026/027/028/029/030 spec topology fixes; BI-023 checker bypasses. Pass 6 after.
+
+**Dim-7 Attestation:** Agents dispatched: product-owner + architect (CV5-001 spec fixes, 8 files), pr-reviewer (PR #3 at `6d954ab`), state-manager (this burst). prd.md:755 D-034 determination and product-brief.md:89 line number independently verified by orchestrator (not taken from agent report).
+
+**Opens:** BI-032 (B-7 D-039 suppression guard vacuous), BI-033 (B-8 check-index-integrity zero-item false-pass), BI-034 (pass-6 skip list unsound — BI-023 recurrence; check-index-integrity removed), BI-035 (FACT-7/FACT-8 no D-040 negative test before bi-012-generators lands). **Closes:** BI-031 (CV5-001 CLOSED — all 8 sites + 2 weak residuals corrected; FACT-7+FACT-8 added). **Updates:** BI-002 (CV5-001 closed; PR #3 REQUEST_CHANGES; merge queue blocked; 0 clean passes). BI-016 (REQUEST_CHANGES at 6d954ab, 2 blocking). BI-018 (BLOCKED pending pull_request-typed run; operator decision a pending).

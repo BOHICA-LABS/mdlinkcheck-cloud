@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: differentiators
-version: "1.0"
+version: "1.1"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -11,8 +11,15 @@ inputs:
   - .factory/specs/product-brief.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "20e96e1"
+input-hash: "62dc24f"
 traces_to: L2-INDEX.md
+changelog:
+  - version: "1.1"
+    date: 2026-08-06
+    change: "CV5-001 / D-043 survivor fix: 'Correct' anchor checking row — trap range T9–T15 → T9–T12, T14–T15 (T13 retired by D-043 macOS-only platform directive). Range sweep silently included the retired T13; now enumerated to exclude it."
+  - version: "1.0"
+    date: 2026-08-05
+    change: "Initial draft"
 ---
 
 # Section 9: Competitive Differentiator Traceability
@@ -29,7 +36,7 @@ differentiated, not what the product claims to be.
 | Differentiator | Competitive Verdict | Supporting CAPs | Key Invariants | Source |
 |---|---|---|---|---|
 | Strict anchor checking, **on by default** | **Genuinely differentiated** — every competitor either lacks anchor checking, gates it behind a flag, or has open false-positive/negative bugs | CAP-005, CAP-006, CAP-008 | DI-003, DI-007, DI-008 | Market-intel §1.3, §3 |
-| **Correct** anchor checking (github-slugger v2 fidelity, percent-decode, two-pass) | **Genuinely differentiated** — lychee #1457/#1613/#1709, markdown-link-check #304, Sphinx #13620, markdownlint #945 all show broken anchor behavior | CAP-005, CAP-006, CAP-008 | DI-003, DI-008 | Market-intel §1.3, T9–T15 |
+| **Correct** anchor checking (github-slugger v2 fidelity, percent-decode, two-pass) | **Genuinely differentiated** — lychee #1457/#1613/#1709, markdown-link-check #304, Sphinx #13620, markdownlint #945 all show broken anchor behavior | CAP-005, CAP-006, CAP-008 | DI-003, DI-008 | Market-intel §1.3, T9–T12, T14–T15 |
 | Offline-by-default | **Differentiated as a default** (not a capability) — lychee, lint-roller can run offline but don't default to it; only remark-validate-links makes it the default | CAP-009 (offline validation), CAP-010 (online opt-in) | DI-010 (indeterminate) | Market-intel §3 |
 | Source-level `file:line` reporting on the `.md` source | **Differentiated vs. post-render half of the field** — htmltest/muffet/Sphinx/mkdocs-plugins point at generated HTML | CAP-012, CAP-013 | DI-001 (ordering) | Market-intel §3 |
 | Case-correct path resolution (exact-case directory-entry check) | **Potentially differentiated** — no surveyed tool performs exact-case verification; macOS users encounter silent false negatives | CAP-007 | DI-002 | Market-intel T12 |

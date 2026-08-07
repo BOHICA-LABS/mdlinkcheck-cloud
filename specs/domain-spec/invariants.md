@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: invariants
-version: "1.8"
+version: "1.9"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -11,9 +11,12 @@ inputs:
   - .factory/specs/product-brief.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "20e96e1"
+input-hash: "62dc24f"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.9"
+    date: 2026-08-06
+    change: "CV5-001 / D-043 survivor fix: introductory paragraph 'ALL platforms' narrowed to 'the macOS platform'. The phrase 'ALL platforms' in the section preamble was a residual multi-platform claim that survived the D-043 sweep applied to DI-002 and DI-009 in v1.8."
   - version: "1.8"
     date: 2026-08-06
     change: "D-043 macOS-only platform directive: DI-002 platform list narrowed from 'macOS, Linux, Windows' to 'macOS' (the only target platform). Rationale restated on determinism grounds per ADR-006 v1.4 canonical wording — the invariant is stronger under macOS-only because APFS NFD storage is the only filesystem in scope. DI-009: removed Windows reference from fs::canonicalize note."
@@ -47,7 +50,7 @@ changelog:
 
 > **Sharded L2 section (DF-021).** Navigate via `L2-INDEX.md`.
 
-Domain invariants are business rules that must hold for ALL inputs, ALL platforms,
+Domain invariants are business rules that must hold for ALL inputs, on the macOS platform,
 and ALL time. Violation of any DI-NNN is a bug, not a configuration option.
 
 ---

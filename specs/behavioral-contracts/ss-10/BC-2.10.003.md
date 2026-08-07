@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.0.0
 modified:
   - "v1.1: INCONSISTENCY-001/D-014 — replaced 'clean' with 'alive' in test vector (liveness outcome is alive; link verdict is clean per DD-022)"
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.3: CV5-001/D-043 — T13 removed from Brief Requirement field; T13 is retired by D-043 macOS-only platform directive"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -74,5 +75,5 @@ share one 10-second budget).
 | L2 Capability | CAP-010 ("10-second per-URL timeout; timeout → indeterminate") per capabilities.md §CAP-010 |
 | Capability Anchor Justification | CAP-010 ("External URL Liveness Checking") per capabilities.md §CAP-010 |
 | L2 Domain Invariants | DI-010 |
-| Brief Requirement | R5, T13 |
+| Brief Requirement | R5 |
 | Architecture Module | `http_client.rs` (SS-10, effectful shell, MEDIUM tier) — ADR-004 (ureq sync HTTP) |

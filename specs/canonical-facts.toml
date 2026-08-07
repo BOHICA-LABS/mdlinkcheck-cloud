@@ -170,3 +170,44 @@ fact_id = "FACT-6b"
 file    = ".factory/specs/verification-properties/vp-018-slug-worked-examples.md"
 note    = "@GENERATED slug-corpus block includes TV-S010 comment"
 pattern = '@GENERATED:BEGIN slug-corpus.*(TV-S010)'
+
+# ── FACT-7: product-brief.md platform matrix is macOS-only (D-043) ───────────
+#
+# Pattern captures the WHOLE platform clause up to the " (" terminator.
+# Canonical value "macOS" matches only when macOS is the entire declared matrix.
+# False-pass closure: "macOS and Linux" → group(1)="macOS and Linux" ≠ "macOS";
+#   "macOS, Linux, Windows" → group(1)="macOS, Linux, Windows" ≠ "macOS";
+#   "macOS and Windows (D-043)" → group(1)="macOS and Windows" ≠ "macOS".
+# BI-023 first-token weakness eliminated.
+
+[[fact]]
+id              = "FACT-7"
+description     = "product-brief.md platform matrix is macOS-only (decision D-043; L1 root of traceability chain)"
+canonical_value = "macOS"
+source          = ".factory/specs/product-brief.md:89"
+
+[[binding]]
+fact_id = "FACT-7"
+file    = ".factory/specs/product-brief.md"
+note    = "Constraints section — Platform matrix bullet (L1 root of traceability chain; CV5-001)"
+pattern = '\*\*Platform matrix:\*\* (.*?) \('
+
+# ── FACT-8: assumptions.md ASM-004 platform matrix restatement ───────────────
+#
+# Separate fact from FACT-7 because the canonical phrasing in assumptions.md is
+# "macOS only" (not bare "macOS"), so FACT-7's canonical_value cannot serve both.
+# Pattern captures the WHOLE platform clause up to the " (" terminator.
+# "macOS and Linux (`macos-latest`)" → group(1)="macOS and Linux" ≠ "macOS only".
+# BI-023 first-token weakness eliminated.
+
+[[fact]]
+id              = "FACT-8"
+description     = "ASM-004 platform matrix restatement is 'macOS only' (decision D-043)"
+canonical_value = "macOS only"
+source          = ".factory/specs/domain-spec/assumptions.md:41"
+
+[[binding]]
+fact_id = "FACT-8"
+file    = ".factory/specs/domain-spec/assumptions.md"
+note    = "ASM-004 platform matrix restatement — full clause captured up to backtick-quoted macos-latest"
+pattern = 'ASM-004 \| Platform matrix is (.*?) \('

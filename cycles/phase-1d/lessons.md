@@ -77,6 +77,18 @@ traces_to: STATE.md
 15. **[observation] Canonical-text-up-front prevents drift where ambiguity-up-front causes it** — Giving three parallel agents identical canonical wording for the D-006 determinism rationale prevented drift entirely. Contrast with the NFR-002/004 decisions, which had no canonical text provided and did drift (four stale placeholders). Canonical-text-up-front is a cheap, effective control for parallel-burst consistency.
     _Discovered: D-043 macOS-only narrowing burst, 2026-08-06_
 
+16. **[process-gap] Standing rule: any new cross-cutting decision MUST register its canonical fact in the same burst** — `canonical-facts.toml` had no platform-matrix fact, making `check-canonical-facts.py` structurally incapable of detecting the divergence that produced CV5-001 even after a 13-site sweep. The registry permanently lagged D-043 by one burst — which is precisely the mechanism by which CV5-001 survived a sweep that reached 13+ downstream files. Rule adopted as standing: any `D-NNN` decision that names a canonical value or authoritative string MUST register a FACT-N entry in `canonical-facts.toml` in the SAME burst, not as a follow-up.
+    _Discovered: CV5-001 closure burst, 2026-08-07_
+
+17. **[process-gap] FACT-7's first version had a false-pass hole in the very pattern added to close the gap** — Pattern `([^\s(]+)` captured only the FIRST TOKEN of the platform clause, so "macOS and Linux" and "macOS and Windows (D-043)" both returned GREEN with a second platform present. The checker caught CV5-001's literal string only incidentally (the comma fell inside the capture). Caught by adversarial verification — orchestrator re-executed `re.search(pattern, text, re.DOTALL).group(1)` against real files and mutated variants — NOT by reading the checker report. Re-anchored: patterns now capture the full clause up to the " (" terminator. Verification: FACT-7 `group(1)='macOS'` matches; FACT-8 `group(1)='macOS only'` matches; "macOS and Linux", "macOS, Linux, Windows", "macOS and Windows (D-043)", "Linux, macOS" all FAIL. **Known brittleness (record explicitly):** a benign reformat dropping the trailing parenthetical causes `.*?` + `re.DOTALL` to run past the newline → FALSE FAIL (fail-closed direction; acceptable; do NOT loosen the pattern to fix it).
+    _Discovered: CV5-001 closure burst, 2026-08-07_
+
+18. **[pattern] Third confirmed instance in this session: REMEDIATIONS HAVE THEMSELVES INTRODUCED DEFECTS — rule is load-bearing and paying for itself** — The re-anchoring of FACT-7/FACT-8 patterns introduced a false-pass hole that was caught only because the orchestrator re-executed the checker's exact `re.search` contract against real files and mutated variants. This is the third confirmed instance where a "fix applied" claim required adversarial verification to catch a defect in the fix itself. The standing rule — "do not accept any 'fix applied' claim at face value; verify against the artifact" — has triggered three times in one session. Record as explicitly load-bearing.
+    _Discovered: CV5-001 closure burst, 2026-08-07_
+
+19. **[infrastructure] Environmental finding: `workflow_dispatch`-triggered CI runs are excluded from the PR status-check rollup** — Runs dispatched via `workflow_dispatch` attach to the commit but do NOT appear in the pull request's status-check rollup. GraphQL reports 1 context (GitGuardian) on PR #4 and PR #3, versus all 10 on PR #5 whose run was `pull_request`-triggered. Branch protection therefore still reports BLOCKED even when all required checks are green on the underlying commit. Only a `pull_request`-typed run at the same SHA — obtained via close→reopen — can satisfy the gate. Confirmed non-transient on re-query. The `destructive-command-guard` hook blocks `gh pr close`; resolution requires operator authorization. Escalated; resolution PENDING.
+    _Discovered: merge-queue execution attempt, 2026-08-07_
+
 ## Policy Candidates
 
 | Lesson | Proposed Policy | Scope | Status |
@@ -89,3 +101,7 @@ traces_to: STATE.md
 | 9 | Allowlists/skip-lists/deferral sets FORBIDDEN in any spec-lint checker; pre-flight structural guard required | devops-engineer | proposed |
 | 10 | Adversarial-review skip lists must cite a negative-test proving the validator can fail | orchestrator | proposed |
 | 11 | Before dispatching a burst onto a branch, check no other burst holds merge/delete authority over it | orchestrator | proposed |
+| 16 | Register canonical fact in canonical-facts.toml in the same burst as the decision that names it | all decision-making agents | proposed |
+| 17 | Adversarial verification of re-anchored checker patterns before claiming fix complete | orchestrator | proposed |
+| 18 | No "fix applied" claim accepted without artifact verification (standing rule — 3rd confirmed instance) | all agents | standing rule (load-bearing) |
+| 19 | workflow_dispatch CI runs are excluded from PR status-check rollup; close+reopen required for branch-protection satisfaction | devops-engineer | proposed |

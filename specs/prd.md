@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.10"
+version: "1.11"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-06T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 supplements:
   - prd-supplements/interface-definitions.md
@@ -399,7 +399,7 @@ Nothing may fail with a reason outside this closed set.
 
 | BC ID | Contribution |
 |-------|-------------|
-| BC-2.07.003 | Exact-case directory-entry comparison on ALL platforms (not OS-delegated) |
+| BC-2.07.003 | Exact-case directory-entry comparison on macOS (not OS-delegated; D-043/D-006 determinism grounds) |
 
 ### 6.5 KD-005 — Deterministic Exit Codes
 
@@ -500,6 +500,7 @@ Nothing may fail with a reason outside this closed set.
 | v1.8 | 2026-08-05 | POL-16 (EC injectivity), unregistered EC-159..EC-183, vCurrent title sync, BC-INDEX statistics | Spec-lint remediation pass; see below |
 | v1.9 | 2026-08-06 | INC-MAP-002, INC-MAP-003, P3-027 resolution | Architecture Module fields resolved across 26 BC files per bc-module-map.md Phase 1b; joint-ownership BCs annotated; PRD version aligned |
 | v1.10 | 2026-08-06 | D-043 (macOS-only platform directive) | Platform matrix narrowed to macOS-only. NFR-002 retargeted (macOS CI runner, 10s p95). NFR-004 retired (vacuous on single-platform matrix). NFR-008 hardware tier updated to macos-latest. Problem statement §1.2 updated (removed Linux CI divergence framing). KD-004 §1.3 updated (determinism-grounded per D-043). NFR-005 measurement updated (`\time -l` macOS only). |
+| v1.11 | 2026-08-06 | CV5-001 (D-043 survivor sites) | §6.4 KD-004 table "ALL platforms" → "macOS". Canonical-facts.toml FACT-7 added (platform-matrix binding for product-brief.md L1 root). D-034 amendment note for v1.7 TV-036 Linux-CI falsification claim. |
 
 ### v1.9 — Architecture Module Resolution (bc-module-map.md Phase 1b)
 
@@ -547,6 +548,14 @@ log had reached `v1.5`. Frontmatter corrected to `"1.6"` to match the new top-of
 **§1.3 KD-004 updated:** "macOS/Linux divergence eliminated" replaced with determinism-grounded framing (D-043/D-006 canonical rationale).
 
 **NFR-005 measurement:** Removed `/usr/bin/time -v` (Linux) reference; macOS `\time -l` only.
+
+### v1.11 — CV5-001 D-043 Platform-Matrix Survivor Remediation
+
+**§6.4 KD-004 table (CV5-001 / D-043):** BC-2.07.003 description updated from "on ALL platforms (not OS-delegated)" to "on macOS (not OS-delegated; D-043/D-006 determinism grounds)". Under the macOS-only matrix, "ALL platforms" was vacuous and misleading; macOS is the sole target and the determinism rationale stands on its own.
+
+**D-034 amendment note — v1.7 TV-036 falsification claim:** The v1.7 changelog entry (D-034-immutable) stated that TV-036 falsifies KD-004/DI-002 via "fails in Linux CI." Under D-043 (macOS-only), the Linux-CI mechanism is moot. The test vector retains full falsification force on macOS: `std::fs::exists()` on macOS APFS is case-insensitive and silently resolves `README.MD` when only `README.md` exists (false `clean` verdict). The correct implementation uses `read_dir()` with exact-byte entry comparison, which catches the mismatch on APFS. The macOS-APFS falsification is the operative mechanism under the macOS-only matrix and is at least as strong as the original Linux CI falsification.
+
+**canonical-facts.toml FACT-7 added:** Platform-matrix canonical fact (canonical_value = "macOS") with bindings for `product-brief.md` (L1 root, the CV5-001 site) and `domain-spec/assumptions.md` (ASM-004). `check-canonical-facts.py` was previously structurally incapable of detecting platform-matrix divergence; FACT-7 closes that gap.
 
 ### v1.8 — Spec-Lint Violation Remediation Pass
 

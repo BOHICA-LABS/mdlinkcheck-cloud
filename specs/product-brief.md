@@ -1,7 +1,7 @@
 ---
 document_type: product-brief
 level: L1
-version: "1.0"
+version: "1.1"
 status: approved
 producer: human
 timestamp: 2026-08-05T00:00:00Z
@@ -10,6 +10,13 @@ inputs:
   - BRIEF.md
 input-hash: "53940c2"
 traces_to: ""
+changelog:
+  - version: "1.1"
+    date: 2026-08-06
+    change: "CV5-001 / D-043 (macOS-only platform directive): Platform matrix constraint corrected from 'macOS, Linux, Windows' to 'macOS'. This was the L1 root of the traceability chain and the last site asserting a three-platform claim. Decision reference updated from '(human decision)' to '(human decision D-043)' to make the narrowing decision explicit."
+  - version: "1.0"
+    date: 2026-08-05
+    change: "Initial draft"
 ---
 
 # Product brief: mdlinkcheck
@@ -79,7 +86,7 @@ Captured here per template requirement; absent from frozen BRIEF.md body (BV-016
 Populated from human decisions made during Phase 1 planning:
 
 - **Language:** Rust, MSRV 1.85 (human decision D-004; required by clap 4.6.x and ureq 3.3.0)
-- **Platform matrix:** macOS, Linux, Windows (human decision; drives path-handling model)
+- **Platform matrix:** macOS (human decision D-043; drives path-handling model)
 - **No config file:** flags only (stated non-goal in brief)
 - **No inline suppression directives:** explicitly out of scope (human decision D-009)
 - **No GFM bare-URL autolinks:** out of scope; pulldown-cmark 0.13.4 does not support them (D-009)

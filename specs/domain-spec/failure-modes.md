@@ -2,7 +2,7 @@
 document_type: domain-spec-section
 level: L2
 section: failure-modes
-version: "1.6"
+version: "1.7"
 status: draft
 producer: business-analyst
 timestamp: 2026-08-05T00:00:00Z
@@ -11,9 +11,12 @@ inputs:
   - .factory/specs/product-brief.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "20e96e1"
+input-hash: "62dc24f"
 traces_to: L2-INDEX.md
 changelog:
+  - version: "1.7"
+    date: 2026-08-06
+    change: "CV5-001 / D-043 survivor fix: file-not-found reason taxonomy row — 'case mismatch on any OS' → 'case mismatch on macOS APFS'. The phrase 'any OS' was a residual multi-platform claim; macOS APFS is the sole target filesystem under D-043."
   - version: "1.6"
     date: 2026-08-06
     change: "D-043 (macOS-only platform directive): FM-006 description updated — removed 'silently' framing that implied Linux comparison; retained macOS APFS case-insensitivity as the core issue; FM-007 description updated — removed 'fails on Linux' framing; restated as macOS NFD/NFC mismatch concern on macOS-only matrix."
@@ -49,7 +52,7 @@ in both text and JSON output (DD-011).
 
 | Code | Verdict | Trigger | Exit Code |
 |------|---------|---------|-----------|
-| `file-not-found` | broken | Target file does not exist (including case mismatch on any OS) | 1 |
+| `file-not-found` | broken | Target file does not exist (including case mismatch on macOS APFS) | 1 |
 | `target-is-directory` | broken | Destination resolves to a directory AND a fragment is present (a plain directory link without a fragment is `clean` — BC-2.07.005 SF-002) | 1 |
 | `broken-symlink` | broken | Symlink target does not exist (dangling symlink) | 1 |
 | `anchor-not-found` | broken | Fragment does not match any anchor in the target file | 1 |
