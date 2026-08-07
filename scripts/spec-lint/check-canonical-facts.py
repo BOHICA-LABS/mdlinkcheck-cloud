@@ -48,8 +48,18 @@ def _find_repo_root() -> "Path | None":
     unrelated ancestor and fail OPEN when `.factory/` is unmounted (MAJOR-2
     regression). This version fails CLOSED in both cases.
 
-    The BI-021 secondary-worktree scenario is handled correctly in the selftest
-    tree (which has no `.git` file) and in production via SPEC_LINT_REPO_OVERRIDE.
+    The BI-021 secondary-worktree scenario is handled by returning None (fail-closed)
+    when the boundary stop fires. SPEC_LINT_REPO_OVERRIDE is the supported path from
+    secondary worktrees. See selftest 25 for the pinned behavior.
+
+    KNOWN RESIDUAL (git-archive extractions): a directory with no `.git` anywhere
+    in its ancestry has no boundary to stop at. If an ancestor directory happens to
+    contain `.factory/specs/canonical-facts.toml` (e.g., the archive was extracted
+    inside a project), the walk will find and return that ancestor — which may or may
+    not be the intended project root. In this case, set SPEC_LINT_REPO_OVERRIDE
+    explicitly. In the common case (archive extracted outside any project directory),
+    no `.factory/specs/canonical-facts.toml` exists and the walk returns None → the
+    checker exits 1 (correct fail-closed behavior).
     """
     candidate = Path(__file__).resolve().parent
     for _ in range(8):

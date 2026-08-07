@@ -1284,21 +1284,30 @@ if [ "$CLEAN_PASS" = "1" ]; then
 fi
 rm -rf "$T"
 
-# ── Test 25: check-canonical-facts — BI-021 secondary worktree path resolution ──────────
-# BI-021 fix: check-canonical-facts.py must resolve REPO correctly even when run from a
-# secondary git worktree path deeper than 3 levels from the main repo root. The fix walks
-# up from __file__ to find the ancestor containing .factory/specs/canonical-facts.toml.
-# Simulates a secondary worktree by placing the script in a deeper temp-tree subdirectory.
-# SPEC_LINT_REPO_OVERRIDE is deliberately NOT set — this tests the auto-detection path.
+# ── Test 25: check-canonical-facts — linked-worktree refusal + SPEC_LINT_REPO_OVERRIDE ──
+# Documents the REAL behavior from a secondary git worktree. BI-021 (open): from a linked
+# worktree, the .git boundary stop fires before the walk reaches the main checkout's
+# .factory/ — the checker exits 1 with guidance to set SPEC_LINT_REPO_OVERRIDE.
+# This IS the correct, expected behavior (fail-closed). SPEC_LINT_REPO_OVERRIDE is the
+# supported path from secondary worktrees.
+#
+# Fixture: .worktrees/BI021-SIM/.git is a FILE (pointer, as in a real git linked worktree).
+# canonical-facts.toml is at the temp root (accessible via SPEC_LINT_REPO_OVERRIDE).
+#
+# Clean pass: without SPEC_LINT_REPO_OVERRIDE, boundary stop fires → exit 1 with
+#             SPEC_LINT_REPO_OVERRIDE mentioned in output.
+# Defect:     SPEC_LINT_REPO_OVERRIDE set to repo root → exits 0 (override is effective).
+#
+# Mutation-verify: removing the .git boundary stop allows the walk to escape past .git to
+# $T/, find canonical-facts.toml, and exit 0 without SPEC_LINT_REPO_OVERRIDE — flipping
+# the clean-pass assertion (which expects exit non-zero) to FAIL.
 TESTS_RUN=$((TESTS_RUN + 1))
-echo "── selftest 25: check-canonical-facts: BI-021 secondary worktree path resolution ──"
+echo "── selftest 25: check-canonical-facts: linked-worktree refusal + SPEC_LINT_REPO_OVERRIDE override ──"
 T=$(make_temp)
-# Simulate secondary worktree: script lives 5 levels deep from temp root
-# (temp_root/.worktrees/STORY/scripts/spec-lint/check-canonical-facts.py)
 mkdir -p "$T/.factory/specs"
 mkdir -p "$T/.worktrees/BI021-SIM/scripts/spec-lint"
 
-# Minimal canonical-facts.toml and binding file at the TEMP ROOT (simulating main worktree)
+# canonical-facts.toml at the repo root — reachable only via SPEC_LINT_REPO_OVERRIDE
 cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML25'
 [[fact]]
 id              = "FACT-BI021"
@@ -1318,41 +1327,41 @@ cat > "$T/.factory/specs/selftest-bi021.md" <<'MD25'
 bi021 value: bi021-pass
 MD25
 
-# Copy the FIXED script into the simulated secondary worktree path
+# .git FILE at the worktree root — simulates a real git linked worktree
+printf "gitdir: ../../.git/worktrees/BI021-SIM\n" > "$T/.worktrees/BI021-SIM/.git"
+
+# Copy the script into the simulated secondary worktree
 cp "$LINT_DIR/check-canonical-facts.py" "$T/.worktrees/BI021-SIM/scripts/spec-lint/"
 
-# Clean pass: run from the deep path WITHOUT SPEC_LINT_REPO_OVERRIDE
-# The fixed _find_repo_root() must walk up and find $T as the repo root.
+# Clean pass: without SPEC_LINT_REPO_OVERRIDE, boundary stop fires at .git → exit non-zero
+# with guidance message naming SPEC_LINT_REPO_OVERRIDE.
 CLEAN_PASS=0
-if python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" > /dev/null 2>&1; then
+BI021_OUT=$(python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+BI021_EXIT=$?
+if [ "$BI021_EXIT" -ne 0 ] && echo "$BI021_OUT" | grep -q "SPEC_LINT_REPO_OVERRIDE"; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
     CLEAN_PASS=1
+elif [ "$BI021_EXIT" -eq 0 ]; then
+    echo "  STRUCTURAL FAIL: script exited 0 without SPEC_LINT_REPO_OVERRIDE (false pass — boundary stop missing)"
+    echo "  Output: $BI021_OUT"
+    FAILURES=$((FAILURES + 1))
 else
-    echo "  STRUCTURAL FAIL: BI-021 fix did not resolve REPO from simulated secondary worktree"
-    BI021_OUT=$(python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+    echo "  STRUCTURAL FAIL: script exited $BI021_EXIT but output did not name SPEC_LINT_REPO_OVERRIDE"
     echo "  Output: $BI021_OUT"
     FAILURES=$((FAILURES + 1))
 fi
 
 if [ "$CLEAN_PASS" = "1" ]; then
-    # Defect: overwrite binding file with wrong value to confirm checker is using
-    # the temp root's canonical-facts.toml (not SPEC_LINT_REPO_OVERRIDE or a stale path)
-    cat > "$T/.factory/specs/selftest-bi021.md" <<'MD25BAD'
-# BI-021 Selftest Binding (defect)
-bi021 value: wrong-value
-MD25BAD
-    if python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" > /dev/null 2>&1; then
-        echo "  FAIL (checker returned 0 on defect tree — not reading from correct repo root)"
-        FAILURES=$((FAILURES + 1))
+    # Defect: SPEC_LINT_REPO_OVERRIDE=$T → override bypasses boundary stop, exits 0 (correct)
+    OVERRIDE_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" \
+        python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+    OVERRIDE_EXIT=$?
+    if [ "$OVERRIDE_EXIT" -eq 0 ]; then
+        echo "  PASS (clean-pass confirmed; linked-worktree refusal correct; SPEC_LINT_REPO_OVERRIDE override effective)"
     else
-        BI021_OUT=$(python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" 2>&1)
-        if echo "$BI021_OUT" | grep -q "DIVERGE \[FACT-BI021\]"; then
-            echo "  PASS (clean-pass confirmed; BI-021 fix: checker correctly resolves to main worktree root from deep path)"
-        else
-            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-BI021]' not in output)"
-            echo "  Actual output: $BI021_OUT"
-            FAILURES=$((FAILURES + 1))
-        fi
+        echo "  FAIL (SPEC_LINT_REPO_OVERRIDE set but checker still exited non-zero — override not effective)"
+        echo "  Output: $OVERRIDE_OUT"
+        FAILURES=$((FAILURES + 1))
     fi
 fi
 rm -rf "$T"
@@ -1564,31 +1573,56 @@ if [ "$CLEAN_PASS" = "1" ]; then
 fi
 rm -rf "$T"
 
-# ── Test 29: meta-guard — every check-*.py on disk is wired into CI and justfile ─────────
-# BLOCKING-1 meta-guard: a checker on disk but absent from both runners is a silent coverage
-# hole. Every check-*.py in scripts/spec-lint/ must appear in both
-# .github/workflows/ci.yml (CHECKS array) and justfile (spec-lint CHECKS array).
-# Fail-toward-loud: a checker absent from the runner never runs against the real tree.
+# ── Test 29: meta-guard — every check-*.py on disk is in the ACTIVE CHECKS array ─────────
+# BLOCKING-1 meta-guard. The guard must grade against what bash ACTUALLY EXECUTES, not
+# what appears anywhere in the file text. A commented-out entry (`# "check-name"`) passes
+# a grep-based text search but IS NOT EXECUTED — commenting out is the ordinary way a
+# check gets disabled. The guard must not be defeated by it.
 #
-# Clean pass: every on-disk check-*.py is present in both runners (proves current state).
-# Defect:     temp copy of ci.yml with check-canonical-facts removed → meta-guard detects
-#             the missing entry. Mutation-verify: neutering the detection logic causes the
-#             defect step to report no missing checkers, flipping this assertion to FAIL.
+# Implementation: extract CHECKS=(...) array content from each runner file via awk, drop
+# blank lines and lines starting with '#', strip quotes, and compare the derived live list
+# against check-*.py on disk. This proves semantic presence, not textual presence.
+#
+# Clean pass: all check-*.py on disk appear in the ACTIVE (non-commented) CHECKS arrays
+#             of BOTH ci.yml and justfile.
+# Defect A:   temp ci.yml with "check-canonical-facts" COMMENTED OUT → detected (ci arm).
+# Defect B:   temp justfile with "check-canonical-facts" COMMENTED OUT → detected (just arm).
+# Both arms verified independently. Mutation-verify: replacing the awk extraction with a
+# simple grep (not stripping comments) causes both defects to pass undetected, flipping
+# both assertions to FAIL.
 TESTS_RUN=$((TESTS_RUN + 1))
-echo "── selftest 29: meta-guard: every check-*.py is wired into CI and justfile ──"
+echo "── selftest 29: meta-guard: every check-*.py is in the active CHECKS array (both runners) ──"
+
+# Extract non-commented entries from the CHECKS=( ... ) block in a runner file.
+# Returns one name per line, without surrounding quotes.
+_get_active_checks() {
+    local file="$1"
+    awk '
+        /CHECKS=\(/ { in_array=1; next }
+        in_array && /\)/ { in_array=0 }
+        in_array {
+            sub(/^[[:space:]]+/, "")
+            if ($0 == "" || substr($0, 1, 1) == "#") next
+            gsub(/"/, "")
+            if ($0 != "") print $0
+        }
+    ' "$file"
+}
 
 RUNNER_MISSING=0
 MISSING_IN_CI=()
 MISSING_IN_JUST=()
+CI_ACTIVE=$(_get_active_checks "$REPO/.github/workflows/ci.yml")
+JUST_ACTIVE=$(_get_active_checks "$REPO/justfile")
 
 for py_file in "$LINT_DIR"/check-*.py; do
     [[ -f "$py_file" ]] || continue
     name=$(basename "$py_file" .py)
-    if ! grep -qF "\"${name}\"" "$REPO/.github/workflows/ci.yml"; then
+    if ! echo "$CI_ACTIVE" | grep -qx "$name"; then
         MISSING_IN_CI+=("$name")
         RUNNER_MISSING=1
     fi
-    if ! grep -qF "\"${name}\"" "$REPO/justfile"; then
+    if ! echo "$JUST_ACTIVE" | grep -qx "$name"; then
         MISSING_IN_JUST+=("$name")
         RUNNER_MISSING=1
     fi
@@ -1599,32 +1633,54 @@ if [ "$RUNNER_MISSING" -eq 0 ]; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
     CLEAN_PASS=1
 else
-    echo "  STRUCTURAL FAIL (clean-pass): on-disk checker(s) missing from runners:"
-    for m in "${MISSING_IN_CI[@]+"${MISSING_IN_CI[@]}"}"; do echo "    MISSING from ci.yml: $m"; done
-    for m in "${MISSING_IN_JUST[@]+"${MISSING_IN_JUST[@]}"}"; do echo "    MISSING from justfile: $m"; done
+    echo "  STRUCTURAL FAIL (clean-pass): checker(s) absent from active CHECKS array:"
+    for m in "${MISSING_IN_CI[@]+"${MISSING_IN_CI[@]}"}"; do echo "    MISSING from ci.yml active array: $m"; done
+    for m in "${MISSING_IN_JUST[@]+"${MISSING_IN_JUST[@]}"}"; do echo "    MISSING from justfile active array: $m"; done
     FAILURES=$((FAILURES + 1))
 fi
 
 if [ "$CLEAN_PASS" = "1" ]; then
-    # Defect: temp copy of ci.yml with check-canonical-facts removed
     T=$(make_temp)
-    cp "$REPO/.github/workflows/ci.yml" "$T/ci-defect.yml"
-    sed -i.bak 's/"check-canonical-facts"//' "$T/ci-defect.yml"
+    ALL_ARM_DEFECTS_DETECTED=1
 
-    DEFECT_MISSING=0
+    # Defect A: ci.yml arm — COMMENT OUT (not delete) the check-canonical-facts entry
+    sed 's/"check-canonical-facts"/# "check-canonical-facts"/' \
+        "$REPO/.github/workflows/ci.yml" > "$T/ci-defect.yml"
+    CI_DEFECT=$(_get_active_checks "$T/ci-defect.yml")
+    CI_ARM_MISSED=0
     for py_file in "$LINT_DIR"/check-*.py; do
         [[ -f "$py_file" ]] || continue
         name=$(basename "$py_file" .py)
-        if ! grep -qF "\"${name}\"" "$T/ci-defect.yml"; then
-            DEFECT_MISSING=1
+        if ! echo "$CI_DEFECT" | grep -qx "$name"; then
+            CI_ARM_MISSED=1
         fi
     done
-
-    if [ "$DEFECT_MISSING" -eq 1 ]; then
-        echo "  PASS (clean-pass confirmed; meta-guard detects missing check-canonical-facts in defect ci.yml)"
-    else
-        echo "  FAIL (meta-guard did NOT detect removed check-canonical-facts in temp ci.yml)"
+    if [ "$CI_ARM_MISSED" -eq 0 ]; then
+        echo "  FAIL (ci.yml arm: commented-out entry NOT detected — guard is defeated by comments)"
         FAILURES=$((FAILURES + 1))
+        ALL_ARM_DEFECTS_DETECTED=0
+    fi
+
+    # Defect B: justfile arm — COMMENT OUT the check-canonical-facts entry
+    sed 's/"check-canonical-facts"/# "check-canonical-facts"/' \
+        "$REPO/justfile" > "$T/justfile-defect"
+    JUST_DEFECT=$(_get_active_checks "$T/justfile-defect")
+    JUST_ARM_MISSED=0
+    for py_file in "$LINT_DIR"/check-*.py; do
+        [[ -f "$py_file" ]] || continue
+        name=$(basename "$py_file" .py)
+        if ! echo "$JUST_DEFECT" | grep -qx "$name"; then
+            JUST_ARM_MISSED=1
+        fi
+    done
+    if [ "$JUST_ARM_MISSED" -eq 0 ]; then
+        echo "  FAIL (justfile arm: commented-out entry NOT detected — guard is defeated by comments)"
+        FAILURES=$((FAILURES + 1))
+        ALL_ARM_DEFECTS_DETECTED=0
+    fi
+
+    if [ "$ALL_ARM_DEFECTS_DETECTED" -eq 1 ]; then
+        echo "  PASS (clean-pass confirmed; both ci.yml and justfile arms detect commented-out check-canonical-facts)"
     fi
     rm -rf "$T"
 fi

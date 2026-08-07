@@ -263,6 +263,11 @@ def update_bc_file(bc_file: Path, arch_value: str, dry_run: bool) -> bool:
 
     if not dry_run:
         # ── FUNCTION-LEVEL WRITE GATE (BI-041) ────────────────────────────────
+        # Defense-in-depth backstop: blocks writes even when called via import
+        # rather than through argv. This message intentionally contains "BI-041"
+        # so test 26's grep assertion matches via this path when Gate 2 in main()
+        # is absent (they are not independently mutation-verifiable for this reason).
+        # Remove alongside Gate 2 when BI-041 is adjudicated.
         raise RuntimeError(
             f"update_bc_file({bc_file.name}): write mode blocked pending BI-041 "
             "adjudication. See Gate 2 guard in main(). Remove alongside Gate 2 "
@@ -282,10 +287,14 @@ def main() -> int:
     # compliant: no bypass flag). Explicit --write opt-in required to proceed to
     # write mode. --check and --dry-run are always available without opt-in.
     #
-    # Mutation-verify (gen-bc-traceability): removing only this block leaves the
-    # BI-041 gate (Gate 2) still active, so selftest 27's file-identical assertion
-    # is NOT independently flippable by this mutation alone. However, selftest 28
-    # (gen-slug-corpus) IS fully mutation-verifiable for the equivalent guard there.
+    # Mutation-verify status: NOT independently verifiable for this generator.
+    # Removing only Gate 1 does not flip selftest 27: bare invocation reaches Gate 2
+    # (write_mode=False so Gate 2 skips), then hits the function-level RuntimeError
+    # in update_bc_file before any write, still exiting non-zero with file unchanged.
+    # The guard is correct and defense-in-depth contributes to the total protection,
+    # but no single test can isolate Gate 1 alone from this generator. See selftest 28
+    # (gen-slug-corpus) for an equivalent gate that IS fully mutation-verifiable
+    # because that generator has no function-level write backstop.
     if not check_mode and not dry_run and not write_mode:
         print(
             "gen-bc-traceability: bare invocation does not write.\n"
@@ -319,8 +328,12 @@ def main() -> int:
     # --check mode is NOT blocked and remains fully functional (non-destructive).
     # --dry-run mode is NOT blocked (it never writes files).
     #
-    # Mutation-verify: removing this block causes --write to succeed (exit 0),
-    # flipping selftest 26's defect-fail assertion to FAIL.
+    # Mutation-verify status: NOT independently verifiable for this gate alone.
+    # Removing only Gate 2 does not flip selftest 26: --write then reaches the
+    # function-level RuntimeError in update_bc_file, which also prints "BI-041"
+    # in its message. Test 26 checks grep for "BI-041", which still matches via
+    # the function-level guard. Both Gate 2 AND the function-level guard must be
+    # removed simultaneously for --write to actually write files and exit 0.
     if write_mode:
         print(
             "gen-bc-traceability: BLOCKED — write mode disabled pending BI-041 adjudication.\n"
