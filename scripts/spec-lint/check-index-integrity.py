@@ -132,25 +132,84 @@ def get_actual_adr_files() -> set[str]:
 
 
 
-def get_hs_ec_mapping() -> dict[str, str]:
-    """Return {hs_id: ec_id} for all authored HS entries (active + retired).
+def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
+    """Return (hs_mapping, hs_rows_seen, near_misses) for HS-INDEX.md.
 
-    Parses both active rows (| HS-NNN | EC-NNN | ...) and retired rows
-    (| ~~HS-NNN~~ | ~~EC-NNN~~ | ...) from HS-INDEX.md. Reserved IDs in the
-    "not-yet-authored" section have no wave-scenarios file and are NOT included.
+    hs_mapping: {hs_id: ec_id} for canonical HS entries (active + retired).
+      ec_id may be the sentinel "MALFORMED" if the EC cell is unrecognized.
+      Reserved IDs (not-yet-authored) are NOT included.
 
-    Sentinel values used as ec_id:
-      "MALFORMED"    — canonical HS-NNN ID present but EC cell is unrecognized
-      "MALFORMED_ID" — HS-like cell present but ID is non-canonical (wrong case,
-                       underscore separator, trailing junk, annotation, etc.)
-                       Key is prefixed with "NEAR_MISS:" to avoid collisions.
+    hs_rows_seen: count of data rows in the Authored Scenarios table computed
+      by cell-splitting, structurally independent of the four parser patterns.
+      Used for the D-057 / B-9 accounting invariant: every data row must be
+      accounted for as either a canonical entry or a nonconforming entry, and
+      hs_rows_seen != hs_canonical + hs_nonconforming is a hard failure.
 
-    D-057 / BI-023: near-miss rows are captured rather than silently skipped so
-    that main() can emit a violation for every row it cannot fully parse.
+    near_misses: list of raw_id strings for each near-miss row (HS-like but
+      non-canonical ID). One entry per row; duplicate rows are preserved so the
+      accounting invariant can distinguish them from individually reported rows.
+      (F-13 fix: replaces the old NEAR_MISS:-keyed dict that silently discarded
+      duplicate near-miss rows via key collision.)
+
+    Sentinel values used as ec_id in hs_mapping:
+      "MALFORMED" — canonical HS-NNN ID present but EC cell is unrecognized
+
+    B-9 fix: every raw line is stripped of leading/trailing whitespace before
+      any matching. A single leading space is semantically neutral in Markdown
+      but defeated all ^\| anchors in the prior implementation (BI-023 / B-9).
+
+    F-12 fix: detection is scoped to the ## Authored Scenarios section and to
+      rows that appear after the table header separator. Header rows (before the
+      separator) are never counted as data rows and never matched by patterns,
+      so a column header named 'HS-ID' cannot trigger a false near-miss violation.
     """
     hs_index = FACTORY / "holdout-scenarios" / "HS-INDEX.md"
     mapping: dict[str, str] = {}
-    for line in hs_index.read_text(encoding="utf-8").splitlines():
+    near_misses: list[str] = []
+    hs_rows_seen = 0
+    # Default True so fixtures without ## headings are processed in full
+    # (backward compat for selftest fixtures that omit section headings).
+    in_authored_scenarios = True
+    found_separator = False  # True once the table header separator row is seen
+
+    for raw in hs_index.read_text(encoding="utf-8").splitlines():
+        # B-9 fix: strip leading/trailing whitespace before any pattern matching.
+        # A single leading space is semantically neutral in Markdown but defeated
+        # all ^\| anchors — normalise here rather than widening the anchor.
+        line = raw.strip()
+
+        # Track section headings to scope detection to Authored Scenarios (F-12).
+        # A file with no ## headings keeps in_authored_scenarios=True throughout.
+        if line.startswith("##"):
+            in_authored_scenarios = "Authored Scenarios" in line
+            found_separator = False
+            continue
+
+        if not in_authored_scenarios:
+            continue
+        if not line.startswith("|"):
+            continue
+
+        # Detect separator rows via cell-splitting (independent of regex anchors).
+        cells = [c.strip() for c in line.strip("|").split("|")]
+        if not cells:
+            continue
+        first_cell = cells[0].strip("~").strip()
+        if set(first_cell) <= set("-: "):
+            found_separator = True
+            continue
+
+        if not found_separator:
+            # Header row (before separator) — skip; not counted as a data row
+            # (F-12: prevents header cells like 'HS-ID' from firing near-miss).
+            continue
+
+        # D-057 / B-9 accounting invariant denominator: count data rows by
+        # cell-splitting, independent of the four parser patterns below.
+        # If hs_rows_seen != hs_canonical + hs_nonconforming at the end of
+        # main(), at least one row was unaccounted for (parser or counter mismatch).
+        hs_rows_seen += 1
+
         # Active entry: | HS-001 | EC-156 | ...
         m = re.match(r"^\|\s*(HS-\d+)\s*\|\s*(EC-\d+)\s*\|", line)
         if m:
@@ -161,20 +220,22 @@ def get_hs_ec_mapping() -> dict[str, str]:
         if m:
             mapping[m.group(1)] = m.group(2)
             continue
-        # Malformed row: canonical HS-NNN cell but EC cell is unrecognized (partial
-        # strikethrough, TBD placeholder, etc.). Mark with sentinel for violation.
+        # Malformed row: canonical HS-NNN cell but EC cell is unrecognized
+        # (partial strikethrough, TBD placeholder, etc.).
         m = re.match(r"^\|\s*(?:~~)?(HS-\d+)(?:~~)?\s*\|", line)
         if m:
             mapping[m.group(1)] = "MALFORMED"
             continue
-        # Near-miss: looks like an HS row but the ID is non-canonical — wrong case
-        # (hs-009), underscore separator (HS_008), annotation (HS-007 (deferred)),
-        # or trailing junk (HS-005x). Capture rather than silently skip (BI-023).
+        # Near-miss: HS-like but non-canonical ID (wrong case, underscore
+        # separator, annotation, trailing junk, etc.). Capture rather than
+        # silently skip (BI-023). Already scoped to Authored Scenarios data rows
+        # by the in_authored_scenarios + found_separator guards above.
         m = re.match(r"^\|\s*(?:~~)?([Hh][Ss][-_]\S[^\|]*?)(?:~~)?\s*\|", line)
         if m:
             raw_id = m.group(1).strip().rstrip("~").strip()
-            mapping["NEAR_MISS:" + raw_id] = "MALFORMED_ID"
-    return mapping
+            near_misses.append(raw_id)  # F-13: list, preserves duplicate rows
+
+    return mapping, hs_rows_seen, near_misses
 
 
 def get_actual_wave_scenario_ec_ids() -> set[str]:
@@ -362,45 +423,52 @@ def main() -> int:
 
     # ── HS-INDEX <-> wave-scenarios files (bidirectional) ───────────────────
     hs_validated = 0  # D-057: canonical entries that went through the forward check
+    hs_rows_seen = 0  # D-057: data rows seen by cell-splitting (accounting invariant)
     if hs_index_path.exists():
-        hs_mapping = get_hs_ec_mapping()
+        hs_mapping, hs_rows_seen, near_misses = get_hs_data()
         wave_ec_ids = get_actual_wave_scenario_ec_ids()
 
         # Malformed-cell / near-miss-ID check: HS rows whose ID or EC column is
         # unrecognized. Kept in its own checks+=1 block so a mutation targeting
         # ONLY this block makes test 10d flip independently of the forward check.
         checks += 1
+        for real_id in near_misses:
+            # Near-miss: HS-like ID that didn't parse as canonical (BI-023 / F-13 fix)
+            violations.append(
+                f"{hs_index_path}: HS row with non-canonical ID '{real_id}' "
+                f"— expected 'HS-<digits>' or '~~HS-<digits>~~'"
+            )
         for hs_id, ec_id in sorted(hs_mapping.items()):
-            if hs_id.startswith("NEAR_MISS:"):
-                # Near-miss: HS-like ID that didn't parse as canonical (BI-023 fix)
-                real_id = hs_id[len("NEAR_MISS:"):]
-                violations.append(
-                    f"{hs_index_path}: HS row with non-canonical ID '{real_id}' "
-                    f"— expected 'HS-<digits>' or '~~HS-<digits>~~'"
-                )
-            elif ec_id == "MALFORMED":
+            if ec_id == "MALFORMED":
                 violations.append(
                     f"{hs_index_path}: HS entry '{hs_id}' has a malformed or unrecognized EC cell "
                     f"(expected 'EC-NNN' or '~~EC-NNN~~')"
                 )
 
-        # D-057 fail-closed: if the HS-INDEX has data rows but none parsed, report it.
-        if len(hs_mapping) == 0:
-            hs_content = hs_index_path.read_text(encoding="utf-8").splitlines()
-            hs_data_rows = [l for l in hs_content if re.match(r"^\|\s*[^-|]", l)]
-            if hs_data_rows:
-                violations.append(
-                    f"{hs_index_path}: HS-INDEX has {len(hs_data_rows)} data row(s) "
-                    f"but none could be parsed as HS entries — checker validated nothing"
-                )
+        # D-057 / B-9 accounting invariant: every data row seen by cell-splitting
+        # must be accounted for as either a canonical entry or a nonconforming entry.
+        # hs_rows_seen is derived independently of the four parser patterns, so any
+        # row that defeats the parser is reported rather than silently dropped.
+        # This check is structurally independent of the "len(hs_mapping) == 0" guard
+        # it replaces, and fires on partial parsing (e.g. mixed flush/indented rows)
+        # as well as total parse failure.
+        hs_canonical = sum(1 for v in hs_mapping.values() if v != "MALFORMED")
+        hs_nonconforming = len(near_misses) + sum(1 for v in hs_mapping.values() if v == "MALFORMED")
+        if hs_rows_seen != hs_canonical + hs_nonconforming:
+            violations.append(
+                f"{hs_index_path}: {hs_rows_seen} data row(s) seen in Authored Scenarios "
+                f"table but only {hs_canonical + hs_nonconforming} classified "
+                f"({hs_rows_seen - hs_canonical - hs_nonconforming} row(s) unaccounted for "
+                f"— parser or whitespace-normalisation mismatch)"
+            )
 
-        # Forward check: each authored (non-malformed, non-near-miss) HS entry's
-        # EC-NNN must have a corresponding wave-scenarios file. Kept in its own
-        # checks+=1 block so a mutation targeting ONLY this block makes test 10 flip
-        # independently of test 10d.
+        # Forward check: each authored (non-malformed) HS entry's EC-NNN must have
+        # a corresponding wave-scenarios file. Kept in its own checks+=1 block so
+        # a mutation targeting ONLY this block makes test 10 flip independently
+        # of test 10d.
         checks += 1
         for hs_id, ec_id in sorted(hs_mapping.items()):
-            if hs_id.startswith("NEAR_MISS:") or ec_id in ("MALFORMED", "MALFORMED_ID"):
+            if ec_id == "MALFORMED":
                 continue
             hs_validated += 1
             if ec_id not in wave_ec_ids:
@@ -411,7 +479,7 @@ def main() -> int:
 
         # Reverse check: each wave-scenarios file -> has corresponding HS entry
         checks += 1
-        hs_ec_ids = {v for v in hs_mapping.values() if v not in ("MALFORMED", "MALFORMED_ID")}
+        hs_ec_ids = {v for v in hs_mapping.values() if v != "MALFORMED"}
         for ec_id in sorted(wave_ec_ids):
             if ec_id not in hs_ec_ids:
                 violations.append(
@@ -419,11 +487,12 @@ def main() -> int:
                     f"corresponding HS-INDEX entry"
                 )
 
-        # Duplicate HS-ID check (scan both active and retired canonical rows)
+        # Duplicate HS-ID check (scan both active and retired canonical rows).
+        # Uses raw.strip() to catch duplicates that differ only in leading whitespace.
         checks += 1
         all_hs_ids: list[str] = []
-        for line in hs_index_path.read_text(encoding="utf-8").splitlines():
-            m_hs = re.match(r"^\|\s*(?:~~)?(HS-\d+)(?:~~)?\s*\|", line)
+        for raw in hs_index_path.read_text(encoding="utf-8").splitlines():
+            m_hs = re.match(r"^\|\s*(?:~~)?(HS-\d+)(?:~~)?\s*\|", raw.strip())
             if m_hs:
                 all_hs_ids.append(m_hs.group(1))
         seen: set[str] = set()
@@ -445,7 +514,8 @@ def main() -> int:
 
     print(
         f"Check passed: {checks} structural checks — BC ({len(bc_entries)} entries), "
-        f"VP ({len(vp_entries)} entries), ADR, ARCH, L2, HS ({hs_validated} entries) all consistent"
+        f"VP ({len(vp_entries)} entries), ADR, ARCH, L2, "
+        f"HS ({hs_validated} validated, 0 non-conforming, {hs_rows_seen} rows seen) all consistent"
     )
     return 0
 

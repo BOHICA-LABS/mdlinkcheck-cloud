@@ -6,9 +6,11 @@
 #   (a) clean-pass: checker exits 0 on the clean fixture tree
 #   (b) defect-fail: checker exits non-zero after injecting the defect
 #
-# This two-step pattern makes vacuous tests STRUCTURALLY IMPOSSIBLE:
+# This two-step pattern makes a vacuous test case structurally impossible:
 # a test cannot satisfy (a) unless the clean tree is genuinely clean,
 # and cannot satisfy (b) unless the injected defect is actually detected.
+# Note: this property applies per test case. It does not by itself guarantee
+# coverage of every checker branch; missing branches are vacuous by omission.
 #
 # Usage:
 #   bash scripts/spec-lint/selftest/run-selftests.sh   # from repo root
@@ -22,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=17
+EXPECTED_TEST_COUNT=21
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -82,8 +84,7 @@ run_suppression_guard() {
             echo "STRUCTURAL GUARD FAILED: $(basename "$f") contains a hardcoded suppression allowlist"
             echo "  Checkers must not silently suppress real findings via allowlists, skip-lists,"
             echo "  deferral sets, or known-issues collections — fix the spec, not the checker."
-            echo "  Remove any variable matching: ALLOWLIST | _DEFERRAL | SKIP_LIST | SKIP_SET |"
-            echo "    KNOWN_COLLISIONS | KNOWN_VIOLATIONS | KNOWN_ISSUES | WHITELIST | SUPPRESS_SET"
+            echo "  Remove any variable matching: $SUPPRESSION_PATTERN"
             return 2
         fi
     done
@@ -110,6 +111,14 @@ echo ""
 # silently suppress real findings. The same Phase-2-deferral defect caught in
 # P4-021 (check-index-integrity) re-emerged in check-ec-injectivity; this
 # guard closes the class structurally. See SUPPRESSION_PATTERN definition above.
+#
+# NOTE: Guard ordering is load-bearing (F-15). run_override_guard uses
+# "if ! grep ..." so a grep read-error fails CLOSED (guard fires). By contrast,
+# run_suppression_guard uses "if grep ..." so a read-error is treated as "no
+# match" and fails OPEN. However, run_override_guard runs first: an unreadable
+# checker causes guard 1 to fire (exit 2) before guard 2 ever sees the file.
+# Guard 2's fail-open is therefore unreachable today, but the ordering must not
+# be changed without also fixing guard 2's error-handling.
 echo "Pre-flight structural guard: checking for hardcoded suppression allowlists in all checkers..."
 if ! run_suppression_guard "$LINT_DIR"; then
     exit 2
@@ -605,6 +614,7 @@ mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
 
 # Clean tree: BC-INDEX, VP-INDEX, ARCH-INDEX, L2-INDEX all consistent;
 # HS-INDEX has one active entry (HS-001→EC-156) with a matching wave-scenarios file.
+# The ## Authored Scenarios heading + separator row scope the parser correctly.
 cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
 ---
 total_bcs: 0
@@ -620,6 +630,10 @@ cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
 ARCHIX
 touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
 cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
 | HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
 HSIX
 touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
@@ -672,6 +686,10 @@ cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
 ARCHIX
 touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
 cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
 | HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
 HSIX
 touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
@@ -723,6 +741,10 @@ cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
 ARCHIX
 touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
 cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
 | HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
 HSIX
 touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
@@ -776,6 +798,10 @@ cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
 ARCHIX
 touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
 cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
 | HS-001 | EC-156 | Valid entry | Notes | BC-2.01.001 | active |
 HSIX
 touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
@@ -873,6 +899,244 @@ BADSTUB
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; guard correctly detects KNOWN_COLLISIONS suppression allowlist)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 10e: check-index-integrity — near-miss HS ID in HS-INDEX ─────────
+# B-10: covers the near-miss capture and violation-emission paths.
+# Mutation for emission loop (MUT-3 equivalent): neuter the near-miss violation
+# emission loop → checker exits 0 on defect tree → 10e FAILS.
+# Note on MUT-1 (neuter near-miss capture): the accounting invariant detects the
+# unaccounted row (hs_rows_seen=2, classified=1) and exits 1. 10e continues to
+# PASS — the accounting invariant is a stronger backstop that subsumes MUT-1.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 10e: check-index-integrity: near-miss HS ID in HS-INDEX ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (valid HS-INDEX)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: append a near-miss row (lowercase 'hs-002' — non-canonical ID)
+    # No EC-157 wave-scenarios file, so only the near-miss violation fires.
+    printf '| hs-002 | EC-157 | Near-miss: lowercase hs prefix | Notes | BC-2.01.001 | active |\n' \
+        >> "$T/.factory/holdout-scenarios/HS-INDEX.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch near-miss ID 'hs-002')"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; near-miss ID 'hs-002' correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 10f: check-index-integrity — accounting invariant (unaccounted rows) ─
+# B-10 / B-9: covers the D-057 accounting invariant.
+# The clean tree has one parseable row; the defect replaces HS-INDEX with a row
+# that is counted by cell-splitting but matches no parser pattern, so
+# hs_rows_seen (1) != hs_canonical (0) + hs_nonconforming (0). Invariant fires.
+# Mutation (MUT-2 equivalent): neuter the accounting invariant check → checker
+# exits 0 on the defect tree → 10f FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 10f: check-index-integrity: accounting invariant (unaccounted rows) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (valid HS-INDEX)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: replace HS-INDEX with a row that cell-splitting counts as a data row
+    # but no parser pattern matches (first cell 'GARBAGE-001' is not HS-like at all).
+    # Remove EC-156 file so the reverse check does not fire independently.
+    rm "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+    cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX_BAD'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| GARBAGE-001 | EC-156 | Row counted by cell-split but matches no HS pattern | none | none | active |
+HSIX_BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch unaccounted data row via accounting invariant)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; unaccounted data row correctly detected by accounting invariant)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 10g: check-index-integrity — leading-whitespace bypass (V-9 scenario) ─
+# B-9 / B-10: covers the raw.strip() whitespace normalisation.
+# Reproduces the reviewer's exact V-9 scenario: one flush-left HS row +
+# two rows with a single leading space pointing at nonexistent EC files.
+# Without stripping, the indented rows are silently skipped and the checker
+# exits 0. With stripping they are parsed and the forward check fires.
+# Mutation: change 'line = raw.strip()' to 'line = raw' →
+#   indented rows not counted by hs_rows_seen either (same anchor) →
+#   invariant holds, forward check not run → checker exits 0 → 10g FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 10g: check-index-integrity: leading-whitespace bypass (B-9 / V-9) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Flush-left valid row | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (valid flush-left HS-INDEX)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: append two rows with a SINGLE LEADING SPACE pointing at EC files
+    # that do NOT exist in wave-scenarios/. With stripping, these are parsed and
+    # the forward check reports violations. Without stripping, they are silently
+    # skipped and the checker exits 0 (the V-9 false-pass reproduced here).
+    printf ' | HS-004 | EC-165 | One leading space — nonexistent EC | Notes | BC | active |\n' \
+        >> "$T/.factory/holdout-scenarios/HS-INDEX.md"
+    printf ' | HS-005 | EC-166 | One leading space — nonexistent EC | Notes | BC | active |\n' \
+        >> "$T/.factory/holdout-scenarios/HS-INDEX.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — leading-space rows bypassed parser — V-9 false-pass not fixed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; leading-space HS rows correctly parsed and forward-checked)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Guard test G3: both guards fail closed on empty checker directory ─────────
+# B-10 / D-057: covers the count-eq-0 fail-closed branches in both guards.
+# Mutation (MUT-4 equivalent): delete both 'if [[ $count -eq 0 ]]' blocks →
+# guards return 0 on empty dir → G3 FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── guard selftest G3: guards fail closed when no check-*.py files found ──"
+T=$(make_temp)
+
+# Clean pass: both guards return 0 for a valid checker directory
+cat > "$T/check-stub.py" <<'GOODSTUB'
+REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
+GOODSTUB
+
+CLEAN_PASS=0
+if run_override_guard "$T" > /dev/null 2>&1 && run_suppression_guard "$T" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: a guard fired on a valid checker dir (clean pass failed)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: remove all check-*.py files (empty directory)
+    rm "$T/check-stub.py"
+    OG_RETURNED_ZERO=0
+    SG_RETURNED_ZERO=0
+    run_override_guard    "$T" > /dev/null 2>&1 && OG_RETURNED_ZERO=1
+    run_suppression_guard "$T" > /dev/null 2>&1 && SG_RETURNED_ZERO=1
+    if [ "$OG_RETURNED_ZERO" = "1" ] || [ "$SG_RETURNED_ZERO" = "1" ]; then
+        [ "$OG_RETURNED_ZERO" = "1" ] && echo "  FAIL (run_override_guard returned 0 on empty dir — did not fail closed)"
+        [ "$SG_RETURNED_ZERO" = "1" ] && echo "  FAIL (run_suppression_guard returned 0 on empty dir — did not fail closed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; both guards fail closed on empty checker directory)"
     fi
 fi
 rm -rf "$T"
