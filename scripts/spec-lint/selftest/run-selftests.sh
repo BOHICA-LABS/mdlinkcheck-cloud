@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=53
+EXPECTED_TEST_COUNT=54
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -3438,6 +3438,78 @@ if [ "$CLEAN_PASS" = "1" ]; then
         echo "  Actual output:"
         echo "$NV4_OUTPUT" | sed 's/^/    /'
         FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test NV-5: check-id-resolution — versioned-changelog positional scoping (R3-C D-081) ──
+# D-081 ruling: a non-conforming ID token under a `### vN.N` ATX heading is an
+# immutable historical record (D-034) and must NOT be flagged by R3-B.
+#
+# Bidirectional test — one direction is insufficient:
+#   Clean (FP guard): EC-NEW-42 appears ONLY under `### v1.3 — ...`
+#     → checker must exit 0 (proves versioned-section occurrence is suppressed)
+#   Defect: EC-NEW-42 added also under `## 9. Future Work` (not a versioned heading)
+#     → checker must exit 1 and flag EC-NEW-42 (proves outside occurrence still detected)
+#
+# If R3-B were simply disabled: clean exits 0 (passes), defect exits 0 (FAILS).
+# If in_versioned_changelog_section were always True: same failure.
+# Both directions are required to prove the scoping is correct.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest NV-5: check-id-resolution: versioned-changelog positional scoping (R3-C D-081) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+
+# Clean fixture: non-conforming EC-NEW-42 appears ONLY inside a ### vN.N section
+cat > "$T/.factory/specs/changelog-scope-test.md" <<'MDNV5CLEAN'
+## 8. Changelog
+
+### v1.3 — Historical Remediation
+
+Non-conforming placeholder EC-NEW-42 was renamed to a registered ID.
+MDNV5CLEAN
+
+CLEAN_PASS_NV5=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-id-resolution.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS_NV5=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean versioned-changelog tree (D-081 scoping not working)"
+    NV5_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-id-resolution.py" 2>&1)
+    echo "  Actual output: $NV5_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS_NV5" = "1" ]; then
+    # Defect: add EC-NEW-42 also under a non-versioned section.
+    # The `## 9. Future Work` heading (level 2, not matching `### v\d+\.\d+`) transitions
+    # in_versioned_changelog_section to False — the following EC-NEW-42 must be flagged.
+    # The `### v1.3` occurrence is retained; it must still NOT be flagged.
+    cat > "$T/.factory/specs/changelog-scope-test.md" <<'MDNV5BAD'
+## 8. Changelog
+
+### v1.3 — Historical Remediation
+
+Non-conforming placeholder EC-NEW-42 was renamed to a registered ID.
+
+---
+
+## 9. Future Work
+
+The placeholder EC-NEW-42 is referenced here outside any versioned section.
+MDNV5BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-id-resolution.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — EC-NEW-42 outside versioned section should be flagged by R3-B)"
+        FAILURES=$((FAILURES + 1))
+    else
+        NV5_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-id-resolution.py" 2>&1)
+        if echo "$NV5_OUT" | grep -qF "EC-NEW-42"; then
+            echo "  PASS (clean-pass confirmed with FP-guard; outside-versioned EC-NEW-42 correctly detected; versioned-section occurrence not flagged)"
+        else
+            echo "  FAIL (checker exited non-zero but EC-NEW-42 not in output)"
+            echo "  Actual output: $NV5_OUT"
+            FAILURES=$((FAILURES + 1))
+        fi
     fi
 fi
 rm -rf "$T"

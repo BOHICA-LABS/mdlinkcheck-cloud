@@ -35,10 +35,18 @@ Non-conforming ID shape detection (R3-A + R3-B, D-069):
     — a registered family prefix followed by an alphabetic segment and a
     numeric segment — is a non-conforming ID shape (e.g. EC-NEW-1, VP-DRAFT-3).
     Zero false positives on 133-file corpus (D-069).
-  R3-C (historical scoping): R3-B findings inside quoted YAML-changelog strings
-    (line contains version marker v\d+.\d+ AND the match is in a quoted context)
-    are scoped out. Implemented as is_historical_changelog_line() — a function,
-    not a named set, per the suppression guard (D-039).
+  R3-C (historical scoping): R3-B findings are suppressed in two cases, both
+    implemented as positional state or functions — never as named sets (D-039):
+    1. Quoted YAML-changelog strings: line contains version marker v\d+.\d+ AND
+       the match is in a quoted context. is_historical_changelog_line().
+    2. Versioned-changelog sections (D-081): a non-conforming ID under a
+       `### vN.N` ATX heading is a historical record immutable under D-034.
+       Tracked via in_versioned_changelog_section state (check_file()).
+       Entry: `^### v\d+\.\d+` (level-3 versioned heading).
+       Exit:  any level-1/2/3 heading NOT matching the versioned pattern.
+       Level-4+ headings are subsections and inherit the current state.
+       Residual: a genuine live defect authored inside a versioned changelog
+       section would be missed. Operator accepted this trade-off (D-081).
   Fenced code blocks (triple-backtick, CommonMark §4.5) are suppressed from
     both R3-A and R3-B.
 
@@ -85,6 +93,15 @@ _EC_ID_CELL_RE = re.compile(r"^~{0,2}EC-\d{1,4}[a-z]?~{0,2}$")
 
 # Table separator cell pattern
 _TABLE_SEP_CELL_RE = re.compile(r"^:?-{2,}:?$")
+
+# R3-C extended (D-081): versioned-changelog heading positional scoping.
+# A ### vN.N ATX heading (exactly level 3, starting with a version token) marks
+# a versioned changelog section. Non-conforming IDs inside such a section are
+# historical records immutable under D-034 and must not be flagged.
+# Level restriction to `###` (not `##` or `#`) is intentional: all observed
+# versioned changelog entries in the corpus use level-3 headings; wider matching
+# would risk extending the scope to non-changelog content.
+_VERSIONED_CHANGELOG_HEADING_RE = re.compile(r"^### v\d+\.\d+")
 
 
 def is_historical_changelog_line(line: str, matched_text: str) -> bool:
@@ -346,6 +363,10 @@ def check_file(path: Path) -> list[str]:
     table_header_first_cell = None  # first cell of last non-separator | row
     in_ec_id_column_table = False   # True: in data rows of an EC/ID-column table
 
+    # State for R3-C D-081 positional scoping: True when current position is
+    # inside a versioned changelog section (under a `### vN.N` heading).
+    in_versioned_changelog_section = False
+
     for lineno, line in enumerate(lines, 1):
         # ── Fenced code block suppression (CommonMark §4.5) ──────────────────
         # A line whose leftmost content starts with ``` and has fewer than 4
@@ -395,6 +416,15 @@ def check_file(path: Path) -> list[str]:
             # Non-| line: leave any current table context
             table_header_first_cell = None
             in_ec_id_column_table = False
+            # D-081: update versioned-changelog section state on ATX headings.
+            # Level 1-3 headings (# / ## / ###) change the section scope;
+            # level 4+ are subsections that inherit the current scope.
+            if line.startswith("#"):
+                m_hd = re.match(r"^(#{1,6})\s", line)
+                if m_hd and len(m_hd.group(1)) <= 3:
+                    in_versioned_changelog_section = bool(
+                        _VERSIONED_CHANGELOG_HEADING_RE.match(line)
+                    )
 
         # ── Existing ID resolution checks ─────────────────────────────────────
 
@@ -484,8 +514,14 @@ def check_file(path: Path) -> list[str]:
             # (avoids double-reporting the same first-cell violation)
             if r3a_first_cell is not None and token == r3a_first_cell:
                 continue
-            # R3-C: historical-changelog scoping — not a live reference
+            # R3-C(1): quoted YAML-changelog line — not a live reference
             if is_historical_changelog_line(line, token):
+                continue
+            # R3-C(2): versioned-changelog section positional scoping (D-081).
+            # Under a `### vN.N` heading, the entry is an immutable historical
+            # record (D-034) — flagging it would create a permanently-unresolvable
+            # finding. Positional state, not a named set.
+            if in_versioned_changelog_section:
                 continue
             family = m.group(1)
             violations.append(
