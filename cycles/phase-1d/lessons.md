@@ -120,7 +120,7 @@ traces_to: STATE.md
     _Discovered: PR #3 four-round review lifecycle, 2026-08-07_
 
 46. **`[process-gap]` zsh does not word-split unquoted variables — a differential verification harness produced a FALSE PASS, caught only by asserting non-vacuity.** The orchestrator's output-identity verification script used `for c in $CHECKS`, where `$CHECKS` held a multi-word string (not an array). In zsh, an unquoted `$scalar` in a `for` word list does NOT split on whitespace — the entire string is treated as a single word. The loop iterated ONCE, `python3 <all-filenames-concatenated>` failed on the non-existent composite filename, BOTH output captures received the same error text, and `diff` reported IDENTICAL (same error = "no regression detected"). The false pass was caught only because the verification also asserted a known non-zero line count and a specific baseline headline finding — assertions the error output did not satisfy. LESSON: every differential verification must carry a positive non-vacuity assertion: an expected output count, a specific string known to be present, or a baseline measurement. A `diff IDENTICAL` result from a harness that never actually ran the command under test is indistinguishable from a genuine pass without a non-vacuity check.
-    _Discovered: BI-040 Stage 2 output-identity verification harness, 2026-08-08_
+    _Discovered: BI-040 Stage 2 output-identity verification harness, 2026-08-07_
     Tag: `[process-gap]`
 
 ## Policy Candidates

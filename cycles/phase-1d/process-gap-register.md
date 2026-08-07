@@ -235,7 +235,9 @@ that policies are codified.
 | PG-007 | F-024 | T-NNN, EC-NNN, R-NNN reference families in BC Traceability sections are not resolved by any validator | POL-16 | Deferred — vsdd-factory consistency-validator ID resolution |
 | PG-008 | P3 pass | `[filled by ...]` placeholder text (73 occurrences, 35 BC files) passes all current gates; not covered by POL-14/POL-15 | None yet | Deferred — automation track (scripts/spec-lint/) |
 | PG-009 | P3-028 | POL-12's own verification step encodes `alive` as external-URL verdict, inverting binding decision D-014 | POL-12 (defective) | Deferred — automation track; resolve D-014 first |
-| PG-010 | data-repair burst 2026-08-08 | A binding decision ID can be cited in spec files while absent from the STATE.md Decisions Log, with no ID-continuity gate detecting the gap | None yet | Deferred — vsdd-factory consistency-validator + STATE.md burst gate |
+| PG-010 | data-repair burst 2026-08-07 | A binding decision ID can be cited in spec files while absent from the STATE.md Decisions Log, with no ID-continuity gate detecting the gap | None yet | Deferred — vsdd-factory consistency-validator + STATE.md burst gate |
+| PG-011 | CI-062 maintenance burst 2026-08-07 | "Pass 5" names two distinct finding populations (P5-* gate #12 + P6-* perimeter sweep titled "Pass 5"); operator adjudication required | None yet | OPEN — operator must rule before WS-5 pass numbering proceeds |
+| PG-012 | CI-062 maintenance burst 2026-08-07 | Perimeter sweep shards use inconsistent severity vocabularies (CRITICAL/MAJOR/MINOR vs CRITICAL/HIGH/MEDIUM vs adding LOW), making per-finding aggregate severity recount impossible by predicate | None yet | Deferred — future pass dispatch discipline |
 
 ---
 
@@ -243,7 +245,7 @@ that policies are codified.
 
 | Field | Value |
 |-------|-------|
-| Origin finding | Data-repair burst (2026-08-08) — D-017..D-020 (exhaustive) cited as binding in prd.md changelog, BC-2.11.002.md, and adversary-pass-3.md but absent from the STATE.md Decisions Log at commit `ea3cd2d` and still absent after D-087 compaction at `a70306d` |
+| Origin finding | Data-repair burst (2026-08-07) — D-017..D-020 (exhaustive) cited as binding in prd.md changelog, BC-2.11.002.md, and adversary-pass-3.md but absent from the STATE.md Decisions Log at commit `ea3cd2d` and still absent after D-087 compaction at `a70306d` |
 | Process gap | A decision can be recorded as binding in spec files (PRD changelog, BC changelogs, adversary findings) while its corresponding STATE.md Decisions Log row is never written or is silently dropped. No gate performs an ID-continuity check over the Decisions Log (e.g., verify D-001..D-NNN has no gaps). The burst-log asserted "D-017..D-025 recorded in STATE.md" — D-021..D-025 were present; D-017..D-020 were not. An adversary finding (P3-001) cited D-018 as a "binding decision" and filed a CRITICAL finding against ADR-007 for contradicting it — yet D-018 had no row in the Decisions Log. |
 | Policy coverage | None — no policy currently requires or verifies Decisions Log ID continuity |
 | Disposition | **Deferred — factory engine** |
@@ -256,4 +258,32 @@ that policies are codified.
 **PG-001 through PG-007:** Justified Deferral — vsdd-factory engine changes.
 **PG-008 through PG-009:** Deferred — automation track (scripts/spec-lint/ in progress).
 **PG-010:** Deferred — vsdd-factory consistency-validator + STATE.md burst gate.
-No Phase 2 product stories are created for any gap. All 10 gaps have explicit dispositions.
+**PG-011:** OPEN — requires operator adjudication. Do NOT resolve unilaterally.
+**PG-012:** OPEN — process/tooling gap recorded; requires Phase 1d fix burst.
+No Phase 2 product stories are created for any gap. All 12 gaps have explicit dispositions.
+
+---
+
+### PG-011 — Pass-Numbering Collision: "Pass 5" Names Two Distinct Finding Populations
+
+| Field | Value |
+|-------|-------|
+| Origin finding | CI-062 record-integrity maintenance burst (2026-08-07) |
+| Process gap | The register contains two distinct finding populations both labelled "Pass 5": (1) A gate #12 adversarial pass with `P5-*` ID prefixes (36 or 37 findings — see COUNT DISPUTE in adversary-pass-5.md); record was never persisted. (2) The perimeter-sweep shard files (perimeter-sweep-shard-1.md through shard-8.md), which TITLE themselves "Pass 5" (example: shard-1.md line 22 `# Adversarial Findings — Phase 1d — Pass 5 — Shard 1 / 8`) but whose finding IDs are prefixed `P6-S<n>-<nnn>` (pass SIX). STATE.md's Phase Progress table records the perimeter sweep as "pass-5 adversary (perimeter sweep — 8 shards) COMPLETE". The claim that "pass 6 has not yet run" sits uneasily with a P6-prefixed corpus of 249 findings already on disk. |
+| Consequence | The convergence register is ambiguous about which gate count to use for convergence evaluation. WS-5 pass 6 sequencing may be miscounted. |
+| Policy coverage | None |
+| Disposition | **OPEN — requires operator adjudication.** FLAG: Do NOT renumber any findings or passes. The operator must rule: (a) Is the perimeter sweep pass 5 or pass 6? (b) What number does WS-5 pass 6 carry? (c) Does the fact that P6-* IDs exist constitute evidence that pass 6 already ran? Record the ruling as D-089+. |
+| Upstream location | STATE.md Phase Progress table; convergence-trajectory.md; adversary-pass-5.md; all 8 perimeter-sweep-shard-*.md files |
+
+---
+
+### PG-012 — Inconsistent Severity Vocabulary Across Perimeter Sweep Shards
+
+| Field | Value |
+|-------|-------|
+| Origin finding | CI-062 record-integrity maintenance burst (2026-08-07); triggered by Item 3 CRITICAL headline correction |
+| Process gap | Severity vocabularies are inconsistent across the 8 perimeter-sweep shards: shard-1 uses CRITICAL/MAJOR/MINOR; shards 2-6 use CRITICAL/HIGH/MEDIUM; shards 4 and 8 also carry LOW. This inconsistency means no single predicate can compute an aggregate CRITICAL count across all shards — naive section-based attribution double-counts cross-referenced IDs (attempted count yielded 63/86/106 = 255 ≠ 249). Only shard-1 provides an internally consistent self-declared severity roster table. The per-shard C-column totals in perimeter-sweep-synthesis.md are the best available oracle and sum to 40 CRITICAL. |
+| Consequence | Any aggregate severity statistic in the register (e.g. "40 CRITICAL") is derived from per-shard self-reported C columns, not from an independently verifiable per-finding recount. The true aggregate count is therefore an ESTIMATE that is cross-verified only for the subset of findings with shard-level C-column declarations. |
+| Policy coverage | None |
+| Disposition | **Deferred — future adversarial pass discipline.** Future adversarial passes MUST specify a SINGLE severity vocabulary in the dispatch instruction. Recorded as a lesson for the factory engine. No immediate remediation action available for the already-produced shard files (renaming severity labels would require modifying all 249 finding bodies). |
+| Upstream location | cycles/phase-1d/perimeter-sweep-shard-*.md (8 files); perimeter-sweep-synthesis.md |

@@ -703,7 +703,7 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 **Files touched (Dim-1): 7 unique files**
 
-- `.factory/STATE.md` — timestamp advanced to 2026-08-08T02:45:00Z; current_step updated; Last Updated advanced; Current Phase Steps: WS-3 Phase 1 row added, oldest row (CV5-001 CLOSED) evicted to burst-log; Decisions Log: D-075 appended; Blocking Issues: BI-034 struck through (RESOLVED), BI-023 corrected (34 files/55 rows, 5 files EC-NEW-); Session Resume Checkpoint: D-075 (D-074 archived to session-checkpoints.md); Concurrent Cycles updated; spec snapshot D-001..D-075; Historical Content row added
+- `.factory/STATE.md` — timestamp advanced to 2026-08-07T02:45:00Z; current_step updated; Last Updated advanced; Current Phase Steps: WS-3 Phase 1 row added, oldest row (CV5-001 CLOSED) evicted to burst-log; Decisions Log: D-075 appended; Blocking Issues: BI-034 struck through (RESOLVED), BI-023 corrected (34 files/55 rows, 5 files EC-NEW-); Session Resume Checkpoint: D-075 (D-074 archived to session-checkpoints.md); Concurrent Cycles updated; spec snapshot D-001..D-075; Historical Content row added
 - `.factory/SESSION-HANDOFF.md` — D-074 header marked SUPERSEDED by D-075; §RESUME SNAPSHOT D-075 appended; Latest pointer updated to D-075
 - `.factory/cycles/phase-1d/burst-log.md` — evicted CV5-001 Current Phase Step archived; this entry (burst 16)
 - `.factory/cycles/phase-1d/lessons.md` — lessons 37-40 appended to Policy Candidates table
@@ -730,7 +730,7 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 **Dim-2 Attestation:** No canonical-facts.toml mutation this burst. `check-canonical-facts.py` last reported exit 0 at burst-15 close (all 31 bindings match). No FACT-N entries added or modified in this burst. Canonical facts corpus unchanged; attestation is a pass-through. WS-3 skip-list audit confirmed checkers KEEP; no checker code modified.
 
-**Dim-5 Attestation:** STATE.md — 251 lines, timestamp 2026-08-08T02:45:00Z, version 2.5, status: draft, producer: state-manager. SESSION-HANDOFF.md — §RESUME SNAPSHOT D-075 appended; D-074 marked SUPERSEDED; Latest → D-075. burst-log.md — 16 bursts. lessons.md — 40 lessons. blocking-issues-resolved.md — BI-034 closure row added. session-checkpoints.md — D-074 checkpoint archived.
+**Dim-5 Attestation:** STATE.md — 251 lines, timestamp 2026-08-07T02:45:00Z, version 2.5, status: draft, producer: state-manager. SESSION-HANDOFF.md — §RESUME SNAPSHOT D-075 appended; D-074 marked SUPERSEDED; Latest → D-075. burst-log.md — 16 bursts. lessons.md — 40 lessons. blocking-issues-resolved.md — BI-034 closure row added. session-checkpoints.md — D-074 checkpoint archived.
 
 **Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 unchanged. Pass 6 blocked in order: (1) BI-042 (PREEMPTIVE, specs-gated — once `.factory/specs` editor releases per D-075); AND (2) WS-3 Phase 2 items 2+3 (checker-only, runnable immediately); then WS-3 Phase 2 item 1 (specs-gated, same gate as BI-042); then WS-3b (BI-040); then WS-4 — BLOCKED on BI-040 AND BI-042 per D-072/D-075; then WS-5.
 
@@ -789,7 +789,7 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 **Dim-2 Attestation:** `.factory/specs/canonical-facts.toml` corrected — 24 bindings rewritten, FACT-6a/6b structural limitation documented. `check-canonical-facts.py` exit 0 on all 31 bindings, 11 facts, after corrections. Selftest-22 rewrite specified (production pattern, prefix-extension DIVERGE assertion).
 
-**Dim-5 Attestation:** STATE.md — 266 lines (wc-l), timestamp 2026-08-08T08:00:00Z, version 2.6, status: draft, producer: state-manager. burst-log.md — 17 bursts. lessons.md — 44 lessons. SESSION-HANDOFF.md — §RESUME SNAPSHOT D-085 appended; D-075 marked SUPERSEDED. canonical-facts.toml — all 31 bindings match (11 facts). Three new cycle files committed: bi-042-binding-adjudication.md, ws3-phase2-checker-repair-design.md, bi-040-primitive-layer-design.md.
+**Dim-5 Attestation:** STATE.md — 266 lines (wc-l), timestamp 2026-08-07T08:00:00Z, version 2.6, status: draft, producer: state-manager. burst-log.md — 17 bursts. lessons.md — 44 lessons. SESSION-HANDOFF.md — §RESUME SNAPSHOT D-085 appended; D-075 marked SUPERSEDED. canonical-facts.toml — all 31 bindings match (11 facts). Three new cycle files committed: bi-042-binding-adjudication.md, ws3-phase2-checker-repair-design.md, bi-040-primitive-layer-design.md.
 
 **Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. Pass 6 blocked: land PR `fix/ws3-spec-lint-integrity` → WS-3 item 1 (D-083) → WS-3b (D-085) → WS-4 (BLOCKED on BI-040 AND BI-042/BI-044) → WS-5.
 
@@ -805,7 +805,7 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 ---
 
-## Burst 18 — PR #7 Merged; BI-042/035/023(items 2+3)/045 CLOSED; D-086/D-087/D-088 (2026-08-08)
+## Burst 18 — PR #7 Merged; BI-042/035/023(items 2+3)/045 CLOSED; D-086/D-087/D-088 (2026-08-07)
 
 **Parent-commit:** `7e0f02a6d47073d89f48b31de2a402d7c472d8b3` (D-085 session wrap)
 
@@ -845,7 +845,7 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 ---
 
-## Burst: burst 19 — compact-state DONE; D-017..D-020 restored; BI-040 code-CLOSED; BI-044 CLOSED; D-086 WS-4 re-derivation COMPLETE (2026-08-08)
+## Burst: burst 19 — compact-state DONE; D-017..D-020 restored; BI-040 code-CLOSED; BI-044 CLOSED; D-086 WS-4 re-derivation COMPLETE (2026-08-07)
 
 **Parent-commit:** `002111a` (factory(state): restore lost binding decisions D-017..D-020 to Decisions Log)
 
@@ -881,7 +881,7 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 **Dim-2 Attestation:** No `canonical-facts.toml` mutation this burst. `check-canonical-facts.py` last reported exit 0 (all 31 bindings match canonical values, 11 facts) at burst-18 close. No FACT-N entries added or modified. Canonical facts corpus unchanged; attestation is a pass-through.
 
-**Dim-5 Attestation:** STATE.md — timestamp 2026-08-08T23:00:00Z, version 2.6, status: draft, producer: state-manager. burst-log.md — 19 bursts. lessons.md — 46 lessons. blocking-issues-resolved.md — BI-044 closure row added. session-checkpoints.md — D-088 checkpoint archived.
+**Dim-5 Attestation:** STATE.md — timestamp 2026-08-07T23:00:00Z, version 2.6, status: draft, producer: state-manager. burst-log.md — 19 bursts. lessons.md — 46 lessons. blocking-issues-resolved.md — BI-044 closure row added. session-checkpoints.md — D-088 checkpoint archived.
 
 **Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 (pass-5 perimeter count UNRECONCILABLE; executed 249; both preserved). Not converged. Pass 6 order: (1) BI-040 PR lifecycle (branch `fix/bi-040-primitive-layer`, 4 commits); (2) WS-4 remediation (138 dispatchable items; D-086 gate SATISFIED); (3) WS-5 pass 6 + Phase-1 gate. BI-040 must MERGE before WS-4 dispatch (D-072 + new sequencing constraint).
 

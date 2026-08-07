@@ -1,17 +1,27 @@
 ---
 document_type: convergence-trajectory
 level: ops
-version: "1.0"
+version: "1.1"
 status: in-progress
 producer: state-manager
-timestamp: 2026-08-06T14:05:00Z
+timestamp: 2026-08-07T00:00:00Z
 cycle: phase-1d
 inputs:
   - .factory/cycles/phase-1d/adversary-pass-1.md
   - .factory/cycles/phase-1d/adversary-pass-2.md
   - .factory/cycles/phase-1d/adversary-pass-3.md
   - .factory/cycles/phase-1d/adversary-pass-4.md
-input-hash: "66bb18e"
+  - .factory/cycles/phase-1d/adversary-pass-5.md
+  - .factory/cycles/phase-1d/perimeter-sweep-synthesis.md
+  - .factory/cycles/phase-1d/perimeter-sweep-shard-1.md
+  - .factory/cycles/phase-1d/perimeter-sweep-shard-2.md
+  - .factory/cycles/phase-1d/perimeter-sweep-shard-3.md
+  - .factory/cycles/phase-1d/perimeter-sweep-shard-4.md
+  - .factory/cycles/phase-1d/perimeter-sweep-shard-5.md
+  - .factory/cycles/phase-1d/perimeter-sweep-shard-6.md
+  - .factory/cycles/phase-1d/perimeter-sweep-shard-7.md
+  - .factory/cycles/phase-1d/perimeter-sweep-shard-8.md
+input-hash: "[live-state]"
 traces_to: STATE.md
 ---
 
@@ -25,10 +35,26 @@ traces_to: STATE.md
 | 2 | 2026-08-05 | 34 | 7 | 19 | 8 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN (REGRESSION: novelty increased) — REMEDIATED |
 | 3 | 2026-08-06 | 39 | 5 | 26 | 8 | 0 | HIGH | — | 0/3 | FINDINGS_REMAIN (REGRESSION: novelty increased) — REMEDIATED (mechanical enforcement) |
 | 4 | 2026-08-06 | 37 | 3 | 19 | 15 | 0 | ZERO in enforced classes | — | 0/3 | FINDINGS_REMAIN — composition changed; root cause = SPEC-TOPOLOGY (BI-012) |
+| 5 (gate #12; P5-* IDs) | 2026-08-07 | **36 or 37 — DISPUTED** [^pass5-count] | unrecorded | unrecorded | unrecorded | unrecorded | unknown | — | 0/3 | FINDINGS_REMAIN — original report NEVER PERSISTED; 10 of 36/37 findings recoverable (see adversary-pass-5.md); 26 UNRECOVERABLE. Also see PG-011 (pass-numbering collision). |
+| Perimeter sweep (shards; shard files title as "Pass 5" but use P6-S* IDs) [^pass-naming] | 2026-08-07 | **249 (executed)** [^sweep-count] | 40 [^crit-40] | ~127 | ~92 | — | HIGH | — | 0/3 | FINDINGS_REMAIN — perimeter closed (all 66 BC bodies, all 8 ADRs, all spec shards read); 4 unguarded axes confirmed (BI-024); skip-list unsound (BI-023) |
+
+[^pass5-count]: SESSION-HANDOFF.md §D-057 (lines 562, 576) cites 36. burst-log.md D-086 re-derivation (line 866) states `"36 pass-5 actionable"→37` (executed-predicate correction). Both figures preserved; neither adopted as authoritative. Operator adjudication required (see PG-011).
+
+[^pass-naming]: REGISTER QUESTION FOR OPERATOR: the shard files title themselves "Pass 5" but use `P6-S<n>-<nnn>` ID prefixes (pass SIX). The gate #12 pass (P5-* IDs, row above) is a genuinely separate finding population. "Pass 5" currently names two different events. Do not renumber; see PG-011 for adjudication record.
+
+[^sweep-count]: `perimeter-sweep-synthesis.md` claims **259**; executed unique-ID count (D-086 re-derivation) is **249**. Delta −10: shard-7 claims 44 but contains 35 (9 ID gaps: 004, 005, 025, 027, 032, 035, 041, 042, 043); shard-8 claims 40 but contains 39 (ID 030 missing). The historical STATE.md trajectory shorthand `→34→39→37→259` is PRESERVED AS-IS in STATE.md per operator instruction. Both figures are recorded here; the executed 249 is the correct per-D-086 figure. Do NOT rewrite the STATE.md shorthand to 249.
+
+[^crit-40]: Synthesis document originally stated `~42 CRITICAL`. CI-062 correction: per-shard C-column subtotals sum to 40 (2+4+7+7+6+2+6+6). Corrected to 40 in `perimeter-sweep-synthesis.md` (CI-062). The `~42` figure is superseded.
 
 ## Trajectory Shorthand
 
-`→0→32→34→39→37`
+Historical shorthand as recorded in STATE.md (do not change): `→0→32→34→39→37→259`
+
+Executed correction (D-086): `→0→32→34→39→37→[36/37]→249`
+
+Note: the `→259` in the STATE.md shorthand reflects the synthesis document's claimed total.
+The executed re-derivation (D-086) found 249 unique IDs. Both are preserved per operator
+instruction. The STATE.md shorthand is not rewritten to 249.
 
 ## Per-Pass Details
 

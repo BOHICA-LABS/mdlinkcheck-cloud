@@ -10,7 +10,7 @@ pass: 5
 frozen_head: 1d3ed17
 shards_complete: "1,2,3,4,5,6,7,8"
 findings_total: 259
-findings_critical: 42
+findings_critical: 40
 inputs:
   - cycles/phase-1d/perimeter-sweep-shard-1.md
   - cycles/phase-1d/perimeter-sweep-shard-2.md
@@ -20,15 +20,26 @@ inputs:
   - cycles/phase-1d/perimeter-sweep-shard-6.md
   - cycles/phase-1d/perimeter-sweep-shard-7.md
   - cycles/phase-1d/perimeter-sweep-shard-8.md
-input-hash: "1d3ed17"
+input-hash: "f1f33cd"
 traces_to: STATE.md
 ---
 
 # Perimeter Sweep Cross-Shard Synthesis — phase-1d
 
 **Shards complete:** 1, 2, 3, 4, 5, 6, 7, 8 — SWEEP COMPLETE
-**Findings total:** 259 (~42 CRITICAL)
+**Findings total:** 259 (40 CRITICAL) [^crit-correction]
 **Frozen HEAD:** `1d3ed17`
+
+[^crit-correction]: CI-062 correction 2026-08-07: prior figure "~42" was unreconcilable with
+this document's own per-shard C-column subtotals (2+4+7+7+6+2+6+6 = 40). Corrected to 40.
+An independent per-finding severity recount across all 8 shards is NOT obtainable by any
+single predicate: severity vocabularies are inconsistent across shards (shard-1 uses
+CRITICAL/MAJOR/MINOR; others use CRITICAL/HIGH/MEDIUM; shards 4 and 8 also carry LOW), and
+naive section-based attribution double-counts cross-referenced IDs. Only shard-1 has a
+self-declared severity roster table that is internally consistent (2+13+12 = 27 = shard-1's
+27 unique IDs). The per-shard C-column subtotals in the table below are the best available
+oracle. The inconsistent severity vocabulary is recorded as PG-012 in
+`cycles/phase-1d/process-gap-register.md`.
 
 ---
 
@@ -95,11 +106,11 @@ Pass 5 already tagged this a [process-gap] with 6 instances. Shards add many mor
 | 6 | 5 ADRs + 4 arch shards | 9 | 2 | 19 | 11 | 32 | ADR-004 inadequate on starvation |
 | 7 | 21 VP bodies | 21 | 6 | 25 | 13 | 44 | 5 VPs outright vacuous |
 | 8 | domain-spec + brief + prd + test-vectors | 15 | 6 | 20 | 14 | 40 | R5 anchoring not defensible |
-| **TOTAL** | | **100** | **~42** | **~127** | **~92** | **259** | **FINDINGS_REMAIN** |
+| **TOTAL** | | **100** | **40** [^crit-correction] | **~127** | **~92** | **259** | **FINDINGS_REMAIN** |
 
 ---
 
-## SWEEP CLOSED — 259 findings, ~42 CRITICAL, across all 8 shards
+## SWEEP CLOSED — 259 findings, 40 CRITICAL [^crit-correction], across all 8 shards
 
 Coverage achieved: all 66 of 66 BC bodies, 21 of 26 VP bodies, all 8 ADRs, all 11 architecture shards, all 11 domain-spec shards, product-brief, prd in full, test-vectors in full. The "~49 unread BC bodies + 5 unread ADRs" perimeter that survived five prior passes is now CLOSED.
 

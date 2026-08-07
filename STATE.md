@@ -1,10 +1,10 @@
 ---
 document_type: pipeline-state
 level: ops
-version: "2.6"
+version: "2.7"
 status: draft
 producer: state-manager
-timestamp: 2026-08-08T23:09:00Z
+timestamp: 2026-08-07T23:30:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
@@ -38,7 +38,7 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-08 — burst-19: BI-040 code-CLOSED on fix/bi-040-primitive-layer (NOT merged, 4 commits); BI-044 CLOSED (14 sites, corrected from 16); BI-043 OPEN (10-file evidence, scope ruling pending); D-088 WS-4 re-derivation COMPLETE (286 actionable); 0 of 3 clean passes; trajectory-tail →34→39→37→259 (executed 249) |
+| **Last Updated** | 2026-08-07 — burst-19: BI-040 code-CLOSED on fix/bi-040-primitive-layer (NOT merged, 4 commits); BI-044 CLOSED (14 sites, corrected from 16); BI-043 OPEN (10-file evidence, scope ruling pending); D-088 WS-4 re-derivation COMPLETE (286 actionable); 0 of 3 clean passes; trajectory-tail →34→39→37→259 (executed 249) |
 | **Current Phase** | phase-1d |
 | **Current Step** | compact-state DONE (a70306d); D-017..D-020 (exhaustive) restored (002111a); BI-040 code-CLOSED on fix/bi-040-primitive-layer (4 commits, NOT merged); BI-044 CLOSED (14 sites); BI-043 OPEN (10 files, scope ruling pending); D-088 WS-4 re-derivation COMPLETE (286 actionable); spec-row burn-down open; 0 of 3 clean passes. |
 
@@ -180,9 +180,9 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | D-083 | HOLD EC-registration (WS-3 item 1) until BI-044 settles. Do not allocate EC IDs against a counting toolchain known broken at 16 sites. | Same oracle-integrity principle as the WS-4 gate. | phase-1d | 2026-08-07 | human/operator |
 | D-084 | Build a SHARED spec-lint primitive layer closing BI-040, BI-044 and BI-021/BI-043 together. Design at `cycles/phase-1d/bi-040-primitive-layer-design.md`. | All three are the same missing abstraction — 14 checkers/generators each re-derive line splitting, ID grammar and repo-root resolution independently, and each re-derivation is an independent chance to be wrong. | phase-1d | 2026-08-07 | human/operator |
 | D-085 | WS-3b is a PHASE-1D REMEDIATION ITEM (design doc + fix PR), NOT a Phase-2 story artifact. `.factory/stories/` holds only `.gitkeep`, Phase 2 has not started, and authoring Phase-2 artifacts now would pollute Phase-2 decomposition; additionally a story merely existing cannot satisfy D-072, which requires BI-040 to CLOSE. | Phase 2 has not started; a story file cannot substitute for closing a blocking issue. | phase-1d | 2026-08-07 | human/operator |
-| D-086 | WS-4 scope re-derivation BY EXECUTION is MANDATORY: it is the FIRST act after the BI-040 primitive layer lands and BEFORE any remediation dispatch. BI-040 was filed at 2 known members; execution measured 54+63 sites across 14 files and a 31-codepoint family — roughly 15× its filed size. WS-4's ~306-finding scope was sized by the same reading-and-counting method that produced four consecutive misfiled magnitudes. | D-082's executed-predicate constraint applied to WS-4's own sizing. | phase-1d | 2026-08-08 | human/operator |
-| D-087 | Run `/vsdd-factory:compact-state` at next session start, before any new work. | STATE.md at 266+ lines against 200-line soft target; must slim to stay readable. | phase-1d | 2026-08-08 | human/operator |
-| D-088 | State-manager must NOT use `git add -A` in state bursts while a PR agent is in flight; stage by explicit path. Path-scoping recorded as standing improvement item. | Burst `7e0f02a` incidentally committed another agent's in-flight `code-delivery/` artifacts. | phase-1d | 2026-08-08 | human/operator |
+| D-086 | WS-4 scope re-derivation BY EXECUTION is MANDATORY: it is the FIRST act after the BI-040 primitive layer lands and BEFORE any remediation dispatch. BI-040 was filed at 2 known members; execution measured 54+63 sites across 14 files and a 31-codepoint family — roughly 15× its filed size. WS-4's ~306-finding scope was sized by the same reading-and-counting method that produced four consecutive misfiled magnitudes. | D-082's executed-predicate constraint applied to WS-4's own sizing. | phase-1d | 2026-08-07 | human/operator |
+| D-087 | Run `/vsdd-factory:compact-state` at next session start, before any new work. | STATE.md at 266+ lines against 200-line soft target; must slim to stay readable. | phase-1d | 2026-08-07 | human/operator |
+| D-088 | State-manager must NOT use `git add -A` in state bursts while a PR agent is in flight; stage by explicit path. Path-scoping recorded as standing improvement item. | Burst `7e0f02a` incidentally committed another agent's in-flight `code-delivery/` artifacts. | phase-1d | 2026-08-07 | human/operator |
 
 ## Skip Log
 
@@ -226,7 +226,7 @@ Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT burst-19`
 
 | Field | Value |
 |-------|-------|
-| **Date** | 2026-08-08 |
+| **Date** | 2026-08-07 |
 | **Position** | phase-1d; BI-040 code-CLOSED on fix/bi-040-primitive-layer (4 commits: 6340990/9228136/705e93a/b497d26), NOT merged; BI-044 CLOSED (14 sites, corrected from 16); BI-043 OPEN (10-file evidence, scope ruling pending); D-088 WS-4 re-derivation COMPLETE (286 actionable; 138 dispatchable); 0 of 3 clean passes |
 | **Convergence counter** | 0 of 3 clean passes; trajectory-tail →34→39→37→259 (pass-5 perimeter count UNRECONCILABLE; executed 249); pass 6 order: (1) BI-040 PR lifecycle; (2) WS-4 remediation (138 dispatchable; ~53 BI-027 fabrications pending pre-dispatch predicate; ~78 structural need operator scoping); (3) WS-5 pass 6 + Phase-1 gate |
 | **Next burst** | BI-040 PR lifecycle — open PR for branch fix/bi-040-primitive-layer (4 commits). Await operator scope ruling on BI-043 and WS-4 dispatch authorization. Burn-down: 55 VP-col / 34 files · 9 EC-NEW-* / 4 files · BC-2.04.001:63. Standing: autonomy L4; spec-lint ADVISORY; macOS-latest-only; SS-10 online in scope; wrap 430K; WS-4 blocked on BI-040 merge. |
@@ -254,4 +254,4 @@ Spec snapshot: PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies 
 | BI-040 shared primitive layer design | `cycles/phase-1d/bi-040-primitive-layer-design.md` |
 | Superseded decisions | `cycles/phase-1d/decisions-log.md` |
 
-Last Updated: 2026-08-08 — burst-19: BI-040 code-CLOSED on fix/bi-040-primitive-layer (NOT merged, 4 commits); BI-044 CLOSED (14 sites); BI-043 OPEN (10-file evidence); D-088 WS-4 re-derivation COMPLETE (286 actionable); 0 of 3 clean passes; trajectory-tail →34→39→37→259 (executed 249)
+Last Updated: 2026-08-07 — burst-19: BI-040 code-CLOSED on fix/bi-040-primitive-layer (NOT merged, 4 commits); BI-044 CLOSED (14 sites); BI-043 OPEN (10-file evidence); D-088 WS-4 re-derivation COMPLETE (286 actionable); 0 of 3 clean passes; trajectory-tail →34→39→37→259 (executed 249)

@@ -1399,7 +1399,7 @@ f. **Never dispatch a burst onto a branch another burst may merge or delete (D-0
 
 ## §RESUME SNAPSHOT D-088 [SUPERSEDED by burst-19 — retained for audit]
 
-*Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-085.*
+*Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-085.*
 
 ### RESUME IN ONE BREATH
 
@@ -1483,7 +1483,7 @@ g. **D-088:** Do NOT use `git add -A` or `git add .` in state-manager bursts whi
 
 ## §RESUME SNAPSHOT burst-19
 
-*Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-088.*
+*Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-088.*
 
 ### RESUME IN ONE BREATH
 
