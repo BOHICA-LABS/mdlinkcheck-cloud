@@ -77,11 +77,15 @@ def split_table_cells(line: str) -> list[str]:
     Ragged-safe: returns whatever cells are present. The leading and trailing
     empty parts produced by splitting on '|' are discarded.
 
+    Returns [] if the line is not a table row (i.e., there is non-whitespace
+    content before the first '|'). This prevents prose lines containing pipes
+    from being misidentified as table rows at all 5 call sites (W7 — BI-040).
+
     Example: '| VP-001 | some text | unit test |' →
              ['VP-001', 'some text', 'unit test']
     """
     parts = line.split("|")
-    if len(parts) < 2:
+    if len(parts) < 2 or cm_strip_cell(parts[0]) != "":
         return []
     inner = parts[1:]
     if inner and cm_strip_cell(inner[-1]) == "":
@@ -140,12 +144,8 @@ def is_conforming_vp_cell(first_cell: str, proof_method: str) -> bool:
         return False
     if first_cell == "VP-NONE":
         return bool(proof_method.strip(_CM_WHITESPACE))
-    tokens = re.split(r"[,/]", first_cell)
-    return bool(tokens) and all(
-        _VP_TOKEN_RE.match(t.strip(_CM_WHITESPACE))
-        for t in tokens
-        if t.strip(_CM_WHITESPACE)
-    )
+    tokens = [t.strip(_CM_WHITESPACE) for t in re.split(r"[,/]", first_cell) if t.strip(_CM_WHITESPACE)]
+    return bool(tokens) and all(_VP_TOKEN_RE.match(t) for t in tokens)
 
 
 # ── Historical changelog scoping (R3-C) ────────────────────────────────────
@@ -154,14 +154,26 @@ _CHANGELOG_VERSION_RE = re.compile(r'"[^"]*v\d+\.\d+[^"]*"')
 
 
 def is_historical_changelog_line(line: str, matched_text: str) -> bool:
-    """Return True if matched_text appears inside a quoted YAML changelog string.
+    """Return True if matched_text appears in a historical changelog context on this line.
 
     A quoted changelog entry is a YAML list item like:
       - "v1.2: P2-M09 — replaced non-conforming EC-NEW-3 with registry-compliant EC-164"
 
-    Predicate: match is bracketed by double-quotes on the same line AND the line
-    contains a version marker (v\\d+.\\d+). Implemented as a function, never as a
-    named set, per D-039 and the selftest suppression guard.
+    Predicate (two disjuncts, both require has_version=True):
+      1. The matched text is bracketed by double-quotes on the same line (i.e.,
+         there is a '"' before and a '"' after the match position).
+      2. The line contains a quoted version string (via _CHANGELOG_VERSION_RE,
+         which matches '"...v\\d+.\\d+..."'). In this case any occurrence of
+         matched_text on the line is suppressed regardless of its position
+         relative to the quotes. This is a known over-approximation: a match
+         that appears OUTSIDE the quoted version string is still suppressed if
+         the same line contains any quoted version marker. This is intentional
+         (conservative suppression) and is a carried-over behaviour from the
+         original checkers. See test_is_historical_changelog_line for pinned
+         behaviour including the known overreach. (W6 — BI-040)
+
+    Implemented as a function, never as a named set, per D-039 and the selftest
+    suppression guard.
     """
     pos = line.find(matched_text)
     if pos == -1:
@@ -206,7 +218,7 @@ def find_repo_root(
     if override:
         return Path(override).resolve()
 
-    candidate = (Path(start) if start else Path(__file__).resolve().parent)
+    candidate = (Path(start).resolve() if start else Path(__file__).resolve().parent)
     for _ in range(8):
         if (candidate / ".factory" / "specs").exists():
             return candidate

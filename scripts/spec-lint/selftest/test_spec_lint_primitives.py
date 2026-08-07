@@ -33,7 +33,7 @@ import spec_lint_primitives as slp
 # ── Test registry ────────────────────────────────────────────────────────────
 
 TESTS: list = []
-EXPECTED_PRIMITIVE_TEST_COUNT = 9
+EXPECTED_PRIMITIVE_TEST_COUNT = 10
 
 
 def register(fn):
@@ -63,6 +63,13 @@ def test_cm_splitlines_closed_under_discovery() -> None:
     splitlines() would split on U+000C etc., producing a different result from
     split('\\n') for those codepoints, violating the assertion.
     """
+    # Positive: verify cm_splitlines actually splits on LF (B2 regression guard).
+    # The property-test below checks divergent codepoints but not the basic LF case.
+    assert slp.cm_splitlines("a\nb\nc") == ["a", "b", "c"], "cm_splitlines must split on LF"
+    assert slp.cm_splitlines("") == [""], "cm_splitlines('') must return ['']"
+    assert slp.cm_splitlines("a\n") == ["a", ""], "cm_splitlines trailing LF"
+    assert slp.cm_splitlines("\n") == ["", ""], "cm_splitlines lone LF"
+
     # Derive the full divergent set (including CR)
     all_divergent = []
     divergent_non_cr = []
@@ -194,6 +201,14 @@ def test_is_conforming_vp_cell() -> None:
     assert not slp.is_conforming_vp_cell("[filled by story-writer]", "proof"), (
         "filled-by placeholder should be non-conforming"
     )
+
+    # Punctuation-only cells: must be non-conforming (B1 regression guard).
+    # These split into empty tokens; the old code used `if t.strip(...)` guard
+    # inside all(), which made all() vacuously True on an all-empty token list.
+    assert not slp.is_conforming_vp_cell(",", "proof"), "comma-only must be non-conforming"
+    assert not slp.is_conforming_vp_cell("/", "proof"), "slash-only must be non-conforming"
+    assert not slp.is_conforming_vp_cell(",,,", "proof"), "all-commas must be non-conforming"
+    assert not slp.is_conforming_vp_cell(",/,", "proof"), "punctuation-only must be non-conforming"
 
 
 # ── Test 4: is_conforming_ec_cell ────────────────────────────────────────────
@@ -409,11 +424,13 @@ def test_find_repo_root_hermetic() -> None:
         # Call with env_var=TEST_VAR — must walk from tmpdir, ignore SPEC_LINT_REPO_OVERRIDE
         result = slp.find_repo_root(env_var=TEST_VAR, start=Path(tmpdir))
 
-        assert str(result) == tmpdir, (
-            f"find_repo_root should have found .factory/specs/ in tmpdir={tmpdir!r}, "
-            f"but got {result!r}. "
+        assert result == Path(tmpdir).resolve(), (
+            f"find_repo_root should have found .factory/specs/ in tmpdir={tmpdir!r} "
+            f"(resolved: {Path(tmpdir).resolve()!r}), but got {result!r}. "
             f"Possible contamination: ambient SPEC_LINT_REPO_OVERRIDE={AMBIENT_SENTINEL!r} "
-            f"was used instead of walking."
+            f"was used instead of walking. "
+            f"Note: resolved comparison required because find_repo_root calls Path(start).resolve() "
+            f"(W3 — BI-040), which may change /tmp to /private/tmp on macOS."
         )
         assert str(result) != AMBIENT_SENTINEL, (
             f"find_repo_root returned the ambient SPEC_LINT_REPO_OVERRIDE path, "
@@ -433,6 +450,54 @@ def test_find_repo_root_hermetic() -> None:
             os.environ[TEST_VAR] = original_test_var
 
         shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+# ── Test 10: is_historical_changelog_line ────────────────────────────────────
+
+@register
+def test_is_historical_changelog_line() -> None:
+    """Pin behavior of is_historical_changelog_line — including known overreach.
+
+    The function has two disjuncts for in_quotes:
+      1. '"' before AND '"' after the match position on the same line.
+      2. _CHANGELOG_VERSION_RE matches anywhere on the line (quoted version marker).
+
+    Disjunct 2 is a known over-approximation: if a quoted version string appears
+    anywhere on the line, ALL matches on that line are suppressed, even those
+    outside the quoted section. This test pins that behaviour so a future
+    tightening is an explicit visible change. (W6 — BI-040)
+    """
+    # Canonical case: match inside quoted changelog entry (disjunct 1 + version)
+    line = '  - "v1.2: renamed EC-001 to EC-002 — CLOSED"'
+    assert slp.is_historical_changelog_line(line, "EC-001"), (
+        "match inside quotes with version marker should return True"
+    )
+
+    # Negative: plain non-changelog line (no quotes, no version marker)
+    line2 = "EC-NEW-3 is used here"
+    assert not slp.is_historical_changelog_line(line2, "EC-NEW-3"), (
+        "plain line with no quotes and no version marker should return False"
+    )
+
+    # Known overreach (disjunct 2): a quoted version string on the same line
+    # suppresses a match that is OUTSIDE the quotes. Current impl sets in_quotes=True
+    # via _CHANGELOG_VERSION_RE even though EC-NEW-3 appears after the closing quote.
+    line3 = '- "v1.2: replaced EC-001" but EC-NEW-3 is still outside'
+    assert slp.is_historical_changelog_line(line3, "EC-NEW-3"), (
+        "known overreach: match outside quotes suppressed if quoted version marker present"
+    )
+
+    # Negative: missing version marker (only bare quotes, no v\d+\.\d+)
+    line4 = '"EC-001 appears here but no version marker"'
+    assert not slp.is_historical_changelog_line(line4, "EC-001"), (
+        "quotes present but no version marker — has_version is False, must return False"
+    )
+
+    # Negative: matched_text not found on line at all
+    line5 = '- "v1.0: renamed EC-001 to EC-002"'
+    assert not slp.is_historical_changelog_line(line5, "EC-999"), (
+        "matched_text absent from line should return False"
+    )
 
 
 # ── Test runner ──────────────────────────────────────────────────────────────

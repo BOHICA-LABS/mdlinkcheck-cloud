@@ -18,6 +18,10 @@ from pathlib import Path
 import spec_lint_primitives as slp
 
 REPO = (  # honors SPEC_LINT_REPO_OVERRIDE via slp.find_repo_root; None in --property-test mode
+    # REPO is None in --property-test mode: module-level find_repo_root() raises RuntimeError
+    # inside a linked worktree because .factory/specs/ is not reachable from the temp
+    # invocation path. Resolution is deferred to runtime (the property test never accesses
+    # REPO-derived paths). Do not "simplify" this back to an unconditional call. (W9 — BI-040)
     None if (len(sys.argv) > 1 and sys.argv[1] == "--property-test")
     else slp.find_repo_root(start=Path(__file__).resolve().parent)
 )
@@ -534,9 +538,9 @@ def get_actual_wave_scenario_ec_ids() -> set[str]:
     ids: set[str] = set()
     if hs_dir.exists():
         for f in hs_dir.glob("*.md"):
-            m = re.match(r"^(EC-\d{1,4}[a-z]?)", f.name)
+            m = slp.EC_TOKEN_RE.match(f.name)
             if m:
-                ids.add(m.group(1))
+                ids.add(m.group(0))  # group(0)=full match e.g. "EC-156"; group(1)=digits only
     return ids
 
 

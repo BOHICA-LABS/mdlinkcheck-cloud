@@ -44,7 +44,7 @@ trap cleanup_all EXIT INT TERM
 # selftests (G1, G2) use these variables — there is no second copy of either
 # pattern anywhere in this file. This means any mutation to OVERRIDE_PATTERN
 # or SUPPRESSION_PATTERN will make both the pre-flight guard AND G1/G2 flip.
-OVERRIDE_PATTERN='^REPO[[:space:]]*=.*SPEC_LINT_REPO_OVERRIDE'
+OVERRIDE_PATTERN='^REPO[[:space:]]*=.*(slp\.find_repo_root|os\.environ\.get[^#]*SPEC_LINT_REPO_OVERRIDE)'
 SUPPRESSION_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET)[[:space:]]*[=:]'
 SPLITLINES_PATTERN='\.splitlines\(\)'
 
@@ -105,19 +105,20 @@ run_suppression_guard() {
 }
 
 run_splitlines_guard() {
-    # Verify no check-*.py or covered generators in $1 use raw .splitlines().
+    # Verify no .py file in $1 uses raw .splitlines() outside the two exempted files.
     # Scans non-comment lines only (grep -v '^\s*#') so intentional comments
     # documenting the old API do not trigger false positives.
-    # Exempt: spec_lint_primitives.py (defines cm_splitlines itself) and
-    #         test_spec_lint_primitives.py (tests the primitive).
-    # Stage 3 scope (BI-040): check-*.py + all generators (gen-bc-traceability.py,
-    # gen-slug-corpus.py, gen-bc-index.py, gen-ec-registry.py, gen-prd-sections.py, gen-rtm.py).
+    # Exempt: spec_lint_primitives.py (defines cm_splitlines itself, and its docstring
+    #         mentions str.splitlines() as documentation) and test_spec_lint_primitives.py
+    #         (calls s.splitlines() intentionally to derive the divergent codepoint set).
+    # Widened from explicit list to "$dir"/*.py (W5 — BI-040) so any new module added
+    # to the directory is automatically covered, including spec_lint_primitives.py
+    # itself (detecting if a raw .splitlines() is added outside cm_splitlines).
     # D-057: prints runtime count of files scanned; fails if 0 files found.
     # Returns 0 = all clear, 2 = guard fired.
     local dir="$1"
     local count=0
-    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py" \
-             "$dir/gen-bc-index.py" "$dir/gen-ec-registry.py" "$dir/gen-prd-sections.py" "$dir/gen-rtm.py"; do
+    for f in "$dir"/*.py; do
         [[ -f "$f" ]] || continue
         [[ "$(basename "$f")" == "spec_lint_primitives.py" ]] && continue
         [[ "$(basename "$f")" == "test_spec_lint_primitives.py" ]] && continue
