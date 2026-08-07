@@ -90,4 +90,19 @@ PRD v1.9 | 66 BCs (all carry owning module, criticality tier, VP anchor) | 25 VP
 
 ---
 
+## Session Resume Checkpoint (2026-08-07) — D-071 (post-PR #3 merge)
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-07 |
+| **Position** | phase-1d; PR #3 MERGED as `651ee3a` on `develop`; no open PRs; 0 of 3 clean passes; next: WS-2 rebase `feature/bi-012-generators` + FACT-7/8/9/10 negative tests (BI-035) |
+| **Convergence counter** | 0 of 3 clean passes; pass 5 COMPLETE (259 findings); pass 6 blocked in order: (1) WS-2 bi-012 generators rebase + BI-035 FACT negative tests; (2) WS-3 pass-6 skip-list re-audit (D-060/BI-034) + BI-023; (3) WS-3b Option-3 story (BI-040); (4) WS-4 ~306-finding remediation burst (BI-024/025/026/027/028); (5) WS-5 pass 6 + Phase 1 gate |
+| **Next burst** | WS-2: rebase `feature/bi-012-generators` (`78ef3a4`) onto `develop` (`651ee3a`); add FACT-7/8/9/10 negative tests (BI-035); merge under D-028/D-031 autonomy level 4. Standing directives: autonomy level 4 merge-only-after-full-review-lifecycle; spec-lint ADVISORY until Phase-1 convergence; macOS-latest-only; SS-10 `--online` IN scope; wrap at 430K at clean boundaries; no multi-agent fan-outs above 350K. |
+
+*Superseded by D-074 session wrap.*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

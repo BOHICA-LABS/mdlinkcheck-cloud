@@ -620,3 +620,65 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 **Dim-7 Attestation:** Agents dispatched this session: pr-reviewer (PR #3 at `51e6be8`, `3299d3e`, `65f4664`, `f44147e`, `6e785b4`, `7c1eccf`), state-manager (this burst).
 
 **Closes:** BI-016, BI-036. **Opens:** BI-039, BI-040.
+
+---
+
+## Burst: burst 15 — PR #6 merged as 7b9aa6d; D-072..D-074; BI-041/042/043 OPENED; session wrap D-074 (2026-08-07)
+
+**Parent-commit:** `2ea28bf` (factory(phase-1d): D-071 session wrap — PR #3 merged as 651ee3a; D-068..D-071; BI-016/036 closed; BI-039/040 opened)
+
+**Adversary verdict:** No new adversary pass this burst. This burst is a state-manager session wrap only: PR #6 merge recorded, D-072..D-074 codified, BI-041/042/043 opened, BI-035 re-scoped, SESSION-HANDOFF.md RESUME SNAPSHOT D-074 written.
+
+**Headline outcome:** PR #6 MERGED as `7b9aa6d` on `develop` (squash, branch deleted) after 5 review cycles (REQUEST_CHANGES at `a642d24`; APPROVE-with-eyes-open at `0ad5c5e` — orchestrator declined, MAJOR-4..7 sent back; REQUEST_CHANGES at `06b58b6`; APPROVE at `90840ca`). `develop`: `651ee3a` → `7b9aa6d`. No open PRs. Worktree topology: exactly two entries — main checkout on `develop`, `.factory` on `factory-artifacts`. `feature/bi-012-generators` branch and `.worktrees/ws-b-generators` removed; commit `78ef3a4` remains recoverable in the object store.
+
+**Landed in PR #6:**
+- `scripts/spec-lint/check-canonical-facts.py` (188 lines) — checker wired into `ci.yml` + `justfile` spec-lint recipe
+- `scripts/spec-lint/gen-bc-traceability.py` (429 lines) — generates BC Architecture Module rows; write mode gated behind `--write` + RuntimeError guard; bare invocation refuses
+- `scripts/spec-lint/gen-slug-corpus.py` (494 lines) — generates VP-018 slug corpus; same write-mode gates
+- Selftest suite expanded: 36 → 49
+- `check-canonical-facts` post-merge reports: `OK — all 31 bindings match canonical values (11 facts)`
+
+**Files touched (Dim-1): 5 unique files**
+
+- `.factory/STATE.md` — timestamp, current_step, Last Updated, Current Phase Steps (+1 row), Decisions Log (D-072..D-074), Blocking Issues (BI-021 updated, BI-035 re-scoped, BI-041/042/043 OPENED), Session Resume Checkpoint (D-074), spec snapshot line, Concurrent Cycles
+- `.factory/SESSION-HANDOFF.md` — D-071 header marked SUPERSEDED by D-074; new RESUME SNAPSHOT D-074 appended
+- `.factory/cycles/phase-1d/burst-log.md` — this entry
+- `.factory/cycles/phase-1d/lessons.md` — lessons 30..36 appended (7 new lessons)
+- `.factory/cycles/phase-1d/session-checkpoints.md` — D-071 checkpoint archived
+
+**Key events this session:**
+
+1. **D-072 — HARD ORDERING: BI-040 must close before WS-4 begins.** WS-4 remediates ~306 findings and uses spec-lint checkers as the verification oracle. A verifier with a known-open bypass family (BI-040 `splitlines()`/`strip()`) must not be the oracle for its own fixes. This is the D-050/D-057 lesson applied to our own tooling. Queue crystallised: WS-2→WS-3→WS-3b (Option-3 story, BI-040 as landing gate)→WS-4→WS-5.
+
+2. **D-073 — PR #6 permitted to merge with BI-035 HALF-discharged.** FACT-7 (`"macOS and Linux"` must fail) and FACT-8 (`"macOS and Windows"` must fail) production patterns verified sound. FACT-9 and FACT-10 NOT discharged — 17 of 31 bindings tautological (literal-baked prefix-presence instead of value-mismatch capture). Ordered debt: BI-042 is the FIRST work item once the concurrent `.factory/specs` editor releases the tree, ahead of WS-3 and WS-3b.
+
+3. **D-074 — PR #6 merged as `7b9aa6d` under D-028/D-031 autonomy level 4.** Full review lifecycle: REQUEST_CHANGES at `a642d24`; APPROVE-with-eyes-open at `0ad5c5e` (orchestrator declined, sent MAJOR-4..7 back); REQUEST_CHANGES at `06b58b6`; APPROVE at `90840ca`. Freshness via `check-stale-verdict.sh 6 <90840ca full SHA>`; merged via `enforce-merge-strategy.sh 6 --squash --delete-branch`. Non-advisory CI green; `Spec lint` FAILURE accepted advisory per D-029/D-032. Rebase rejected in favour of cherry-pick of `78ef3a4` — six of the stale branch's seven commits were PR #3's pre-squash history already present on `develop` as `651ee3a`.
+
+4. **BI-035 re-scoped — remains OPEN, HALF-discharged.** FACT-7 and FACT-8 production patterns sound (verified by PR #6 merge and selftest 25). FACT-9 (6 bindings, every extracted link destination) and FACT-10 (7 bindings, invalid `--ignore` glob) NOT discharged — tautological capture groups, synthetic selftest patterns say nothing about production patterns. Carried to BI-042. BI-035 closes only when BI-042 closes.
+
+5. **BI-021 updated — remains OPEN.** The new `.git` boundary stop in `check-canonical-facts.py` halts the walk before reaching the main checkout's `.factory/` from a real linked worktree (where `.git` is a pointer FILE), exits 1 with clearer message. Fixed: a fail-OPEN regression where an unbounded ancestor walk could bind a decoy `canonical-facts.toml` and print `OK — all 1 bindings match` with exit 0. Selftest 25 pins the real linked-worktree condition with a `.git` pointer-file fixture, mutation-verified in both directions. Net: silent false GREEN traded for loud, self-documenting refusal. Still requires uniform fix before Phase 3 story worktrees.
+
+6. **BI-041 OPENED (HIGH, blocking phase-3).** `gen-bc-traceability.py` write mode is LOSSY: regenerates BC `| Architecture Module |` row from `bc-module-map.md` and DESTROYS hand-authored annotations. Orchestrator verified 6 annotation-bearing lines removed with zero surviving; reviewer independently found ~20+ annotated rows unreproducible. Destroyed: INC-MAP-002, INC-MAP-003 (D-062 routing requirement), INC-MAP-004 (VP-016 formal assignment). MITIGATION LANDED: Gate 1 concurrency (bare invocation refuses) + Gate 2 BI-041 (`--write` refuses unconditionally); function-level RuntimeError; no write capability in file. Reviewer attacked 14 argv × 2 generators × 6 env vars; recursive shasum manifest diff confirmed zero paths reach a write. RESOLUTION: adjudicate whether generator models annotations or they migrate first.
+
+7. **BI-042 OPENED (HIGH, blocking phase-1 gate, FIRST WORK ITEM per D-073).** 17 of 31 `canonical-facts.toml` bindings have tautological capture groups — ALL 6 FACT-9 and ALL 7 FACT-10 bindings. Production bindings are literal-baked prefix-presence checks; selftests 21/22 define SYNTHETIC patterns proving a synthetic pattern can fail while saying nothing about production. DEMONSTRATED: selftest 22's negative vector PASSES the real FACT-10 pattern (the exact D-062 forbidden string). Same class FACT-9.
+
+8. **BI-043 OPENED (LOW, blocking phase-3).** `parent.parent.parent` repo-root heuristic survives in 8 other checkers plus both new generators. Fails CLOSED (usability defect, not safety). Also: a `.git`-less working tree can escape to an ancestor and print OK. Fix uniformly before Phase 3 story worktrees.
+
+9. **Reviewer-flagged APPROVE not accepted as merge authorization (lesson 31).** `0ad5c5e` review returned APPROVE while flagging four MAJORs as "merge with eyes open." Orchestrator declined and sent them back; all four were real, and MAJOR-4 was a live silent-coverage hole in a guard added that same session.
+
+10. **cherry-pick over rebase (positive lesson, lesson 32).** Stale branch carried six commits already on `develop` as `651ee3a`. Rebasing would have conflicted against the squash for no benefit; cherry-pick of `78ef3a4` resolved one `run-selftests.sh` conflict (keeping develop's 36 tests, appending new ones). Reviewer counted 47 and later 49 tests; all 36 of develop's survived.
+
+**Codifications:** D-072..D-074 recorded. BI-041/042/043 OPENED. BI-035 remains open, re-scoped. BI-021 remains open, updated. Convergence counter unchanged: 0 of 3 clean passes.
+
+**Artifact state at burst close:**
+PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-204 (205 ids) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-074 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/036/038. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/034/035/037/039/040/041/042/043.
+
+**Dim-2 Attestation:** `canonical-facts.toml` now carries 11 facts / 31 bindings (landed in PR #6). `check-canonical-facts` post-merge reports `OK — all 31 bindings match canonical values (11 facts)`. FACT-7 and FACT-8 production patterns verified sound. FACT-9/10 tautological — tracked in BI-042.
+
+**Dim-5 Attestation:** STATE.md updated — D-072..D-074 added, BI-021 updated, BI-035 re-scoped, BI-041/042/043 opened, resume checkpoint replaced (D-074), spec snapshot updated. burst-log.md — 15 bursts. lessons.md — 36 lessons. session-checkpoints.md — D-071 checkpoint archived. blocking-issues-resolved.md — no closures this burst.
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 unchanged. Pass 6 blocked in order: (1) BI-042 (FIRST, once .factory/specs editor releases); (2) WS-3 skip-list re-audit (D-060/BI-034 + BI-023); (3) WS-3b Option-3 story (BI-040 as landing gate); (4) WS-4 ~306-finding remediation burst — BLOCKED on BI-040 per D-072; (5) WS-5 pass 6 + Phase 1 gate.
+
+**Dim-7 Attestation:** Agents dispatched: pr-reviewer (PR #6 at `a642d24`, `0ad5c5e`, `06b58b6`, `90840ca`), state-manager (this burst).
+
+**Closes:** (none this burst). **Opens:** BI-041, BI-042, BI-043. **Re-scoped (open):** BI-035. **Updated (open):** BI-021.
