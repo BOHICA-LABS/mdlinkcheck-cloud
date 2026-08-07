@@ -148,19 +148,6 @@ def extract_tv_rows(path: Path) -> list[tuple[str, str, str, int]]:
     return rows
 
 
-# PENDING SPEC REVIEW (cycle-5): The following EC IDs are flagged as description
-# collisions by the Jaccard-similarity detector (low token overlap between entries
-# in different BC files). They have not yet been explicitly classified by a spec
-# reviewer as genuine collisions or intentional paraphrases.
-# Do NOT silently remove these from output until the spec is corrected.
-#
-# EC-030: "NFC vs NFD normalization in filename" vs "docs is a directory, no fragment"
-# EC-031: "Unicode filename uppercase/lowercase" vs "empty link target [x]()"
-# EC-034: "URL-encoded hash in path (%23)" vs "trailing slash on regular file"
-# EC-060: "emoji duplicate heading (🦀/🎯Rust)" vs "anchor-to-existing-heading"
-# EC-075: "cross-file anchor where heading exists" vs "empty anchor #"
-# EC-076: "cross-file anchor where heading missing" vs "double-hash ## in path"
-# EC-087: "HTTP 429 response" vs "429 with Retry-After: 30" — ambiguous (both 429)
 def main() -> int:
     if not SPECS.exists():
         print(f"ERROR: Spec tree not found at {SPECS} — cannot run check (no spec files to validate)", file=sys.stderr)
