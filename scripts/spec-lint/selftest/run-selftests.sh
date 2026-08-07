@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=49
+EXPECTED_TEST_COUNT=55
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -1084,63 +1084,160 @@ MD21BAD
 fi
 rm -rf "$T"
 
-# ── Test 22: check-canonical-facts — FACT-10 negative (second config_error trigger) ─────
-# BI-035: FACT-10 canonical_value = 'invalid `--ignore` glob'.
-# Negative vector: 'invalid `--ignore` glob or unrecognized flag' — adds a second spurious
-# trigger, which D-062 explicitly ruled out (unrecognized flags are handled by clap before
-# app::run(); they never reach verdict::exit_code). Exactly one trigger exists.
-# Pattern uses flexible quotes-capture so the != branch fires even with backtick content.
-# Mutation-verify: neutralizing != flips this test to FAIL.
+# ── Test 22: check-canonical-facts — FACT-10 binding-25 production pattern Phase A ──────
+# BI-042 rewrite (D-076 applied). The old selftest used a synthetic flexible pattern
+# 'config error trigger: "(.*?)"' that never exercised any production FACT-10 binding.
+# This rewrite uses the ACTUAL production binding-25 pattern:
+#   '\(sole trigger: ([^\n,]+?) pattern,'
+# which was corrected by D-076 from the tautological form:
+#   'sole trigger: (invalid `--ignore` glob)'
+#
+# Phase A: uses the production pattern; defect is complete replacement of the sole trigger.
+# Phase B (selftest 22b below): same pattern; defect is prefix-extension adversarial vector
+#   (invalid `--ignore` glob OR unrecognized flag) — the exact class that silently passed
+#   the old tautological pattern. Proved to have teeth:
+#   - OLD tautological: exit 0 on prefix-extension text (false negative confirmed)
+#   - PRODUCTION corrected: exit 1 + DIVERGE with 'or unrecognized flag' in extracted value
+
+# ── Derive FACT-10 binding-25 pattern from production canonical-facts.toml ──────────────
+# Tests 22 and 22b gate the PRODUCTION binding, not a hardcoded snapshot copy.
+# If binding-25 is ever edited, these tests automatically use the new pattern.
+# Resolve the .factory worktree path via git's common dir so this works from
+# any worktree (not just the main repo where $REPO/.factory is directly accessible).
+_GIT_COMMON=$(git -C "$REPO" rev-parse --git-common-dir 2>/dev/null)
+if [[ "$_GIT_COMMON" != /* ]]; then
+    # Relative path (main worktree): normalize to absolute
+    _GIT_COMMON="$(cd "$REPO/$_GIT_COMMON" && pwd)"
+fi
+_MAIN_REPO="$(dirname "$_GIT_COMMON")"
+BINDING25_PATTERN=$(python3 - "$_MAIN_REPO/.factory/specs/canonical-facts.toml" <<'PY'
+import sys, pathlib
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib  # Python < 3.11 fallback
+toml_path = pathlib.Path(sys.argv[1])
+d = tomllib.loads(toml_path.read_text())
+# "sole trigger parenthetical" is the discriminator for binding-25 specifically:
+#   note = "CAP-014 exit-2 condition — sole trigger parenthetical"
+# Other FACT-10 bindings also contain "sole trigger" but not "parenthetical".
+pats = [b["pattern"] for b in d.get("binding", [])
+        if b.get("fact_id") == "FACT-10" and "sole trigger parenthetical" in b.get("note", "")]
+assert len(pats) == 1, f"expected exactly 1 FACT-10 sole-trigger-parenthetical binding, got {len(pats)}"
+print(pats[0])
+PY
+)
+if [ -z "$BINDING25_PATTERN" ]; then
+    echo "FATAL: could not derive FACT-10 binding-25 pattern from canonical-facts.toml" >&2
+    exit 1
+fi
+
 TESTS_RUN=$((TESTS_RUN + 1))
-echo "── selftest 22: check-canonical-facts: FACT-10 negative — second config_error trigger fails ──"
+echo "── selftest 22: check-canonical-facts: FACT-10 binding-25 production pattern — complete-replacement defect ──"
 T=$(make_temp)
 mkdir -p "$T/.factory/specs"
 
-cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML22'
+cat > "$T/.factory/specs/canonical-facts.toml" <<TOML22
 [[fact]]
-id              = "FACT-10-NEG"
-description     = "config_error has exactly one trigger: invalid --ignore glob (D-062)"
-canonical_value = 'invalid `--ignore` glob'
+id              = "FACT-10-SELFTEST"
+description     = "config_error sole trigger: invalid --ignore glob (production FACT-10 binding-25 pattern)"
+canonical_value = 'invalid \`--ignore\` glob'
 source          = "selftest"
 
 [[binding]]
-fact_id = "FACT-10-NEG"
+fact_id = "FACT-10-SELFTEST"
 file    = ".factory/specs/selftest-fact10.md"
-note    = "sole trigger declaration"
-pattern = 'config error trigger: "(.*?)"'
+note    = "sole trigger parenthetical (FACT-10 binding-25 production context)"
+pattern = '$BINDING25_PATTERN'
 TOML22
 
 cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22CLEAN'
-Exit-2 conditions:
-config error trigger: "invalid `--ignore` glob"
+(sole trigger: invalid `--ignore` glob pattern, the only exit-2 condition)
 MD22CLEAN
 
-CLEAN_PASS=0
+CLEAN_PASS_22A=0
 if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
-    CLEAN_PASS=1
+    CLEAN_PASS_22A=1
 else
-    echo "  STRUCTURAL FAIL: checker failed on clean FACT-10 tree"
+    echo "  STRUCTURAL FAIL: checker failed on clean FACT-10 tree (Phase A)"
     FAILURES=$((FAILURES + 1))
 fi
 
-if [ "$CLEAN_PASS" = "1" ]; then
-    # Negative vector: adds unrecognized flag as a second spurious trigger (D-062 rejected).
-    # Clap handles unrecognized flags before app::run(); they never reach verdict::exit_code.
-    cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22BAD'
-Exit-2 conditions:
-config error trigger: "invalid `--ignore` glob or unrecognized flag"
-MD22BAD
+if [ "$CLEAN_PASS_22A" = "1" ]; then
+    # Phase A defect: complete replacement — different phrase entirely (None → DIVERGE path)
+    cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22ABAD'
+(sole trigger: unrecognized flag pattern, the only exit-2 condition)
+MD22ABAD
     if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
-        echo "  FAIL (checker returned 0 — two-trigger claim should DIVERGE from sole-trigger canonical)"
+        echo "  FAIL (checker returned 0 — complete-replacement defect should DIVERGE)"
         FAILURES=$((FAILURES + 1))
     else
-        CF_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
-        if echo "$CF_OUTPUT" | grep -q "DIVERGE \[FACT-10-NEG\]"; then
-            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-10-NEG] correctly reported for second trigger)"
+        CF22A=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF22A" | grep -q "DIVERGE \[FACT-10-SELFTEST\]"; then
+            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-10-SELFTEST] correctly reported for complete-replacement defect)"
         else
-            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-10-NEG]' not in output)"
-            echo "  Actual output: $CF_OUTPUT"
+            echo "  FAIL (checker exited non-zero but DIVERGE [FACT-10-SELFTEST] not in output)"
+            echo "  Actual output: $CF22A"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+
+# ── Test 22b: check-canonical-facts — FACT-10 binding-25 Phase B — prefix-extension vector ─
+# BI-042 regression gate: prefix-extending the canonical phrase ('invalid `--ignore` glob OR
+# unrecognized flag') silently passed the OLD tautological pattern (exit 0 false negative).
+# The corrected production pattern detects it via the bounded wildcard ([^\n,]+?).
+# This test WILL fail if binding-25 is ever reverted to the tautological form — that is the
+# whole point.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 22b: check-canonical-facts: FACT-10 binding-25 — prefix-extension vector DIVERGE (BI-042) ──"
+
+# Rewrite canonical-facts.toml (Phase B uses same production pattern)
+cat > "$T/.factory/specs/canonical-facts.toml" <<TOML22B
+[[fact]]
+id              = "FACT-10-SELFTEST"
+description     = "config_error sole trigger: invalid --ignore glob (production FACT-10 binding-25 pattern)"
+canonical_value = 'invalid \`--ignore\` glob'
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-10-SELFTEST"
+file    = ".factory/specs/selftest-fact10.md"
+note    = "sole trigger parenthetical (FACT-10 binding-25 production context)"
+pattern = '$BINDING25_PATTERN'
+TOML22B
+
+# Phase B clean-pass: canonical text
+cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22BCLEAN'
+(sole trigger: invalid `--ignore` glob pattern, the only exit-2 condition)
+MD22BCLEAN
+
+CLEAN_PASS_22B=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS_22B=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean FACT-10 tree (Phase B)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS_22B" = "1" ]; then
+    # Phase B defect: prefix-extension adversarial vector — 'or unrecognized flag' appended.
+    # The old tautological pattern exits 0 here (false negative); the corrected pattern exits 1.
+    cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22BBAD'
+(sole trigger: invalid `--ignore` glob or unrecognized flag pattern, the only exit-2 condition)
+MD22BBAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — prefix-extension adversarial text should DIVERGE)"
+        FAILURES=$((FAILURES + 1))
+    else
+        CF22B=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF22B" | grep -q "DIVERGE \[FACT-10-SELFTEST\]" && echo "$CF22B" | grep -qF "or unrecognized flag"; then
+            echo "  PASS (clean-pass confirmed with FP-guard; prefix-extension correctly detected; 'or unrecognized flag' in extracted value)"
+        else
+            echo "  FAIL (DIVERGE [FACT-10-SELFTEST] or 'or unrecognized flag' not in output)"
+            echo "  Actual output: $CF22B"
             FAILURES=$((FAILURES + 1))
         fi
     fi
@@ -1335,8 +1432,11 @@ cp "$LINT_DIR/check-canonical-facts.py" "$T/.worktrees/BI021-SIM/scripts/spec-li
 
 # Clean pass: without SPEC_LINT_REPO_OVERRIDE, boundary stop fires at .git → exit non-zero
 # with guidance message naming SPEC_LINT_REPO_OVERRIDE.
+# env -u ensures the ambient SPEC_LINT_REPO_OVERRIDE (set by the calling workflow per
+# BI-021/BI-043) does not leak into this subprocess — this test specifically exercises
+# the without-override code path (BI-045).
 CLEAN_PASS=0
-BI021_OUT=$(python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+BI021_OUT=$(env -u SPEC_LINT_REPO_OVERRIDE python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" 2>&1)
 BI021_EXIT=$?
 if [ "$BI021_EXIT" -ne 0 ] && echo "$BI021_OUT" | grep -q "SPEC_LINT_REPO_OVERRIDE"; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
@@ -1778,9 +1878,12 @@ printf "gitdir: ../../.git/worktrees/inner\n" > "$T/inner/.git"
 # Copy the FIXED script into the simulated inner repository
 cp "$LINT_DIR/check-canonical-facts.py" "$T/inner/scripts/spec-lint/"
 
-# Clean pass: boundary stop must fire and script must exit non-zero (fail-closed)
+# Clean pass: boundary stop must fire and script must exit non-zero (fail-closed).
+# env -u ensures the ambient SPEC_LINT_REPO_OVERRIDE (set by the calling workflow per
+# BI-021/BI-043) does not leak into this subprocess — this test specifically exercises
+# the without-override code path (BI-045).
 CLEAN_PASS=0
-BOUND_OUT=$(python3 "$T/inner/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+BOUND_OUT=$(env -u SPEC_LINT_REPO_OVERRIDE python3 "$T/inner/scripts/spec-lint/check-canonical-facts.py" 2>&1)
 BOUND_EXIT=$?
 if [ "$BOUND_EXIT" -ne 0 ]; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
@@ -1793,9 +1896,12 @@ fi
 
 if [ "$CLEAN_PASS" = "1" ]; then
     # Defect: remove inner/.git — the boundary stop no longer fires; walk escapes to
-    # $T/ and finds the decoy canonical-facts.toml, producing a false pass (exit 0)
+    # $T/ and finds the decoy canonical-facts.toml, producing a false pass (exit 0).
+    # env -u ensures the ambient SPEC_LINT_REPO_OVERRIDE cannot bypass the decoy
+    # escape scenario — the defect must be proved by the walk reaching the decoy,
+    # not by inheriting the real repo from the environment (BI-045).
     rm "$T/inner/.git"
-    DEFECT_OUT=$(python3 "$T/inner/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+    DEFECT_OUT=$(env -u SPEC_LINT_REPO_OVERRIDE python3 "$T/inner/scripts/spec-lint/check-canonical-facts.py" 2>&1)
     DEFECT_EXIT=$?
     if [ "$DEFECT_EXIT" -eq 0 ]; then
         echo "  PASS (clean-pass confirmed; boundary stop prevents false pass; without .git, decoy is found)"
@@ -3220,6 +3326,273 @@ HSIX_DEFECT
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; indented fence treated as prose; phantom row detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test NV-1: check-placeholders — em-dash in VP-NNN column (R2-RULE) ────────
+# The old TEST_SUFFICIENT_IN_VP_COL predicate was a value-blacklist anchored on
+# one literal spelling ("test-sufficient") — a class that was already dead (0
+# occurrences in live tree) while em-dash U+2014 (55 occurrences) sailed through.
+# R2-RULE inverts the predicate to a shape-whitelist: any first cell in a VP-NNN-
+# headed table that is NOT a VP-\d{3} or VP-NONE sentinel is a POL-14 violation.
+#
+# Clean tree contains good-placeholder-vp-column.md — the NV-2 FP anti-vector —
+# so the clean-pass step simultaneously proves:
+#   (a) the em-dash defect is not in the clean tree, AND
+#   (b) legitimate em-dashes (prose, non-VP tables, multi-VP cells, fenced template)
+#       are NOT flagged — the false-positive guard (NV-2) is part of the clean step.
+#
+# Mutation-flip: revert R2-RULE to TEST_SUFFICIENT_IN_VP_COL. The em-dash in
+# bad-placeholder-vp-emdash.md passes the old predicate; checker exits 0 → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest NV-1: check-placeholders: em-dash in VP-NNN column (R2-RULE) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree uses good-placeholder-vp-column.md (the NV-2 FP anti-vector):
+# legitimate em-dash in prose + Property column, multi-VP cell, non-VP table
+# em-dashes, and a fenced-block template — all must remain unflagged.
+cp "$FIXTURE_DIR/good-placeholder-vp-column.md" \
+    "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-good-vp.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (good-placeholder-vp-column.md)"
+    echo "  This file contains ONLY legitimate em-dash uses; R2-RULE must not flag them."
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Inject the defect: VP-NNN table data row with em-dash as first cell
+    cp "$FIXTURE_DIR/bad-placeholder-vp-emdash.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-vp-emdash.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch em-dash in VP-NNN column)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed with FP-guard; em-dash in VP-NNN column correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test NV-1b: check-placeholders — comma-only cell in VP-NNN column (BLOCK-1 guard) ─────
+# Mutation-flip: revert `_is_valid_vp_cell` to the pre-BLOCK-1 form:
+#   tokens = re.split(r"[,/]", first_cell)
+#   return bool(tokens) and all(_VP_TOKEN_RE.match(t.strip()) for t in tokens if t.strip())
+# The comma-only cell (",") splits to ['', ''] → filtered to [] by "if t.strip()" → all([]) → True.
+# Checker exits 0 → FAILS. This test has teeth ONLY against the BLOCK-1 fix — the em-dash
+# fixture (NV-1) fires regardless of this revert, so it cannot guard this class.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest NV-1b: check-placeholders: comma-only cell in VP-NNN column (BLOCK-1 guard) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree uses good-placeholder-vp-column.md — same FP anti-vector as NV-1.
+cp "$FIXTURE_DIR/good-placeholder-vp-column.md" \
+    "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-good-vp.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (good-placeholder-vp-column.md)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Inject ONLY the comma-only fixture — NOT the em-dash fixture.
+    # The em-dash would fire regardless of the BLOCK-1 fix; this fixture has teeth only
+    # when _is_valid_vp_cell correctly rejects punctuation-only (all-empty-after-split) cells.
+    cp "$FIXTURE_DIR/bad-placeholder-vp-punctuation-only.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-vp-punctuation.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch comma-only cell in VP-NNN column)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; comma-only cell in VP-NNN column correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test NV-3: check-id-resolution — non-conforming EC ID shape (R3-A) ────────
+# EC-NEW-1 in an Edge Cases table first cell was invisible to the checker because
+# r"\bEC-(\d+)([a-z]?)\b" requires digits immediately after EC-, and "N" is not
+# a digit. The entire token was lexically absent from the match set.
+# R3-A (positional): first cell of EC/ID-column table must match ^~?~?EC-\d{1,4}[a-z]?~?~?$.
+#
+# Clean tree uses good-ec-historical-changelog.md (the NV-5 FP anti-vector):
+# historical changelog EC-NEW-3 (R3-C scoped out), metasyntax (EC-NNN, VP-NNN etc.),
+# BC-to / VP-to / BC-H1 prose compounds — all must remain unflagged.
+#
+# Mutation-flip: revert R3-A (remove EC/ID-column table tracking). EC-NEW-1 is
+# invisible to the existing r"\bEC-(\d+)([a-z]?)\b" scanner; checker exits 0 → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest NV-3: check-id-resolution: non-conforming EC ID in ID column (R3-A) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+# EC-001 must be registered so that conforming rows in the defect fixture do not fire
+printf '| TV-001 | EC-001 | `a.md` | clean | 0 | clean | no-reason |\n' \
+    > "$T/.factory/specs/prd-supplements/test-vectors.md"
+
+# Clean tree: good-ec-historical-changelog.md — the NV-5 FP anti-vector.
+# Contains: historical EC-NEW-3 in changelog (must NOT fire R3-B via R3-C),
+# metasyntax tokens (EC-NNN, VP-NNN, DD-NNN), prose compounds (BC-H1, BC-to),
+# and a conforming EC-001 table row.  All must exit 0.
+cp "$FIXTURE_DIR/good-ec-historical-changelog.md" \
+    "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-good-ec.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-id-resolution.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (good-ec-historical-changelog.md)"
+    echo "  This file contains ONLY conforming/historical EC references; none must be flagged."
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Inject the defect: EC-NEW-1 in the first cell of an EC-column table row
+    cp "$FIXTURE_DIR/bad-ec-nonconforming-shape.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-ec-shape.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-id-resolution.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch EC-NEW-1 in ID column)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed with FP-guard; non-conforming EC-NEW-1 correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test NV-4: check-id-resolution — class-level non-conforming ID shapes (R3-B) ─
+# D-069 class-closure vector. NV-3 alone could be satisfied by a checker hardcoding
+# "EC-NEW-". This test uses EC-DRAFT-7 and DI-PENDING-2 — tokens absent from the
+# entire repo — so a hardcoded "EC-NEW-" check exits 0 and the test FAILS (correctly).
+# R3-B grammar: \b(CAP|...|EC)-[A-Za-z][A-Za-z0-9]*-\d+\b — no mention of "NEW".
+#
+# Two findings are required:
+#   1. non-conforming EC ID in ID column 'EC-DRAFT-7'  (R3-A, table-positional)
+#   2. non-conforming DI ID shape 'DI-PENDING-2'        (R3-B, prose-lexical)
+# Both messages must be present; checking only exit code would admit a single-family
+# hardcode that catches one but not the other.
+#
+# Mutation-flip: revert R3-B to only EC family. DI-PENDING-2 is not caught; only
+# one message emitted; the DI-PENDING-2 assertion fails → NV-4 FAILS (correctly).
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest NV-4: check-id-resolution: class-level non-conforming ID shapes (R3-B) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+printf '| TV-001 | EC-001 | `a.md` | clean | 0 | clean | no-reason |\n' \
+    > "$T/.factory/specs/prd-supplements/test-vectors.md"
+
+# Clean tree: same FP anti-vector as NV-3 (good-ec-historical-changelog.md)
+cp "$FIXTURE_DIR/good-ec-historical-changelog.md" \
+    "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-good-ec.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-id-resolution.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (good-ec-historical-changelog.md)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Inject generic defect: EC-DRAFT-7 (EC-column first cell) + DI-PENDING-2 (prose)
+    cp "$FIXTURE_DIR/bad-ec-nonconforming-shape-generic.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-ec-generic.md"
+    NV4_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-id-resolution.py" 2>&1)
+    NV4_EXIT=$?
+    if [ "$NV4_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT detect any non-conforming ID shapes)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$NV4_OUTPUT" | grep -qF "EC-DRAFT-7" && echo "$NV4_OUTPUT" | grep -qF "DI-PENDING-2"; then
+        echo "  PASS (clean-pass confirmed; both EC-DRAFT-7 and DI-PENDING-2 non-conforming shapes detected)"
+    else
+        echo "  FAIL (checker exited non-zero but expected both EC-DRAFT-7 and DI-PENDING-2 in output)"
+        echo "  Actual output:"
+        echo "$NV4_OUTPUT" | sed 's/^/    /'
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test NV-5: check-id-resolution — versioned-changelog positional scoping (R3-C D-081) ──
+# D-081 ruling: a non-conforming ID token under a `### vN.N` ATX heading is an
+# immutable historical record (D-034) and must NOT be flagged by R3-B.
+#
+# Bidirectional test — one direction is insufficient:
+#   Clean (FP guard): EC-NEW-42 appears ONLY under `### v1.3 — ...`
+#     → checker must exit 0 (proves versioned-section occurrence is suppressed)
+#   Defect: EC-NEW-42 added also under `## 9. Future Work` (not a versioned heading)
+#     → checker must exit 1 and flag EC-NEW-42 (proves outside occurrence still detected)
+#
+# If R3-B were simply disabled: clean exits 0 (passes), defect exits 0 (FAILS).
+# If in_versioned_changelog_section were always True: same failure.
+# Both directions are required to prove the scoping is correct.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest NV-5: check-id-resolution: versioned-changelog positional scoping (R3-C D-081) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+
+# Clean fixture: non-conforming EC-NEW-42 appears ONLY inside a ### vN.N section
+cat > "$T/.factory/specs/changelog-scope-test.md" <<'MDNV5CLEAN'
+## 8. Changelog
+
+### v1.3 — Historical Remediation
+
+Non-conforming placeholder EC-NEW-42 was renamed to a registered ID.
+MDNV5CLEAN
+
+CLEAN_PASS_NV5=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-id-resolution.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS_NV5=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean versioned-changelog tree (D-081 scoping not working)"
+    NV5_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-id-resolution.py" 2>&1)
+    echo "  Actual output: $NV5_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS_NV5" = "1" ]; then
+    # Defect: add EC-NEW-42 also under a non-versioned section.
+    # The `## 9. Future Work` heading (level 2, not matching `### v\d+\.\d+`) transitions
+    # in_versioned_changelog_section to False — the following EC-NEW-42 must be flagged.
+    # The `### v1.3` occurrence is retained; it must still NOT be flagged.
+    cat > "$T/.factory/specs/changelog-scope-test.md" <<'MDNV5BAD'
+## 8. Changelog
+
+### v1.3 — Historical Remediation
+
+Non-conforming placeholder EC-NEW-42 was renamed to a registered ID.
+
+---
+
+## 9. Future Work
+
+The placeholder EC-NEW-42 is referenced here outside any versioned section.
+MDNV5BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-id-resolution.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — EC-NEW-42 outside versioned section should be flagged by R3-B)"
+        FAILURES=$((FAILURES + 1))
+    else
+        NV5_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-id-resolution.py" 2>&1)
+        if echo "$NV5_OUT" | grep -qF "EC-NEW-42"; then
+            echo "  PASS (clean-pass confirmed with FP-guard; outside-versioned EC-NEW-42 correctly detected; versioned-section occurrence not flagged)"
+        else
+            echo "  FAIL (checker exited non-zero but EC-NEW-42 not in output)"
+            echo "  Actual output: $NV5_OUT"
+            FAILURES=$((FAILURES + 1))
+        fi
     fi
 fi
 rm -rf "$T"

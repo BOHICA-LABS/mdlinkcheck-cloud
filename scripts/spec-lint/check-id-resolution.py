@@ -25,6 +25,31 @@ ID families and their registries:
   HS-NNN    -> holdout-scenarios/HS-INDEX.md (| HS-NNN |)
   POL-NN    -> .factory/policies.yaml (- id: NN)
 
+Non-conforming ID shape detection (R3-A + R3-B, D-069):
+  R3-A (positional): in any markdown table whose header row's first cell is
+    "EC" or "ID", every data row's first cell MUST match
+    ^~?~?EC-\d{1,4}[a-z]?~?~?$ (strikethrough-tolerant). Any other first-cell
+    value is "non-conforming EC ID in ID column".
+  R3-B (class-level grammar): any token matching
+    \b(CAP|DI|DD|VP|NFR|BC|ADR|HS|POL|EC)-[A-Za-z][A-Za-z0-9]*-\d+\b
+    — a registered family prefix followed by an alphabetic segment and a
+    numeric segment — is a non-conforming ID shape (e.g. EC-NEW-1, VP-DRAFT-3).
+    Zero false positives on 133-file corpus (D-069).
+  R3-C (historical scoping): R3-B findings are suppressed in two cases, both
+    implemented as positional state or functions — never as named sets (D-039):
+    1. Quoted YAML-changelog strings: line contains version marker v\d+.\d+ AND
+       the match is in a quoted context. is_historical_changelog_line().
+    2. Versioned-changelog sections (D-081): a non-conforming ID under a
+       `### vN.N` ATX heading is a historical record immutable under D-034.
+       Tracked via in_versioned_changelog_section state (check_file()).
+       Entry: `^### v\d+\.\d+` (level-3 versioned heading).
+       Exit:  any level-1/2/3 heading NOT matching the versioned pattern.
+       Level-4+ headings are subsections and inherit the current state.
+       Residual: a genuine live defect authored inside a versioned changelog
+       section would be missed. Operator accepted this trade-off (D-081).
+  Fenced code blocks (triple-backtick, CommonMark §4.5) are suppressed from
+    both R3-A and R3-B.
+
 Exit 1 if any unresolvable reference found.
 """
 import os
@@ -48,6 +73,73 @@ HS_INDEX = FACTORY / "holdout-scenarios" / "HS-INDEX.md"
 POLICIES = FACTORY / "policies.yaml"
 ADR_DIR = SPECS / "architecture" / "decisions"
 BC_DIR = SPECS / "behavioral-contracts"
+
+# R3-B: class-level non-conforming ID shape (would-be identifiers, D-069).
+# Triple-segment shape: <FAMILY>-<alphabetic-word>-<digits>.
+# An alphabetic word was interpolated where only registry digits belong.
+# Precision: 12/12 true positives, 0 false positives on 133-file corpus
+# (ws3-phase2-checker-repair-design.md §3.5).
+_WOULD_BE_ID_RE = re.compile(
+    r"\b(CAP|DI|DD|VP|NFR|BC|ADR|HS|POL|EC)-([A-Za-z][A-Za-z0-9]*)-(\d+)\b"
+)
+
+# R3-C: historical-changelog scoping (ported from check-placeholders.py).
+# A line whose match is inside a quoted YAML changelog string
+# (version marker present) is a historical record, not a live reference.
+_IR_CHANGELOG_QUOTED = re.compile(r'"[^"]*v\d+\.\d+[^"]*"')
+
+# R3-A: conforming EC-column first cell pattern (strikethrough-tolerant)
+_EC_ID_CELL_RE = re.compile(r"^~{0,2}EC-\d{1,4}[a-z]?~{0,2}$")
+
+# Table separator cell pattern
+_TABLE_SEP_CELL_RE = re.compile(r"^:?-{2,}:?$")
+
+# R3-C extended (D-081): versioned-changelog heading positional scoping.
+# A ### vN.N ATX heading (exactly level 3, starting with a version token) marks
+# a versioned changelog section. Non-conforming IDs inside such a section are
+# historical records immutable under D-034 and must not be flagged.
+# Level restriction to `###` (not `##` or `#`) is intentional: all observed
+# versioned changelog entries in the corpus use level-3 headings; wider matching
+# would risk extending the scope to non-changelog content.
+_VERSIONED_CHANGELOG_HEADING_RE = re.compile(r"^### v\d+\.\d+")
+
+
+def is_historical_changelog_line(line: str, matched_text: str) -> bool:
+    """Return True if matched_text appears inside a quoted changelog entry on this line.
+
+    R3-C: ported from check-placeholders.is_historical_changelog_line.
+    A quoted changelog entry is a YAML list item like:
+      - "v1.2: P2-M09 — replaced non-conforming EC-NEW-3 with registry-compliant EC-164"
+
+    The predicate: the match is bracketed by double-quotes on the same line
+    AND the line contains a version marker (v\\d+.\\d+).
+    Implemented as a function (not a named set) per the suppression guard (D-039).
+    """
+    pos = line.find(matched_text)
+    if pos == -1:
+        return False
+    before = line[:pos]
+    after = line[pos + len(matched_text):]
+    in_quotes = ('"' in before and '"' in after) or _IR_CHANGELOG_QUOTED.search(line) is not None
+    has_version = bool(re.search(r"v\d+\.\d+", line))
+    return in_quotes and has_version
+
+
+def _split_cells(line: str) -> list:
+    """Split a markdown table row into stripped cell values (ragged-safe)."""
+    parts = line.split("|")
+    if len(parts) < 2:
+        return []
+    inner = parts[1:]
+    if inner and inner[-1].strip() == "":
+        inner = inner[:-1]
+    return [p.strip() for p in inner]
+
+
+def _is_separator_row(cells: list) -> bool:
+    """Return True if all non-empty cells are table separator cells (---, :--:, etc.)."""
+    non_empty = [c for c in cells if c]
+    return bool(non_empty) and all(_TABLE_SEP_CELL_RE.match(c) for c in non_empty)
 
 
 def build_heading_ids(path: Path, pattern: str) -> set[str]:
@@ -148,7 +240,6 @@ def build_valid_ec_ids() -> set[str]:
     # Build the full valid set: base IDs + sub-lettered variants
     ids: set[str] = set()
     for n in base_nums:
-        base = f"EC-{n:03d}" if n < 1000 else f"EC-{n}"
         # Also accept zero-padded and unpadded forms
         ids.add(f"EC-{n}")
         ids.add(f"EC-{n:03d}")
@@ -267,7 +358,76 @@ def check_file(path: Path) -> list[str]:
                 f"{path}:{lineno}: unresolvable {family} reference '{ref}'"
             )
 
+    # State for R3-A (EC-ID-column conformance) and fenced-code suppression
+    in_fenced_code = False
+    table_header_first_cell = None  # first cell of last non-separator | row
+    in_ec_id_column_table = False   # True: in data rows of an EC/ID-column table
+
+    # State for R3-C D-081 positional scoping: True when current position is
+    # inside a versioned changelog section (under a `### vN.N` heading).
+    in_versioned_changelog_section = False
+
     for lineno, line in enumerate(lines, 1):
+        # ── Fenced code block suppression (CommonMark §4.5) ──────────────────
+        # A line whose leftmost content starts with ``` and has fewer than 4
+        # columns of indent is a fenced code block delimiter, not spec content.
+        indent = len(line) - len(line.lstrip())
+        if line.lstrip().startswith("```") and indent < 4:
+            in_fenced_code = not in_fenced_code
+            in_ec_id_column_table = False
+            table_header_first_cell = None
+            continue
+        # ── Table-state tracking for R3-A (gated: suppressed inside fenced blocks) ──
+        # Track whether we are in the data section of an EC/ID-column table.
+        # r3a_first_cell is set when R3-A checks the first cell; used to
+        # suppress R3-B double-reporting on the same token.
+        # The existing EC/CAP/DI/DD/VP/NFR/BC/ADR/HS/POL resolution checks below
+        # run regardless of in_fenced_code — only R3-A and R3-B are suppressed.
+        r3a_first_cell = None
+
+        if not in_fenced_code:
+            if line.startswith("|"):
+                cells = _split_cells(line)
+                if cells:
+                    if _is_separator_row(cells):
+                        # Separator row: determine if this table's header was EC.
+                        # "ID" is intentionally excluded: prd.md uses "| ID | Differentiator |"
+                        # whose first-column cells are KD-NNN (Key Differentiators), not EC IDs.
+                        if table_header_first_cell == "EC":
+                            in_ec_id_column_table = True
+                        else:
+                            in_ec_id_column_table = False
+                        # Separator rows carry no ID content; skip to next line
+                        continue
+                    elif in_ec_id_column_table:
+                        # Data row in an EC-column table: apply R3-A
+                        first_cell = cells[0]
+                        r3a_first_cell = first_cell  # mark for R3-B suppression
+                        if not _EC_ID_CELL_RE.match(first_cell):
+                            violations.append(
+                                f"{path}:{lineno}: non-conforming EC ID in ID column '{first_cell}'"
+                            )
+                        # Fall through so existing ID checks run on the full row
+                    else:
+                        # Header-candidate row (no separator yet for this table)
+                        table_header_first_cell = cells[0]
+                        in_ec_id_column_table = False
+            else:
+                # Non-| line: leave any current table context
+                table_header_first_cell = None
+                in_ec_id_column_table = False
+                # D-081: update versioned-changelog section state on ATX headings.
+                # Level 1-3 headings (# / ## / ###) change the section scope;
+                # level 4+ are subsections that inherit the current scope.
+                if line.startswith("#"):
+                    m_hd = re.match(r"^(#{1,6})\s", line)
+                    if m_hd and len(m_hd.group(1)) <= 3:
+                        in_versioned_changelog_section = bool(
+                            _VERSIONED_CHANGELOG_HEADING_RE.match(line)
+                        )
+
+        # ── Existing ID resolution checks ─────────────────────────────────────
+
         for m in re.finditer(r"\bCAP-(\d+)\b", line):
             ref = f"CAP-{m.group(1)}"
             v(lineno, ref, "CAP", VALID_CAP)
@@ -280,10 +440,13 @@ def check_file(path: Path) -> list[str]:
             ref = f"DD-{m.group(1)}"
             v(lineno, ref, "DD", VALID_DD)
 
+        # VP-(\d+): the guard "if ref != 'VP-TBD'" was removed.
+        # The pattern r"\bVP-(\d+)\b" requires digits after VP-,
+        # so it can never yield "VP-TBD" — the guard was unreachable (latent bug,
+        # ws3-phase2-checker-repair-design.md §3.2 / §3.7 note).
         for m in re.finditer(r"\bVP-(\d+)\b", line):
             ref = f"VP-{m.group(1)}"
-            if ref != "VP-TBD":
-                v(lineno, ref, "VP", VALID_VP)
+            v(lineno, ref, "VP", VALID_VP)
 
         for m in re.finditer(r"\bNFR-(\d+)\b", line):
             ref = f"NFR-{m.group(1)}"
@@ -340,6 +503,33 @@ def check_file(path: Path) -> list[str]:
                     f"{path}:{lineno}: trap reference '{ref}' out of range (valid range T1..T16)"
                 )
             # T references within T1..T16 are valid — no action needed
+
+        # ── R3-B: class-level non-conforming ID shape (D-069) ─────────────────
+        # Any token of shape <FAMILY>-<alpha-segment>-<digits> is a non-conforming
+        # would-be ID. The alpha segment distinguishes a placeholder from a
+        # well-formed ID (digits-only suffix). Zero FPs on 133-file corpus.
+        # Gated: suppressed inside fenced code blocks (CommonMark §4.5).
+        if not in_fenced_code:
+            for m in _WOULD_BE_ID_RE.finditer(line):
+                token = m.group(0)
+                # R3-A priority: skip tokens already handled by R3-A on this line
+                # (avoids double-reporting the same first-cell violation)
+                if r3a_first_cell is not None and token == r3a_first_cell:
+                    continue
+                # R3-C(1): quoted YAML-changelog line — not a live reference
+                if is_historical_changelog_line(line, token):
+                    continue
+                # R3-C(2): versioned-changelog section positional scoping (D-081).
+                # Under a `### vN.N` heading, the entry is an immutable historical
+                # record (D-034) — flagging it would create a permanently-unresolvable
+                # finding. Positional state, not a named set.
+                if in_versioned_changelog_section:
+                    continue
+                family = m.group(1)
+                violations.append(
+                    f"{path}:{lineno}: non-conforming {family} ID shape '{token}' "
+                    f"(expected {family}-NNN)"
+                )
 
     return violations
 
