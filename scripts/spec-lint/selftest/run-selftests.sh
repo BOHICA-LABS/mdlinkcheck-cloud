@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=28
+EXPECTED_TEST_COUNT=34
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -1432,9 +1432,15 @@ rm -rf "$T"
 # was a D-039-forbidden allowlist in disguised form: only rows whose first cell
 # matched the HS-shape pattern were passed through before the separator; all
 # other pre-separator rows (including bold/link/decorated IDs) were dropped
-# uncounted. After the BLOCKING-2 fix, all pre-separator rows are buffered; the
-# last is discarded positionally as the column header; earlier rows are counted.
-# The accounting invariant detects the displaced column header as unclassified.
+# uncounted. After the BLOCKING-2 fix, all pre-separator rows are buffered without
+# any shape gate.
+#
+# D-069 MINOR-1 note: _is_column_header() is applied ONLY to pending_pre_sep[-1]
+# (the last buffered row). The column header "| HS ID | ... |" is the last row
+# before the separator; it is recognised and placed in the column_header bucket.
+# The bold "| **HS-042** | EC-999 | ... |" row is first in the buffer; it goes to
+# data_row via _classify(); "**HS-042**" does not match any HS pattern (** defeats
+# the anchored regex); the row is added to unclassified_lines; B-9 fires.
 # This encodes Proof B (C4 probe) from the D-068 ruling exactly.
 #
 # Mutation-flip: restore the shape-regex gate (re-introduce
@@ -1647,6 +1653,422 @@ HSIX_DEFECT
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; phantom data row in column-header position correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── D-069 property test ────────────────────────────────────────────────────────
+# D-069 structural property: for every generated HS-INDEX input, the conservation
+# law total_candidates == sum(bucket_counts) holds.  No non-blank line may vanish
+# from the accounting regardless of structural variety (heading levels, fenced
+# blocks, pseudo-headings, adjacent-pipe rows, pre-separator rows, decorated IDs).
+#
+# Generator: stdlib random.Random(42), 300 deterministic cases covering:
+#   heading levels 1-6, #-runs without space (#2/#TODO/#note), 4-space-indented ##,
+#   fenced code blocks with heading-like / table-like internals, adjacent pipes (||),
+#   pipeless spaced rows, strikethrough + bold decoration, pre-separator data rows,
+#   empty/dash first cells, h3+ sub-sections, non-HS sections (## Reserved IDs).
+#
+# Mutation: if _flush_pending() omitted the pending_pre_sep[:-1] loop, pre-separator
+# rows would go unbucketed → total_candidates > sum(buckets) → assertion fires →
+# property test FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── D-069 property test: conservation law for 300 generated inputs ──"
+
+CLEAN_PASS=0
+if python3 "$LINT_DIR/check-index-integrity.py" --property-test 1 > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: property test failed even on minimal (1-case) run"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    if python3 "$LINT_DIR/check-index-integrity.py" --property-test 300; then
+        echo "  PASS (300 generated cases all verified conservation law)"
+    else
+        echo "  FAIL (conservation law violated on at least one generated case)"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+
+# ── Test D-069-A: #2 pseudo-heading kills section scope (BLOCKING-1 regression A) ──
+# The prior startswith("#") + level <= 2 check matched '#2 below: wave-2 candidates'
+# (level == 1), set in_authored_scenarios=False, and silently dropped every
+# subsequent row. CommonMark requires space or EOL after the #-run (§4.2); '#2'
+# has no space after '#', so it is not a heading — it is prose. With the D-069
+# _CM_HEADING_RE fix, '#2 below' becomes prose, section scope is unchanged, and
+# the phantom rows after it are counted and caught.
+#
+# Mutation-flip: replace _CM_HEADING_RE.match with re.match(r'^#+', line).
+# '#2 below' matches, level==1, in_authored_scenarios=False; all subsequent rows
+# are prose-bucketed (out of scope); B-9 doesn't fire; checker exits 0 → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest D-069-A: #2 pseudo-heading kills section scope (fixture A) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: insert '#2 below: wave-2 candidates' (not a CommonMark heading)
+    # between two tables. The checker must NOT treat this as a section boundary.
+    # HS-099 → EC-999 (no wave-scenarios file) and near-miss hs_098 must be caught.
+    cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX_DEFECT'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+
+#2 below: wave-2 candidates
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-099 | EC-999 | PHANTOM — no wave-scenarios file | Notes | BC | active |
+| hs_098 | EC-998 | Near-miss ID — also phantom | Notes | BC | active |
+HSIX_DEFECT
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — #2 pseudo-heading killed section scope — D-069-A not fixed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; #2 pseudo-heading treated as prose; phantom rows detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test D-069-A2: fenced-code heading kills section scope (fixture A2) ──────
+# A line like '# Example heading' inside a ``` fence is not a CommonMark ATX
+# heading — it is code content. The prior code did not track fenced code blocks,
+# so it set in_authored_scenarios=False on the fenced heading and silently
+# dropped all subsequent rows. After the D-069 _FENCE_RE fix, lines inside a
+# fenced block land in the fenced_code bucket and never affect section scope.
+#
+# Mutation-flip: remove the fenced-code block tracking (_FENCE_RE / in_fenced_code).
+# The '# heading inside fence' line is treated as an h1 boundary;
+# in_authored_scenarios=False; phantom rows after the fence are prose-bucketed;
+# checker exits 0 → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest D-069-A2: fenced-code heading kills section scope (fixture A2) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: fenced code block containing '# Example heading'. The heading is inside
+    # the fence so it must NOT be treated as a section boundary. Phantom rows after
+    # the fence must be caught.
+    cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX_DEFECT'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+
+```
+# Example heading inside fenced code block
+```
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-099 | EC-999 | PHANTOM after fenced heading | Notes | BC | active |
+HSIX_DEFECT
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — fenced '# heading' killed section scope — D-069-A2 not fixed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; fenced heading treated as code content; phantom rows detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test D-069-A3: 4-space-indented ## kills section scope (fixture A3) ──────
+# A line like '    ## foo' is an indented code block in CommonMark, not a heading.
+# The prior strip() normalised away the 4-space indent before the startswith("#")
+# check, so '    ## foo' appeared as '## foo' and set in_authored_scenarios=False.
+# After the D-069 fix, the raw line is checked for 4+ spaces of indent before
+# testing _CM_HEADING_RE; indented lines land in the prose bucket.
+#
+# Mutation-flip: remove the `not raw.startswith("    ")` guard.  The stripped
+# line '## foo' is a heading at level 2; in_authored_scenarios=False; phantom
+# rows after the indented line are prose-bucketed; checker exits 0 → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest D-069-A3: 4-space-indented ## kills section scope (fixture A3) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: 4-space-indented '    ## indented' (a code block in CommonMark, not a
+    # heading). Must NOT set in_authored_scenarios=False. Phantom rows after it
+    # must be caught.
+    cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX_DEFECT'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+
+    ## 4-space-indented: code block, not a heading
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-099 | EC-999 | PHANTOM after indented pseudo-heading | Notes | BC | active |
+HSIX_DEFECT
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — 4-space indent killed section scope — D-069-A3 not fixed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; 4-space indented ## treated as prose; phantom rows detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test D-069-B: adjacent-pipe pipeless row uncounted (fixture B / MAJOR-1) ─
+# 'HS-099||EC-999' renders as a real GFM table row (verified on GitHub's renderer:
+# <td>HS-099</td><td></td><td>EC-999</td>). The prior gate
+# re.search(r"[^|]\|[^|]", line) required a non-pipe on BOTH sides of some pipe;
+# adjacent '||' has no non-pipe flanking any pipe, so the row was not counted.
+# After the D-069 fix, the regex gate is removed entirely: any in-scope non-pipe
+# line containing at least one '|' is counted as a data_row candidate; B-9 fires.
+#
+# Note: this fixture is distinct from B3 (which tests 'HS-042 | EC-999 | ...'
+# with spaced pipes — those DO pass the old gate). This test specifically isolates
+# the adjacent-pipe gap.
+#
+# Mutation-flip: re-introduce the re.search(r"[^|]\|[^|]") gate on the pipeless
+# path. 'HS-099||EC-999' fails the gate; row not counted; invariant holds;
+# checker exits 0 → D-069-B FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest D-069-B: adjacent-pipe pipeless row uncounted (fixture B) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: append a pipeless adjacent-pipe row 'HS-099||EC-999'. No EC-999 file.
+    # GFM renders this as a real table row. The checker must count it and fire B-9.
+    printf 'HS-099||EC-999\n' >> "$T/.factory/holdout-scenarios/HS-INDEX.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — adjacent-pipe row 'HS-099||EC-999' dropped uncounted — D-069-B not fixed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; adjacent-pipe pipeless row correctly counted and detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test D-069-C: unbounded column-header exemption (fixture C / MINOR-1) ────
+# The prior _is_column_header() was called on EVERY pending_pre_sep row, not just
+# the last. Two consecutive pre-separator rows both with first cell 'HS ID' were
+# both silently exempted — including a phantom data row carrying EC-999.
+# After the D-069 MINOR-1 fix, only pending_pre_sep[-1] is tested; all earlier
+# pending rows go to data_row + _classify(), and B-9 fires on them.
+# Note: GFM renders the second '| HS ID | EC-999 |' row as <thead>, not <td>,
+# so this is MINOR (blast radius bounded), but it is a measurable regression.
+#
+# Mutation-flip: call _is_column_header() on ALL pending_pre_sep rows (not just
+# [-1]). Both '| HS ID | ... |' rows are exempted; EC-999 is not forward-checked;
+# checker exits 0 → D-069-C FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest D-069-C: unbounded column-header exemption (fixture C / MINOR-1) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: two consecutive pre-separator rows both with first cell 'HS ID'.
+    # The first is a phantom carrying EC-999 (no wave-scenarios file); the second
+    # is the real column header. With the MINOR-1 fix, only [-1] (the real header)
+    # is exempted; the first goes to data_row and B-9 fires.
+    cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX_DEFECT'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+| HS ID | EC-999 | PHANTOM in pre-separator position with HS ID first cell | Notes | BC | active |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX_DEFECT
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — two HS ID pre-separator rows both exempted — D-069-C not fixed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; only last pre-separator row exempted; phantom row detected)"
     fi
 fi
 rm -rf "$T"

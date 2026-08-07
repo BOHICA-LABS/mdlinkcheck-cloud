@@ -21,10 +21,27 @@ REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.envir
 SPECS = REPO / ".factory" / "specs"
 FACTORY = REPO / ".factory"
 
+# ── CommonMark ATX heading and fenced-code-block regexes (D-069) ──────────────
+# _CM_HEADING_RE: matches #{1,6} followed by space or EOL (CommonMark §4.2).
+# Does NOT match #2, #TODO, #!note, etc.  Used in get_hs_data() to classify
+# heading lines.  Combined with a 4-space-indent exclusion on the raw line,
+# this closes the pseudo-heading / fenced-code bypass class (fixtures A/A2/A3).
+_CM_HEADING_RE = re.compile(r'^(#{1,6})(?:\s|$)')
+# _FENCE_RE: matches the start/end of a CommonMark fenced code block.
+# A fence is 3+ identical backticks or tildes (optionally 0-3 spaces of indent,
+# which are normalised away by raw.strip() before this is applied).
+_FENCE_RE = re.compile(r'^(`{3,}|~{3,})')
+
 # ── Column-header positive recognition ────────────────────────────────────────
 # _is_column_header() is the ONLY gate that exempts a pre-separator row from
 # count_and_classify().  Its failure mode is COUNTING, not skipping — the inverse
 # of a D-039 allowlist.
+#
+# D-069 MINOR-1 fix: the exemption is applied only to pending_pre_sep[-1] (the
+# last pre-separator row), not to every pre-separator row that matches.  This
+# bounds the exemption to at most one row per table, matching GFM's single-header-
+# per-table semantics and restoring the positional safety of the earlier fix while
+# retaining the positive-recognition approach.
 _HEADER_FIRST_CELLS: frozenset[str] = frozenset({"hs id", "hs-id", "hs_id"})
 
 
@@ -42,8 +59,15 @@ def _is_column_header(l: str) -> bool:
       - allowlist failure  → row becomes invisible (D-039 violation)
       - _is_column_header failure → row is counted and reported (NOT a D-039 violation)
 
-    The asymmetry is load-bearing: it means every recognition gap produces a
+    The asymmetry is load-bearing.  It means every recognition gap produces a
     visible lint error rather than a silent false-pass.
+
+    D-069 MINOR-1: this function is called only on pending_pre_sep[-1] (the last
+    pre-separator row).  All earlier pre-separator rows bypass this function and go
+    directly to count_and_classify(), regardless of their first-cell content.  A
+    hit exempts only that one row; a miss counts and classifies it.  Two consecutive
+    pre-separator rows both matching _HEADER_FIRST_CELLS will cause the first to be
+    counted and unclassified (B-9 fires), not both silently exempted.
     """
     cells = [c.strip() for c in l.strip("|").split("|")]
     if not cells:
@@ -161,99 +185,111 @@ def get_actual_adr_files() -> set[str]:
     return ids
 
 
+def get_hs_data(
+    hs_index_path: "Path | None" = None,
+) -> "tuple[dict[str, str], int, list[str], int, dict[str, int], list[tuple[int, str]]]":
+    """Return (mapping, hs_rows_seen, near_misses, total_candidates, buckets, unclassified).
 
-def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
-    """Return (hs_mapping, hs_rows_seen, near_misses) for HS-INDEX.md.
+    D-069 property-based restructure — count first, classify second, universally.
 
-    hs_mapping: {hs_id: ec_id} for canonical HS entries (active + retired).
-      ec_id may be the sentinel "MALFORMED" if the EC cell is unrecognized.
-      Reserved IDs (not-yet-authored) are NOT included.
+    Every non-blank line increments total_candidates before any predicate examines
+    it.  Classification is then exhaustive: each counted line lands in exactly one
+    bucket.  The conservation law asserts total_candidates == sum(buckets.values()).
 
-    hs_rows_seen: count of candidate rows in the Authored Scenarios table.
-      Denominator of the D-057 / B-9 accounting invariant.
+    Bucket inventory
+    ────────────────
+    heading       CommonMark ATX headings (#{1,6} + space/EOL); not 4-space-indented;
+                  not inside a fenced code block.
+    fenced_code   Lines inside or delimiting fenced code blocks (``` / ~~~).
+    separator     GFM table separator rows: first_cell non-empty, every non-empty cell
+                  ⊆ {'-', ':', ' '}.
+    column_header Pre-separator pipe row positively recognised by _is_column_header().
+                  D-069 MINOR-1 fix: applied ONLY to pending_pre_sep[-1] — at most one
+                  row per table is eligible, matching GFM single-header semantics.
+    prose         All remaining non-candidate lines: out-of-scope pipe rows, non-pipe
+                  in-scope lines without '|', lines in other sections, etc.
+    data_row      In-scope HS candidate rows.  data_row == hs_rows_seen (invariant).
 
-      A "candidate row" is counted by count_and_classify() for each:
-        - In-scope pipe-prefixed post-separator row (normal data rows).
-        - In-scope pipe-prefixed pre-separator row NOT positively recognised as
-          the column header by _is_column_header() (BLOCKING-2 + D-068-residual
-          fix: fail-toward-counting replaces unconditional positional discard).
-          Recognition failure → row is counted and classified as a data row,
-          making it visible. This is NOT a D-039 violation: the failure mode
-          counts (visible), not skips (invisible).
-        - In-scope pipeless line containing cell delimiters (MAJOR-1 fix: GFM
-          allows leading/trailing pipes to be omitted; such lines are now
-          counted and will fire the accounting invariant since none of the pipe-
-          anchored classifier patterns can match them).
+    Conservation law (D-069):
+        total_candidates == sum(buckets.values())
+    Asserted internally.  A violation signals a parser bug (line vanished).
+    Tested by the property test (--property-test mode).
 
-      NOT counted: heading lines; out-of-scope rows (outside the current h1/h2
-      section boundary); separator rows; pre-separator pipe rows positively
-      recognised as the column header by _is_column_header() (first cell
-      matches "hs id" / "hs-id" / "hs_id", case-insensitive).
+    B-9 accounting invariant (preserved, load-bearing):
+        hs_rows_seen == hs_canonical + hs_nonconforming
+    Checked in main().  Neutering this check causes multiple selftests to fail.
+    unclassified_lines enhances the B-9 violation message with the offending lines.
 
-      B-11 fix: rows previously bypassed via separator false-match (A2a: empty
-      first cell; A2b: dash-only first cell with data in other cells) or via
-      the pre-separator shape gate (A1: HS-NNN row placed before the |---|
-      separator) are now counted and reported.
+    Fixes applied in D-069
+    ──────────────────────
+    BLOCKING-1 / A / A2 / A3 (pseudo-heading / fenced-code bypass):
+      CommonMark-correct heading detection replaces the prior startswith("#").
+      Fix: _CM_HEADING_RE requires space or EOL after the #-run.  4-space-indented
+      lines excluded via raw-line check (before strip).  Fenced code blocks tracked
+      via _FENCE_RE: lines inside fences are never headings.
+      Result: '#2 below', '    ## indented', fenced '# heading' are now prose,
+      never section-scope killers.
 
-    near_misses: list of raw_id strings for each near-miss row (HS-like but
-      non-canonical ID). One entry per row; duplicate rows are preserved so the
-      accounting invariant can distinguish them from individually reported rows.
-      (F-13 fix: replaces the old NEAR_MISS:-keyed dict that silently discarded
-      duplicate near-miss rows via key collision.)
+    MAJOR-1 / B (adjacent-pipe pipeless bypass):
+      Prior gate re.search(r"[^|]\\|[^|]") excluded 'HS-099||EC-999' (adjacent
+      pipes — no non-pipe on both sides of any single pipe).  Removed entirely.
+      New: any in-scope non-pipe line that contains at least one '|' is counted
+      as a data_row candidate.  _classify() adds it to unclassified_lines; B-9
+      invariant fires.
 
-    Sentinel values used as ec_id in hs_mapping:
-      "MALFORMED" — canonical HS-NNN ID present but EC cell is unrecognized
+    MINOR-1 / C (unbounded column-header exemption):
+      Prior code called _is_column_header() on every pending_pre_sep row, so two
+      consecutive '| HS ID | ... |' rows were both silently exempted.
+      Fix: only pending_pre_sep[-1] is passed to _is_column_header(); all earlier
+      pending rows always go to count_and_classify() regardless of content.
+      Fixture C (two HS-ID pre-separator rows) now exits 1.
 
-    B-9 fix: every raw line is stripped of leading/trailing whitespace before
-      any matching. A single leading space is semantically neutral in Markdown
-      but defeated all ^\| anchors in the prior implementation (BI-023 / B-9).
-
-    F-12 fix: detection is scoped to the ## Authored Scenarios section.
-
-    BLOCKING-1 fix: only h1/h2 headings delimit sections; h3+ subheadings
-      within ## Authored Scenarios remain in scope with independent separator
-      tracking per sub-table. Prior implementation used startswith("##") which
-      matched h3/h4, causing any sub-heading to set in_authored_scenarios=False
-      and silently drop every subsequent row before the counter. Now consistent
-      with :59 (VP), :91 (ARCH), :308 (L2) which all use startswith("## ").
-
-    BLOCKING-2 fix: pre-separator rows are buffered rather than gated by a
-      shape-regex allowlist. When the separator is seen (or at any flush point),
-      each buffered row is exempted from count_and_classify() ONLY on positive
-      recognition by _is_column_header(). Fail-toward-counting: rows not
-      recognised as the column header are counted and classified as data rows,
-      making them visible (accounting invariant fires). This is NOT a D-039
-      violation: the failure mode counts, not hides.
-
-      D-068 residual closed: the prior unconditional positional discard of
-      pending[-1] has been replaced. A phantom data row in the column-header
-      position (e.g., the only pre-separator row is "| HS-099 | EC-999 |...")
-      is no longer silently discarded — _is_column_header() returns False for
-      it, so it is counted and reported.
-
-      Prior implementation used a regex
-      (r"^\\|\\s*(?:~~)?(?:HS-\\d+|[Hh][Ss][-_])") that was a D-039-forbidden
-      allowlist in disguised form: only HS-shaped pre-separator rows were seen.
+    in_authored_scenarios RETAINED (premise verified for D-069):
+      The live HS-INDEX contains non-HS pipe rows in ## Reserved IDs (first cell
+      EC-NNN, not HS-NNN).  Removing section scope would route those to data_row
+      and fire B-9 incorrectly.  Premise verified: no HS-shaped rows (first cell
+      matching HS-NNN or near-miss) appear outside ## Authored Scenarios in the
+      live file.  With CommonMark-correct heading detection, the section scope
+      predicate no longer enables any bypass class.
     """
-    hs_index = FACTORY / "holdout-scenarios" / "HS-INDEX.md"
+    if hs_index_path is None:
+        hs_index_path = FACTORY / "holdout-scenarios" / "HS-INDEX.md"
+
     mapping: dict[str, str] = {}
     near_misses: list[str] = []
     hs_rows_seen = 0
+    total_candidates = 0
+    # Bucket counts: every non-blank line maps to exactly one bucket.
+    # Conservation law: total_candidates == sum(buckets.values()).
+    buckets: dict[str, int] = {
+        "heading":       0,
+        "fenced_code":   0,
+        "separator":     0,
+        "column_header": 0,
+        "prose":         0,
+        "data_row":      0,  # alias: hs_rows_seen
+    }
+    # Lines counted in data_row but matched no classifier pattern.
+    # These cause the B-9 invariant to fire; their line numbers are reported.
+    unclassified_lines: list[tuple[int, str]] = []
+
+    in_fenced_code = False
     # Default True so fixtures without ## headings are processed in full
-    # (backward compat for selftest fixtures that omit section headings).
+    # (backward compatibility for selftests that omit section headings).
     in_authored_scenarios = True
-    found_separator = False  # True once the table header separator row is seen
-    pending_pre_sep: list[str] = []  # BLOCKING-2: buffer pre-separator pipe rows
+    found_separator = False
+    pending_pre_sep: list[str] = []   # deferred pre-separator pipe rows
+    pending_linenos: list[int] = []   # 1-based line numbers for pending rows
 
-    def count_and_classify(l: str) -> None:
-        """Increment hs_rows_seen and classify one in-scope candidate row.
+    def _classify(l: str, lineno: int) -> None:
+        """Classify one in-scope candidate row already counted in data_row.
 
-        Counts first, classifies second: hs_rows_seen is incremented before any
-        classifier pattern runs, so an unclassified row always fires the
-        accounting invariant regardless of its shape.
+        Counts first (caller increments hs_rows_seen/data_row before calling),
+        classifies second.  A row that matches no pattern is added to
+        unclassified_lines; its entry in hs_rows_seen makes B-9 fire:
+            hs_rows_seen > hs_canonical + hs_nonconforming.
+        This makes every recognition gap loud rather than silent.
         """
-        nonlocal hs_rows_seen
-        hs_rows_seen += 1
         # Active entry: | HS-001 | EC-156 | ...
         m = re.match(r"^\|\s*(HS-\d+)\s*\|\s*(EC-\d+)\s*\|", l)
         if m:
@@ -271,64 +307,119 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
             mapping[m.group(1)] = "MALFORMED"
             return
         # Near-miss: HS-like but non-canonical ID (wrong case, underscore
-        # separator, annotation, trailing junk, etc.). Capture rather than
-        # silently skip (BI-023). Already scoped to Authored Scenarios data rows
-        # by the in_authored_scenarios guard above.
+        # separator, annotation, trailing junk, etc.).
         m = re.match(r"^\|\s*(?:~~)?([Hh][Ss][-_]\S[^\|]*?)(?:~~)?\s*\|", l)
         if m:
             raw_id = m.group(1).strip().rstrip("~").strip()
-            near_misses.append(raw_id)  # F-13: list, preserves duplicate rows
+            near_misses.append(raw_id)
             return
-        # Fallthrough: counted but unclassified → accounting invariant fires.
+        # Fallthrough: counted in data_row but matched no classifier.
+        # Record the (lineno, line) so main() can report WHICH line caused the
+        # B-9 mismatch, not just the count delta.
+        unclassified_lines.append((lineno, l))
 
-    for raw in hs_index.read_text(encoding="utf-8").splitlines():
-        # B-9 fix: strip leading/trailing whitespace before any pattern matching.
+    def _flush_pending() -> None:
+        """Flush deferred pre-separator rows into their final buckets.
+
+        D-069 MINOR-1 fix: only pending_pre_sep[-1] is tested by _is_column_header().
+        All earlier rows go directly to data_row + _classify(), regardless of their
+        first-cell content.  This bounds the column_header exemption to at most one
+        row per table.
+
+        Conservation law: each flushed row was already counted in total_candidates
+        when first encountered; this function assigns its bucket, keeping the law.
+        """
+        nonlocal hs_rows_seen
+        if not pending_pre_sep:
+            return
+        # All but the last: always data_row
+        for p, ln in zip(pending_pre_sep[:-1], pending_linenos[:-1]):
+            hs_rows_seen += 1
+            buckets["data_row"] += 1
+            _classify(p, ln)
+        # Last row: column_header if positively recognised, else data_row
+        last_p = pending_pre_sep[-1]
+        last_ln = pending_linenos[-1]
+        if _is_column_header(last_p):
+            buckets["column_header"] += 1
+        else:
+            hs_rows_seen += 1
+            buckets["data_row"] += 1
+            _classify(last_p, last_ln)
+        pending_pre_sep.clear()
+        pending_linenos.clear()
+
+    for lineno, raw in enumerate(
+        hs_index_path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
+        # B-9 fix: strip leading/trailing whitespace before pipe-row matching.
         # A single leading space is semantically neutral in Markdown but defeated
-        # all ^\| anchors — normalise here rather than widening the anchor.
+        # all ^\| anchors.
         line = raw.strip()
+        if not line:
+            continue  # blank lines are not counted
+        total_candidates += 1
 
-        # BLOCKING-1 fix: gate section scope on heading level, not prefix alone.
-        # Level 1 (h1) and level 2 (h2) delimit sections; h3+ subheadings stay
-        # in scope. Consistent with :59 (VP), :91 (ARCH), :308 (L2) which all
-        # use startswith("## "). Prior startswith("##") matched h3/h4 and
-        # silently disabled all rows after any sub-heading inside the section.
-        if line.startswith("#"):
-            level = len(line) - len(line.lstrip("#"))
+        # ── Fenced code block (CommonMark §4.5) ──────────────────────────────
+        # A fence is 3+ identical backticks or tildes, checked on the stripped
+        # line (0-3 spaces of indent are allowed and normalised away by strip).
+        # All lines inside a fenced block are fenced_code — never headings,
+        # separators, or data rows.  This closes the fixture A2 bypass.
+        if _FENCE_RE.match(line):
+            in_fenced_code = not in_fenced_code
+            buckets["fenced_code"] += 1
+            continue
+        if in_fenced_code:
+            buckets["fenced_code"] += 1
+            continue
+
+        # ── CommonMark ATX heading (§4.2) ─────────────────────────────────────
+        # A heading is #{1,6} followed by space or EOL; NOT any line starting
+        # with '#'.  Excluded cases (all → prose, not heading):
+        #   - 4+ spaces of leading indent (code block): checked on RAW line so
+        #     "    ## foo" after strip() doesn't look like a heading.
+        #   - No space after #-run: '#2 below', '#TODO', '#note' (fixture A).
+        #   - Inside a fenced code block (handled above, fixture A2).
+        if not raw.startswith("    ") and _CM_HEADING_RE.match(line):
+            m_h = _CM_HEADING_RE.match(line)
+            level = len(m_h.group(1))  # type: ignore[union-attr]
+            _flush_pending()
             if level <= 2:
-                # h1/h2: section boundary. Flush any buffered pre-separator rows
-                # (section ended without a separator). Fail-toward-counting:
-                # count unless positively recognised as the column header.
-                for p in pending_pre_sep:
-                    if not _is_column_header(p):
-                        count_and_classify(p)
-                pending_pre_sep = []
+                # h1/h2: section boundary.
                 in_authored_scenarios = "Authored Scenarios" in line
                 found_separator = False
             else:
-                # h3+: sub-heading within section. Stay in scope but reset
-                # separator tracking so each sub-table gets fresh buffering.
-                # Flush pending (no separator seen). Fail-toward-counting:
-                # count unless positively recognised as the column header.
-                for p in pending_pre_sep:
-                    if not _is_column_header(p):
-                        count_and_classify(p)
-                pending_pre_sep = []
+                # h3+: sub-heading within section. Stay in scope; reset separator
+                # tracking so each sub-table gets fresh pre-separator buffering.
                 found_separator = False
-            continue  # headings are never candidate rows
+            buckets["heading"] += 1
+            continue
 
+        # ── Out-of-scope lines → prose ────────────────────────────────────────
         if not in_authored_scenarios:
+            buckets["prose"] += 1
             continue
 
-        # MAJOR-1 fix: in-scope pipeless lines with cell delimiters are
-        # candidate rows. GFM allows leading/trailing pipes to be omitted.
-        # Count them; none of the pipe-anchored patterns below can classify them,
-        # so the accounting invariant fires and reports the row as unaccounted.
+        # ── In-scope non-pipe lines ───────────────────────────────────────────
         if not line.startswith("|"):
-            if "|" in line and re.search(r"[^|]\|[^|]", line):
-                hs_rows_seen += 1  # counted; unclassified → accounting invariant fires
+            # D-069 MAJOR-1 fix: the prior gate re.search(r"[^|]\|[^|]", line)
+            # required a non-pipe character on BOTH sides of some pipe.
+            # 'HS-099||EC-999' (adjacent pipes) has no such pair — no non-pipe
+            # flanks any single pipe — so it slipped through uncounted.
+            # Fix: remove the regex entirely.  Any in-scope non-pipe line that
+            # contains at least one '|' is a GFM pipeless-row candidate and goes
+            # to data_row.  _classify() will add it to unclassified_lines (none
+            # of the four pipe-anchored patterns can match a pipeless line); B-9
+            # invariant fires in main().
+            if "|" in line:
+                hs_rows_seen += 1
+                buckets["data_row"] += 1
+                _classify(line, lineno)
+            else:
+                buckets["prose"] += 1
             continue
 
-        # Detect separator rows via cell-splitting (independent of regex anchors).
+        # ── Pipe row: detect separator ────────────────────────────────────────
         cells = [c.strip() for c in line.strip("|").split("|")]
         first_cell = cells[0].strip("~").strip()
         # B-11 fix (A2a): require non-empty first_cell — set("") is a subset of
@@ -337,40 +428,41 @@ def get_hs_data() -> tuple[dict[str, str], int, list[str]]:
         # not just first — "| - | EC-999 |" has a separator-like first cell but
         # real data in other cells; it is not a separator row.
         if first_cell and all(set(c) <= set("-: ") for c in cells if c):
+            _flush_pending()
             found_separator = True
-            # BLOCKING-2: column-header positive recognition. Exempt a row only
-            # when _is_column_header() positively recognises it as the column
-            # header. Fail-toward-counting: unrecognised rows are counted and
-            # classified as data rows (accounting invariant fires). NOT a D-039
-            # violation: failure mode is counting (visible), not skipping.
-            # D-068 residual closed: the prior `pending[:-1]` unconditional
-            # positional discard is gone — a phantom data row in the header
-            # position is now counted and reported.
-            for p in pending_pre_sep:
-                if not _is_column_header(p):
-                    count_and_classify(p)
-            pending_pre_sep = []
+            buckets["separator"] += 1
             continue
 
-        # BLOCKING-2: buffer all in-scope pre-separator pipe rows without a
-        # shape-based eligibility gate. D-039 forbids allowlists in any
-        # disguised form, including a regex deciding which rows are eligible
-        # to enter the accounting denominator.
+        # ── Pre-separator pipe row: defer ─────────────────────────────────────
+        # All in-scope pre-separator rows are buffered without a shape-based gate.
+        # D-039 forbids allowlists; a regex deciding row eligibility is a D-039
+        # violation in disguised form.  Bucket assignment is deferred to _flush_pending().
+        # total_candidates has already been incremented; conservation law holds at EOF.
         if not found_separator:
             pending_pre_sep.append(line)
+            pending_linenos.append(lineno)
             continue
 
-        # Post-separator data row: count and classify directly.
-        count_and_classify(line)
+        # ── Post-separator data row ───────────────────────────────────────────
+        hs_rows_seen += 1
+        buckets["data_row"] += 1
+        _classify(line, lineno)
 
-    # Flush any remaining buffered pre-separator rows (end of file or section
-    # ended without a separator). Fail-toward-counting: count unless positively
-    # recognised as the column header by _is_column_header().
-    for p in pending_pre_sep:
-        if not _is_column_header(p):
-            count_and_classify(p)
+    # EOF flush: process any remaining buffered pre-separator rows.
+    _flush_pending()
 
-    return mapping, hs_rows_seen, near_misses
+    # Internal consistency checks (programming-error guards, not input checks).
+    assert buckets["data_row"] == hs_rows_seen, (
+        f"internal: data_row bucket ({buckets['data_row']}) != hs_rows_seen ({hs_rows_seen})"
+    )
+    bucket_sum = sum(buckets.values())
+    assert total_candidates == bucket_sum, (
+        f"D-069 conservation law violated internally: "
+        f"total_candidates={total_candidates} != sum(buckets)={bucket_sum}; "
+        f"buckets={buckets}"
+    )
+
+    return mapping, hs_rows_seen, near_misses, total_candidates, buckets, unclassified_lines
 
 
 def get_actual_wave_scenario_ec_ids() -> set[str]:
@@ -558,9 +650,10 @@ def main() -> int:
 
     # ── HS-INDEX <-> wave-scenarios files (bidirectional) ───────────────────
     hs_validated = 0  # D-057: canonical entries that went through the forward check
-    hs_rows_seen = 0  # D-057: data rows seen by cell-splitting (accounting invariant)
+    hs_rows_seen = 0  # D-057: data rows seen (denominator of B-9 invariant)
     if hs_index_path.exists():
-        hs_mapping, hs_rows_seen, near_misses = get_hs_data()
+        (hs_mapping, hs_rows_seen, near_misses,
+         total_candidates, hs_buckets, unclassified_lines) = get_hs_data()
         wave_ec_ids = get_actual_wave_scenario_ec_ids()
 
         # Malformed-cell / near-miss-ID check: HS rows whose ID or EC column is
@@ -568,7 +661,6 @@ def main() -> int:
         # ONLY this block makes test 10d flip independently of the forward check.
         checks += 1
         for real_id in near_misses:
-            # Near-miss: HS-like ID that didn't parse as canonical (BI-023 / F-13 fix)
             violations.append(
                 f"{hs_index_path}: HS row with non-canonical ID '{real_id}' "
                 f"— expected 'HS-<digits>' or '~~HS-<digits>~~'"
@@ -580,39 +672,49 @@ def main() -> int:
                     f"(expected 'EC-NNN' or '~~EC-NNN~~')"
                 )
 
-        # D-057 / B-9 accounting invariant: every row counted by hs_rows_seen must
-        # be accounted for as either a canonical entry or a nonconforming entry.
-        # hs_rows_seen is incremented by count_and_classify() BEFORE any classifier
-        # pattern runs (D-068 structural fix: count first, classify second), so any
-        # row that reaches count_and_classify() but is not matched by the four
-        # parser patterns will cause this invariant to fire.
-        # Rows NOT covered by this invariant (not passed to count_and_classify()):
-        #   - Heading lines (structural markers, never candidate rows)
-        #   - Out-of-scope rows (after an h1/h2 section change, BLOCKING-1 fixed:
-        #     h3+ subheadings no longer exit scope)
+        # D-057 / B-9 accounting invariant.
+        # hs_rows_seen is incremented BEFORE _classify() runs (count first, classify
+        # second), so a row that matches no pattern still appears in the denominator.
+        # This invariant fires when any data_row line was not matched by any of the
+        # four classifier patterns.
+        #
+        # Rows NOT in the data_row bucket (not passed to _classify()):
+        #   - Heading lines (CommonMark §4.2: #{1,6} + space/EOL, not 4-space-indented,
+        #     not inside a fenced code block — D-069 fix closes A/A2/A3 bypass class)
+        #   - Fenced code block lines (D-069: tracked via _FENCE_RE; lines inside fences
+        #     are fenced_code bucket — closes A2 bypass)
+        #   - Out-of-scope rows (after h1/h2 section change; h3+ subheadings stay in scope)
         #   - Separator rows (|---|--- rows, explicitly excluded)
-        #   - Pre-separator pipe rows positively recognised as the column header by
-        #     _is_column_header() (BLOCKING-2 fixed: no shape-regex gate; D-068
-        #     residual closed: no unconditional positional discard). Recognition
-        #     failures fail toward counting — unrecognised rows are passed to
-        #     count_and_classify(), making them visible. NOT a D-039 violation:
-        #     failure mode counts, not hides.
-        # B-11: blank/punctuation-only ID cells (A2a, A2b) and HS-pattern rows
-        # placed before the separator (A1) are now counted and reported.
+        #   - The last pre-separator pipe row positively recognised by _is_column_header()
+        #     (D-069 MINOR-1: only pending[-1] is eligible — closes C bypass)
+        #   - In-scope non-pipe lines without '|' (prose bucket)
+        #
+        # D-069 changes to this invariant:
+        #   - Adjacent-pipe pipeless rows ('HS-099||EC-999') now reach data_row and
+        #     fire B-9 (prior re.search gate removed — closes B bypass)
+        #   - unclassified_lines detail added to violation message for diagnostics
+        #     (does not change the invariant condition — B-9 remains load-bearing)
         hs_canonical = sum(1 for v in hs_mapping.values() if v != "MALFORMED")
-        hs_nonconforming = len(near_misses) + sum(1 for v in hs_mapping.values() if v == "MALFORMED")
+        hs_nonconforming = (
+            len(near_misses) + sum(1 for v in hs_mapping.values() if v == "MALFORMED")
+        )
         if hs_rows_seen != hs_canonical + hs_nonconforming:
+            # Include specific unclassified lines in the message for diagnostics.
+            detail = ""
+            if unclassified_lines:
+                items = "; ".join(
+                    f"line {ln}: {txt[:50]!r}" for ln, txt in unclassified_lines[:5]
+                )
+                detail = f" — unclassified: [{items}]"
             violations.append(
                 f"{hs_index_path}: {hs_rows_seen} data row(s) seen in Authored Scenarios "
                 f"table but only {hs_canonical + hs_nonconforming} classified "
-                f"({hs_rows_seen - hs_canonical - hs_nonconforming} row(s) unaccounted for "
-                f"— parser or whitespace-normalisation mismatch)"
+                f"({hs_rows_seen - hs_canonical - hs_nonconforming} row(s) unaccounted for"
+                f" — parser or whitespace-normalisation mismatch){detail}"
             )
 
         # Forward check: each authored (non-malformed) HS entry's EC-NNN must have
-        # a corresponding wave-scenarios file. Kept in its own checks+=1 block so
-        # a mutation targeting ONLY this block makes test 10 flip independently
-        # of test 10d.
+        # a corresponding wave-scenarios file.
         checks += 1
         for hs_id, ec_id in sorted(hs_mapping.items()):
             if ec_id == "MALFORMED":
@@ -635,7 +737,6 @@ def main() -> int:
                 )
 
         # Duplicate HS-ID check (scan both active and retired canonical rows).
-        # Uses raw.strip() to catch duplicates that differ only in leading whitespace.
         checks += 1
         all_hs_ids: list[str] = []
         for raw in hs_index_path.read_text(encoding="utf-8").splitlines():
@@ -667,5 +768,230 @@ def main() -> int:
     return 0
 
 
+# ── D-069 property test ───────────────────────────────────────────────────────
+
+def _gen_hs_index(rng: "random.Random") -> str:  # type: ignore[name-defined]
+    """Generate a diverse HS-INDEX-like markdown document for property testing.
+
+    Varies: heading levels 1-6, pseudo-headings (#run without space), 4-space
+    indented '##' (code block), fenced code blocks (``` and ~~~) with heading-
+    like and table-like internal lines, pipe arrangements including adjacent pipes
+    (||), pipeless rows, strikethrough decoration, bold decoration, empty cells,
+    rows above/below/without separators, and out-of-scope sections.
+    """
+    parts: list[str] = []
+
+    COL_HEADER = "| HS ID | EC ID | Title | Notes | BCs | Status |"
+    SEPARATOR  = "|-------|-------|-------|-------|-----|--------|"
+
+    def hs_row(n: int, ec: int) -> str:
+        return f"| HS-{n:03d} | EC-{ec:03d} | Title | Notes | BC | active |"
+
+    def retired_row(n: int, ec: int) -> str:
+        return f"| ~~HS-{n:03d}~~ | ~~EC-{ec:03d}~~ | Retired | Notes | BC | retired |"
+
+    def near_miss(n: int) -> str:
+        return f"| hs_{n:03d} | EC-100 | Near-miss | Notes | BC | active |"
+
+    def pipeless_spaced(n: int, ec: int) -> str:
+        return f"HS-{n:03d} | EC-{ec:03d} | Pipeless spaced"
+
+    def pipeless_adjacent(n: int, ec: int) -> str:
+        return f"HS-{n:03d}||EC-{ec:03d}"
+
+    pseudo_headings = ["#2 below: wave-2 candidates", "#TODO", "#note", "#1 priority"]
+    prose_lines = [
+        "Some introductory prose.",
+        "This file governs all holdout scenarios.",
+        "Notes about the table structure.",
+    ]
+    fenced_internals = [
+        "# heading inside fence",
+        "## h2 inside fence",
+        "### h3 inside fence",
+        f"| HS-{rng.randint(1,9):03d} | EC-{rng.randint(100,199):03d} | Inside fence |",
+        "|---|---|---|",
+        "plain text inside fence",
+    ]
+
+    # Optional h1 title
+    if rng.random() < 0.4:
+        parts.append(f"# Holdout Scenario Index")
+
+    # Optional prose
+    if rng.random() < 0.3:
+        parts.append(rng.choice(prose_lines))
+
+    # Main authored scenarios section
+    parts.append("")
+    parts.append("## Authored Scenarios")
+    parts.append("")
+
+    # Optional pseudo-heading (should NOT kill section scope after D-069 fix)
+    if rng.random() < 0.5:
+        parts.append(rng.choice(pseudo_headings))
+        parts.append("")
+
+    # Optional fenced code block (lines inside should be fenced_code, not heading)
+    if rng.random() < 0.4:
+        fence = rng.choice(["```", "~~~"])
+        parts.append(fence)
+        for _ in range(rng.randint(1, 3)):
+            parts.append(rng.choice(fenced_internals))
+        parts.append(fence)
+        parts.append("")
+
+    # Optional 4-space indented pseudo-heading (code block, not heading)
+    if rng.random() < 0.3:
+        parts.append(f"    ## indented-pseudo-heading level-2")
+        parts.append("")
+
+    # Column header + optional pre-separator rows + separator
+    parts.append(COL_HEADER)
+    n_pre = rng.randint(0, 2)
+    for _ in range(n_pre):
+        choice = rng.randint(0, 3)
+        if choice == 0:
+            parts.append(hs_row(rng.randint(50, 79), rng.randint(900, 950)))
+        elif choice == 1:
+            parts.append(f"| **HS-{rng.randint(40,49):03d}** | EC-{rng.randint(900,950):03d} | Bold ID |")
+        elif choice == 2:
+            parts.append(f"| HS ID | EC-{rng.randint(900,950):03d} | Second header row |")
+        else:
+            parts.append(f"|  | EC-{rng.randint(900,950):03d} | Empty first cell above sep |")
+    parts.append(SEPARATOR)
+
+    # Data rows
+    for _ in range(rng.randint(0, 4)):
+        choice = rng.randint(0, 6)
+        n, ec = rng.randint(1, 20), rng.randint(100, 199)
+        if choice == 0:
+            parts.append(hs_row(n, ec))
+        elif choice == 1:
+            parts.append(retired_row(n, ec))
+        elif choice == 2:
+            parts.append(near_miss(n))
+        elif choice == 3:
+            parts.append(pipeless_spaced(n, ec))
+        elif choice == 4:
+            parts.append(pipeless_adjacent(n, ec))
+        elif choice == 5:
+            parts.append(f"| HS-{n:03d} | MALFORMED-EC | Malformed cell |")
+        else:
+            parts.append(f"| HS-{n:03d} | EC-{ec:03d} | ~~partially-decorated~~ |")
+
+    # Optional h3 sub-section (stay in scope)
+    if rng.random() < 0.3:
+        parts.append("")
+        h_level = rng.randint(3, 6)
+        parts.append("#" * h_level + " Sub-section")
+        parts.append("")
+        parts.append(COL_HEADER)
+        parts.append(SEPARATOR)
+        for _ in range(rng.randint(0, 2)):
+            parts.append(hs_row(rng.randint(80, 99), rng.randint(500, 599)))
+
+    # Optional non-authored section (out-of-scope pipe rows go to prose)
+    if rng.random() < 0.5:
+        parts.append("")
+        parts.append("## Reserved IDs")
+        parts.append("")
+        parts.append("| EC ID | Reserved Since | Notes | Status |")
+        parts.append("|-------|---------------|-------|--------|")
+        parts.append("| EC-079 | prd.md:332 | TBD | not-yet-authored |")
+
+    # Optional additional h2 that re-enters authored scenarios
+    if rng.random() < 0.2:
+        parts.append("")
+        parts.append("## Authored Scenarios")
+        parts.append("")
+        parts.append(COL_HEADER)
+        parts.append(SEPARATOR)
+        parts.append(hs_row(rng.randint(90, 99), rng.randint(600, 699)))
+
+    # Optional heading levels 4-6 to exercise level detection
+    if rng.random() < 0.2:
+        parts.append("")
+        level = rng.randint(4, 6)
+        parts.append("#" * level + " Deep sub-heading")
+
+    return "\n".join(parts)
+
+
+def run_property_test(n_cases: int = 300) -> int:
+    """D-069 property test: assert conservation law for n_cases generated inputs.
+
+    For every generated HS-INDEX-like document:
+        total_candidates == sum(buckets.values())
+    where both values are returned by get_hs_data().
+
+    This property asserts that no non-blank line vanishes from the accounting,
+    regardless of the structural variety of the input.  A violation means a line
+    was counted in total_candidates but not assigned to any bucket — a parser bug.
+
+    Generator: stdlib random.Random(seed=42), deterministic and reproducible.
+    Does not require wave-scenarios files to exist; get_hs_data() is called with
+    an explicit hs_index_path so the full checker tree is not needed.
+
+    Reports: cases generated, pass/fail per failure, final result.
+    """
+    import random
+    import tempfile
+
+    rng = random.Random(42)
+    failures = 0
+
+    print(f"D-069 property test: generating {n_cases} cases (seed=42)...")
+    for case_num in range(1, n_cases + 1):
+        content = _gen_hs_index(rng)
+        # Write to a temp file and call get_hs_data() with explicit path.
+        # We only need get_hs_data() to parse the text; the forward/reverse
+        # checks are not exercised here (wave-scenarios files don't exist).
+        with tempfile.NamedTemporaryFile(
+            suffix=".md", mode="w", encoding="utf-8", delete=False
+        ) as fh:
+            fh.write(content)
+            tmppath = Path(fh.name)
+        try:
+            _, hs_rows_seen, _, total_candidates, buckets, _ = get_hs_data(tmppath)
+            bucket_sum = sum(buckets.values())
+            if total_candidates != bucket_sum:
+                # The internal assert in get_hs_data() would have fired first;
+                # this branch is a belt-and-suspenders check.
+                print(
+                    f"  PROPERTY FAIL case {case_num}: "
+                    f"total_candidates={total_candidates} != sum(buckets)={bucket_sum} "
+                    f"buckets={buckets}"
+                )
+                print(f"  Content excerpt: {content[:300]!r}")
+                failures += 1
+            elif hs_rows_seen != buckets["data_row"]:
+                print(
+                    f"  PROPERTY FAIL case {case_num}: "
+                    f"hs_rows_seen={hs_rows_seen} != buckets['data_row']={buckets['data_row']}"
+                )
+                failures += 1
+        except AssertionError as exc:
+            print(f"  PROPERTY FAIL case {case_num}: internal assert fired: {exc}")
+            print(f"  Content excerpt: {content[:300]!r}")
+            failures += 1
+        finally:
+            tmppath.unlink(missing_ok=True)
+
+    if failures:
+        print(
+            f"\nProperty test FAILED: {failures}/{n_cases} cases violated the conservation law"
+        )
+        return 1
+    print(
+        f"Property test passed: {n_cases}/{n_cases} cases verified "
+        f"(total_candidates == sum(buckets) for all inputs, seed=42)"
+    )
+    return 0
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--property-test":
+        n = int(sys.argv[2]) if len(sys.argv) > 2 else 300
+        sys.exit(run_property_test(n))
     sys.exit(main())
