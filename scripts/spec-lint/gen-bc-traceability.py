@@ -248,6 +248,39 @@ def main() -> int:
     check_mode = "--check" in sys.argv
     dry_run = "--dry-run" in sys.argv
 
+    # ── BI-041 WRITE-MODE GUARD ────────────────────────────────────────────────
+    # gen-bc-traceability write mode is BLOCKED pending BI-041 adjudication.
+    #
+    # The generator's model does not preserve hand-authored annotations in
+    # Architecture Module rows. Running write mode silently destroys INC-MAP
+    # traceability obligations and other human-authored notes, including:
+    #
+    #   INC-MAP-002  (BC-2.03.002) — non-http clean verdict routing obligation
+    #   INC-MAP-003  (BC-2.14.002) — invalid glob exits via config_error: bool
+    #   INC-MAP-004  (BC-2.01.003) — VP-016 formal assignment to anchor_table
+    #   ... and any future hand-authored annotations in Architecture Module rows
+    #
+    # Until BI-041 is adjudicated (generator updated to round-trip annotations
+    # OR annotations migrated outside the generated block), write mode must
+    # refuse to prevent irreversible data loss in .factory/specs/.
+    #
+    # --check mode is NOT blocked and remains fully functional (non-destructive).
+    # --dry-run mode is NOT blocked (it never writes files).
+    #
+    # Mutation-verify: removing this block causes write mode to succeed (exit 0),
+    # flipping selftest 26's defect-fail assertion to FAIL.
+    if not check_mode and not dry_run:
+        print(
+            "gen-bc-traceability: BLOCKED — write mode disabled pending BI-041 adjudication.\n"
+            "  The generator destroys hand-authored INC-MAP annotations (INC-MAP-002,\n"
+            "  INC-MAP-003, INC-MAP-004) and any other notes in Architecture Module rows.\n"
+            "  Use --check to inspect divergence without writing.\n"
+            "  Use --dry-run to preview changes without writing.\n"
+            "  Resolve BI-041 before enabling write mode.",
+            file=sys.stderr,
+        )
+        return 1
+
     bc_data = parse_bc_module_map()
     if not bc_data:
         print("ERROR: parsed 0 BC entries from bc-module-map.md — aborting", file=sys.stderr)

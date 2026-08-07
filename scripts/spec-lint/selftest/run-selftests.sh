@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=44
+EXPECTED_TEST_COUNT=45
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -1139,9 +1139,12 @@ fi
 rm -rf "$T"
 
 # ── Test 23: gen-bc-traceability --check detects Architecture Module mismatch ────────────
-# Operator-endorsed landing gate (Task 2). Uses isolated temp tree: run generator in
-# normal mode to establish a known-good state, verify --check exits 0 (clean pass),
-# then corrupt the generated row and verify --check exits 1 (defect pass).
+# Operator-endorsed landing gate (Task 2). Uses a pre-populated isolated temp tree:
+# the BC file already contains the correct @GENERATED block with the expected generated
+# value (computed from the generator's format_arch_module_value logic for this fixture).
+# Write mode is fail-closed (BI-041 guard), so normal-mode setup is not used.
+# Clean pass: --check exits 0 (fixture already matches generated output).
+# Defect:     corrupt the Architecture Module value → --check exits 1.
 # Confirms --check is read-only w.r.t. canonical-facts.toml (not in temp tree).
 TESTS_RUN=$((TESTS_RUN + 1))
 echo "── selftest 23: gen-bc-traceability --check: detects Architecture Module mismatch ──"
@@ -1149,36 +1152,35 @@ T=$(make_temp)
 mkdir -p "$T/.factory/specs/architecture"
 mkdir -p "$T/.factory/specs/behavioral-contracts/ss-99"
 
-# Minimal bc-module-map.md with one BC entry (no ADRs needed for this test)
+# Minimal bc-module-map.md: BC-2.99.001, test-mod, Pure, CRITICAL, ADR-999
 cat > "$T/.factory/specs/architecture/bc-module-map.md" <<'BCMAP'
 | BC ID | Primary Module | Secondary | P/E | Tier | Key ADRs | Formal VPs |
 |-------|----------------|-----------|-----|------|----------|------------|
-| BC-2.99.001 | `test-mod` | — | Pure | CRITICAL | — | — |
+| BC-2.99.001 | `test-mod` | — | Pure | CRITICAL | ADR-999 | — |
 BCMAP
 
-# Minimal BC file with Architecture Module row (no @GENERATED markers yet)
+# BC file pre-populated with correct @GENERATED content.
+# Expected value (from format_arch_module_value with no ADR title files):
+#   `test-mod.rs` (SS-99, pure core, CRITICAL tier) — ADR-999
+# No ADR decisions/ dir → adr_titles empty → ADR-999 appears without title.
 cat > "$T/.factory/specs/behavioral-contracts/ss-99/BC-2.99.001.md" <<'BCFILE'
 # BC-2.99.001: Selftest BC
 
 ## Traceability
-| Architecture Module | old-ungenerated-value |
+<!-- @GENERATED:BEGIN bc-arch-module -->
+| Architecture Module | `test-mod.rs` (SS-99, pure core, CRITICAL tier) — ADR-999 |
+<!-- @GENERATED:END bc-arch-module -->
 BCFILE
 
-# Clean pass: run generator in normal mode first, then --check on the result.
-# The pre-condition (normal run succeeds) and clean-pass assertion are chained:
-# if the normal run fails it is a structural failure.
+# Clean pass: --check exits 0 (fixture matches generated output)
 CLEAN_PASS=0
-if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" > /dev/null 2>&1; then
-    # --check on the just-written output must exit 0 (idempotency)
-    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --check > /dev/null 2>&1; then
-        TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
-        CLEAN_PASS=1
-    else
-        echo "  STRUCTURAL FAIL: --check failed immediately after generator run (should be identical)"
-        FAILURES=$((FAILURES + 1))
-    fi
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --check > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
 else
-    echo "  STRUCTURAL FAIL: generator normal-mode run failed on minimal BC fixture"
+    echo "  STRUCTURAL FAIL: --check failed on pre-populated correct fixture"
+    CHECK_ERR=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --check 2>&1)
+    echo "  Output: $CHECK_ERR"
     FAILURES=$((FAILURES + 1))
 fi
 
@@ -1338,6 +1340,68 @@ MD25BAD
         else
             echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-BI021]' not in output)"
             echo "  Actual output: $BI021_OUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 26: gen-bc-traceability write mode is fail-closed (BI-041 guard) ────────────────
+# The generator's model destroys hand-authored INC-MAP annotations in Architecture Module
+# rows. Write mode must unconditionally refuse until BI-041 is adjudicated.
+# --dry-run and --check modes must remain unblocked (they never write files).
+#
+# Clean pass: generator with --dry-run exits 0 on a valid BC fixture.
+# Defect:     generator WITHOUT --dry-run (write mode) exits non-zero with BI-041 message.
+#
+# Mutation-verify: removing the write-mode guard block in gen-bc-traceability.py causes
+# write mode to exit 0, flipping this test's defect-fail assertion to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 26: gen-bc-traceability: write mode fail-closed (BI-041 guard) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-99"
+
+# Minimal valid BC fixture (same as test 23)
+cat > "$T/.factory/specs/architecture/bc-module-map.md" <<'BCMAP26'
+| BC ID | Primary Module | Secondary | P/E | Tier | Key ADRs | Formal VPs |
+|-------|----------------|-----------|-----|------|----------|------------|
+| BC-2.99.001 | `test-mod` | — | Pure | CRITICAL | — | — |
+BCMAP26
+
+cat > "$T/.factory/specs/behavioral-contracts/ss-99/BC-2.99.001.md" <<'BCFILE26'
+# BC-2.99.001: Selftest BC
+
+## Traceability
+| Architecture Module | existing-value |
+BCFILE26
+
+# Clean pass: --dry-run must exit 0 (non-destructive modes are not blocked)
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --dry-run > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: --dry-run unexpectedly failed (should be unblocked by BI-041 guard)"
+    DR_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --dry-run 2>&1)
+    echo "  Output: $DR_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: write mode (no flags) must exit non-zero with the BI-041 guard message
+    GUARD_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" 2>&1)
+    GUARD_EXIT=$?
+    if [ "$GUARD_EXIT" -eq 0 ]; then
+        echo "  FAIL (write mode returned 0 — BI-041 guard not active; BC files could be corrupted)"
+        FAILURES=$((FAILURES + 1))
+    else
+        # D-040: assert on specific guard message, not just exit code
+        if echo "$GUARD_OUT" | grep -q "BI-041"; then
+            echo "  PASS (clean-pass confirmed; write mode correctly blocked with BI-041 guard message)"
+        else
+            echo "  FAIL (write mode exited non-zero but expected 'BI-041' not in output)"
+            echo "  Actual output: $GUARD_OUT"
             FAILURES=$((FAILURES + 1))
         fi
     fi
