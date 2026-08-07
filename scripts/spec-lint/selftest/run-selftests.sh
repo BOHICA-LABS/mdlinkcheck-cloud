@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=36
+EXPECTED_TEST_COUNT=44
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -884,6 +884,460 @@ MDBAD
         else
             echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-ST18]' not in output)"
             echo "  Actual output: $CF_OUTPUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 19: check-canonical-facts — FACT-7 negative (macOS-only platform matrix) ───────
+# BI-035: FACT-7 canonical_value = "macOS". Negative vector: "macOS and Linux"
+# (the multi-platform claim D-043 ruled out). Pattern captures content between
+# quotes so the != branch fires — not the "pattern did not match" branch.
+# Mutation-verify: neutralizing != flips this test to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 19: check-canonical-facts: FACT-7 negative — macOS and Linux fails ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML19'
+[[fact]]
+id              = "FACT-7-NEG"
+description     = "platform matrix is macOS-only (D-043)"
+canonical_value = "macOS"
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-7-NEG"
+file    = ".factory/specs/selftest-fact7.md"
+note    = "platform matrix declaration"
+pattern = 'platform matrix: "(.*?)"'
+TOML19
+
+cat > "$T/.factory/specs/selftest-fact7.md" <<'MD19CLEAN'
+**Platform Matrix Section**
+platform matrix: "macOS"
+MD19CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean FACT-7 tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Negative vector: "macOS and Linux" — the multi-platform claim D-043 ruled out.
+    # The flexible pattern captures this, forcing the m.group(1) != canonical branch.
+    cat > "$T/.factory/specs/selftest-fact7.md" <<'MD19BAD'
+**Platform Matrix Section**
+platform matrix: "macOS and Linux"
+MD19BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — 'macOS and Linux' should DIVERGE from 'macOS')"
+        FAILURES=$((FAILURES + 1))
+    else
+        CF_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF_OUTPUT" | grep -q "DIVERGE \[FACT-7-NEG\]"; then
+            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-7-NEG] correctly reported for 'macOS and Linux')"
+        else
+            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-7-NEG]' not in output)"
+            echo "  Actual output: $CF_OUTPUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 20: check-canonical-facts — FACT-8 negative (ASM-004 macOS only) ───────────────
+# BI-035: FACT-8 canonical_value = "macOS only". Negative vector: "macOS and Windows"
+# (a multi-platform phrasing that could appear in an undisciplined ASM-004 restatement).
+# Pattern captures content between quotes so the != branch fires.
+# Mutation-verify: neutralizing != flips this test to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 20: check-canonical-facts: FACT-8 negative — macOS and Windows fails ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML20'
+[[fact]]
+id              = "FACT-8-NEG"
+description     = "ASM-004 platform restatement is macOS only (D-043)"
+canonical_value = "macOS only"
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-8-NEG"
+file    = ".factory/specs/selftest-fact8.md"
+note    = "ASM-004 platform restatement"
+pattern = 'platform restatement: "(.*?)"'
+TOML20
+
+cat > "$T/.factory/specs/selftest-fact8.md" <<'MD20CLEAN'
+ASM-004 details:
+platform restatement: "macOS only"
+MD20CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean FACT-8 tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Negative vector: "macOS and Windows" — a spurious multi-platform restatement.
+    cat > "$T/.factory/specs/selftest-fact8.md" <<'MD20BAD'
+ASM-004 details:
+platform restatement: "macOS and Windows"
+MD20BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — 'macOS and Windows' should DIVERGE from 'macOS only')"
+        FAILURES=$((FAILURES + 1))
+    else
+        CF_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF_OUTPUT" | grep -q "DIVERGE \[FACT-8-NEG\]"; then
+            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-8-NEG] correctly reported for 'macOS and Windows')"
+        else
+            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-8-NEG]' not in output)"
+            echo "  Actual output: $CF_OUTPUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 21: check-canonical-facts — FACT-9 negative (DirIndex narrow scope) ───────────
+# BI-035: FACT-9 canonical_value = "every extracted link destination".
+# Negative vector: "missing-.md file destinations only" — the narrow D-061-rejected reading
+# that limits DirIndex to missing-.md targets only, ignoring non-.md and directory links.
+# This is the exact claim D-061 ruled out (BROAD scope, all link types).
+# Pattern uses flexible quotes-capture so the != branch fires.
+# Mutation-verify: neutralizing != flips this test to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 21: check-canonical-facts: FACT-9 negative — narrow DirIndex scope fails ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML21'
+[[fact]]
+id              = "FACT-9-NEG"
+description     = "DirIndex covers every extracted link destination (D-061 BROAD)"
+canonical_value = "every extracted link destination"
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-9-NEG"
+file    = ".factory/specs/selftest-fact9.md"
+note    = "DirIndex scope declaration"
+pattern = 'DirIndex scope: "(.*?)"'
+TOML21
+
+cat > "$T/.factory/specs/selftest-fact9.md" <<'MD21CLEAN'
+Pass 1.5 builds:
+DirIndex scope: "every extracted link destination"
+MD21CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean FACT-9 tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Negative vector: "missing-.md file destinations only" — the narrow D-061-rejected reading.
+    # An author who writes this believes DirIndex is only for missing-.md link checking,
+    # ignoring non-.md links and directory links — exactly the claim D-061 ruled out.
+    cat > "$T/.factory/specs/selftest-fact9.md" <<'MD21BAD'
+Pass 1.5 builds:
+DirIndex scope: "missing-.md file destinations only"
+MD21BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — narrow scope should DIVERGE from broad scope)"
+        FAILURES=$((FAILURES + 1))
+    else
+        CF_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF_OUTPUT" | grep -q "DIVERGE \[FACT-9-NEG\]"; then
+            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-9-NEG] correctly reported for narrow DirIndex scope)"
+        else
+            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-9-NEG]' not in output)"
+            echo "  Actual output: $CF_OUTPUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 22: check-canonical-facts — FACT-10 negative (second config_error trigger) ─────
+# BI-035: FACT-10 canonical_value = 'invalid `--ignore` glob'.
+# Negative vector: 'invalid `--ignore` glob or unrecognized flag' — adds a second spurious
+# trigger, which D-062 explicitly ruled out (unrecognized flags are handled by clap before
+# app::run(); they never reach verdict::exit_code). Exactly one trigger exists.
+# Pattern uses flexible quotes-capture so the != branch fires even with backtick content.
+# Mutation-verify: neutralizing != flips this test to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 22: check-canonical-facts: FACT-10 negative — second config_error trigger fails ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML22'
+[[fact]]
+id              = "FACT-10-NEG"
+description     = "config_error has exactly one trigger: invalid --ignore glob (D-062)"
+canonical_value = 'invalid `--ignore` glob'
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-10-NEG"
+file    = ".factory/specs/selftest-fact10.md"
+note    = "sole trigger declaration"
+pattern = 'config error trigger: "(.*?)"'
+TOML22
+
+cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22CLEAN'
+Exit-2 conditions:
+config error trigger: "invalid `--ignore` glob"
+MD22CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean FACT-10 tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Negative vector: adds unrecognized flag as a second spurious trigger (D-062 rejected).
+    # Clap handles unrecognized flags before app::run(); they never reach verdict::exit_code.
+    cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22BAD'
+Exit-2 conditions:
+config error trigger: "invalid `--ignore` glob or unrecognized flag"
+MD22BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — two-trigger claim should DIVERGE from sole-trigger canonical)"
+        FAILURES=$((FAILURES + 1))
+    else
+        CF_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF_OUTPUT" | grep -q "DIVERGE \[FACT-10-NEG\]"; then
+            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-10-NEG] correctly reported for second trigger)"
+        else
+            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-10-NEG]' not in output)"
+            echo "  Actual output: $CF_OUTPUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 23: gen-bc-traceability --check detects Architecture Module mismatch ────────────
+# Operator-endorsed landing gate (Task 2). Uses isolated temp tree: run generator in
+# normal mode to establish a known-good state, verify --check exits 0 (clean pass),
+# then corrupt the generated row and verify --check exits 1 (defect pass).
+# Confirms --check is read-only w.r.t. canonical-facts.toml (not in temp tree).
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 23: gen-bc-traceability --check: detects Architecture Module mismatch ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-99"
+
+# Minimal bc-module-map.md with one BC entry (no ADRs needed for this test)
+cat > "$T/.factory/specs/architecture/bc-module-map.md" <<'BCMAP'
+| BC ID | Primary Module | Secondary | P/E | Tier | Key ADRs | Formal VPs |
+|-------|----------------|-----------|-----|------|----------|------------|
+| BC-2.99.001 | `test-mod` | — | Pure | CRITICAL | — | — |
+BCMAP
+
+# Minimal BC file with Architecture Module row (no @GENERATED markers yet)
+cat > "$T/.factory/specs/behavioral-contracts/ss-99/BC-2.99.001.md" <<'BCFILE'
+# BC-2.99.001: Selftest BC
+
+## Traceability
+| Architecture Module | old-ungenerated-value |
+BCFILE
+
+# Clean pass: run generator in normal mode first, then --check on the result.
+# The pre-condition (normal run succeeds) and clean-pass assertion are chained:
+# if the normal run fails it is a structural failure.
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" > /dev/null 2>&1; then
+    # --check on the just-written output must exit 0 (idempotency)
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --check > /dev/null 2>&1; then
+        TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+        CLEAN_PASS=1
+    else
+        echo "  STRUCTURAL FAIL: --check failed immediately after generator run (should be identical)"
+        FAILURES=$((FAILURES + 1))
+    fi
+else
+    echo "  STRUCTURAL FAIL: generator normal-mode run failed on minimal BC fixture"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: corrupt the generated Architecture Module value in the BC file
+    BC_FILE="$T/.factory/specs/behavioral-contracts/ss-99/BC-2.99.001.md"
+    sed -i.bak 's/Architecture Module | .*/Architecture Module | corrupted-stale-value |/' "$BC_FILE"
+    CHECK_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-bc-traceability.py" --check 2>&1)
+    if [ $? -eq 0 ]; then
+        echo "  FAIL (--check returned 0 — did NOT detect Architecture Module mismatch)"
+        FAILURES=$((FAILURES + 1))
+    else
+        if echo "$CHECK_OUT" | grep -q "FAIL"; then
+            echo "  PASS (clean-pass confirmed; --check correctly detects Architecture Module mismatch)"
+        else
+            echo "  FAIL (--check exited non-zero but expected 'FAIL' not in output)"
+            echo "  Actual output: $CHECK_OUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 24: gen-slug-corpus --check detects SLUG_CORPUS content mismatch ────────────────
+# Operator-endorsed landing gate (Task 2). Uses isolated temp tree: run generator in
+# normal mode to establish a known-good state, verify --check exits 0 (clean pass),
+# then corrupt the generated corpus block and verify --check exits 1 (defect pass).
+# Confirms --check is read-only w.r.t. canonical-facts.toml (not in temp tree).
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 24: gen-slug-corpus --check: detects SLUG_CORPUS mismatch ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/verification-properties"
+
+# Minimal test-vectors.md with one TV-S entry in §7
+cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TVFILE'
+# Test Vectors
+
+## §7. Slug Test Vectors (TV-S)
+
+| TV-ID | Heading Text | Expected Slug | Source |
+|-------|-------------|---------------|--------|
+| TV-S999 | `Hello World` | `hello-world` | DD-001 |
+
+---
+TVFILE
+
+# Minimal vp-018 with SLUG_CORPUS array ready for insertion (no markers yet)
+cat > "$T/.factory/specs/verification-properties/vp-018-slug-worked-examples.md" <<'VP018FILE'
+# VP-018 Selftest Fixture
+
+```rust
+const SLUG_CORPUS: &[(&str, &str)] = &[
+];
+```
+VP018FILE
+
+# Clean pass: run generator in normal mode first, then --check on the result.
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" > /dev/null 2>&1; then
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" --check > /dev/null 2>&1; then
+        TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+        CLEAN_PASS=1
+    else
+        echo "  STRUCTURAL FAIL: --check failed immediately after generator run (should be identical)"
+        FAILURES=$((FAILURES + 1))
+    fi
+else
+    echo "  STRUCTURAL FAIL: generator normal-mode run failed on minimal VP-018 fixture"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: corrupt the generated SLUG_CORPUS entry (change expected slug)
+    VP018="$T/.factory/specs/verification-properties/vp-018-slug-worked-examples.md"
+    sed -i.bak 's/"hello-world"/"hello_world"/g' "$VP018"
+    CHECK_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/gen-slug-corpus.py" --check 2>&1)
+    if [ $? -eq 0 ]; then
+        echo "  FAIL (--check returned 0 — did NOT detect SLUG_CORPUS mismatch)"
+        FAILURES=$((FAILURES + 1))
+    else
+        if echo "$CHECK_OUT" | grep -q "FAIL"; then
+            echo "  PASS (clean-pass confirmed; --check correctly detects SLUG_CORPUS mismatch)"
+        else
+            echo "  FAIL (--check exited non-zero but expected 'FAIL' not in output)"
+            echo "  Actual output: $CHECK_OUT"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 25: check-canonical-facts — BI-021 secondary worktree path resolution ──────────
+# BI-021 fix: check-canonical-facts.py must resolve REPO correctly even when run from a
+# secondary git worktree path deeper than 3 levels from the main repo root. The fix walks
+# up from __file__ to find the ancestor containing .factory/specs/canonical-facts.toml.
+# Simulates a secondary worktree by placing the script in a deeper temp-tree subdirectory.
+# SPEC_LINT_REPO_OVERRIDE is deliberately NOT set — this tests the auto-detection path.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 25: check-canonical-facts: BI-021 secondary worktree path resolution ──"
+T=$(make_temp)
+# Simulate secondary worktree: script lives 5 levels deep from temp root
+# (temp_root/.worktrees/STORY/scripts/spec-lint/check-canonical-facts.py)
+mkdir -p "$T/.factory/specs"
+mkdir -p "$T/.worktrees/BI021-SIM/scripts/spec-lint"
+
+# Minimal canonical-facts.toml and binding file at the TEMP ROOT (simulating main worktree)
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML25'
+[[fact]]
+id              = "FACT-BI021"
+description     = "BI-021 worktree path resolution selftest"
+canonical_value = "bi021-pass"
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-BI021"
+file    = ".factory/specs/selftest-bi021.md"
+note    = "worktree resolution binding"
+pattern = 'bi021 value: (bi021-pass)'
+TOML25
+
+cat > "$T/.factory/specs/selftest-bi021.md" <<'MD25'
+# BI-021 Selftest Binding
+bi021 value: bi021-pass
+MD25
+
+# Copy the FIXED script into the simulated secondary worktree path
+cp "$LINT_DIR/check-canonical-facts.py" "$T/.worktrees/BI021-SIM/scripts/spec-lint/"
+
+# Clean pass: run from the deep path WITHOUT SPEC_LINT_REPO_OVERRIDE
+# The fixed _find_repo_root() must walk up and find $T as the repo root.
+CLEAN_PASS=0
+if python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: BI-021 fix did not resolve REPO from simulated secondary worktree"
+    BI021_OUT=$(python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+    echo "  Output: $BI021_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: overwrite binding file with wrong value to confirm checker is using
+    # the temp root's canonical-facts.toml (not SPEC_LINT_REPO_OVERRIDE or a stale path)
+    cat > "$T/.factory/specs/selftest-bi021.md" <<'MD25BAD'
+# BI-021 Selftest Binding (defect)
+bi021 value: wrong-value
+MD25BAD
+    if python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 on defect tree — not reading from correct repo root)"
+        FAILURES=$((FAILURES + 1))
+    else
+        BI021_OUT=$(python3 "$T/.worktrees/BI021-SIM/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+        if echo "$BI021_OUT" | grep -q "DIVERGE \[FACT-BI021\]"; then
+            echo "  PASS (clean-pass confirmed; BI-021 fix: checker correctly resolves to main worktree root from deep path)"
+        else
+            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-BI021]' not in output)"
+            echo "  Actual output: $BI021_OUT"
             FAILURES=$((FAILURES + 1))
         fi
     fi

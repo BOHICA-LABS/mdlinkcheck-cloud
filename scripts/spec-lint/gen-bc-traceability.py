@@ -21,8 +21,13 @@ MARKER STRATEGY:
 READ-ONLY with respect to canonical-facts.toml — never writes to that file.
 
 Usage:
-  python3 gen-bc-traceability.py [--dry-run]
+  python3 gen-bc-traceability.py [--dry-run] [--check]
+
+--check mode: regenerates all Architecture Module rows in memory, compares
+  each BC file byte-for-byte against its committed content, exits 0 if
+  identical, exits 1 with a unified diff if any file differs. Never writes.
 """
+import difflib
 import os
 import re
 import sys
@@ -167,14 +172,14 @@ def format_arch_module_value(bc_id: str, info: dict, adr_titles: dict[str, str])
     return value
 
 
-def update_bc_file(bc_file: Path, arch_value: str, dry_run: bool) -> bool:
+def compute_new_bc_content(content: str, arch_value: str) -> str | None:
     """
-    Update the Architecture Module row in a BC file.
-    Returns True if file was changed (or would change in dry-run).
-    """
-    content = bc_file.read_text(encoding="utf-8")
-    original = content
+    Compute the updated BC file content given the new arch_value.
+    Returns the new content string if the file would change, None if already current.
 
+    Pure function — never reads or writes files.
+    """
+    original = content
     new_row = f"| Architecture Module | {arch_value} |"
     generated_block = f"{BEGIN_MARKER}\n{new_row}\n{END_MARKER}"
 
@@ -186,13 +191,8 @@ def update_bc_file(bc_file: Path, arch_value: str, dry_run: bool) -> bool:
     if BEGIN_MARKER in content:
         new_content, n = pattern.subn(generated_block, content)
         if n == 0:
-            print(f"  WARNING: {bc_file.name}: markers found but replacement failed", file=sys.stderr)
-            return False
-        if new_content == original:
-            return False
-        if not dry_run:
-            bc_file.write_text(new_content, encoding="utf-8")
-        return True
+            return None  # markers present but replacement failed — warn handled by caller
+        return new_content if new_content != original else None
 
     # Case 2: no markers — find existing Architecture Module row and wrap it
     arch_row_pattern = re.compile(
@@ -201,22 +201,14 @@ def update_bc_file(bc_file: Path, arch_value: str, dry_run: bool) -> bool:
     )
     m = arch_row_pattern.search(content)
     if m:
-        replacement = generated_block
-        new_content = content[:m.start()] + replacement + content[m.end():]
-        if new_content == original:
-            return False
-        if not dry_run:
-            bc_file.write_text(new_content, encoding="utf-8")
-        return True
+        new_content = content[:m.start()] + generated_block + content[m.end():]
+        return new_content if new_content != original else None
 
     # Case 3: no Architecture Module row — append to Traceability table
-    # Find the last row of the Traceability table (just before ## Related BCs or EOF)
     traceability_match = re.search(r"^## Traceability\b", content, re.MULTILINE)
     if not traceability_match:
-        print(f"  SKIP: {bc_file.name}: no ## Traceability section found")
-        return False
+        return None  # no Traceability section; skip handled by caller
 
-    # Find the end of the traceability table (blank line or next ## section)
     after_trace = content[traceability_match.end():]
     next_section = re.search(r"\n##\s", after_trace)
     if next_section:
@@ -224,16 +216,36 @@ def update_bc_file(bc_file: Path, arch_value: str, dry_run: bool) -> bool:
     else:
         insert_pos = len(content)
 
-    insertion = f"\n{generated_block}\n"
-    new_content = content[:insert_pos] + insertion + content[insert_pos:]
-    if new_content == original:
+    new_content = content[:insert_pos] + f"\n{generated_block}\n" + content[insert_pos:]
+    return new_content if new_content != original else None
+
+
+def update_bc_file(bc_file: Path, arch_value: str, dry_run: bool) -> bool:
+    """
+    Update the Architecture Module row in a BC file.
+    Returns True if file was changed (or would change in dry-run).
+    """
+    content = bc_file.read_text(encoding="utf-8")
+    new_content = compute_new_bc_content(content, arch_value)
+
+    if new_content is None:
+        # Either unchanged or a skip condition; check for the markers-present-but-failed case
+        pattern = re.compile(re.escape(BEGIN_MARKER) + r".*?" + re.escape(END_MARKER), re.DOTALL)
+        if BEGIN_MARKER in content:
+            _, n = pattern.subn("", content)
+            if n == 0:
+                print(f"  WARNING: {bc_file.name}: markers found but replacement failed", file=sys.stderr)
+        elif not re.search(r"^## Traceability\b", content, re.MULTILINE):
+            print(f"  SKIP: {bc_file.name}: no ## Traceability section found")
         return False
+
     if not dry_run:
         bc_file.write_text(new_content, encoding="utf-8")
     return True
 
 
 def main() -> int:
+    check_mode = "--check" in sys.argv
     dry_run = "--dry-run" in sys.argv
 
     bc_data = parse_bc_module_map()
@@ -244,6 +256,44 @@ def main() -> int:
     adr_titles = load_adr_titles()
     if not adr_titles:
         print("WARNING: no ADR titles loaded — ADR descriptions will be omitted", file=sys.stderr)
+
+    if check_mode:
+        # Regenerate in memory and compare byte-for-byte; never write.
+        diffs: list[str] = []
+        checked = 0
+        missing = 0
+        for bc_id in sorted(bc_data.keys()):
+            info = bc_data[bc_id]
+            ss_num = re.search(r"BC-\d+\.(\d+)\.", bc_id).group(1)
+            bc_file = BC_DIR / f"ss-{ss_num}" / f"{bc_id}.md"
+            if not bc_file.exists():
+                missing += 1
+                continue
+            checked += 1
+            arch_value = format_arch_module_value(bc_id, info, adr_titles)
+            content = bc_file.read_text(encoding="utf-8")
+            new_content = compute_new_bc_content(content, arch_value)
+            if new_content is not None:
+                rel = str(bc_file.relative_to(REPO))
+                diff_lines = list(difflib.unified_diff(
+                    content.splitlines(keepends=True),
+                    new_content.splitlines(keepends=True),
+                    fromfile=rel,
+                    tofile=f"{rel} (generated)",
+                ))
+                diffs.extend(diff_lines)
+        if diffs:
+            print(
+                f"gen-bc-traceability --check: FAIL — {len(diffs)} diff line(s) across "
+                f"{checked} checked files ({missing} missing on disk)"
+            )
+            sys.stdout.writelines(diffs)
+            return 1
+        print(
+            f"gen-bc-traceability --check: OK — {checked} BC files match generated output "
+            f"({missing} missing on disk, counted as not checked)"
+        )
+        return 0
 
     updated = 0
     skipped = 0

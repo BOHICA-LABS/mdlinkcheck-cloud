@@ -28,7 +28,27 @@ import sys
 import tomllib
 from pathlib import Path
 
-REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
+def _find_repo_root() -> Path:
+    """
+    Locate the repository root by walking up from this script's location until a
+    directory containing `.factory/specs/canonical-facts.toml` is found.
+
+    This handles secondary git worktrees (e.g. `.worktrees/STORY-NNN/`) where
+    `Path(__file__).parent.parent.parent` would resolve to the worktree root
+    rather than the main checkout that holds `.factory/` (BI-021 fix).
+
+    Falls back to the 3-levels-up heuristic if no ancestor directory contains
+    the canonical-facts file (e.g. a clean checkout before the file is created).
+    """
+    candidate = Path(__file__).resolve().parent
+    for _ in range(8):
+        if (candidate / ".factory" / "specs" / "canonical-facts.toml").exists():
+            return candidate
+        candidate = candidate.parent
+    return Path(__file__).resolve().parent.parent.parent
+
+
+REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else _find_repo_root()
 
 FACTS_FILE = REPO / ".factory" / "specs" / "canonical-facts.toml"
 

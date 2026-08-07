@@ -27,8 +27,13 @@ Phase-3 integration skeleton are NEVER touched.
 READ-ONLY with respect to canonical-facts.toml — never writes to that file.
 
 Usage:
-  python3 gen-slug-corpus.py [--dry-run]
+  python3 gen-slug-corpus.py [--dry-run] [--check]
+
+--check mode: regenerates VP-018 content in memory, compares byte-for-byte
+  against the committed artifact, exits 0 if identical, exits 1 with a
+  unified diff if different. Never writes.
 """
+import difflib
 import os
 import re
 import sys
@@ -384,6 +389,7 @@ def update_tests_in_vp018(content: str, tests_block: str) -> str:
 # ──────────────────────────────────────────────────────────────────────────────
 
 def main() -> int:
+    check_mode = "--check" in sys.argv
     dry_run = "--dry-run" in sys.argv
 
     if not TV_FILE.exists():
@@ -398,26 +404,48 @@ def main() -> int:
         print("ERROR: no TV-S entries parsed from test-vectors.md §7", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Parsed {len(entries)} TV-S entries from test-vectors.md §7")
-    fresh = [e for e in entries if classify_entry(e) == "fresh"]
-    print(f"  {len(fresh)} fresh-counter entries → SLUG_CORPUS")
-    print(f"  {len([e for e in entries if classify_entry(e) == 'sequence'])} sequence entries → foo-sequence test")
-    print(f"  {len([e for e in entries if classify_entry(e) == 'collision'])} collision entries → foo-collision test")
-
     corpus_block = gen_corpus_block(entries)
-
     seq_ids, seq_texts, seq_slugs = sequence_triple(entries)
-    if not seq_ids:
-        print("WARNING: no sequence entries found for TV-S001/S002/S003", file=sys.stderr)
     tests_block = gen_sequence_tests(seq_ids, seq_texts, seq_slugs)
 
     content = VP_018.read_text(encoding="utf-8")
     new_content = update_corpus_in_vp018(content, corpus_block)
     new_content = update_tests_in_vp018(new_content, tests_block)
 
+    if check_mode:
+        # Compare byte-for-byte; never write.
+        if new_content == content:
+            rel = str(VP_018.relative_to(REPO))
+            print(f"gen-slug-corpus --check: OK — {rel} matches generated output")
+            return 0
+        rel = str(VP_018.relative_to(REPO))
+        diff_lines = list(difflib.unified_diff(
+            content.splitlines(keepends=True),
+            new_content.splitlines(keepends=True),
+            fromfile=rel,
+            tofile=f"{rel} (generated)",
+        ))
+        print(f"gen-slug-corpus --check: FAIL — {rel} differs from generated output")
+        sys.stdout.writelines(diff_lines)
+        return 1
+
     if new_content == content:
+        fresh = [e for e in entries if classify_entry(e) == "fresh"]
+        print(f"Parsed {len(entries)} TV-S entries from test-vectors.md §7")
+        print(f"  {len(fresh)} fresh-counter entries → SLUG_CORPUS")
+        print(f"  {len([e for e in entries if classify_entry(e) == 'sequence'])} sequence entries → foo-sequence test")
+        print(f"  {len([e for e in entries if classify_entry(e) == 'collision'])} collision entries → foo-collision test")
         print("VP-018 already up to date — no changes needed")
         return 0
+
+    fresh = [e for e in entries if classify_entry(e) == "fresh"]
+    print(f"Parsed {len(entries)} TV-S entries from test-vectors.md §7")
+    print(f"  {len(fresh)} fresh-counter entries → SLUG_CORPUS")
+    print(f"  {len([e for e in entries if classify_entry(e) == 'sequence'])} sequence entries → foo-sequence test")
+    print(f"  {len([e for e in entries if classify_entry(e) == 'collision'])} collision entries → foo-collision test")
+
+    if not seq_ids:
+        print("WARNING: no sequence entries found for TV-S001/S002/S003", file=sys.stderr)
 
     if dry_run:
         print("DRY-RUN: would update VP-018 (no file written)")
