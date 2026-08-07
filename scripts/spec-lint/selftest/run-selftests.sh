@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=34
+EXPECTED_TEST_COUNT=36
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -2069,6 +2069,178 @@ HSIX_DEFECT
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; only last pre-separator row exempted; phantom row detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test D-070-A: tab-indented heading bypass ─────────────────────────────────
+# '\t## X' has a tab as leading whitespace.  CommonMark §2.1 expands tabs at
+# 4-column stops, so '\t## X' has 4 columns of indent — the code-block threshold.
+# It is NOT an ATX heading.  The prior raw.startswith("    ") check missed this
+# because a literal tab is not four ASCII spaces.
+# After the D-070 fix, _leading_columns(raw) < 4 catches the tab case:
+# _leading_columns("\t## X") == 4, which is NOT < 4, so the line goes to prose.
+# Section scope is unchanged; phantom rows after the tab-indented line are caught.
+#
+# Mutation-flip: replace _leading_columns(raw) < 4 with the old
+# not raw.startswith("    ") guard.  '\t## X' passes the startswith test
+# (tab != four spaces); _CM_HEADING_RE matches; in_authored_scenarios=False;
+# phantom rows after the tab-indented line are prose-bucketed; checker exits 0 -> FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest D-070-A: tab-indented heading bypass (D-070 regression) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: tab-indented '\t## heading' before phantom HS-099.
+    # Without D-070 fix: startswith("    ") -> False (tab != spaces) ->
+    #   _CM_HEADING_RE matches "## ..." -> in_authored_scenarios=False -> HS-099 missed.
+    # With D-070 fix: _leading_columns("\t## ...") = 4 -> NOT < 4 -> prose ->
+    #   scope stays True -> HS-099 caught; checker exits 1 (phantom EC-999).
+    {
+        cat <<'HSIX_PART1'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+
+HSIX_PART1
+        printf '\t## tab-indented: code block not heading\n'
+        cat <<'HSIX_PART2'
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-099 | EC-999 | PHANTOM after tab-indented heading | Notes | BC | active |
+HSIX_PART2
+    } > "$T/.factory/holdout-scenarios/HS-INDEX.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — tab-indented heading killed section scope — D-070-A not fixed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; tab-indented heading treated as prose; phantom row detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test D-070-B: indented-fence bypass ───────────────────────────────────────
+# A fence indented 4+ spaces is an indented code block per CommonMark §4.5,
+# NOT a fenced-code-block delimiter.  The prior code did not check indent before
+# applying _FENCE_RE, so '      ```' (6 spaces) opened a fenced_code sink
+# unbounded.  Lines after the indented fence were bucketed as fenced_code and
+# never seen as HS candidates; B-9 did not fire; the checker exited 0.
+# After the D-070 fix, _leading_columns(raw) < 4 guards the fence check:
+# _leading_columns("      ```") == 6, NOT < 4, so the line goes to prose.
+# Subsequent HS rows are processed normally; phantom EC-999 is caught.
+#
+# Mutation-flip: remove the _leading_columns guard from the _FENCE_RE check.
+# '      ```' passes _FENCE_RE; in_fenced_code=True; HS-099 bucketed as
+# fenced_code; never in hs_rows_seen; B-9 does not fire; checker exits 0 -> FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest D-070-B: indented-fence bypass (D-070 regression) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/domain-spec"
+mkdir -p "$T/.factory/holdout-scenarios/wave-scenarios"
+
+cat > "$T/.factory/specs/behavioral-contracts/BC-INDEX.md" <<'BCIX'
+---
+total_bcs: 0
+subsystems: 0
+---
+| BC ID | Title | Priority | File |
+|-------|-------|----------|------|
+BCIX
+touch "$T/.factory/specs/verification-properties/VP-INDEX.md"
+cat > "$T/.factory/specs/architecture/ARCH-INDEX.md" <<'ARCHIX'
+---
+---
+ARCHIX
+touch "$T/.factory/specs/domain-spec/L2-INDEX.md"
+cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+HSIX
+touch "$T/.factory/holdout-scenarios/wave-scenarios/EC-156-selftest-scenario.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: 6-space-indented ``` before phantom HS-099.
+    # CommonMark §4.5: 4+ columns of indent = indented code block, not a fence.
+    # Without D-070 fix: _FENCE_RE matches stripped "```" -> in_fenced_code=True ->
+    #   HS-099 bucketed as fenced_code -> never in hs_rows_seen -> B-9 silent ->
+    #   checker exits 0 (phantom missed).
+    # With D-070 fix: _leading_columns("      ```") = 6 -> NOT < 4 -> prose ->
+    #   HS-099 is a post-separator data_row -> caught; checker exits 1.
+    cat > "$T/.factory/holdout-scenarios/HS-INDEX.md" <<'HSIX_DEFECT'
+## Authored Scenarios
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-001 | EC-156 | Selftest scenario | Notes | BC-2.01.001 | active |
+
+      ```
+
+| HS ID | EC ID | Title | Notes | BCs | Status |
+|-------|-------|-------|-------|-----|--------|
+| HS-099 | EC-999 | PHANTOM inside indented fake fence | Notes | BC | active |
+
+      ```
+HSIX_DEFECT
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-index-integrity.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — indented fence opened fenced_code sink — D-070-B not fixed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; indented fence treated as prose; phantom row detected)"
     fi
 fi
 rm -rf "$T"

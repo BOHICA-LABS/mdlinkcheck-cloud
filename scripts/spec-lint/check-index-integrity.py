@@ -21,16 +21,50 @@ REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.envir
 SPECS = REPO / ".factory" / "specs"
 FACTORY = REPO / ".factory"
 
-# ── CommonMark ATX heading and fenced-code-block regexes (D-069) ──────────────
+# ── CommonMark ATX heading and fenced-code-block regexes (D-069 / D-070) ──────
 # _CM_HEADING_RE: matches #{1,6} followed by space or EOL (CommonMark §4.2).
 # Does NOT match #2, #TODO, #!note, etc.  Used in get_hs_data() to classify
-# heading lines.  Combined with a 4-space-indent exclusion on the raw line,
-# this closes the pseudo-heading / fenced-code bypass class (fixtures A/A2/A3).
+# heading lines.  Combined with a _leading_columns(raw) < 4 guard (D-070), this
+# NARROWS the pseudo-heading / fenced-code bypass class (fixtures A/A2/A3 plus
+# the tab variant closed by D-070).  The class is NARROWED, not closed; see D-070.
 _CM_HEADING_RE = re.compile(r'^(#{1,6})(?:\s|$)')
-# _FENCE_RE: matches the start/end of a CommonMark fenced code block.
-# A fence is 3+ identical backticks or tildes (optionally 0-3 spaces of indent,
-# which are normalised away by raw.strip() before this is applied).
+# _FENCE_RE: matches the start/end of a CommonMark fenced code block (stripped line).
+# A fence is 3+ identical backticks or tildes.  CommonMark §4.5 allows 0-3 columns
+# of indent; 4+ columns → indented code block (not a fence).  The indent guard is
+# applied in get_hs_data() via _leading_columns(raw) < 4 (D-070).
 _FENCE_RE = re.compile(r'^(`{3,}|~{3,})')
+
+
+def _leading_columns(raw: str) -> int:
+    """Return the column width of the leading whitespace of ``raw``.
+
+    Expands tabs at 4-column stops per CommonMark §2.1.  A tab at column N
+    advances to the next multiple of 4:
+
+        ''       -> 0
+        '   '    -> 3   (three spaces)
+        '    '   -> 4   (CommonMark code-block threshold)
+        '\\t'     -> 4   (tab at column 0 -> next stop = column 4)
+        ' \\t'    -> 4   (space at col 1, tab advances to col 4)
+        '\\t '    -> 5   (tab -> col 4, then one space)
+        '\\t\\t'   -> 8   (two tabs: col 0->4, col 4->8)
+
+    Used by get_hs_data() to guard BOTH the heading test and the fence test
+    against the tab-as-indent bypass (D-070).
+
+    NOTE: ``raw.startswith("    ")`` misses ``\\t## X`` because a literal tab is
+    not four ASCII spaces even though both occupy 4 columns.  This helper
+    closes that gap.
+    """
+    col = 0
+    for ch in raw:
+        if ch == ' ':
+            col += 1
+        elif ch == '\t':
+            col = (col // 4 + 1) * 4
+        else:
+            break
+    return col
 
 # ── Column-header positive recognition ────────────────────────────────────────
 # _is_column_header() is the ONLY gate that exempts a pre-separator row from
@@ -198,22 +232,35 @@ def get_hs_data(
 
     Bucket inventory
     ────────────────
-    heading       CommonMark ATX headings (#{1,6} + space/EOL); not 4-space-indented;
-                  not inside a fenced code block.
-    fenced_code   Lines inside or delimiting fenced code blocks (``` / ~~~).
+    heading       CommonMark ATX headings (#{1,6} + space/EOL); < 4 columns of indent;
+                  not inside a fenced code block.  D-070: _leading_columns() guard
+                  extends the indent check to tab-expanded indent (not just spaces).
+    fenced_code   Lines inside or delimiting CommonMark fenced code blocks.  UNBOUNDED
+                  SINK: any row that falls inside a fenced block is classified here
+                  and is invisible to HS validation, even if it looks like an HS row.
+                  Only fences with < 4 columns of indent open this sink (D-070).
     separator     GFM table separator rows: first_cell non-empty, every non-empty cell
                   ⊆ {'-', ':', ' '}.
     column_header Pre-separator pipe row positively recognised by _is_column_header().
                   D-069 MINOR-1 fix: applied ONLY to pending_pre_sep[-1] — at most one
                   row per table is eligible, matching GFM single-header semantics.
-    prose         All remaining non-candidate lines: out-of-scope pipe rows, non-pipe
-                  in-scope lines without '|', lines in other sections, etc.
+    prose         UNBOUNDED SINK: all remaining non-candidate lines — out-of-scope pipe
+                  rows, non-pipe in-scope lines without '|', lines in other sections,
+                  tab-indented code blocks, indented fences, etc.  A line that lands
+                  here is accounted for but invisible to HS validation.
     data_row      In-scope HS candidate rows.  data_row == hs_rows_seen (invariant).
 
     Conservation law (D-069):
         total_candidates == sum(buckets.values())
-    Asserted internally.  A violation signals a parser bug (line vanished).
-    Tested by the property test (--property-test mode).
+    Asserted internally.  A violation signals a parser bug: a line was lost from
+    accounting entirely.  This guarantees NO LINE VANISHES from the count, but does
+    NOT guarantee correct classification.  A phantom HS row routed to 'prose' or
+    'fenced_code' is accounted for but invisible to HS validation — the conservation
+    law does not prevent this.  The bypass class is NARROWED (D-069 + D-070), not
+    closed; see the D-070 ruling for the residual and the tracking story.
+    Tested by the property test (--property-test mode, seed=42 fixed; the generator
+    covers structural variety but NOT exhaustive input space — the seed is a
+    reproducibility aid, not a completeness proof).
 
     B-9 accounting invariant (preserved, load-bearing):
         hs_rows_seen == hs_canonical + hs_nonconforming
@@ -222,13 +269,22 @@ def get_hs_data(
 
     Fixes applied in D-069
     ──────────────────────
-    BLOCKING-1 / A / A2 / A3 (pseudo-heading / fenced-code bypass):
+    BLOCKING-1 / A / A2 / A3 (pseudo-heading / fenced-code bypass) — D-069:
       CommonMark-correct heading detection replaces the prior startswith("#").
       Fix: _CM_HEADING_RE requires space or EOL after the #-run.  4-space-indented
       lines excluded via raw-line check (before strip).  Fenced code blocks tracked
       via _FENCE_RE: lines inside fences are never headings.
-      Result: '#2 below', '    ## indented', fenced '# heading' are now prose,
-      never section-scope killers.
+      Result: '#2 below', '    ## indented', fenced '# heading' are now prose.
+
+    Tab and indented-fence variants — D-070:
+      D-069 used raw.startswith("    ") for the heading indent check: this missed
+      '\t## X' because a literal tab is not four ASCII spaces even though CommonMark
+      §2.1 expands it to 4 columns.  Similarly, the fence check had no indent guard,
+      so '      ```' (6 spaces) opened a fenced_code sink unbounded.
+      Fix: _leading_columns(raw) helper expands tabs at 4-column stops; both the
+      heading test and the fence test now use _leading_columns(raw) < 4.
+      Result: '\t## X' and '      ```' are now prose, never scope-killers or sinks.
+      The class is NARROWED by D-069 + D-070, not closed; residual tracked separately.
 
     MAJOR-1 / B (adjacent-pipe pipeless bypass):
       Prior gate re.search(r"[^|]\\|[^|]") excluded 'HS-099||EC-999' (adjacent
@@ -249,8 +305,8 @@ def get_hs_data(
       EC-NNN, not HS-NNN).  Removing section scope would route those to data_row
       and fire B-9 incorrectly.  Premise verified: no HS-shaped rows (first cell
       matching HS-NNN or near-miss) appear outside ## Authored Scenarios in the
-      live file.  With CommonMark-correct heading detection, the section scope
-      predicate no longer enables any bypass class.
+      live file.  With D-069 + D-070 fixes, the heading-detection bypass class that
+      enabled section-scope attacks is NARROWED (not closed); see D-070 ruling.
     """
     if hs_index_path is None:
         hs_index_path = FACTORY / "holdout-scenarios" / "HS-INDEX.md"
@@ -361,11 +417,13 @@ def get_hs_data(
         total_candidates += 1
 
         # ── Fenced code block (CommonMark §4.5) ──────────────────────────────
-        # A fence is 3+ identical backticks or tildes, checked on the stripped
-        # line (0-3 spaces of indent are allowed and normalised away by strip).
-        # All lines inside a fenced block are fenced_code — never headings,
-        # separators, or data rows.  This closes the fixture A2 bypass.
-        if _FENCE_RE.match(line):
+        # A fence is 3+ identical backticks or tildes with 0-3 columns of indent.
+        # _leading_columns(raw) < 4 enforces the indent bound on the RAW line
+        # (before strip).  4+ columns of indent (spaces or tab) → indented code
+        # block, NOT a fenced-code-block delimiter (D-070: unguarded-indented-fence
+        # bypass closed here).  All lines inside a fenced block land in fenced_code
+        # and are never headings, separators, or data rows (fixture A2).
+        if _leading_columns(raw) < 4 and _FENCE_RE.match(line):
             in_fenced_code = not in_fenced_code
             buckets["fenced_code"] += 1
             continue
@@ -376,11 +434,13 @@ def get_hs_data(
         # ── CommonMark ATX heading (§4.2) ─────────────────────────────────────
         # A heading is #{1,6} followed by space or EOL; NOT any line starting
         # with '#'.  Excluded cases (all → prose, not heading):
-        #   - 4+ spaces of leading indent (code block): checked on RAW line so
-        #     "    ## foo" after strip() doesn't look like a heading.
+        #   - 4+ COLUMNS of leading indent: _leading_columns(raw) < 4 checked on
+        #     the RAW line (before strip), expanding tabs at 4-column stops so both
+        #     "    ## foo" (spaces) and "\t## foo" (tab) are excluded (D-070 fix;
+        #     the prior raw.startswith("    ") missed the tab case — fixture A3+tab).
         #   - No space after #-run: '#2 below', '#TODO', '#note' (fixture A).
         #   - Inside a fenced code block (handled above, fixture A2).
-        if not raw.startswith("    ") and _CM_HEADING_RE.match(line):
+        if _leading_columns(raw) < 4 and _CM_HEADING_RE.match(line):
             m_h = _CM_HEADING_RE.match(line)
             level = len(m_h.group(1))  # type: ignore[union-attr]
             _flush_pending()
