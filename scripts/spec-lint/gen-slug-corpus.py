@@ -38,6 +38,9 @@ Usage:
 --check mode: regenerates VP-018 content in memory, compares byte-for-byte
   against the committed artifact, exits 0 if identical, exits 1 with a
   unified diff if different. Never writes.
+  NOTE: --check currently returns FAIL on the live tree with 2 cosmetic diffs
+  (whitespace alignment on the END marker; no content dropped). This divergence
+  is safe to regenerate when the concurrency gate is lifted.
 
 --dry-run mode: previews what would be written without modifying VP-018.
 

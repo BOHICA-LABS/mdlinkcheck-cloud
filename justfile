@@ -202,6 +202,7 @@ spec-lint:
         "check-holdout-boundary"
         "check-adr-consistency"
         "check-index-integrity"
+        "check-canonical-facts"
     )
     FAILURES=0
     for check in "${CHECKS[@]}"; do

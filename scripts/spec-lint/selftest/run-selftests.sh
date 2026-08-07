@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=47
+EXPECTED_TEST_COUNT=49
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -48,12 +48,18 @@ OVERRIDE_PATTERN='^REPO[[:space:]]*=.*SPEC_LINT_REPO_OVERRIDE'
 SUPPRESSION_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET)[[:space:]]*[=:]'
 
 run_override_guard() {
-    # Verify every check-*.py in $1 has an active SPEC_LINT_REPO_OVERRIDE assignment.
+    # Verify every check-*.py in $1, plus the two new generators introduced by this PR
+    # (gen-bc-traceability.py and gen-slug-corpus.py), have an active
+    # SPEC_LINT_REPO_OVERRIDE assignment. The two generators are listed explicitly
+    # rather than using gen-*.py because the pre-existing generators (gen-bc-index.py,
+    # gen-ec-registry.py, etc.) predate the isolated-tree testing model and are tracked
+    # separately. The two new generators share the same override pattern and must be
+    # included so they cannot regress without this guard firing.
     # D-057: prints runtime count of files scanned; fails if 0 files found.
     # Returns 0 = all clear, 2 = guard fired (missing support, or no files found).
     local dir="$1"
     local count=0
-    for f in "$dir"/check-*.py; do
+    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py"; do
         [[ -f "$f" ]] || continue
         count=$((count + 1))
         if ! grep -qE "$OVERRIDE_PATTERN" "$f" 2>/dev/null; then
@@ -67,17 +73,20 @@ run_override_guard() {
         echo "STRUCTURAL GUARD FAILED: no check-*.py files found in $dir — nothing scanned"
         return 2
     fi
-    echo "Pre-flight guard passed: $count checkers support SPEC_LINT_REPO_OVERRIDE"
+    echo "Pre-flight guard passed: $count checkers/generators support SPEC_LINT_REPO_OVERRIDE"
     return 0
 }
 
 run_suppression_guard() {
-    # Verify no check-*.py in $1 contains a hardcoded suppression allowlist construct.
+    # Verify no check-*.py in $1, nor the two new generators (gen-bc-traceability.py,
+    # gen-slug-corpus.py), contain a hardcoded suppression allowlist construct.
+    # Same scoping rationale as run_override_guard: pre-existing generators are tracked
+    # separately; the two new generators are explicitly included.
     # D-057: prints runtime count of files scanned; fails if 0 files found.
     # Returns 0 = all clear, 2 = guard fired (suppression found, or no files found).
     local dir="$1"
     local count=0
-    for f in "$dir"/check-*.py; do
+    for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py"; do
         [[ -f "$f" ]] || continue
         count=$((count + 1))
         if grep -qE "$SUPPRESSION_PATTERN" "$f" 2>/dev/null; then
@@ -92,7 +101,7 @@ run_suppression_guard() {
         echo "STRUCTURAL GUARD FAILED: no check-*.py files found in $dir — nothing scanned"
         return 2
     fi
-    echo "Pre-flight guard passed: $count checkers scanned, 0 suppression constructs found"
+    echo "Pre-flight guard passed: $count checkers/generators scanned, 0 suppression constructs found"
     return 0
 }
 
@@ -1551,6 +1560,155 @@ if [ "$CLEAN_PASS" = "1" ]; then
             echo "  FAIL (gate refused but VP-018 was still modified — write occurred before gate check)"
             FAILURES=$((FAILURES + 1))
         fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 29: meta-guard — every check-*.py on disk is wired into CI and justfile ─────────
+# BLOCKING-1 meta-guard: a checker on disk but absent from both runners is a silent coverage
+# hole. Every check-*.py in scripts/spec-lint/ must appear in both
+# .github/workflows/ci.yml (CHECKS array) and justfile (spec-lint CHECKS array).
+# Fail-toward-loud: a checker absent from the runner never runs against the real tree.
+#
+# Clean pass: every on-disk check-*.py is present in both runners (proves current state).
+# Defect:     temp copy of ci.yml with check-canonical-facts removed → meta-guard detects
+#             the missing entry. Mutation-verify: neutering the detection logic causes the
+#             defect step to report no missing checkers, flipping this assertion to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 29: meta-guard: every check-*.py is wired into CI and justfile ──"
+
+RUNNER_MISSING=0
+MISSING_IN_CI=()
+MISSING_IN_JUST=()
+
+for py_file in "$LINT_DIR"/check-*.py; do
+    [[ -f "$py_file" ]] || continue
+    name=$(basename "$py_file" .py)
+    if ! grep -qF "\"${name}\"" "$REPO/.github/workflows/ci.yml"; then
+        MISSING_IN_CI+=("$name")
+        RUNNER_MISSING=1
+    fi
+    if ! grep -qF "\"${name}\"" "$REPO/justfile"; then
+        MISSING_IN_JUST+=("$name")
+        RUNNER_MISSING=1
+    fi
+done
+
+CLEAN_PASS=0
+if [ "$RUNNER_MISSING" -eq 0 ]; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL (clean-pass): on-disk checker(s) missing from runners:"
+    for m in "${MISSING_IN_CI[@]+"${MISSING_IN_CI[@]}"}"; do echo "    MISSING from ci.yml: $m"; done
+    for m in "${MISSING_IN_JUST[@]+"${MISSING_IN_JUST[@]}"}"; do echo "    MISSING from justfile: $m"; done
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: temp copy of ci.yml with check-canonical-facts removed
+    T=$(make_temp)
+    cp "$REPO/.github/workflows/ci.yml" "$T/ci-defect.yml"
+    sed -i.bak 's/"check-canonical-facts"//' "$T/ci-defect.yml"
+
+    DEFECT_MISSING=0
+    for py_file in "$LINT_DIR"/check-*.py; do
+        [[ -f "$py_file" ]] || continue
+        name=$(basename "$py_file" .py)
+        if ! grep -qF "\"${name}\"" "$T/ci-defect.yml"; then
+            DEFECT_MISSING=1
+        fi
+    done
+
+    if [ "$DEFECT_MISSING" -eq 1 ]; then
+        echo "  PASS (clean-pass confirmed; meta-guard detects missing check-canonical-facts in defect ci.yml)"
+    else
+        echo "  FAIL (meta-guard did NOT detect removed check-canonical-facts in temp ci.yml)"
+        FAILURES=$((FAILURES + 1))
+    fi
+    rm -rf "$T"
+fi
+
+# ── Test 30: check-canonical-facts — boundary stop prevents ancestor escape (MAJOR-2) ───
+# The .git boundary stop in _find_repo_root() prevents the walk from escaping the current
+# repository when .factory/ is unmounted (or when running from a linked worktree). Without
+# the stop, the walk exits the inner repository, binds a decoy canonical-facts.toml from
+# an ancestor, and exits 0 (false pass). With the stop, it exits 1 (fail-closed, correct).
+#
+# Test structure:
+#   $T/
+#     .factory/specs/canonical-facts.toml  — decoy (in ancestor, must NOT be found)
+#     .factory/specs/decoy-binding.md       — binding file that matches the decoy
+#     inner/
+#       .git                                — FILE, simulates a linked worktree
+#       scripts/spec-lint/
+#         check-canonical-facts.py          — copy of fixed script
+#
+# Clean pass: boundary stop fires at inner/.git; no canonical-facts.toml found within
+#             the inner repository → script exits non-zero (fail-closed, correct).
+# Defect:     remove inner/.git; walk now escapes to $T/, finds decoy canonical-facts.toml,
+#             binds it, all bindings match → script exits 0 (false pass — defect confirmed).
+#
+# Mutation-verify: removing `if (candidate / ".git").exists(): return None` from
+# _find_repo_root() causes the walk to escape past inner/.git even when it exists,
+# finds the decoy, and exits 0 — flipping the clean-pass assertion to FAIL.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 30: check-canonical-facts: boundary stop prevents ancestor escape ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+mkdir -p "$T/inner/scripts/spec-lint"
+
+# Decoy canonical-facts.toml in ancestor — must NEVER be reached by the inner script
+cat > "$T/.factory/specs/canonical-facts.toml" <<'CF30'
+[[fact]]
+id = "FACT-DECOY30"
+description = "Decoy — inner-repo script must not bind this"
+canonical_value = "decoy-pass"
+source = "selftest-30"
+
+[[binding]]
+fact_id = "FACT-DECOY30"
+file = ".factory/specs/decoy-binding.md"
+note = "decoy binding for boundary stop test"
+pattern = 'decoy: (decoy-pass)'
+CF30
+
+cat > "$T/.factory/specs/decoy-binding.md" <<'DB30'
+# Decoy Binding (boundary stop test — selftest 30)
+decoy: decoy-pass
+DB30
+
+# inner/.git is a FILE (simulates git linked worktree — .git is a pointer file in worktrees)
+printf "gitdir: ../../.git/worktrees/inner\n" > "$T/inner/.git"
+
+# Copy the FIXED script into the simulated inner repository
+cp "$LINT_DIR/check-canonical-facts.py" "$T/inner/scripts/spec-lint/"
+
+# Clean pass: boundary stop must fire and script must exit non-zero (fail-closed)
+CLEAN_PASS=0
+BOUND_OUT=$(python3 "$T/inner/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+BOUND_EXIT=$?
+if [ "$BOUND_EXIT" -ne 0 ]; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: boundary stop did not fire — script exited 0 (false pass against decoy)"
+    echo "  Output: $BOUND_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: remove inner/.git — the boundary stop no longer fires; walk escapes to
+    # $T/ and finds the decoy canonical-facts.toml, producing a false pass (exit 0)
+    rm "$T/inner/.git"
+    DEFECT_OUT=$(python3 "$T/inner/scripts/spec-lint/check-canonical-facts.py" 2>&1)
+    DEFECT_EXIT=$?
+    if [ "$DEFECT_EXIT" -eq 0 ]; then
+        echo "  PASS (clean-pass confirmed; boundary stop prevents false pass; without .git, decoy is found)"
+    else
+        echo "  FAIL (without .git boundary marker, script still exited non-zero — walk did not escape to decoy)"
+        echo "  Output: $DEFECT_OUT"
+        FAILURES=$((FAILURES + 1))
     fi
 fi
 rm -rf "$T"

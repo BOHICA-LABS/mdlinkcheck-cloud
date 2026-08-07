@@ -35,6 +35,9 @@ Usage:
 --check mode: regenerates all Architecture Module rows in memory, compares
   each BC file byte-for-byte against its committed content, exits 0 if
   identical, exits 1 with a unified diff if any file differs. Never writes.
+  NOTE: --check currently returns FAIL (786 diff lines across 66 BC files)
+  on the live tree. This is expected pre-adjudication — the @GENERATED markers
+  have not yet been added to any BC file.
 
 --dry-run mode: previews what would be written without modifying any file.
 
@@ -238,6 +241,11 @@ def update_bc_file(bc_file: Path, arch_value: str, dry_run: bool) -> bool:
     """
     Update the Architecture Module row in a BC file.
     Returns True if file was changed (or would change in dry-run).
+
+    FUNCTION-LEVEL WRITE GATE (BI-041): write mode is blocked at this level
+    independently of main(). This prevents write mode from being reached via
+    import, even when dry_run=False is passed directly. Remove alongside Gate 2
+    in main() when BI-041 is adjudicated and annotation round-tripping is fixed.
     """
     content = bc_file.read_text(encoding="utf-8")
     new_content = compute_new_bc_content(content, arch_value)
@@ -254,7 +262,12 @@ def update_bc_file(bc_file: Path, arch_value: str, dry_run: bool) -> bool:
         return False
 
     if not dry_run:
-        bc_file.write_text(new_content, encoding="utf-8")
+        # ── FUNCTION-LEVEL WRITE GATE (BI-041) ────────────────────────────────
+        raise RuntimeError(
+            f"update_bc_file({bc_file.name}): write mode blocked pending BI-041 "
+            "adjudication. See Gate 2 guard in main(). Remove alongside Gate 2 "
+            "when BI-041 is resolved."
+        )
     return True
 
 

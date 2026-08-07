@@ -28,27 +28,57 @@ import sys
 import tomllib
 from pathlib import Path
 
-def _find_repo_root() -> Path:
+def _find_repo_root() -> "Path | None":
     """
     Locate the repository root by walking up from this script's location until a
     directory containing `.factory/specs/canonical-facts.toml` is found.
 
-    This handles secondary git worktrees (e.g. `.worktrees/STORY-NNN/`) where
-    `Path(__file__).parent.parent.parent` would resolve to the worktree root
-    rather than the main checkout that holds `.factory/` (BI-021 fix).
+    Returns None (never a Path) if:
+      - A `.git` entry is found before canonical-facts.toml is found (repository
+        boundary stop — prevents escaping to an unrelated ancestor repository or
+        binding a decoy canonical-facts.toml from a different project). Note:
+        `.git` is a FILE in linked worktrees and a DIRECTORY in main checkouts;
+        `.exists()` correctly detects both.
+      - The 8-level walk limit is reached with no match.
 
-    Falls back to the 3-levels-up heuristic if no ancestor directory contains
-    the canonical-facts file (e.g. a clean checkout before the file is created).
+    FAIL-CLOSED design: returning None causes the caller to exit 1 with an
+    error message rather than silently binding wrong data. The old fallback to
+    `parent.parent.parent` failed CLOSED from secondary worktrees (correct).
+    The old _find_repo_root() walk with no boundary stop could escape to an
+    unrelated ancestor and fail OPEN when `.factory/` is unmounted (MAJOR-2
+    regression). This version fails CLOSED in both cases.
+
+    The BI-021 secondary-worktree scenario is handled correctly in the selftest
+    tree (which has no `.git` file) and in production via SPEC_LINT_REPO_OVERRIDE.
     """
     candidate = Path(__file__).resolve().parent
     for _ in range(8):
         if (candidate / ".factory" / "specs" / "canonical-facts.toml").exists():
             return candidate
+        # Repository boundary stop: .git is a file in linked worktrees,
+        # a directory in main checkouts — exists() catches both.
+        if (candidate / ".git").exists():
+            return None
         candidate = candidate.parent
-    return Path(__file__).resolve().parent.parent.parent
+    return None
 
 
 REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else _find_repo_root()
+
+# Fail CLOSED if _find_repo_root() returned None (boundary hit or 8-level limit).
+# SPEC_LINT_REPO_OVERRIDE always produces a non-None Path, so the None case only
+# arises when auto-detection is used and the walk cannot find canonical-facts.toml
+# within the repository boundary.
+if REPO is None:
+    print(
+        "check-canonical-facts: REPO root not found — no ancestor of this script\n"
+        "  contains .factory/specs/canonical-facts.toml within the repository\n"
+        "  boundary (walk stopped at .git or exceeded 8-level limit).\n"
+        "  If .factory/ is a separate worktree, ensure it is mounted.\n"
+        "  Set SPEC_LINT_REPO_OVERRIDE to the repo root to override path resolution.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 FACTS_FILE = REPO / ".factory" / "specs" / "canonical-facts.toml"
 
