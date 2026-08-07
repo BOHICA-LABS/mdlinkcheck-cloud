@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=52
+EXPECTED_TEST_COUNT=53
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -1084,63 +1084,126 @@ MD21BAD
 fi
 rm -rf "$T"
 
-# ── Test 22: check-canonical-facts — FACT-10 negative (second config_error trigger) ─────
-# BI-035: FACT-10 canonical_value = 'invalid `--ignore` glob'.
-# Negative vector: 'invalid `--ignore` glob or unrecognized flag' — adds a second spurious
-# trigger, which D-062 explicitly ruled out (unrecognized flags are handled by clap before
-# app::run(); they never reach verdict::exit_code). Exactly one trigger exists.
-# Pattern uses flexible quotes-capture so the != branch fires even with backtick content.
-# Mutation-verify: neutralizing != flips this test to FAIL.
+# ── Test 22: check-canonical-facts — FACT-10 binding-25 production pattern Phase A ──────
+# BI-042 rewrite (D-076 applied). The old selftest used a synthetic flexible pattern
+# 'config error trigger: "(.*?)"' that never exercised any production FACT-10 binding.
+# This rewrite uses the ACTUAL production binding-25 pattern:
+#   '\(sole trigger: ([^\n,]+?) pattern,'
+# which was corrected by D-076 from the tautological form:
+#   'sole trigger: (invalid `--ignore` glob)'
+#
+# Phase A: uses the production pattern; defect is complete replacement of the sole trigger.
+# Phase B (selftest 22b below): same pattern; defect is prefix-extension adversarial vector
+#   (invalid `--ignore` glob OR unrecognized flag) — the exact class that silently passed
+#   the old tautological pattern. Proved to have teeth:
+#   - OLD tautological: exit 0 on prefix-extension text (false negative confirmed)
+#   - PRODUCTION corrected: exit 1 + DIVERGE with 'or unrecognized flag' in extracted value
 TESTS_RUN=$((TESTS_RUN + 1))
-echo "── selftest 22: check-canonical-facts: FACT-10 negative — second config_error trigger fails ──"
+echo "── selftest 22: check-canonical-facts: FACT-10 binding-25 production pattern — complete-replacement defect ──"
 T=$(make_temp)
 mkdir -p "$T/.factory/specs"
 
 cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML22'
 [[fact]]
-id              = "FACT-10-NEG"
-description     = "config_error has exactly one trigger: invalid --ignore glob (D-062)"
+id              = "FACT-10-SELFTEST"
+description     = "config_error sole trigger: invalid --ignore glob (production FACT-10 binding-25 pattern)"
 canonical_value = 'invalid `--ignore` glob'
 source          = "selftest"
 
 [[binding]]
-fact_id = "FACT-10-NEG"
+fact_id = "FACT-10-SELFTEST"
 file    = ".factory/specs/selftest-fact10.md"
-note    = "sole trigger declaration"
-pattern = 'config error trigger: "(.*?)"'
+note    = "sole trigger parenthetical (FACT-10 binding-25 production context)"
+pattern = '\(sole trigger: ([^\n,]+?) pattern,'
 TOML22
 
 cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22CLEAN'
-Exit-2 conditions:
-config error trigger: "invalid `--ignore` glob"
+(sole trigger: invalid `--ignore` glob pattern, the only exit-2 condition)
 MD22CLEAN
 
-CLEAN_PASS=0
+CLEAN_PASS_22A=0
 if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
-    CLEAN_PASS=1
+    CLEAN_PASS_22A=1
 else
-    echo "  STRUCTURAL FAIL: checker failed on clean FACT-10 tree"
+    echo "  STRUCTURAL FAIL: checker failed on clean FACT-10 tree (Phase A)"
     FAILURES=$((FAILURES + 1))
 fi
 
-if [ "$CLEAN_PASS" = "1" ]; then
-    # Negative vector: adds unrecognized flag as a second spurious trigger (D-062 rejected).
-    # Clap handles unrecognized flags before app::run(); they never reach verdict::exit_code.
-    cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22BAD'
-Exit-2 conditions:
-config error trigger: "invalid `--ignore` glob or unrecognized flag"
-MD22BAD
+if [ "$CLEAN_PASS_22A" = "1" ]; then
+    # Phase A defect: complete replacement — different phrase entirely (None → DIVERGE path)
+    cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22ABAD'
+(sole trigger: unrecognized flag pattern, the only exit-2 condition)
+MD22ABAD
     if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
-        echo "  FAIL (checker returned 0 — two-trigger claim should DIVERGE from sole-trigger canonical)"
+        echo "  FAIL (checker returned 0 — complete-replacement defect should DIVERGE)"
         FAILURES=$((FAILURES + 1))
     else
-        CF_OUTPUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
-        if echo "$CF_OUTPUT" | grep -q "DIVERGE \[FACT-10-NEG\]"; then
-            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-10-NEG] correctly reported for second trigger)"
+        CF22A=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF22A" | grep -q "DIVERGE \[FACT-10-SELFTEST\]"; then
+            echo "  PASS (clean-pass confirmed; DIVERGE [FACT-10-SELFTEST] correctly reported for complete-replacement defect)"
         else
-            echo "  FAIL (checker exited non-zero but expected 'DIVERGE [FACT-10-NEG]' not in output)"
-            echo "  Actual output: $CF_OUTPUT"
+            echo "  FAIL (checker exited non-zero but DIVERGE [FACT-10-SELFTEST] not in output)"
+            echo "  Actual output: $CF22A"
+            FAILURES=$((FAILURES + 1))
+        fi
+    fi
+fi
+
+# ── Test 22b: check-canonical-facts — FACT-10 binding-25 Phase B — prefix-extension vector ─
+# BI-042 regression gate: prefix-extending the canonical phrase ('invalid `--ignore` glob OR
+# unrecognized flag') silently passed the OLD tautological pattern (exit 0 false negative).
+# The corrected production pattern detects it via the bounded wildcard ([^\n,]+?).
+# This test WILL fail if binding-25 is ever reverted to the tautological form — that is the
+# whole point.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 22b: check-canonical-facts: FACT-10 binding-25 — prefix-extension vector DIVERGE (BI-042) ──"
+
+# Rewrite canonical-facts.toml (Phase B uses same production pattern)
+cat > "$T/.factory/specs/canonical-facts.toml" <<'TOML22B'
+[[fact]]
+id              = "FACT-10-SELFTEST"
+description     = "config_error sole trigger: invalid --ignore glob (production FACT-10 binding-25 pattern)"
+canonical_value = 'invalid `--ignore` glob'
+source          = "selftest"
+
+[[binding]]
+fact_id = "FACT-10-SELFTEST"
+file    = ".factory/specs/selftest-fact10.md"
+note    = "sole trigger parenthetical (FACT-10 binding-25 production context)"
+pattern = '\(sole trigger: ([^\n,]+?) pattern,'
+TOML22B
+
+# Phase B clean-pass: canonical text
+cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22BCLEAN'
+(sole trigger: invalid `--ignore` glob pattern, the only exit-2 condition)
+MD22BCLEAN
+
+CLEAN_PASS_22B=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS_22B=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean FACT-10 tree (Phase B)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS_22B" = "1" ]; then
+    # Phase B defect: prefix-extension adversarial vector — 'or unrecognized flag' appended.
+    # The old tautological pattern exits 0 here (false negative); the corrected pattern exits 1.
+    cat > "$T/.factory/specs/selftest-fact10.md" <<'MD22BBAD'
+(sole trigger: invalid `--ignore` glob or unrecognized flag pattern, the only exit-2 condition)
+MD22BBAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — prefix-extension adversarial text should DIVERGE)"
+        FAILURES=$((FAILURES + 1))
+    else
+        CF22B=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-canonical-facts.py" 2>&1)
+        if echo "$CF22B" | grep -q "DIVERGE \[FACT-10-SELFTEST\]" && echo "$CF22B" | grep -qF "or unrecognized flag"; then
+            echo "  PASS (clean-pass confirmed with FP-guard; prefix-extension correctly detected; 'or unrecognized flag' in extracted value)"
+        else
+            echo "  FAIL (DIVERGE [FACT-10-SELFTEST] or 'or unrecognized flag' not in output)"
+            echo "  Actual output: $CF22B"
             FAILURES=$((FAILURES + 1))
         fi
     fi
