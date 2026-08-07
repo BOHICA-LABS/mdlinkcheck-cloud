@@ -1,287 +1,276 @@
-# PR Review — Cycle 7 (convergence)
+# PR #3 — Scoped confirmatory review at `7c1eccf`
 
-**PR:** #2 — `feat: spec-integrity validator and generator tooling (Phase 1 gate)`
-**Base → Head:** `develop` ← `feature/spec-lint-tooling`
-**Reviewed SHA:** `73334c7dd0a7af250fd8833d01c811078b6beb0e`
-**Verdict:** **APPROVE** — no blocking findings. 4 suggestions + 3 nits, all non-blocking.
+**Scope:** narrow delta review of `6e785b4..7c1eccf` only. This is not a re-review of PR #3.
+The prior full review APPROVED at `6e785b4`
+(`.factory/code-delivery/SPEC-LINT-GATE/pr-review-6e785b4.md`). This review re-establishes
+verdict freshness at the current head and confirms the MAJOR-1 remediation.
 
----
-
-## Verdict rationale
-
-Every cycle-6 blocking item is fixed, and I verified each one by execution rather than by
-reading the diff. The cycle-7 delta is 4 files / 48 insertions and is surgical: three
-one-line `SPEC_LINT_REPO_OVERRIDE` additions plus the R-ID scraper rewrite. I found no
-new false-pass (D-027-class) defect in any *checker*. I did find two genuine
-discrimination weaknesses in the *selftest harness* and one source-of-truth mismatch in
-`check-id-resolution`. All three are recorded as suggestions because none produces a wrong
-result on today's tree, none blocks the advisory `Spec lint` job, and each has a small
-well-scoped fix that belongs with the Phase 2 harness follow-up.
+**Head verified:** `gh pr view 3 --json headRefOid` → `7c1eccf5fb04a58acb52ca082563f4cb06364082`. No drift.
 
 ---
 
-## Verification performed
+## Verdict
 
-Everything below was executed against the reviewed SHA with the factory worktree mounted.
+APPROVE
 
-### 1. `SPEC_LINT_REPO_OVERRIDE` in all 8 checkers — CONFIRMED
+---
 
-All 8 checkers carry the identical single-line form:
+## Delta scope confirmation
 
-```python
-REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
-```
+**Comment-only: YES — proven, not inspected.**
 
-Reading that line is not sufficient evidence that the override is *honoured* — a checker
-could still resolve some paths from the real repo and silently contaminate an isolated
-test. So I pointed every checker at an empty temp directory. All 8 fail closed, and all 8
-name the *temp* path in the error, proving no leakage to the live tree:
+`git diff --stat 6e785b4..7c1eccf` → `scripts/spec-lint/check-index-integrity.py | 27 +++---`,
+1 file changed, 20 insertions, 7 deletions. No other file touched.
 
-| Checker | exit (empty override) | Message names temp path |
+I did not rely on reading the diff. I proved semantic identity three independent ways:
+
+| Check | Method | Result |
 |---|---|---|
-| check-adr-consistency | 2 | yes |
-| check-holdout-boundary | 2 | yes (prd.md §5b) |
-| check-index-integrity | 1 | yes |
-| check-id-resolution | 1 | yes |
-| check-counts | 1 | yes |
-| check-placeholders | 1 | yes |
-| check-title-sync | 1 | yes |
-| check-ec-injectivity | 1 | yes |
+| Non-comment changed lines | strip `+`/`-` and leading whitespace from every diff hunk line, drop lines matching `^#` and blanks, count remainder | **0** |
+| Abstract syntax tree | `ast.dump(ast.parse(...))` on `6e785b4:` vs `7c1eccf:` versions of the file | **IDENTICAL** |
+| Token stream | `tokenize` both files, discard `COMMENT`/`NL`/`NEWLINE`/`INDENT`/`DEDENT`/`ENCODING`, compare | **IDENTICAL — 3719 vs 3719 tokens** |
 
-Empty-string handling is correct: `SPEC_LINT_REPO_OVERRIDE=""` is falsy and falls through
-to the `__file__`-derived default rather than resolving to CWD.
+AST and token-stream identity is a stronger guarantee than line inspection: it rules out logic,
+regex-literal, control-flow, and test changes by construction, including any change that a
+line-oriented grep for `#` could have missed. The orchestrator's zero-non-comment-lines finding is
+**confirmed independently**.
 
-### 2. `check-id-resolution` on the real tree — CONFIRMED exit 0
+Consequence: **`7c1eccf` cannot behave differently from `6e785b4` in any input.** Every behavioural
+conclusion in the `6e785b4` review carries forward unchanged, by construction rather than by retest.
 
-```
-Check passed: 134 files checked — all ID references resolve
-```
+`git status` on the PR worktree: **clean** (empty `--porcelain`).
 
-No `R-010`-class false violations remain. Full 8-checker baseline on the real tree:
+---
 
-| Checker | exit | Result |
+## MAJOR-1 fix confirmation
+
+**FIXED.**
+
+MAJOR-1 cited two defects in `check-index-integrity.py:742-743` — the `main()` B-9 invariant comment,
+the file's single consolidated statement of what is excluded from the `data_row` bucket:
+
+**(i) Stale guard description — fixed.** The comment said "not 4-space-indented," describing the
+pre-D-070 `raw.startswith("    ")` implementation. It now reads (`:742-746`):
+
+> `- Heading lines (CommonMark §4.2: #{1,6} + space/EOL, with < 4 COLUMNS of leading indent — checked via _leading_columns(raw), which expands tabs at 4-column stops per CommonMark §2.1 so '\t## X' is correctly treated as 4 columns, NOT a heading; the prior raw.startswith("    ") missed this — D-070 fix).`
+
+Cross-checked against the implementation, not just against the finding text:
+- `_leading_columns` is defined at `:38` and expands tabs via `col = (col // 4 + 1) * 4` — 4-column
+  stops, matching the comment and CommonMark §2.1.
+- Both call sites use exactly the guard the comment names: `:426` `if _leading_columns(raw) < 4 and _FENCE_RE.match(line):`
+  and `:443` `if _leading_columns(raw) < 4 and _CM_HEADING_RE.match(line):`.
+- `raw.startswith("    ")` appears nowhere in the file as a live predicate.
+
+The comment now describes the code that exists. It also names the superseded spelling explicitly and
+says why it was wrong, which directly defeats the MAJOR-1 failure scenario (a maintainer re-deriving
+`raw.startswith("    ")` for a new downstream predicate).
+
+**(ii) Surviving "closes … bypass class" — fixed.** `:747` now reads
+`D-069 + D-070 NARROW the A/A2/A3/tab bypass class; the class is NARROWED, not closed.`
+The fence bullet at `:754-758` received the same treatment and goes further, re-labelling the sink:
+`NARROWS the A2 bypass; class is NARROWED, not closed — 'fenced_code' remains an unbounded sink for
+any line inside a fence, including phantom HS rows.` Two further downgrades landed in the same block:
+`:761` `only pending[-1] is eligible — narrows C bypass` (was "closes"), and `:766`
+`prior re.search gate removed — narrows B bypass` (was "closes"). `:762` now labels `prose` an
+`unbounded sink`.
+
+**Whole-file sweep for residual "closed" claims.** `grep -inE 'clos(e|es|ed|ing)'` returns 11 hits.
+Nine are either correct NARROWED-not-closed statements (`:29`, `:260`, `:287`, `:309`, `:747`, `:757`)
+or unrelated (`:543`, `:551`, `:552` — YAML frontmatter closing `---` fence). The two remaining
+affirmative "closes" claims are **scoped to a specific input shape, not to a bypass class**, and both
+are literally true:
+
+- `:57` (`_leading_columns` docstring) — "`raw.startswith("    ")` misses `\t## X` … This helper
+  closes that gap." True: the gap named is the tab-vs-four-spaces spelling gap, and the helper does
+  close it.
+- `:424` — "D-070: unguarded-indented-fence bypass closed here." True: with the `< 4` guard a 4+-column
+  fence no longer toggles fence state. Scoped to the indented-fence *shape*; the enclosing bullet at
+  `:754-758` states the fence *class* is NARROWED-not-closed, so a reader is not misled.
+
+**No site in the file now claims a bypass class is closed.** MAJOR-1's specific complaint — that
+`:742-743` was the last such site — is resolved, and the fixture-vs-class distinction the D-070
+ruling required is now consistent across all five previously-overclaiming blocks (the `6e785b4`
+review scored 4 of 5; this commit lands the fifth).
+
+---
+
+## `\f` / `\v` documentation accuracy
+
+**Documented, not fixed — correct per instruction. Accurate in mechanism; understated in extent.**
+
+**Not fixed in code — confirmed.** AST and token-stream identity with `6e785b4` proves no code
+change of any kind, so no out-of-scope fix was smuggled in. No scope violation.
+
+**Mechanism claims — all verified true.** The block at `:748-753`:
+
+> `Known residual: Python's str.splitlines() treats \f (form feed) and \v (vertical tab) as line boundaries; CommonMark does not. '\f## X' and '\v## X' therefore reach this branch and can kill section scope — verified at this head.`
+
+| Claim | Verified |
+|---|---|
+| `str.splitlines()` treats `\f`/`\v` as line boundaries | YES — `'\f## X'.splitlines()` → `['', '## X']` |
+| CommonMark does not | YES — CommonMark line endings are `\n`, `\r`, `\r\n` only |
+| `'\f## X'` / `'\v## X'` reach the heading branch | YES — the derived second line is a clean h2 |
+| Can kill section scope | YES — both exit **0** with a phantom `HS-099 / EC-999` row in `## Authored Scenarios`; output reads `HS (7 validated, 0 non-conforming, 7 rows seen)`, i.e. the phantom row is invisible |
+| "verified at this head" | YES — reproduced at `7c1eccf` |
+
+Not an overstatement. `str.splitlines()` is the honest root cause named, `_leading_columns` genuinely
+cannot see it (it `break`s on the first non-space/non-tab character, returning 0), and the "do not fix
+here" rationale is sound and consistent with the review history.
+
+**One understatement — see MINOR-1 below.** The comment presents `\f` and `\v` as *the* `splitlines()`
+residual. `str.splitlines()` splits on eight characters beyond `\n`/`\r`; I confirmed the other six
+produce the identical bypass. The mechanism sentence is right; the enumeration is 2 of 8.
+
+---
+
+## Regression spot-check results
+
+All executed at `7c1eccf`. Fixtures built by copying `.factory/` and `scripts/spec-lint/` to a fresh
+temp dir per case and running with `SPEC_LINT_REPO_OVERRIDE=<tmpdir>`. No repo file was modified.
+
+| Check | Expected | Result |
 |---|---|---|
-| check-adr-consistency | 0 | 8 ADRs, exit codes + reason codes consistent |
-| check-counts | 0 | 37 count checks |
-| check-holdout-boundary | 0 | 134 files, pool of 12 IDs, no leaks |
-| check-id-resolution | 0 | 134 files, all refs resolve |
-| check-index-integrity | 0 | 77 bidirectional checks |
-| check-title-sync | 0 | 66 BC titles |
-| check-ec-injectivity | 1 | 13 EC ID collisions — known/accepted, genuine POL-16 defects |
-| check-placeholders | 1 | 25 placeholders — known/accepted, deferred Phase 2 |
+| Selftest suite (`scripts/spec-lint/selftest/run-selftests.sh`) | 36/36 | **PASS — `Selftest passed: 36/36 negative tests verified (each proved clean-pass + defect-fail)`** |
+| Live repo (`python3 scripts/spec-lint/check-index-integrity.py`) | exit 0 | **PASS — exit 0, `80 structural checks — BC (66), VP (26), ADR, ARCH, L2, HS (7 validated, 0 non-conforming, 7 rows seen) all consistent`** |
+| Property test (`--property-test`) | pass | **PASS — `300/300 cases verified (total_candidates == sum(buckets)), seed=42`** |
+| `D-070-A`/`D-070-B` selftests present and passing | pass | **PASS — both named in suite output** |
 
-### 3. Clean baselines for the 11 selftests — CONFIRMED, with one caveat (S-2)
+Bypass spot-checks — phantom `HS-099 / EC-999` row injected inside `## Authored Scenarios`, preceded
+by the killer line. Exit 1 = bypass closed (phantom detected); exit 0 = bypass open.
 
-`bash scripts/spec-lint/selftest/run-selftests.sh` → **11/11 PASS, exit 0**.
+| Fixture | Expected | Actual |
+|---|---|---|
+| baseline, no killer line | 1 | **1** |
+| `\t## Wave 2` (D-070-A, tab-as-indent) | 1 | **1** |
+| `      ``` ` (6-column indented fence, D-070-B) | 1 | **1** |
+| `#2 below` (D-069-A, `#` + digit is not a heading) | 1 | **1** |
+| `### Wave 2` (h3 must stay in scope) | 1 | **1** |
+| `\f## Wave 2` (documented residual W1) | 0 | **0** |
+| `\v## Wave 2` (documented residual W2) | 0 | **0** |
 
-The harness never asserts a clean pre-injection baseline (a known/accepted deferred item),
-so I supplied the missing control by hand for every test.
+All seven match expectation. The four previously-closed bypasses still exit 1; the two documented
+residuals behave exactly as the new comment says they do. **No regression.** Given AST identity with
+`6e785b4` this was the expected outcome — the value here is that it is now observed, not assumed.
 
-**Real-tree injection tests (1, 1b, 1c, 5, 7, 8).** Sound. The four checkers they exercise
-— `check-id-resolution`, `check-adr-consistency`, `check-holdout-boundary`,
-`check-index-integrity` — all exit 0 on the untouched tree (table above). A clean baseline
-plus a non-zero exit after injection means the injected fixture is provably the sole cause.
-No residue afterwards: `git status` clean in both the main tree and the `.factory`
-worktree.
+`git status` clean on the PR worktree. Nothing modified under `.factory/specs/` or
+`.factory/holdout-scenarios/` — `git -C .factory status --porcelain -- specs holdout-scenarios`
+returns empty. **D-058 satisfied.**
 
-**Isolated temp-tree tests (2, 3, 4, 6, 9).** I rebuilt each temp tree with the defect
-*removed* and re-ran the checker:
-
-| Test | Checker | Positive control (defect removed) | Discriminating? |
-|---|---|---|---|
-| 3 | check-placeholders | exit 0 — "no VP-TBD, SS-TBD, [filled by], or test-sufficient" | yes |
-| 4 | check-placeholders | exit 0 | yes |
-| 6 | check-ec-injectivity | exit 0 — "1 EC IDs validated — all injective" | yes |
-| 9 | check-title-sync | exit 0 — "1 BC titles validated" | yes |
-| 2 | check-counts | **exit 1** — fails on an unrelated second mismatch | **no** — see S-2 |
-
-### 4. No new D-027 issues — CONFIRMED for checkers
-
-The cycle-7 delta introduces no new false-pass path in any checker. Two D-027-*class*
-weaknesses do exist — in the harness (S-2, S-3) and in the R-ID registry choice (S-1) —
-and each is documented below with the counterfactual that exposes it.
+CI: `Test`, `Build release`, `Clippy (deny warnings)`, `Format check`, `GitGuardian` all **pass**.
+`Spec lint` fails and is **ADVISORY per D-029/D-032** — not treated as blocking, consistent with the
+prior review.
 
 ---
 
 ## Findings
 
-### S-2 — SUGGESTION / test-discrimination — `scripts/spec-lint/selftest/run-selftests.sh:102-134`
+**BLOCKING: none.**
 
-**Selftest 2 passes for the wrong reason, and would keep passing if the check it covers
-regressed to a no-op.**
+**MAJOR: none.**
 
-The temp tree declares `total_bcs: 99` (the intended defect) *and* `subsystems: 1` while
-creating zero subsystem directories (an incidental second defect). The harness only
-asserts "exit != 0", so either mismatch satisfies it. Proven by isolating the variables:
+### MINOR-1 — the `splitlines()` residual is 8 characters; the comment names 2
+`scripts/spec-lint/check-index-integrity.py:748-753`
 
-| `total_bcs` | `subsystems` | exit | Reported mismatches |
-|---|---|---|---|
-| 0 | 0 | 0 | none — clean baseline |
-| 99 | 0 | 1 | `total_bcs mismatch — declared 99, actual 0` (only) |
-| 99 | 1 (as shipped) | 1 | **both** `total_bcs` *and* `subsystems` |
+The block correctly identifies `str.splitlines()` as the root cause, then enumerates only `\f` and
+`\v`. `str.splitlines()` splits on eight characters beyond `\n`/`\r`. I built the same phantom-row
+fixture for the other six and every one reproduces the identical bypass at this head:
 
-Failure scenario: delete the `total_bcs` comparison from `check-counts.py` entirely and
-selftest 2 still reports PASS, because the `subsystems` mismatch alone drives the exit
-code. The negative test therefore provides no regression guarantee for the check it is
-named after. The checker itself is fine — row 2 shows the `total_bcs` comparison working
-in isolation.
+| Killer line | Result |
+|---|---|
+| `\x1c## Wave 2` (FILE SEPARATOR) | exit 0 — phantom hidden |
+| `\x1d## Wave 2` (GROUP SEPARATOR) | exit 0 — phantom hidden |
+| `\x1e## Wave 2` (RECORD SEPARATOR) | exit 0 — phantom hidden |
+| `\x85## Wave 2` (NEL, U+0085) | exit 0 — phantom hidden |
+| `\u2028## Wave 2` (LINE SEPARATOR) | exit 0 — phantom hidden |
+| `\u2029## Wave 2` (PARAGRAPH SEPARATOR) | exit 0 — phantom hidden |
 
-Fix — one character in the heredoc at line 105:
+**Failure scenario.** The Option-3 story's landing gate is to be built from named negative fixtures,
+and this comment is the in-code specification of what that gate must cover for the `splitlines()`
+mechanism. A maintainer reads `:748-753`, writes two fixtures (`\f`, `\v`), and lands Option-3 with a
+gate that passes while six equivalent spellings still hide a phantom HS row. `\u2028` is the realistic
+one: it survives copy-paste from PDFs and some CMS exports and is invisible in every editor — exactly
+the W3-NBSP paste scenario the prior review called most realistic, in a spelling nobody has written
+down.
 
-```diff
- ---
- total_bcs: 99
--subsystems: 1
-+subsystems: 0
- ---
-```
+**Why MINOR and not blocking.**
+1. **Not new and not a regression.** AST-identical to `6e785b4`; these six behaved identically there
+   and at `f44147e`. `7c1eccf` did not create, widen, or re-enable them.
+2. **Inside the knowingly-open class.** Same mechanism (`splitlines()` wider than CommonMark), same
+   unbounded `prose` sink, same root cause the D-070 ruling deliberately carried to the Option-3
+   "eliminate the parser" story. A real CommonMark block parse fixes all eight by construction.
+   This is not a re-litigation of that ruling — the ruling stands.
+3. **Directionally honest.** The comment says the class is NARROWED-not-closed and points at a
+   tracking story. It undercounts the residual; it does not misrepresent its existence or its cause.
+4. `spec-lint` is ADVISORY until the Phase 1 gate (D-029/D-032), so nothing is gated today.
 
-That makes the injected `total_bcs` mismatch the sole cause of failure, and the
-positive-control row above confirms the tree is otherwise clean.
-
-### S-1 — SUGGESTION / correctness — `scripts/spec-lint/check-id-resolution.py:176-220`
-
-**The `R-NNN` family is validated against the wrong registry, and the hardcoded seed
-covers the entire live range — so the in-range check cannot fail.**
-
-`build_valid_r_ids()` treats `.factory/specs/product-brief.md` as the source of truth, and
-the error message calls these "R requirement reference"s. The brief defines only
-`R1`–`R8`. But the corpus registry for the `R-NNN` shape is `domain-spec/risks.md`, which
-`L2-INDEX.md:150` records as `| R-NNN | 9 (R-001–R-009) | risks.md |`. A third, unrelated
-namespace also exists: `vp-026` uses `R-001..R-009`/`OR-010` as *oracle run* labels. The
-checker collapses all three into one flat allowlist.
-
-I removed the hardcoded seed and re-ran against the real tree to see what it masks — 67
-references become unresolvable:
-
-| Masked ID | Refs | Legitimate? |
-|---|---|---|
-| `R2a` / `R2b` / `R2c` | 55 | **Yes** — `product-brief.md:31-36` really does define R2 sub-items `a.`/`b.`/`c.`; the scraper regex cannot see them because they sit on continuation lines. The hardcode is a reasonable workaround for a scraper limitation. |
-| `R-009` | 12 | **Registry mismatch** — `R-009` is a *risk* defined at `risks.md:41` ("Memory budget corpus-shape-dependent"), not a brief requirement. |
-
-Two consequences:
-
-1. The in-code justification is factually wrong. The comment says `R-009` "is retained
-   here because spec files legitimately cite it as an oracle-run label (VP-026)". It is
-   actually retained because it is a risk ID from a registry the function never reads. A
-   future maintainer will act on the wrong mental model.
-2. Because the seed spans `R-001`–`R-009` in all four forms and `risks.md` contains
-   exactly 9 risks, the seed already covers the whole live registry. Failure scenario:
-   trim `risks.md` to `R-001`–`R-005` and every reference to `R-006`–`R-009` still
-   resolves — the checker reports "all ID references resolve" without ever consulting the
-   registry. Only out-of-range refs (like the `R-99` in selftest 1c) are caught.
-
-Suggested direction — scrape the registry that owns the shape, and keep the families apart
-rather than merging them:
-
-```python
-# Risks (R-NNN) come from risks.md, which L2-INDEX names as their registry.
-for line in RISKS.read_text(encoding="utf-8").splitlines():
-    for m in re.finditer(r"^\|\s*(R-\d{3})\s*\|", line):
-        ids.add(m.group(1))
-```
-
-and keep the brief scraper for the `R1`–`R8` requirement shape, retaining the `R2a/b/c`
-hardcode with a comment stating the real reason (multi-line sub-items defeat the regex).
-This is not a merge blocker — it produces no wrong result on today's tree — but it is the
-same "asserts a property it does not verify" pattern that D-027 exists to eliminate, so it
-should not be left undocumented.
-
-### S-3 — SUGGESTION / test-discrimination — `scripts/spec-lint/selftest/run-selftests.sh:61-66`
-
-**`run_test` treats any non-zero exit as success, conflating "detected the defect" (1) with
-"crashed on missing input" (2).**
-
-```bash
-if python3 "$LINT_DIR/$checker.py" > /dev/null 2>&1; then
-    echo "  FAIL (checker returned 0 ...)"
-```
-
-The checkers deliberately distinguish these — exit 2 is documented as "infrastructure
-error, required input missing", and the CI job switches on it
-(`case $ret in 2) ERROR ...` in `.github/workflows/ci.yml`). The harness throws that
-distinction away. Failure scenario: a future refactor renames `error-taxonomy.md`;
-`check-adr-consistency` then exits 2 on every invocation, selftest 5 reports PASS, and the
-suite claims the checker "can detect defects" when it can no longer read its inputs at
-all.
-
-Two changes make the suite self-validating, and would have caught S-2 automatically:
-
-```bash
-# assert the specific detection exit code
-python3 "$LINT_DIR/$checker.py" >/dev/null 2>&1; rc=$?
-[ "$rc" -eq 1 ] || echo "  FAIL (expected exit 1, got $rc)"
-```
-
-plus a pre-injection baseline assertion (`rc == 0` before `cp`), which is the already-agreed
-positive-control work.
-
-### S-4 — SUGGESTION / test-coverage — `gen-bc-index.py:33`, `gen-ec-registry.py:25`, `gen-prd-sections.py:29`, `gen-rtm.py:40`
-
-**All 4 generators still hardcode `REPO` and have zero selftest coverage.**
-
-```python
-REPO = Path(__file__).resolve().parent.parent.parent
-```
-
-The 8 checkers are now override-able and therefore testable in isolation; the generators
-are not — and they are the components that *write* to `.factory/specs/`. Failure scenario:
-a regression in `gen-bc-index.py`'s row emitter can only be discovered by running it
-against the live spec tree and inspecting the damage, because there is no isolated tree to
-exercise it in, so it cannot be given a negative test. Adding the same one-line override
-to the 4 generators is mechanical and would unblock generator selftests; it also composes
-with the already-tracked non-atomic-write item, since a temp-tree harness is the natural
-place to prove atomicity.
-
-The PR body correctly claims 8/8 *validator* coverage and does not overclaim generator
-coverage, so this is a gap to track rather than a description defect.
-
-### N-1 — NIT — `scripts/spec-lint/check-id-resolution.py:206-218`
-
-Unreachable exception handler. `re.match(r"^(\d+)", num_str)` guarantees the captured group
-is all digits, so `int(numeric_part.group(1))` cannot raise `ValueError`. The
-`try`/`except ValueError: pass` wrapper is dead code that implies a failure mode the
-function does not have. Drop the wrapper.
-
-### N-2 — NIT — `.gitignore`
-
-The repo now ships Python tooling but `.gitignore` has no `__pycache__/` entry. Running
-`just spec-lint` or the selftests leaves `scripts/spec-lint/__pycache__/` as untracked
-files, dirtying `git status` and risking committed `.pyc` artifacts. Add:
+**Suggestion.** One-line generalisation, no code change:
 
 ```
-# ── Python bytecode ───────────────────────────────────────────────────────────
-__pycache__/
-*.pyc
+#     Known residual: Python's str.splitlines() splits on eight characters
+#     CommonMark does not treat as line endings — \v \f \x1c \x1d \x1e \x85
+#     \u2028 \u2029. All eight reach this branch as a clean heading and can
+#     kill section scope (all eight verified exit 0 with a phantom HS row).
 ```
 
-### N-3 — NIT — PR description
+Recommend the Option-3 landing gate name the set as a **family** — assert no member of
+`set(chr(c) for c in range(0x110000) if ('X'+chr(c)).splitlines() != ['X'+chr(c)])` can reach the
+heading or fence predicate — rather than as eight literals, so the gate is closed under discovery.
+This also covers the `str.strip()` half (NBSP, U+3000) recorded as MAJOR-2(W3–W5) at `6e785b4`.
 
-Stale baseline pass/fail counts for `check-id-resolution` in the body (now 134 files
-checked, exit 0). Editorial only; already acknowledged.
+### MINOR-2 — fence bullet omits the same `splitlines()` caveat
+`scripts/spec-lint/check-index-integrity.py:754-758`
+
+The heading bullet carries the `\f`/`\v` residual note; the fence bullet does not, though the same
+mechanism reaches the fence predicate (recorded as W6/W7 at `6e785b4`: `` \f``` `` toggles fence
+state). Mitigated — the bullet does say `fenced_code` is an unbounded sink, which is the load-bearing
+warning. A one-clause cross-reference ("same `splitlines()` residual applies to this predicate") would
+close it. Fold into the MINOR-1 edit.
 
 ---
 
-## Checklist
+## Carried forward from `6e785b4` (not re-raised, listed for the record)
 
-| # | Item | Result |
-|---|---|---|
-| 1 | Diff coherence | PASS — 23 files, all spec-lint tooling, CI job, justfile recipes. No unrelated changes. |
-| 2 | Description accuracy | PASS with N-3 — selftest count, validator count, and advisory-CI rationale (D-029/D-032) all match the diff. Only stale baseline counts. |
-| 3 | Test coverage | PASS — 8/8 validators have a negative test; 11/11 pass; discrimination verified per test (S-2 the one exception). Generators uncovered (S-4). |
-| 4 | Demo evidence | N/A — pre-story developer tooling with no user-facing surface. Executable evidence (`just spec-lint-selftest`, reproduced above) is the appropriate substitute. |
-| 5 | Commit quality | PASS — 18 commits, conventional `fix(spec-lint):` / `feat:` format, scoped subjects. |
-| 6 | Diff size | ACCEPTED — ~3.7k lines, but 12 standalone single-purpose scripts + 9 fixtures + 1 harness; not meaningfully splittable, and the cycle-7 delta is only 48 lines. |
-| 7 | Missing changes | PASS — all 4 cycle-6 blocking items present and verified by execution. |
-| 8 | Dependency status | PASS — no upstream PR dependencies. |
+Unchanged by this commit and out of scope per the review instruction. Recorded so the freshness
+statement is not read as a clean bill of health on the file as a whole:
 
-## Merge precondition (not a code finding)
+- **D-070** — the defect *class* (`prose` / `fenced_code` unbounded sinks) remains knowingly open by
+  operator decision. A ruling, not a defect.
+- **MAJOR-2 / W1–W8** — knowingly accepted for this PR, already recorded as mandatory named landing
+  gates on the Option-3 story. MINOR-1 above extends that inventory by six spellings rather than
+  reopening the question.
+- **MINOR-1..4 of `6e785b4`** — four stale `count_and_classify()` references (`:71`, `:89`, `:101`,
+  `:300`); bucket misstated for fenced headings (`:277`); "CommonMark-correct heading detection"
+  (`:273`); property-test generator alphabet cannot reach the D-070 shapes. All still present; none
+  were in this commit's stated scope.
 
-`mergeStateStatus` is `BLOCKED`. The cause is a **GitHub infrastructure flake, not a code
-defect**: on the `pull_request` run (`31115465194`) the `Build release (ubuntu-latest)` job
-never reached the build — it died in *Set up job* with
-`Failed to resolve action download info. Error: Bad Gateway` after two retries. The same
-job passed in 7 seconds on the `push` run (`31115467187`) for the identical SHA `73334c7`.
-Re-run that one job to clear the block. All other required checks are green (Format,
-Clippy, Test ×3, Build release macOS/Windows, GitGuardian). The `Spec lint` failure is
-expected and advisory per D-029 (25 placeholders + 13 EC collisions).
+---
+
+## Freshness statement
+
+This review covers **`7c1eccf5fb04a58acb52ca082563f4cb06364082`** (`7c1eccf`), the current head of
+`feature/spec-lint-hardening`, verified via `gh pr view 3 --json headRefOid` at review time.
+
+The `6e785b4` APPROVE is re-established at `7c1eccf` on the following basis:
+
+1. The delta `6e785b4..7c1eccf` is **provably semantically empty** — identical AST, identical
+   non-comment token stream (3719 tokens), zero non-comment changed lines. `7c1eccf` cannot behave
+   differently from the approved head on any input.
+2. The **only** finding that stood between `6e785b4` and a clean approve — MAJOR-1, the stale
+   `main()` invariant comment — is **fixed**, and the fix was verified against the implementation
+   (`_leading_columns` at `:38`, call sites at `:426`/`:443`) rather than against the finding text.
+3. Nothing regressed: 36/36 selftests, live repo exit 0, property test 300/300, and all four
+   previously-closed bypasses (`\t## X`, 6-column indented fence, `#2 below`, `### Wave 2`) still
+   exit 1.
+4. `git status` clean; no modification under `.factory/specs/` or `.factory/holdout-scenarios/`
+   (D-058); all non-advisory CI green.
+
+The two MINOR findings are documentation-completeness items inside the knowingly-deferred D-070
+class. Neither is a regression, neither gates anything today, and neither justifies withholding
+approval of a semantically empty comment correction. MINOR-1's six additional spellings should be
+folded into the Option-3 landing gate as a closed-under-discovery family assertion.
+
+**Verdict at `7c1eccf`: APPROVE.** Merge authority remains with the orchestrator.
+
+*Note: posted via `gh pr comment` rather than `gh pr review` — per BI-039, `gh pr review` fails with
+GraphQL `Can not request changes on your own pull request` for agent PRs authored under the operator's
+own account (root cause D-021). The formal-review path is unsatisfiable in this repo configuration.*

@@ -73,4 +73,21 @@ PRD v1.9 | 66 BCs (all carry owning module, criticality tier, VP anchor) | 25 VP
 
 ---
 
+---
+
+## Session Resume Checkpoint (2026-08-07) — D-066+D-067 post-snapshot (pre-D-071 wrap)
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-07 |
+| **Position** | phase-1d; PR #3 stopgap landed (031ca5b→51e6be8); 24/24 tests; B-11 A1/A2a/A2b now exit 1; structural independence NOT achieved (documented residual); OPEN GATE: dispatch pr-reviewer for D-028 final review; 0 of 3 clean passes |
+| **Convergence counter** | 0 of 3 clean passes; pass 5 COMPLETE (259 findings); pass 6 blocked on: (1) PR #3 D-028 final review (WS-1, CURRENT); (2) pass-6 skip-list re-audit (WS-3, D-060); (3) remaining ~306-finding remediation burst (WS-4) |
+| **Next burst** | Dispatch `vsdd-factory:pr-reviewer` on PR #3 at `51e6be8df98653779148d624b89749c74c3e1a46` for final D-028 review. Merge ONLY on APPROVE via `check-stale-verdict.sh` then `enforce-merge-strategy.sh --squash --delete-branch`. After merge: WS-2 bi-012 generators, WS-3 skip-list re-audit, WS-4 remediation burst, WS-5 pass 6. |
+
+*Superseded by D-071 session wrap.*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

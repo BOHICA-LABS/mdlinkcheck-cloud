@@ -98,6 +98,27 @@ traces_to: STATE.md
 22. **[observation] Fifth confirmed instance of "REMEDIATIONS HAVE THEMSELVES INTRODUCED DEFECTS" — pattern is now systemic** — The four instances in this session: (1) VP-008 proof-method regression from the D-043 edit (fixed in PR #3 B-6 review burst); (2) B-9 — the B-8 backstop fix shared the same `^\|` anchor as the pre-filter it was supposed to verify; (3) B-11 — the B-9 re-anchor fix moved `hs_rows_seen += 1` downstream of the pre-filters; (4) B-8 — the accounting invariant held vacuously because `hs_rows_seen` was incremented on post-filter rows only; (5) FACT-7 false-pass hole — the re-anchored pattern captured only the first token, so "macOS and Linux" matched incorrectly (caught by orchestrator re-executing the regex contract). Five instances is a systemic pattern, not isolated incidents. The "REMEDIATIONS HAVE THEMSELVES INTRODUCED DEFECTS" finding from the D-057 snapshot is now the PROJECT-LEVEL STANDING WARNING for this codebase.
     _Discovered: PR #3 B-11 review session, 2026-08-07_
 
+23. **`[process-gap]` A hand-rolled Markdown parser cannot be validated against itself.** Ten-plus bypasses across four fix rounds in one component in one session. Each round closed the spellings it was shown and opened a neighbouring one. Closing the class requires either a real CommonMark/GFM oracle to grade against, or eliminating the parser (generate-and-diff). Extends the D-066 design-signal finding with decisive empirical weight.
+    _Discovered: PR #3 four-round review lifecycle, 2026-08-07_
+
+24. **`[process-gap]` A conservation law proves totality, not correctness — the D-050→D-057 lineage recurring a third time.** "No line vanishes from the accounting" is a strictly weaker property than "no row can hide." Unbounded sink buckets (`prose`, `fenced_code`) satisfy the former while violating the latter. The orchestrator's own 12,000-case verification (40 seeds × 300) tested the weaker property and returned a false sense of closure; a fresh reviewer disproved it with five mutations that left the property test green. Standing rule: when admitting a property test as evidence, state explicitly which property it constrains and which it does not.
+    _Discovered: D-070 ruling, 2026-08-07_
+
+25. **`[process-gap]` Recognition predicates must fail toward COUNTING/REPORTING, never toward skipping.** This is the generalizable principle extracted from D-068/D-069 and it is the correct lens for the whole spec-lint suite, not just this checker. A recognition gate whose failure makes an item invisible is the D-039 forbidden pattern in disguise regardless of whether it is literally named an allowlist; a recognition set whose failure makes an item MORE visible is compliant. Verified live: renaming the HS-INDEX header cell `HS ID` → `Scenario ID` produces `Check FAILED`, not a silent pass.
+    _Discovered: D-068/D-069 rulings, 2026-08-07_
+
+26. **`[process-gap]` Orchestrator error — a merge gate was very nearly defeated by tautological invocation.** `check-stale-verdict.sh <pr> <covered-sha>` takes the covered SHA as an argument and compares it to live HEAD. The orchestrator first invoked it passing live HEAD as the covered SHA, which made the comparison vacuous and returned FRESH. Caught before merging; re-run correctly with the actually-reviewed SHA, it correctly reported STALE and forced a confirmatory review at `7c1eccf`. This is the D-058 anti-pattern in operational form — the control was sound, the invocation was not. LESSON: a gate that accepts the value it is meant to verify as a parameter can be satisfied by misuse; prefer gates that derive both sides themselves.
+    _Discovered: PR #3 merge gate execution, 2026-08-07_
+
+27. **`[process-gap]` Orchestrator error — an unrequested state-changing probe against a live PR.** The orchestrator re-ran `gh pr review --request-changes` with throwaway body content purely to re-test BI-039, when definitive evidence already existed from an earlier genuine attempt. The call was correctly denied by the permission classifier. LESSON: do not re-probe a shared external system to reconfirm what is already established.
+    _Discovered: BI-039 investigation, 2026-08-07_
+
+28. **Docstring overclaiming was a four-round recurring defect and required explicit, repeated intervention.** Three consecutive rounds shipped docstrings asserting more safety than the code delivered; the fourth still missed one block (MAJOR-1 at `:742-743`, the only remaining "closes the class" claim in the file), fixed at `7c1eccf`. An overclaiming docstring is worse than none, because a future reader greps for the claim and inherits the false conclusion. The honest framing that finally landed — "NARROWED, not closed," with the unbounded sinks and tracking story named — should be the template.
+    _Discovered: PR #3 four-round review lifecycle, 2026-08-07_
+
+29. **Positive: adversarial review paid for itself repeatedly.** Every one of the four fix rounds was caught by a fresh-context reviewer, never by the implementer's own green suite. Three separate reviewers each found a real BLOCKING defect that the implementer's passing tests did not surface — including one strict regression introduced by the fix that claimed to close the class. Independent verification by the orchestrator (executing fixtures rather than trusting reports) upgraded two reviewer findings and corrected one overstatement.
+    _Discovered: PR #3 four-round review lifecycle, 2026-08-07_
+
 ## Policy Candidates
 
 | Lesson | Proposed Policy | Scope | Status |
@@ -117,3 +138,10 @@ traces_to: STATE.md
 | 20 | Any verification backstop must be placed upstream of (or independently of) the classifier it bounds; downstream placement inherits classifier blind spots | devops-engineer + orchestrator | proposed |
 | 21 | Presence of a guard is NOT evidence; a mutation that flips a test from PASS to FAIL is the minimum evidence standard; add at least one defeating input vector per new backstop | orchestrator + devops-engineer | proposed |
 | 22 | "Remediations have themselves introduced defects" is the project-level standing warning; every fix must be adversarially verified against at least one input that would defeat a naive re-implementation | all agents | standing rule (load-bearing) |
+| 23 | Hand-rolled Markdown parsers cannot be validated against themselves; closing the defect class requires either a real CommonMark/GFM oracle or eliminating the parser | architect | proposed |
+| 24 | A conservation law proves totality, not correctness; state explicitly which property a property test constrains and which it does not | orchestrator + all agents | standing rule (load-bearing) |
+| 25 | Recognition predicates must fail toward counting/reporting, never toward skipping; a recognition gate whose failure makes an item invisible is the D-039 forbidden pattern in disguise | devops-engineer + orchestrator | standing rule (load-bearing) |
+| 26 | Merge-gate controls that accept the verified value as a CLI argument can be satisfied by misuse; prefer gates that derive both sides themselves | devops-engineer | proposed |
+| 27 | Do not re-probe a live external system to reconfirm what is already established | orchestrator | standing rule |
+| 28 | Docstrings that overclaim safety are worse than no docstring; the honest framing is "NARROWED, not closed" with the unbounded sinks and tracking story named | all agents | proposed |
+| 29 | Independent fresh-context adversarial review found every BLOCKING defect in this session; the implementer's own green suite found none of them | orchestrator | observation (load-bearing) |

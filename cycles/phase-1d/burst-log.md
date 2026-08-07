@@ -570,3 +570,53 @@ PRD v1.11 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001
 **Dim-7 Attestation:** Agents dispatched: product-owner + architect (CV5-001 spec fixes, 8 files), pr-reviewer (PR #3 at `6d954ab`), state-manager (this burst). prd.md:755 D-034 determination and product-brief.md:89 line number independently verified by orchestrator (not taken from agent report).
 
 **Opens:** BI-032 (B-7 D-039 suppression guard vacuous), BI-033 (B-8 check-index-integrity zero-item false-pass), BI-034 (pass-6 skip list unsound — BI-023 recurrence; check-index-integrity removed), BI-035 (FACT-7/FACT-8 no D-040 negative test before bi-012-generators lands). **Closes:** BI-031 (CV5-001 CLOSED — all 8 sites + 2 weak residuals corrected; FACT-7+FACT-8 added). **Updates:** BI-002 (CV5-001 closed; PR #3 REQUEST_CHANGES; merge queue blocked; 0 clean passes). BI-016 (REQUEST_CHANGES at 6d954ab, 2 blocking). BI-018 (BLOCKED pending pull_request-typed run; operator decision a pending).
+
+---
+
+## Burst: burst 14 — PR #3 merge + D-068..D-071 session wrap (2026-08-07)
+
+**Parent-commit:** `9491f64` (factory(phase-1d): D-067 post-snapshot delta)
+
+**Adversary verdict:** No new adversary pass this burst. This burst is a state-manager session wrap only: PR #3 merge recorded, D-068..D-071 codified, BI-016/036 closed, BI-039/040 opened, SESSION-HANDOFF.md RESUME SNAPSHOT D-071 written.
+
+**Headline outcome:** PR #3 MERGED as `651ee3a` on `develop` (squash, branch deleted, remote pruned). 11-cycle review lifecycle spanning four fix rounds (B-7/B-8/B-9/B-11) and three D-NNN rulings (D-068/D-069/D-070) this session. `develop`: `2776d94` → `651ee3a`. No open PRs remain. Main worktree is on `develop`, tree clean. `.worktrees/ws-b-generators` remains at `78ef3a4` on `feature/bi-012-generators` (WS-2, not started). Post-merge verified: selftests 36/36; `check-index-integrity.py` exit 0; property test 300/300.
+
+**Files touched (Dim-1): 6 unique files**
+
+- `.factory/STATE.md` — timestamp, current_step, Last Updated, Current Phase Steps (+1 row), Decisions Log (D-068..D-071), Blocking Issues (BI-016/036 CLOSED, BI-039/040 OPENED), Session Resume Checkpoint (D-071), Concurrent Cycles, spec snapshot line
+- `.factory/SESSION-HANDOFF.md` — D-066 header marked SUPERSEDED by D-071; new RESUME SNAPSHOT D-071 appended
+- `.factory/cycles/phase-1d/burst-log.md` — this entry
+- `.factory/cycles/phase-1d/lessons.md` — lessons 23..29 appended (7 new lessons)
+- `.factory/cycles/phase-1d/blocking-issues-resolved.md` — BI-016, BI-036 closure rows appended
+- `.factory/cycles/phase-1d/session-checkpoints.md` — D-066+D-067 checkpoint archived
+
+**Key events this session:**
+
+1. **D-068 — Operator REVERSED D-067 deferral of counter placement.** The D-067 stopgap premise was falsified by execution. Orchestrator reproduced a clean `exit 0` / `Check passed` with a phantom `HS-099 → EC-999` row present, while the D-057/B-9 accounting invariant reported `7 rows seen` — blind to the 8th row because `hs_rows_seen++` sat BELOW the pre-filters. Narrowing pre-filters was shown to be unboundedly leaky. D-068: structural fix REQUIRED immediately.
+
+2. **D-069 — Operator BANNED spelling-specific patching; ordered property-based restructure.** After the D-068 fix closed named shapes but a fresh review found a further BLOCKING regression, the operator required a PROPERTY-BASED restructure: count every non-blank line into a denominator BEFORE any predicate, classify into six buckets afterward, and assert a conservation law (`total_candidates == sum(buckets)`). Implemented at `f44147e` with a 300-case seeded property test.
+
+3. **D-070 — Operator ruled SPLIT: bounded fix now, Option-3 story for the class.** A fresh review of `f44147e` found two BLOCKING bypasses AND the meta-defect that the conservation law constrains TOTALITY but not CORRECTNESS (`prose` and `fenced_code` are unbounded sinks). Operator accepted on three grounds: `spec-lint` is ADVISORY until Phase 1 gate; PR #3 carried independent value (D-039 suppression guard, P4-021, 36-test negative suite, B-9 invariant); class is tracked with landing gates. Bounded fix landed at `6e785b4` + `7c1eccf`. BI-040 opened for the class.
+
+4. **D-071 — PR #3 merged as `651ee3a`.** Full pr-manager review lifecycle completed under D-028/D-031 autonomy level 4: APPROVE at `6e785b4`, confirmatory APPROVE at `7c1eccf` (MAJOR-1 docstring fix). Freshness re-established properly via `check-stale-verdict.sh 3 <7c1eccf full SHA>`; merge executed via `enforce-merge-strategy.sh 3 --squash --delete-branch`. Non-advisory CI green; `Spec lint` FAILURE accepted as advisory per D-029/D-032.
+
+5. **BI-039 OPENED (MEDIUM, factory process gap).** `gh pr review --request-changes` is IMPOSSIBLE on any PR in this repo: GitHub returns GraphQL `Can not request changes on your own pull request` — same root cause as D-021. Working fallback: `gh pr comment --body-file`. Two pr-reviewer agents misdiagnosed failure as permission-classifier denial. Owner: devops-engineer. Resolution: switch pr-reviewer/pr-manager to `gh pr comment`; change hook's satisfaction condition to accept a PR comment.
+
+6. **BI-040 OPENED (HIGH, blocking phase-1 gate).** The `splitlines()`/`strip()` bypass family — Python `str.splitlines()` treats `\f` and `\v` as line boundaries, `str.strip()` strips NBSP/U+3000, CommonMark recognizes neither. GFM-confirmed `exit 0` on merged `develop` for `\f## X` and `\v## X`. Candidate remedy NOT applied: replace `str.splitlines()` with `split("\n")`. MANDATORY named landing gate on the Option-3 story.
+
+7. **Orchestrator merge-gate tautological invocation caught.** `check-stale-verdict.sh` was first invoked passing live HEAD as the covered SHA, making the comparison vacuous (returned FRESH). Caught before merging; re-run with the actually-reviewed SHA correctly reported STALE and forced a confirmatory review at `7c1eccf`. See lesson 26.
+
+**Codifications:** D-068..D-071 recorded. BI-016 and BI-036 CLOSED. BI-039 and BI-040 OPENED. Convergence counter unchanged: 0 of 3 clean passes.
+
+**Artifact state at burst close:**
+PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-204 (205 ids) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-071 recorded (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/029/030/031/032/033/036/038. Open: BI-002/007/010/017/021/022/023/024/025/026/027/028/034/035/037/039/040.
+
+**Dim-2 Attestation:** No canonical-facts.toml mutation this burst. `check-canonical-facts.py` last reported exit 0 at prior burst close (all 16 bindings match). No FACT-N entries added or modified in this burst. Canonical facts corpus unchanged; attestation is a pass-through.
+
+**Dim-5 Attestation:** STATE.md updated — D-068..D-071 added, BI-016/036 closed, BI-039/040 opened, resume checkpoint replaced, spec snapshot updated. burst-log.md — 14 bursts. lessons.md — 29 lessons. blocking-issues-resolved.md — BI-016 + BI-036 closure rows added. session-checkpoints.md — D-066+D-067 checkpoint archived.
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 unchanged. Pass 6 blocked in order: WS-2 (bi-012 generators + BI-035) → WS-3 (skip-list re-audit D-060/BI-034 + BI-023) → WS-3b (Option-3 story / BI-040) → WS-4 (~306-finding remediation burst) → WS-5 (pass 6 + Phase 1 gate).
+
+**Dim-7 Attestation:** Agents dispatched this session: pr-reviewer (PR #3 at `51e6be8`, `3299d3e`, `65f4664`, `f44147e`, `6e785b4`, `7c1eccf`), state-manager (this burst).
+
+**Closes:** BI-016, BI-036. **Opens:** BI-039, BI-040.

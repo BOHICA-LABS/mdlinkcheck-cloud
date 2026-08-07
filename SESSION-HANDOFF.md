@@ -740,7 +740,7 @@ l. **Wrappers at `.factory/bin/`** — pr-manager agents may phantom-report exit
 
 ---
 
-## §RESUME SNAPSHOT D-066
+## §RESUME SNAPSHOT D-066 [SUPERSEDED by D-071 — retained for audit]
 
 *Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-057.*
 
@@ -930,3 +930,122 @@ The `factory-artifacts` HEAD SHA MUST ALWAYS be resolved at resume via `git -C .
 | ID | Decision | Rationale | Phase | Date |
 |----|----------|-----------|-------|------|
 | D-067 | Operator authorized PR #3 B-11 stopgap per architect design ruling. Structural fix (counter above pre-filters) deferred to two follow-on stories. D-028 full review lifecycle still required. PR #3 head `031ca5b` → `51e6be8`. Suite 21→24/24. Three KNOWN bypasses closed (A1/A2a/A2b now exit 1, mutation-verified). Narrowed pre-filters NOT structural independence. `fix/hardening-pins` local branch + worktree confirmed removed. D-066 halt superseded. | Architect ruling: land stopgap, create separate structural stories. Honest documented residual preferred over false independence claim. | phase-1d | 2026-08-06 |
+
+---
+
+## §RESUME SNAPSHOT D-071
+
+*Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-066+D-067 delta.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d, still 0 of 3 clean adversarial passes. PR #3 (`feature/spec-lint-hardening`) MERGED this session as `651ee3a` on `develop` after an 11-cycle review lifecycle spanning four fix rounds (B-7/B-8/B-9/B-11) and three D-NNN rulings: D-068 (structural fix reversal — operator reproduced phantom-row `exit 0` while accounting invariant was blind to it), D-069 (property-based restructure with `count_and_classify()` + 300-case seeded property test), D-070 (bounded fix for tab-vs-4-spaces and unguarded-indented-fence bypasses; `splitlines()`/`strip()` bypass family carried to Option-3 story BI-040). No open PRs. Selftests 36/36; `check-index-integrity.py` exit 0; property test 300/300. **FIRST ACTION ON RESUME: WS-2 — rebase `feature/bi-012-generators` onto `develop` and add FACT-7/8/9/10 negative tests (BI-035) before merging.**
+
+### HEADS
+
+Verify each at resume before taking action. Resolve factory-artifacts HEAD via `git -C .factory log -1` — never trust a literal SHA recorded here for the current HEAD.
+
+| Ref | SHA | Note |
+|-----|-----|------|
+| `origin/main` | `78a9f77` | CI workflows live; PR #1 merged |
+| `origin/develop` | `651ee3a` | integration branch after PR #3 merged (squash) |
+| `origin/feature/bi-012-generators` | `78ef3a4` | WS-2 next; add FACT-7/8/9/10 negative tests (BI-035) before merging |
+| `.factory` / `factory-artifacts` | resolve via `git -C .factory log -1 --format=%H` | latest burst = D-071 session wrap |
+
+- Main repo working tree: branch `develop`, tree clean.
+- `.worktrees/ws-b-generators`: `feature/bi-012-generators` at `78ef3a4` (active; WS-2 not started).
+- No other story worktrees exist (Phase 3 not started).
+- Stash list: EMPTY in all worktrees (D-056 still valid).
+- Open PRs: NONE. PR #3 merged; PR #4 merged (bcbb4a5); PR #5 merged (2776d94).
+- `.factory/hooks/verify-sha-currency.sh`: NOT present — post-push hook verification gap (record only).
+
+### WORKSTREAMS
+
+**WS-2 (NEXT): Merge `feature/bi-012-generators`.** Rebase `78ef3a4` onto `develop` (`651ee3a`). Add FACT-7/8/9/10 negative tests (BI-035) before merge. Merge under D-028/D-031 autonomy level 4 after full pr-manager review lifecycle.
+
+**WS-3 (after WS-2): Pass-6 skip-list re-audit.** Re-audit `check-counts`, `check-adr-consistency`, `check-title-sync` for positive-coverage soundness per D-057/D-060 (BI-034). Also address BI-023 (structural bypasses in `check-placeholders` and `check-id-resolution`). Do NOT run concurrently with WS-2.
+
+**WS-3b (after WS-3): Option-3 story creation.** Author a story carrying BI-040 (the `splitlines()`/`strip()` bypass family per D-070). MANDATORY landing gate: assert the family closed-under-discovery (not enumeration of 2). Candidate remedy: replace `str.splitlines()` with `split("\n")`.
+
+**WS-4 (after WS-3b): ~306-finding remediation burst.** BI-024 (four unguarded axes: VP proof-method join, POLICY 5 substantiation, code-fence symbol validation, stale directives) + BI-023 (checker bypasses) + BI-025 (five vacuous VPs) + BI-026 (BC-VP property join) + BI-027 (POLICY 5 fabrication) + BI-028 (VP code-fence symbols). Verify every fix at all restatement sites (lesson-18 standing rule).
+
+**WS-5: Pass 6 adversarial review + Phase 1 gate.** Run after WS-1..WS-4 complete. Three clean passes needed; streak resets from ZERO at the frozen HEAD used for pass 6. After 3 clean passes: flip `spec-lint` to required status check (D-029/D-032). Human approval gate. Begin Phase 2 Story Decomposition.
+
+### STANDING DIRECTIVES
+
+| Directive | Status |
+|-----------|--------|
+| Autonomy level 4 — agents merge ONLY after full pr-manager review lifecycle | IN FORCE (D-028/D-031) |
+| `spec-lint` CI job ADVISORY until Phase-1 convergence gate | IN FORCE (D-029/D-032) |
+| macOS-latest ONLY for Test + Build release jobs | IN FORCE (D-043) |
+| SS-10 `--online` IN scope — do not re-propose descope | IN FORCE (D-054) |
+| Wrap at 430K tokens at a clean boundary | STANDING |
+| No multi-agent fan-outs above 350K tokens | STANDING |
+| Wrappers at `.factory/bin/` (NOT `plugins/vsdd-factory/bin/`) | IN FORCE (D-047) |
+| `gh pr review --request-changes` IMPOSSIBLE — use `gh pr comment --body-file` | BI-039 |
+
+### PENDING USER-APPROVED WORK
+
+| Decision | Approval | Status |
+|----------|----------|--------|
+| D-028: Agents MAY merge PRs after full pr-manager review lifecycle | Granted by operator | In force |
+| D-029/D-032: Flip `spec-lint` to required status check at Phase 1 approval | Granted by operator | Not started — gated on 3 clean passes |
+| D-031: Autonomy level 4 | Granted by operator | In force |
+| D-043: macOS-only platform narrowing | Granted by operator | APPLIED |
+| D-057: D-050 correction (mutation NECESSARY BUT NOT SUFFICIENT) | Operator ruling | RECORDED |
+| D-058: covered_sha hand-editing REJECTED | Operator ruling | RECORDED |
+| D-059: strict re-staleness; mechanical equivalence proof required | Operator ruling | RECORDED |
+| D-060: Pass-6 skip-list re-audit ordered | Operator ruling | PENDING — WS-3 |
+| D-066: PR #3 patch-fixing HALTED; design reassessment ordered | Superseded by D-068 | CONSUMED |
+| D-067: Stopgap authorized | Superseded by D-068 | CONSUMED |
+| D-068: Structural fix REQUIRED — counter must move above all pre-filters | Operator ruling | APPLIED in PR #3 |
+| D-069: Property-based restructure ordered | Operator ruling | APPLIED in PR #3 |
+| D-070: Bounded fix now + Option-3 story for the class | Operator ruling | APPLIED; WS-3b pending |
+| D-071: PR #3 merged as 651ee3a under level-4 autonomy | Orchestrator | DONE |
+
+### WORKTREE INVENTORY
+
+| Path | Branch | SHA | Status |
+|------|--------|-----|--------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` (root) | `develop` | `651ee3a` | active; tree clean; no open PRs |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | `git -C .factory log -1` | active |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/ws-b-generators` | `feature/bi-012-generators` | `78ef3a4` | active; WS-2 pending; add BI-035 negative tests before merge |
+
+Stash list EMPTY (D-056 still valid). No Phase 3 story worktrees exist.
+
+### DECISION DELTA
+
+Decisions D-001 through D-067 were committed in prior bursts. This wrap adds D-068..D-071 (exhaustive).
+
+| ID | Decision | Rationale | Phase | Date |
+|----|----------|-----------|-------|------|
+| D-068 | Operator authorized STRUCTURAL fix to `check-index-integrity.py`, REVERSING D-067 deferral. Orchestrator reproduced phantom-row `exit 0` while accounting invariant reported `7 rows seen` (blind to 8th row — `hs_rows_seen++` below pre-filters). Narrowing pre-filters shown unboundedly leaky. | Counter MUST move above all pre-filters; structural independence required, not deferred. | phase-1d | 2026-08-07 |
+| D-069 | Operator BANNED spelling-specific patching; required property-based restructure: count every non-blank line into a denominator BEFORE any predicate, classify into six buckets, assert conservation law (`total_candidates == sum(buckets)`). Implemented at `f44147e` with 300-case seeded property test. | Spelling-specific patching is unboundedly leaky; structural invariant with auditable bucket accounting is the only durable fix. | phase-1d | 2026-08-07 |
+| D-070 | Fresh review of `f44147e` found two BLOCKING bypasses AND meta-defect that conservation law constrains TOTALITY but not CORRECTNESS (`prose`/`fenced_code` are unbounded sinks). Operator ruled SPLIT: bounded fix now (`6e785b4` + `7c1eccf`); carry the defect CLASS to Option-3 story (BI-040). Three grounds: spec-lint ADVISORY; PR #3 carried independent value; class tracked with landing gates. | Conservation law proves totality, not correctness — unbounded sinks are a structural design problem requiring the Option-3 story. | phase-1d | 2026-08-07 |
+| D-071 | PR #3 merged as `651ee3a` under D-028/D-031 autonomy level 4 after full pr-manager review lifecycle: APPROVE at `6e785b4`, confirmatory APPROVE at `7c1eccf` (MAJOR-1 docstring fix). Freshness verified via `check-stale-verdict.sh 3 <7c1eccf SHA>`; merge via `enforce-merge-strategy.sh 3 --squash --delete-branch`. Non-advisory CI green; `Spec lint` FAILURE accepted advisory per D-029/D-032. | Full review lifecycle completed; all blocking findings resolved; tautological invocation of check-stale-verdict caught and corrected before merge. | phase-1d | 2026-08-07 |
+
+### CAVEATS
+
+a. **`.factory/hooks/verify-sha-currency.sh` ABSENT.** Post-push hook verification gap. Record only; not an implied pass.
+
+b. **`feature/bi-012-generators` (`78ef3a4`) stacked on merged `develop`** — must be rebased before opening PR. Add FACT-7/8/9/10 negative tests (BI-035) before merge.
+
+c. **D-040/D-057 skip-list discipline:** pass-6 skip list requires re-audit (WS-3, D-060). `check-ec-injectivity`, `check-id-resolution`, `check-placeholders` MUST NOT go on the pass-6 skip list. Positive-coverage counts required per D-057.
+
+d. **Streak reset:** 0/3 clean-pass counter re-counts from ZERO against whatever HEAD is frozen when pass 6 runs.
+
+e. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
+
+f. **Allowlists / skip-lists in checkers are FORBIDDEN (D-039).** Suppression is worse than editing the spec.
+
+g. **`prd.md` versioned changelog entries are IMMUTABLE (D-034).** Do not update them to reference newer VP/EC/BC ids.
+
+h. **BI-021:** `check-canonical-facts.py` exits 1 from `.worktrees/STORY-NNN/`. Fix before Phase 3 (`SPEC_LINT_REPO_OVERRIDE`).
+
+i. **BI-022:** `rustup toolchain install nightly` in `fuzz-smoke` job still unpinned. Pin before Phase 6.
+
+j. **Wrappers at `.factory/bin/`** — pr-manager agents may phantom-report exit-127 looking at `plugins/vsdd-factory/bin/`. Pass the explicit path.
+
+k. **BI-039:** `gh pr review --request-changes` IMPOSSIBLE on own PRs. Use `gh pr comment --body-file` for review posting; ensure hook satisfaction condition accepts PR comments.
+
+l. **BI-040 (Option-3 story):** `splitlines()`/`strip()` bypass family DEFERRED per D-070. MANDATORY landing gate: assert family closed-under-discovery, not enumeration of 2. Candidate remedy: `split("\n")` instead of `str.splitlines()`.
