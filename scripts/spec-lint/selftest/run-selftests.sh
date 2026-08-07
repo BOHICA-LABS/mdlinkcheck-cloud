@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=54
+EXPECTED_TEST_COUNT=55
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -3375,6 +3375,46 @@ if [ "$CLEAN_PASS" = "1" ]; then
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed with FP-guard; em-dash in VP-NNN column correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test NV-1b: check-placeholders — comma-only cell in VP-NNN column (BLOCK-1 guard) ─────
+# Mutation-flip: revert `_is_valid_vp_cell` to the pre-BLOCK-1 form:
+#   tokens = re.split(r"[,/]", first_cell)
+#   return bool(tokens) and all(_VP_TOKEN_RE.match(t.strip()) for t in tokens if t.strip())
+# The comma-only cell (",") splits to ['', ''] → filtered to [] by "if t.strip()" → all([]) → True.
+# Checker exits 0 → FAILS. This test has teeth ONLY against the BLOCK-1 fix — the em-dash
+# fixture (NV-1) fires regardless of this revert, so it cannot guard this class.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest NV-1b: check-placeholders: comma-only cell in VP-NNN column (BLOCK-1 guard) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree uses good-placeholder-vp-column.md — same FP anti-vector as NV-1.
+cp "$FIXTURE_DIR/good-placeholder-vp-column.md" \
+    "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-good-vp.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (good-placeholder-vp-column.md)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Inject ONLY the comma-only fixture — NOT the em-dash fixture.
+    # The em-dash would fire regardless of the BLOCK-1 fix; this fixture has teeth only
+    # when _is_valid_vp_cell correctly rejects punctuation-only (all-empty-after-split) cells.
+    cp "$FIXTURE_DIR/bad-placeholder-vp-punctuation-only.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-vp-punctuation.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch comma-only cell in VP-NNN column)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; comma-only cell in VP-NNN column correctly detected)"
     fi
 fi
 rm -rf "$T"
