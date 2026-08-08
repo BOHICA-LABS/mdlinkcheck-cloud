@@ -195,6 +195,13 @@ def _is_valid_vp_cell(
                 f"VP-INDEX classifies '{bc_id}' as '{classification}'; "
                 f"remove the sentinel and cite the real VP"
             )
+        # D-078 precondition (symmetric with VP-NONE): Proof Method must be non-empty.
+        # A row that names no test at all cannot assert test-sufficiency.
+        if not bool(proof_method.strip()):
+            return False, (
+                "non-conforming VP-NNN column value 'test-sufficient' (POL-14) — "
+                "Proof Method cell must be non-empty (D-078 precondition)"
+            )
         return True, ""
 
     # ── VP-NONE sentinel (D-078): admitted only when Proof Method is non-empty ──
