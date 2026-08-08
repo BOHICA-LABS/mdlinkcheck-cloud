@@ -1406,3 +1406,57 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 - `.factory/cycles/phase-1d/adversary-pass-7-INDEX.md` (REWRITTEN — v2.0, all 9 shards COMPLETE)
 - `.factory/cycles/phase-1d/burst-log.md`
 - `.factory/cycles/phase-1d/blocking-issues-resolved.md`
+
+---
+
+## Burst-29 — Gate #34 Oracle Repairs Complete (2026-08-08)
+
+**Summary:** Gate #34 oracles-first remediation COMPLETE. Four blind spec-lint oracles repaired across 14 commits on `fix/oracle-repairs-gate34` (head b2f55ac). PR #11 OPENED + APPROVED (5 review cycles). Merge BLOCKED by BI-055 (GitHub Actions billing — ALL required CI checks failing). True mechanical baseline D-124 established: 6 pass / 3 fail; 44 findings + 43 adjudication items. Session-closing RESUME SNAPSHOT D-121. D-121..D-126 (exhaustive).
+
+**Oracle repairs (D-123):**
+- **BI-047** (EXCLUDE_PATHS skip-set in `check-placeholders.py`): EXCLUDE_PATHS removed, replaced by two D-081 position-based predicates (changelog-narrative H3 scoping; backtick-span detection). `check-placeholders` now 134/134 (complete), closing 133-vs-134 discrepancy. Suppression-guard broadened concept-based per D-125.
+- **BI-049** (holdout-boundary prose leak — EC-151 at `prd.md:616`): POLICY 18 broadened to prose with suffix-bound predicate binding input/expected-output pair to specific EC ID.
+- **BI-050** (ADR-consistency closed set, ADR-only): POLICY 19 broadened from ADR-only to corpus-wide; closed set read from `error-taxonomy.md` at runtime.
+- **BI-051** (EC-injectivity — no BC-vs-registry scenario comparison): BC-vs-registry scenario comparison added (divergent / requires-adjudication / pass).
+
+**Selftests:** 69 → 91/91. All mutation-verified. `.factory/specs/` UNTOUCHED across all 14 commits (tree `ace1745…` intact). Pass-7's 273–275 findings remain valid.
+
+**PR lifecycle:** PR #11 OPENED on `fix/oracle-repairs-gate34`. 5 independent review cycles (pr-reviewer rounds 1–5); final verdict APPROVE — 0 blocking findings. Merge BLOCKED by BI-055 (GitHub Actions billing failure). Operator action required.
+
+**BI-055 OPENED (CRITICAL):** GitHub Actions billing failure — every job exits in 2–4s with "recent account payments have failed." Verified on runs `31279786924` and `31279784343`. NOT introduced by `fix/oracle-repairs-gate34` — pre-existing across `develop` commits. Blocks PR #11, all content-remediation PRs, and every Phase-3 story PR — therefore blocks DEV-11 (Phase-3 wave-1 wave gate) entirely.
+
+**True mechanical baseline (D-124):** Repaired checkers run against `fix/oracle-repairs-gate34` HEAD b2f55ac: 6 pass / 3 fail. Failing: `check-holdout-boundary` (44 findings), `check-adr-consistency` (43 adjudication items), `check-ec-injectivity` (43 adjudication items). The prior "9/9 green" was an artifact of structurally blind oracles.
+
+**D-125 — suppression-guard corrected:** "No scope reduction" → "no UNPROVEN scope reduction". A checker may narrow scope ONLY if it emits a runtime assertion proving parts sum to full corpus. Guard now concept-based (not fixed vocabulary); pre-flight scans all 15 checkers/generators.
+
+**D-126 — calibration limitation recorded:** Pass-7's 273–275 findings were produced by the blind oracles. Post-repair re-run not yet executed (pending PR #11 merge to `develop`). The true adversary finding count after repair is unknown; D-124 baseline is the repair-oracle output, not a post-merge re-run.
+
+**Session wrap:** D-121 RESUME SNAPSHOT committed to factory-artifacts. D-114 checkpoint superseded and archived to `cycles/phase-1d/session-checkpoints.md`.
+
+**Convergence:** Trajectory →0→32→34→39→37→259→273-275. trajectory-tail →39→37→259→273-275. 0 of 3 clean passes. BLOCKED on BI-055.
+
+**Decisions codified:** D-121..D-126 (exhaustive). D-121: session wrap / resume snapshot D-121. D-122: operator gate #34 rulings (remediations authorized; pass-8 requires PR #11 merge first). D-123: four blind oracle repairs delivered as PR #11. D-124: true mechanical baseline (6 pass / 3 fail; 44 findings + 43 adjudication). D-125: suppression-guard concept-based correction. D-126: calibration limitation (pass-7 findings produced by blind oracles).
+
+**Updated:** BI-047/049/050/051 → REPAIRED-PENDING-MERGE (head `b2f55ac`). BI-047/049/050/051 tracking open until PR #11 merges to `develop`.
+
+**Artifact state at burst close:**
+PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-126 (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045/046/048. Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/047/049/050/051/052/053/054/055. BI-047/049/050/051 REPAIRED-PENDING-MERGE (head b2f55ac). Checker state (fix/oracle-repairs-gate34, post-repair): 6 pass / 3 fail — true mechanical baseline D-124.
+
+**Files touched:**
+- `.factory/STATE.md`
+- `.factory/cycles/phase-1d/burst-log.md`
+- `.factory/cycles/phase-1d/session-checkpoints.md`
+
+---
+
+<!-- Archived from STATE.md Current Phase Steps — removed per keep-last-5 rule when Burst-29 was added -->
+
+## Archived: Burst-24 (removed from STATE.md Current Phase Steps by Burst-29)
+
+**Step:** Burst-24 — PR #9 B1 remediation COMPLETE; APPROVED at a42e155 (68/68; six mutants die: MS1/MX1/MX3/MB/M4/M8; 4/4 CI green) — MERGE GATED TO OPERATOR; 53 em-dash rows ACTIONABLE (exact bijection VP-INDEX); S3 before rewrite (D-100); BI-046 escalates as gate; verify-sha-currency.sh FORMALLY RETIRED (D-099)
+
+**Agent:** state-manager
+
+**Status:** COMPLETE
+
+**Output:** PR #9 advanced 87cefbf→55113c4 (P14-8/P14-9+S1+64 tests; CHANGES-NEEDED: S1 fix uncovered, mutants MS1/MX1/MX3/MB survived)→a42e155 (P14-10/11/12/13+68 tests; APPROVE). Six mutants killed guard-independently. Three COMMENTED reviews; no self-approval. Actionability pre-check EXECUTED: 53 rows / 33 BC files; exact bijection VP-INDEX test-sufficient set (anti-vacuity proven). S3 sequencing (D-100): S3 must land before 53-row rewrite. BI-046 escalated as gate: operator infrastructure decision. D-098/D-099/D-100 added.

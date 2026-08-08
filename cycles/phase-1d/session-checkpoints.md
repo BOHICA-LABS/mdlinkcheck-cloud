@@ -154,4 +154,25 @@ PRD v1.11 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001
 
 ---
 
+## Session Resume Checkpoint D-114 (2026-08-08) — archived from STATE.md by Burst-29
+
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-114`
+
+### State
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-08 |
+| **Position** | phase-1d; pass 7 COMPLETE (9 shards, first genuine full-perimeter pass; 273–275 findings / 45 CRITICAL); 0 of 3 clean passes; STOPPED at Phase-1 HUMAN GATE awaiting remediation scoping |
+| **Convergence counter** | 0 of 3 clean passes; trajectory →0→32→34→39→37→259→273-275; trajectory-tail →39→37→259→273-275 |
+| **Next burst** | Human scoping of pass-7 remediation. Passes 8–9 cannot advance the streak until remediation lands. spec-lint REQUIRED flip CONTRA-INDICATED per D-117 (reversing D-109 schedule). DEV-11 confirmed (D-119). |
+
+### Artifact Snapshot
+
+PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-120 (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045/046/048. Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/047/049/050/051/052/053/054. Checker state (develop, post-PR#10 merge): check-placeholders **0** SCOPED (133/134; prd.md EXCLUDED by EXCLUDE_PATHS, BI-047; D-113). All 9 checkers PASS with scope caveat. spec-lint REQUIRED flip CONTRA-INDICATED (D-117).
+
+*Superseded by D-121 session wrap (Burst-29).*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
