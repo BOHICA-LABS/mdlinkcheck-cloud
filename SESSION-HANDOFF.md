@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-101
+  Latest: §RESUME SNAPSHOT D-106
 -->
 
 ---
@@ -2025,7 +2025,7 @@ i. **BI-046 ESCALATED AS GATE** — separate reviewer identity/token required be
 
 ---
 
-## §RESUME SNAPSHOT D-101
+## §RESUME SNAPSHOT D-101 [SUPERSEDED by D-106 — retained for audit]
 
 *Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-098.*
 
@@ -2137,3 +2137,126 @@ k. **BI-046 DEFERRED pre-Phase-3 (D-104)**: merges remain OPERATOR-GATED until r
 - **hook validate-pr-review-posted will MISFIRE** on every PR review in this repo (D-105); use `gh pr comment` as workaround.
 - **step-counter hook** misfires on single-turn STEP_COMPLETE counts (D-105); does not reflect true lifecycle completion.
 - **check-placeholders 53**: not a regression — 53 em-dash rows are genuinely pending PR #10 merge + 53-row rewrite; 25 Stories exempt per D-093.
+
+---
+
+## §RESUME SNAPSHOT D-106
+
+*Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-101.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d, still **0 of 3 clean passes**. Session wrap D-106 records: PR #10 (`fix/s3-test-sufficient-proof-method`) **MERGED as f8ee4eb** (S3/D-100/D-107 closed; S3 non-empty Proof Method precondition now live on develop; develop advanced d4e76fa→f8ee4eb; remote branch deleted; exactly two worktrees remain). **53-row VP-column sentinel rewrite COMPLETE** (33 BC files, 53 `—` cells → `test-sufficient`, 33 version fields bumped +0.1; diff purity verified: 33 files, 86ins/86del = exactly 53 sentinel cells + 33 version lines, ZERO other additions; em-dash corpus delta exactly −53: 1922→1869; anti-vacuity proven: revert one cell → check-placeholders reports 1 finding; restore → 0). **check-placeholders=0; D-077 burn-down CLEAR**. **Full spec-lint gate GREEN (9/9) — FIRST fully-green spec-lint in the entire run** (D-108). spec-lint REQUIRED flip (D-029/D-032/D-093/D-109) now MECHANICALLY SATISFIABLE; scheduled for Phase-1 gate; NOT executed this session. Pass 7 **ARMED but GATED** (D-095) — all three preconditions satisfied; pre-dispatch operator gate STANDS; operator directed no dispatch. trajectory-tail →34→39→37→259.
+
+### HEADS
+
+Verify each at resume before taking action. Resolve factory-artifacts HEAD via `git -C .factory log -1` — never trust a literal SHA recorded here for the current HEAD.
+
+| Ref | SHA | Note |
+|-----|-----|------|
+| develop | `f8ee4eb` | PR #10 squash-merge (S3/D-100 landed); local == `origin/develop`; tree CLEAN; PUSHED |
+| factory-artifacts | run `git -C .factory log -1` | current HEAD — do not cite a literal SHA here |
+
+### WORKSTREAMS
+
+| Workstream | Status | Notes |
+|-----------|--------|-------|
+| WS-4 Shards A–E | COMPLETE | 40 FABRICATED repaired; 50 proof-method joins; D-092/D-093 landed as d4e76fa |
+| 53 em-dash rows rewrite | COMPLETE | 33 BC files, 53 cells → test-sufficient; diff purity verified (671109d); D-108 |
+| 25 Stories field | BLOCKED | BLOCKED on Phase 2 decomposition; exempt from check-placeholders per D-093 |
+| S3 non-empty Proof Method precondition | COMPLETE | PR #10 MERGED as f8ee4eb; S3/D-100 live on develop |
+| Pass 7 adversary review | ARMED-GATED | All three D-095 preconditions satisfied; pre-dispatch operator gate STANDS; streak from ZERO |
+| Phase-1 human approval gate | PENDING | spec-lint REQUIRED flip now mechanically satisfiable (D-109); awaiting 3 clean passes + operator |
+
+### CHECKER STATE
+
+| Checker | State | Count | Notes |
+|---------|-------|-------|-------|
+| check-placeholders | GREEN | 0 | D-077 CLEAR; 53 em-dash rows rewritten to test-sufficient (671109d); 25 Stories exempt per D-093 |
+| check-id-resolution | GREEN | 0/134 | PASSES; 0 unresolved IDs |
+| check-counts | GREEN | 37 | PASSES |
+| check-ec-injectivity | GREEN | 214 ECs | PASSES |
+| check-holdout-boundary | GREEN | 134 visible | PASSES |
+| check-index-integrity | GREEN | 80 | PASSES |
+| check-adr-consistency | GREEN | 8 ADRs | PASSES |
+| check-title-sync | GREEN | 66 BC titles | PASSES |
+| check-canonical-facts | GREEN | 31 bindings/11 facts | PASSES |
+| spec-lint (CI job) | ADVISORY | — | Not a required status check until Phase-1 gate (D-093); flip now mechanically satisfiable (D-109) |
+
+### SPEC SNAPSHOT
+
+PRD v1.12 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-109 (exhaustive). 33 BC files carry `test-sufficient` sentinels in 53 VP-column rows (671109d).
+
+Closed BIs: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045.
+
+Open BIs: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/046.
+
+### NEXT PRIORITIES
+
+1. **Adversary pass 7** (D-095) — ARMED; all three preconditions satisfied: (1) PR #10 MERGED, (2) 53-row rewrite COMPLETE, (3) check-placeholders=0. Pre-dispatch operator gate STANDS. Streak from ZERO against frozen HEAD; severity in RANGES not point totals (PG-012).
+2. **Phase-1 human approval gate** — spec-lint REQUIRED flip now mechanically satisfiable (D-109); requires 3 consecutive clean adversary passes first.
+3. **BI-046 pre-Phase-3 gate** (operator infrastructure decision, D-104) — REQUIRED before Phase 3 story PRs begin; separate reviewer identity/token.
+4. **Open non-blocking items**: S2 (VP proof-method/tool mismatch), S4 (BC body symbol validation), S5 (stale discharged directives), N1 (BI-024 axis A), N2 (BI-024 axis C). S3 CLOSED by PR #10.
+5. **Open blocking issues**: BI-002 (convergence), BI-007 (VP-026 unimplemented), BI-010 (VP-025 API types), BI-017 (perf-gate CI), BI-021 (check-canonical-facts worktree), BI-022 (nightly unpinned), BI-023 (checker bypasses, now resolved), BI-024 (four unguarded axes), BI-027 (FABRICATED repaired), BI-028 (code-fence symbols), BI-037 (fail-open guard), BI-039 (gh pr review impossible), BI-041 (gen-bc-traceability lossy write), BI-046 (reviewer identity).
+
+### CORRECTIONS REGISTER
+
+No new corrections this session. D-106 wrap records only completed facts.
+
+Prior corrections from D-090 session remain on record in SESSION-HANDOFF.md §D-090 §CORRECTIONS REGISTER.
+Prior PR #9 body correction (D-102) recorded in §D-101.
+
+### STANDING DIRECTIVES
+
+a. **D-088 explicit-path-only staging**: never use `git add -A` while a PR worktree is in flight; stage by explicit path.
+
+b. **D-039 no suppression in checkers**: allowlists, skip-sets, deferral sets forbidden in spec-lint checkers.
+
+c. **D-082 executed-predicate constraint**: all quantitative claims in findings/dispatches from EXECUTED predicates, not from reading/counting.
+
+d. **D-034 immutable changelogs**: `prd.md` versioned changelog entries are IMMUTABLE; do NOT retroactively update.
+
+e. **D-058 covered_sha discipline**: `covered_sha` hand-editing is REJECTED as a merge-authorization mechanism.
+
+f. **D-099 verify-sha-currency.sh RETIRED**: no longer carried as a per-wrap caveat; formally retired for this project.
+
+g. **D-041 no cross-burst branch conflicts**: never dispatch a burst onto a branch another burst holds merge-or-delete authority over.
+
+h. **D-082 discipline boundary**: if a tool call fails as "impossible," do NOT retry as an executed predicate; report the impossibility.
+
+i. **validate-pr-review-posted CI-063 (D-105)**: hook fires on literal `pr-review.md` (conflicts with SHA-keyed convention) AND demands impossible `gh pr review --approve`; use `gh pr comment --body-file` as the working mechanism; in-prompt warning until hook is fixed.
+
+j. **step-counter CI-063 (D-105)**: step-counter hook counts only current-turn STEP_COMPLETE emissions, not full lifecycle; misfire is documented, not a gate failure.
+
+k. **BI-046 DEFERRED pre-Phase-3 (D-104)**: merges remain OPERATOR-GATED until resolved; REQUIRED before Phase 3 story PRs begin.
+
+l. **BI-041 --write PROHIBITED**: `gen-bc-traceability.py --write` is LOSSY and must NOT be enabled until annotation handling is adjudicated.
+
+### WORKTREE INVENTORY
+
+| Worktree | Path | Branch | Status |
+|----------|------|--------|--------|
+| Main checkout | `/Users/jmagady/Dev/mdlinkcheck-cloud` | `develop` | CLEAN, `f8ee4eb` |
+| factory-artifacts | `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | this burst |
+
+Exactly two worktrees. `fix/s3-test-sufficient-proof-method` worktree removed; remote branch deleted after PR #10 merge.
+
+### DECISION DELTA D-106..D-109
+
+| ID | Summary |
+|----|---------|
+| D-106 | Session wrap — this RESUME SNAPSHOT; supersedes D-101 |
+| D-107 | PR #10 squash-merged as f8ee4eb; develop advanced d4e76fa→f8ee4eb; S3/D-100 live; remote branch deleted; two worktrees remain |
+| D-108 | 53-row sentinel rewrite COMPLETE; diff purity verified; em-dash delta −53 (1922→1869); anti-vacuity proven; check-placeholders=0; D-077 CLEAR; full spec-lint GREEN (9/9) — FIRST fully-green |
+| D-109 | spec-lint REQUIRED flip now MECHANICALLY SATISFIABLE; scheduled for Phase-1 gate; NOT executed this session |
+
+### CAVEATS
+
+- **verify-sha-currency.sh RETIRED** (D-099): no longer carried as per-wrap caveat; orchestrator's direct git-inspection + checker re-runs is the accepted substitute.
+- **hook validate-pr-review-posted will MISFIRE** on every PR review in this repo (D-105/CI-063); use `gh pr comment` as workaround.
+- **step-counter hook** misfires on single-turn STEP_COMPLETE counts (D-105/CI-063); does not reflect true lifecycle completion.
+- **BI-041 --write PROHIBITED**: write mode is lossy; do not enable until annotation handling is adjudicated.
+- **D-041 sequencing guard**: never dispatch a burst onto a branch another burst holds merge-or-delete authority over.
+- **D-039 no suppression**: allowlists, skip-sets, deferral sets forbidden in any spec-lint checker.
+- **D-034 immutable changelogs**: `prd.md` versioned changelog entries must not be retroactively edited.
+- **Five vacuous verification results remain** from earlier passes: any verification claim requires three-part evidence (WHAT was checked, HOW it was verified, WHAT the outcome was as an executed predicate).

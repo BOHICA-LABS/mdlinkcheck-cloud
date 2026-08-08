@@ -1275,3 +1275,56 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 - `.factory/code-delivery/S3-PROOF-METHOD/pr-review-a14711e.md`
 
 **Closes:** N/A — no blockers closed this burst. **Updates:** BI-002 (PR #9 MERGED d4e76fa; PR #10 OPEN+APPROVED a14711e; 53 rows ACTIONABLE; next: operator merge PR #10). BI-023 (PR #9 MERGED d4e76fa; check-placeholders 78→53; BLOCKED on PR #10 merge + 53-row rewrite). BI-046 (DEFERRED to pre-Phase-3 D-104; merges OPERATOR-GATED). **Adds:** D-101, D-102, D-103, D-104, D-105.
+
+---
+
+## Burst-26 — D-077 BURN-DOWN CLEAR; FULL SPEC-LINT GREEN (9/9); SESSION WRAP D-106
+
+*Date: 2026-08-08. Agents: state-manager (session wrap + factory-artifacts commit). Single-commit burst TD-VSDD-053.*
+
+### Summary
+
+Burst-26 records three completed events from prior operator-executed work and commits the durable D-106 RESUME SNAPSHOT.
+
+**Event 1 — PR #10 MERGED (D-107):** Operator squash-merged `fix/s3-test-sufficient-proof-method` as `f8ee4eb`. Develop advanced `d4e76fa`→`f8ee4eb`. S3/D-100 non-empty Proof Method precondition is now live on develop. Post-merge selftests 69/69 exit 0; P14 header count 14; S3 guard text present; revert-mutation kills P14-14 guard-independently. Remote branch `fix/s3-test-sufficient-proof-method` deleted. Exactly two worktrees remain (main checkout + `.factory`).
+
+**Event 2 — 53-row VP-column sentinel rewrite COMPLETE (D-108):** 33 BC files modified; 53 `—` VP-column cells replaced with `test-sufficient`; 33 version fields bumped +0.1. Diff purity verified via `git diff --shortstat a306ed6..671109d`: 33 files, 86 insertions, 86 deletions = exactly 53 sentinel cells + 33 version lines, ZERO other additions. Em-dash corpus delta exactly −53 (1922→1869). Anti-vacuity proven by orchestrator: revert one cell → `check-placeholders` reports exactly 1 finding; restore → 0. Per-row legality re-confirmed: all 33 BCs classified test-sufficient in VP-INDEX; all 53 rows carried non-empty Proof Method; S3 rejected none. Factory-artifacts HEAD at time of rewrite: `671109d`.
+
+**check-placeholders=0; D-077 burn-down CLEAR. Full spec-lint gate GREEN (9/9) — FIRST fully-green spec-lint in the entire run.**
+
+All 9 checkers independently re-run by orchestrator at factory-artifacts HEAD `671109d`:
+- check-placeholders: PASS 0 (was 53)
+- check-counts: PASS 37
+- check-id-resolution: PASS 134 files
+- check-ec-injectivity: PASS 214 IDs
+- check-holdout-boundary: PASS 134 visible
+- check-index-integrity: PASS 80 checks
+- check-adr-consistency: PASS 8 ADRs
+- check-title-sync: PASS 66 BC titles
+- check-canonical-facts: PASS 31 bindings/11 facts
+
+**Event 3 — spec-lint REQUIRED flip now MECHANICALLY SATISFIABLE (D-109):** check-placeholders=0 with D-093 Stories-field carve-out in force; all 25 `[filled by ...]` occurrences are in the Stories field which is exempt until Phase 2. Flip SCHEDULED for Phase-1 human approval gate; NOT executed this session. This is the first time the flip has been satisfiable — previously UNSATISFIABLE AS WRITTEN because all 25 remaining placeholders were in the Stories field.
+
+**Pass 7 status:** ARMED-GATED (D-095). All three preconditions now satisfied: (1) PR #10 MERGED, (2) 53-row rewrite COMPLETE, (3) check-placeholders=0. Pre-dispatch operator gate STANDS. Operator directed no dispatch this session. Streak from ZERO against frozen HEAD; severity in RANGES (PG-012).
+
+**Convergence UNCHANGED:** 0 of 3 clean passes. Trajectory →0→32→34→39→37→259. Trajectory-tail →34→39→37→259. No new adversary pass was dispatched; no clean pass was recorded.
+
+**Codifications:** D-106 (session wrap — this RESUME SNAPSHOT, supersedes D-101). D-107 (PR #10 squash-merged as f8ee4eb; S3/D-100 closed; develop advanced; remote branch deleted; two worktrees remain). D-108 (53-row sentinel rewrite COMPLETE; diff purity verified; em-dash delta −53; anti-vacuity proven; D-077 CLEAR; full spec-lint GREEN 9/9 first time). D-109 (spec-lint REQUIRED flip mechanically satisfiable; scheduled Phase-1 gate; NOT executed).
+
+**Artifact state at burst close:**
+PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-109 (exhaustive). 33 BC files carry `test-sufficient` sentinels in 53 VP-column rows. Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045. Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/046.
+
+**Dim-2 Attestation:** No `canonical-facts.toml` mutation this burst. Canonical facts corpus unchanged.
+
+**Dim-5 Attestation:** STATE.md — timestamp 2026-08-08T12:12:00Z, version 3.1, status: draft, producer: state-manager. burst-log.md — 26 bursts. SESSION-HANDOFF.md — D-106 snapshot supersedes D-101.
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. check-placeholders=0 (D-077 CLEAR). Full spec-lint GREEN (9/9) first time. Pass 7 ARMED-GATED (D-095). Next convergence step: operator gate → pass 7 dispatch → 3 clean passes → Phase-1 human approval → spec-lint flip to REQUIRED (D-109).
+
+**Dim-7 Attestation:** Agents dispatched this burst: state-manager for session wrap and factory-artifacts commit. No new spec agents dispatched (all events from prior operator work).
+
+**Files touched (Dim-1): 3 unique files (factory-artifacts only — no develop-side changes this burst)**
+- `.factory/STATE.md`
+- `.factory/SESSION-HANDOFF.md`
+- `.factory/cycles/phase-1d/burst-log.md`
+
+**Closes:** D-077 burn-down CLOSED (check-placeholders=0). **Updates:** BI-002 (PR #10 MERGED f8ee4eb; 53-row rewrite COMPLETE 671109d; D-077 CLEAR; full spec-lint GREEN 9/9; pass 7 ARMED-GATED D-095). BI-023 (PR #10 MERGED f8ee4eb; S3/D-100 live; 53-row rewrite COMPLETE; check-placeholders=0; D-077 CLEAR; full spec-lint GREEN 9/9). **Adds:** D-106, D-107, D-108, D-109.
