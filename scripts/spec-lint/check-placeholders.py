@@ -35,10 +35,8 @@ Operator-ruled exemptions (Phase-1 gate, Phase-2 deferral):
     against VP-INDEX (not an allowlist, D-039) — the sentinel is rejected
     if VP-INDEX assigns a real VP or has no row for the BC.
 
-Scope: .factory/specs/behavioral-contracts/ (primary)
-       .factory/specs/ (secondary, for any stray occurrences elsewhere)
-
-Excludes: policies.yaml verification_steps (they document the pattern, not instances)
+Scope: .factory/specs/ — ALL 134 spec files; no file-path-keyed
+       exclusions (D-081, D-113). prd.md enters scope.
 
 Scoping rule for VP-TBD / SS-TBD:
   YAML frontmatter changelog entries (modified: list items containing
@@ -54,6 +52,29 @@ Scoping rule for VP-TBD / SS-TBD:
 R2-RULE scoping:
   Fenced code blocks (triple-backtick, not 4-space-indented per CommonMark §4.5)
   are suppressed — content inside them is documentation, not live spec content.
+
+D-081 position-based predicates (no file-path-keyed exclusion sets):
+  Two additional position-based predicates exempt tokens that appear in
+  historically-documented context — these predicates fire on WHERE in a document
+  a token appears, not on WHICH file it is in:
+
+  Predicate 1 — Changelog narrative section:
+    An H3 heading (### ...) whose text starts with a version marker (v\d+,
+    e.g. "### v1.4 — ...") begins a changelog narrative section. All
+    placeholder tokens appearing inside such a section are historical records
+    of past state and are exempt. The section ends when any H1, H2, or a
+    non-version H3 heading is encountered.
+    Calibrated against prd.md §changelog:
+      - prd.md:509 `[filled by architect]` under ### v1.9 — EXEMPT
+      - prd.md:644 VP-TBD (×3) under ### v1.4 — EXEMPT
+      - prd.md:650 SS-TBD (×3) under ### v1.4 — EXEMPT
+
+  Predicate 2 — Inline backtick span:
+    A placeholder token that occurs inside a CommonMark inline code span
+    (delimited by a single backtick on each side) is a cited reference, not a
+    live placeholder, and is exempt. Detected by counting single backtick
+    delimiters before the match position; an odd count indicates the match is
+    inside a span.
 
 Exit 1 if any placeholder found.
 """
@@ -219,24 +240,43 @@ def _is_valid_vp_cell(
     return False, f"non-conforming VP-NNN column value '{first_cell}' (POL-14)"
 
 
-# Files/paths to exclude (they document the pattern)
-EXCLUDE_PATHS = {
-    str(REPO / ".factory" / "policies.yaml"),
-    str(SPECS / "prd.md"),  # prd.md may mention the policy but not have BC-level placeholders
-}
+# ── D-081 position-based predicates (no file-path-keyed exclusion sets) ─────
 
-# Exception: prd.md §5b / holdout list may mention VP-TBD in historical context
-# We check all BC files and spec supplements except what's in EXCLUDE_PATHS
-def should_check(path: Path) -> bool:
-    """Return True if this file should be checked for placeholders."""
-    s = str(path)
-    for ex in EXCLUDE_PATHS:
-        if s == ex:
-            return False
-    # Don't check cycle logs or planning docs
-    if "/.factory/cycles/" in s or "/.factory/planning/" in s:
+# Predicate 1: Changelog narrative section.
+# An H3 heading text starting with a version marker (v\d+) begins a changelog
+# narrative section. All placeholder tokens inside are historical — exempt.
+_CHANGELOG_VERSION_H3_RE = re.compile(r'^v\d+')
+
+
+def _is_changelog_narrative(current_h3_heading: "str | None") -> bool:
+    """Return True if currently inside a changelog/version-history narrative section.
+
+    A changelog narrative section begins when an H3 heading (### ...) whose text
+    starts with a version marker (e.g. 'v1.4', 'v1.9') is encountered.  The
+    section ends when any H1, H2, or non-version H3 heading is encountered.
+    Position-based: fires on WHERE in the document a token appears, not which file.
+    """
+    if current_h3_heading is None:
         return False
-    return True
+    return bool(_CHANGELOG_VERSION_H3_RE.match(current_h3_heading))
+
+
+# Predicate 2: Inline backtick span.
+# A placeholder token inside a single-backtick inline code span is a cited
+# reference, not a live placeholder — exempt.
+_SINGLE_BACKTICK_RE = re.compile(r'(?<!`)`(?!`)')
+
+
+def _is_inside_backtick_span(line: str, match_start: int) -> bool:
+    """Return True if match_start is inside a single-backtick inline code span.
+
+    Counts single backticks (not double or triple) before the match position.
+    An odd count indicates the match is inside a code span.
+    Position-based: fires on WHERE on a line a token appears, not which file.
+    """
+    before = line[:match_start]
+    single_bts = _SINGLE_BACKTICK_RE.findall(before)
+    return len(single_bts) % 2 == 1
 
 
 def check_file_lines(
@@ -267,6 +307,13 @@ def check_file_lines(
     # Only updated outside fenced blocks.
     current_h2_heading: "str | None" = None
 
+    # D-081 Predicate 1: track the current H3 heading for changelog narrative exemption.
+    # Set when a "### " heading is seen; cleared by H1, H2, or a new H3.
+    # H4+ headings do NOT clear the H3 context (changelog sections extend through sub-headings).
+    # If current_h3_heading starts with v\d+, the current position is inside a
+    # changelog narrative section — all placeholder tokens are exempt.
+    current_h3_heading: "str | None" = None
+
     for lineno, line in enumerate(lines, 1):
         # ── Fenced code block suppression (CommonMark §4.5) ──────────────────
         # A line starting with ``` (not 4-space indented) is a fence delimiter.
@@ -279,17 +326,29 @@ def check_file_lines(
             table_header_first_cell = None
             continue
 
-        # ── ATX heading tracking (Change 2 / S1-fix: Stories-field exemption) ─
-        # Set current_h2_heading on "## " headings; CLEAR it on any other ATX
-        # heading level (H1, H3, H4, …).  This bounds the Shape 2 exemption zone:
-        # a subheading (### …) or H1 inside a "## Story Anchor" section resets the
-        # context so that bullets after it are no longer exempt.
+        # ── ATX heading tracking ──────────────────────────────────────────────
+        # H2 headings: set current_h2_heading (Stories-field exemption, Change 2/S1-fix).
+        #   Any non-H2 heading (H1, H3, H4…) clears current_h2_heading — this bounds the
+        #   Shape 2 exemption zone (a subheading inside ## Story Anchor resets context).
+        # H3 headings: set current_h3_heading (changelog narrative exemption, D-081 P1).
+        #   H1 and H2 clear current_h3_heading.  H4+ do NOT clear it (changelog sections
+        #   extend through sub-headings within the same narrative block).
         if not in_fenced_code and line.startswith("#"):
             _atx_rest = line.lstrip("#")
             if _atx_rest.startswith(" ") or not _atx_rest:
-                if line.startswith("## "):
-                    current_h2_heading = line[3:].strip()
+                if line.startswith("## ") and not line.startswith("### "):
+                    current_h2_heading = _atx_rest.strip()
+                    current_h3_heading = None  # H2 resets H3 context
+                elif line.startswith("### ") and not line.startswith("#### "):
+                    current_h3_heading = _atx_rest.strip()
+                    current_h2_heading = None  # H3 resets H2 context (S1-fix preserved)
+                elif line.startswith("# ") and not line.startswith("## "):
+                    # H1: clear both H2 and H3 context
+                    current_h2_heading = None
+                    current_h3_heading = None
                 else:
+                    # H4+: clears H2 context (existing behavior preserved for Story Anchor)
+                    # but does NOT clear H3 context (changelog sections extend through H4+)
                     current_h2_heading = None
 
         # ── Table-context state machine (R2-RULE, gated: suppressed inside fenced blocks) ──
@@ -340,6 +399,18 @@ def check_file_lines(
         for pattern, name in PLACEHOLDER_PATTERNS:
             for m in pattern.finditer(line):
                 matched = m.group(0)
+                # D-081 Predicate 1: skip if inside a changelog narrative section.
+                # Fires on WHERE in the document (H3 version heading context), not on
+                # which file. Covers prd.md:509 ([filled by architect] under ### v1.9),
+                # prd.md:644 (VP-TBD ×3 under ### v1.4), prd.md:650 (SS-TBD ×3 under
+                # ### v1.4), and any similar historical records in any other spec file.
+                if _is_changelog_narrative(current_h3_heading):
+                    continue
+                # D-081 Predicate 2: skip if inside a backtick inline code span.
+                # Fires on WHERE on the line (odd single-backtick count before match),
+                # not on which file. A token inside `` `VP-TBD` `` is a cited reference.
+                if _is_inside_backtick_span(line, m.start()):
+                    continue
                 # Skip VP-TBD / SS-TBD if they are inside a historical
                 # changelog entry (quoted string with a version prefix).
                 if matched in ("VP-TBD", "SS-TBD"):
@@ -374,14 +445,16 @@ def main() -> int:
         print(f"ERROR: Spec tree not found at {SPECS} — cannot run check (no spec files to validate)", file=sys.stderr)
         sys.exit(1)
     violations: list[tuple[str, int, str, str]] = []  # (filepath, lineno, matched, pattern_name)
+
+    # Corpus size: compute once for completeness assertion (D-113 / D-081).
+    # All .md files under .factory/specs/ are in scope — no file-path-keyed exclusions.
+    total_files = sum(1 for _ in SPECS.rglob("*.md"))
     files_checked = 0
 
     # Load VP-INDEX classifications once (used for test-sufficient cross-check).
     vp_classifications = _load_vp_index_classifications(REPO)
 
     for md_file in sorted(SPECS.rglob("*.md")):
-        if not should_check(md_file):
-            continue
         files_checked += 1
         lines = slp.cm_splitlines(md_file.read_text(encoding="utf-8"))
         bc_id = _extract_bc_id(md_file)
@@ -394,6 +467,13 @@ def main() -> int:
             )
         )
 
+    # Corpus completeness assertion: parts must sum to total (D-081, D-113).
+    completeness = (
+        "complete"
+        if files_checked == total_files
+        else f"INCOMPLETE — only {files_checked} of {total_files} scanned"
+    )
+
     if violations:
         # Group by type for summary
         by_type: dict[str, int] = {}
@@ -403,10 +483,17 @@ def main() -> int:
         print()
         for name, count in sorted(by_type.items()):
             print(f"  {count:3d}  {name}")
-        print(f"\nCheck FAILED: {len(violations)} placeholder occurrences found ({files_checked} files checked)")
+        print(
+            f"\nCheck FAILED: {len(violations)} placeholder occurrences found "
+            f"across {files_checked} of {total_files} spec files ({completeness})"
+        )
         return 1
 
-    print(f"Check passed: {files_checked} spec files checked — no VP-TBD, SS-TBD, [filled by], or non-conforming VP-NNN column values")
+    print(
+        f"Check passed: 0 live placeholders found across "
+        f"{files_checked} of {total_files} spec files ({completeness}) — "
+        f"no VP-TBD, SS-TBD, [filled by], or non-conforming VP-NNN column values"
+    )
     return 0
 
 
