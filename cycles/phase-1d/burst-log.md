@@ -1370,3 +1370,39 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 - `.factory/cycles/phase-1d/burst-log.md`
 
 **Opens:** BI-047 (EXCLUDE_PATHS skip-set; prd.md excluded wholesale; D-039 class; HIGH). **Updates:** BI-002 (pass 7 AUTHORIZED gate #31; NOT dispatched context ceiling; NEW BI-047; D-108 zero SCOPED 133/134; D-113 scope correction). **Adds:** D-110, D-111, D-112, D-113. **Scope-qualifies:** D-108 (burn-down zero SCOPED to 133/134 per D-113).
+
+---
+
+## Burst-28 — Pass 7 COMPLETE (2026-08-08)
+
+**Summary:** Pass 7 COMPLETE — all 9 shards, first genuine full-perimeter pass. D-114..D-120 (exhaustive). BI-046 CLOSED (D-120). BI-048..BI-054 (exhaustive) OPENED. Session-wrap RESUME SNAPSHOT D-114.
+
+**Batch-2 Dispatch (Shards 1, 3, 4, 5, 6):** Five adversary shards dispatched against the frozen specs/ tree `ace1745871122cd1fa2c46cf27c5493cc1083411` (develop `f8ee4eb`). Harness persisted each subagent's full output to a JSON file on disk; state-manager read those files DIRECTLY, bypassing the D-037 orchestrator-context bottleneck (per D-118). This mitigates the pass-3 stub-loss failure mode and the D-112 context-ceiling deferral mechanism.
+
+**D-118 persistence mechanism:** Tool-results directory `/Users/jmagady/.claude/projects/-Users-jmagady-Dev-mdlinkcheck-cloud/e0fa2a65-79bf-4fe4-9093-0cf5defe9499/tool-results/` held JSON files keyed by tool call ID. Five files (totalling ~322KB of body text) were written verbatim: shard-1 (71,967 bytes body, 73,137 total), shard-3 (57,620 bytes body, 58,487 total), shard-4 (49,872 bytes body, 50,817 total), shard-5 (65,490 bytes body, 66,657 total), shard-6 (78,002 bytes body, 79,239 total). Each destination's first body line verified to start with `# Pass 7 — Shard`.
+
+**D-116 — PERIMETER-CLOSURE CLAIM RETRACTED:** An orchestrator-executed predicate over the pass-6 shard frontmatter proved pass 6 read **55 of 66** BC bodies (not "all 66") and **21 of 26** VP bodies (not "all 26"). Never-read set: SS-05 (BC-2.05.001/002/003), SS-06 (BC-2.06.001), SS-10 (BC-2.10.002/003/004/007/008/009/010 — shard 4's own scope line reads "SS-08 (4) + SS-09 (2) + BC-2.10.001/005/006 = 9 BC bodies"). The BI-002 "perimeter CLOSED" characterisation and the pass-6 synthesis's claim were therefore INVALID. Pass 7 batch-2 closed the gap: shard 9 (dedicated to the 11 never-read BC bodies), shard 7 (all 26 VP bodies + VP-INDEX). This generalises D-113: a coverage claim must be audited against the union of shard scopes that produced it, not accepted from the synthesis.
+
+**Pass 7 definitive totals:** 273–275 findings (self-declared 273 / predicate-parsed 275; difference isolated to shard 2 which is disputed and unadjudicated per D-082). Severity: CRITICAL 45 / HIGH 97 / MEDIUM 99 / LOW 34 (predicate-parsed). `[process-gap]`-tagged findings: 20 across all 9 shards. The ONLY disputed shard is shard 2 (self-declared 21/9C; predicate-parsed 23/10C).
+
+**D-117 — spec-lint REQUIRED flip CONTRA-INDICATED:** Pass 7 proved three enforcement hooks structurally blind with live in-corpus breaches, making the previously-scheduled flip (D-109) unsound: (1) `check-holdout-boundary.py` inspects only markdown table rows → POLICY 18 blind to prose leaks; LIVE BREACH: `prd.md:616` publishes complete scenario for active reserved holdout EC-151 (BI-049); (2) `check-adr-consistency.py` reads only `ADR-*.md` → closed taxonomy never enforced in BCs or test-vectors; LIVE phantom codes: `malformed-fragment`, `E-IO-002`, `E-CLI-001` (BI-050); (3) `check-ec-injectivity.py` cannot detect BC-to-registry scenario mismatch — validates ID injectivity, not semantic agreement; systemic mis-anchoring confirmed by 3 independent shards (BI-051). D-109's flip schedule REVERSED by D-117.
+
+**Human rulings codified:** D-119 (DEV-11 CONFIRMED: Phase-3 wave-1 wave gate is Run A's target endpoint); D-120 (BI-046 CLOSED: no separate reviewer identity; operator-confirmed merges via gate #28/#31 are the standing two-party control, discharging D-089's pre-Phase-3 condition).
+
+**Convergence:** Trajectory →0→32→34→39→37→259→273-275. trajectory-tail →39→37→259→273-275. 0 of 3 clean passes. Pass 7 increase (+14 to +26 vs pass 6) is substantially SCOPE EXPANSION (11 never-read BC bodies in shard 9 + 5 never-read VP bodies in shard 7), not pure regression.
+
+**Blocking issues opened (BI-048..BI-054; exhaustive):** BI-048 RESOLVED immediately by pass 7; BI-049..BI-054 OPEN. Details in STATE.md Blocking Issues section.
+
+**Artifact state at burst close:**
+PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-120 (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045/046/048. Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/047/049/050/051/052/053/054.
+
+**Files touched (factory-artifacts only — no develop-side changes this burst):**
+- `.factory/STATE.md`
+- `.factory/cycles/phase-1d/adversary-pass-7-shard-1.md` (NEW — 73,137 bytes)
+- `.factory/cycles/phase-1d/adversary-pass-7-shard-3.md` (NEW — 58,487 bytes)
+- `.factory/cycles/phase-1d/adversary-pass-7-shard-4.md` (NEW — 50,817 bytes)
+- `.factory/cycles/phase-1d/adversary-pass-7-shard-5.md` (NEW — 66,657 bytes)
+- `.factory/cycles/phase-1d/adversary-pass-7-shard-6.md` (NEW — 79,239 bytes)
+- `.factory/cycles/phase-1d/adversary-pass-7-INDEX.md` (REWRITTEN — v2.0, all 9 shards COMPLETE)
+- `.factory/cycles/phase-1d/burst-log.md`
+- `.factory/cycles/phase-1d/blocking-issues-resolved.md`
