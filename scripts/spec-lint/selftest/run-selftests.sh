@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=55
+EXPECTED_TEST_COUNT=68
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -3672,6 +3672,668 @@ MDNV5BAD
             echo "  Actual output: $NV5_OUT"
             FAILURES=$((FAILURES + 1))
         fi
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-1: check-placeholders — test-sufficient where VP-INDEX assigns real VP ──
+# Change 1 (POL-14 operator ruling): 'test-sufficient' in VP-NNN column is accepted
+# ONLY when VP-INDEX classifies the BC as test-sufficient. If VP-INDEX assigns a real
+# VP to that BC, the sentinel must be REJECTED with a distinct message.
+#
+# Mutation-flip: accept test-sufficient unconditionally (remove the VP-INDEX cross-check).
+# Under mutation: defect tree exits 0 (sentinel accepted despite VP-INDEX saying VP-001)
+# → defect-fail assertion fires → FAILS. Proves the VP-INDEX check is load-bearing.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-1: check-placeholders: test-sufficient but VP-INDEX has real VP ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+
+# VP-INDEX with BC-0.00.001 classified as VP-001 (has a real VP)
+cat > "$T/.factory/specs/verification-properties/VP-INDEX.md" <<'VPIX'
+| BC | Title (abbreviated) | VP(s) | Notes |
+|----|---------------------|-------|-------|
+| BC-0.00.001 | Test BC | VP-001 | has a real verification property |
+VPIX
+
+CLEAN_PASS=0
+# Clean tree: VP-INDEX present, but no BC file with test-sufficient
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (VP-INDEX present, no BC files)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: BC file uses test-sufficient but VP-INDEX assigns VP-001 to this BC
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-0.00.001.md" <<'BCFILE'
+## Verification Properties
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| test-sufficient | some property | integration test |
+BCFILE
+    P141_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    P141_EXIT=$?
+    if [ "$P141_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT reject test-sufficient when VP-INDEX assigns VP-001)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$P141_OUT" | grep -qF "VP-INDEX classifies 'BC-0.00.001' as 'VP-001'"; then
+        echo "  PASS (clean-pass confirmed; test-sufficient correctly rejected with VP-INDEX cross-check message)"
+    else
+        echo "  FAIL (checker exited non-zero but expected VP-INDEX-cross-check message not in output)"
+        echo "  Actual output: $P141_OUT"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-2: check-placeholders — test-sufficient where VP-INDEX has no row ──
+# Change 1 (POL-14 operator ruling): 'test-sufficient' is rejected when the BC has
+# no row at all in VP-INDEX — the operator must consciously classify it.
+#
+# Mutation-flip: accept test-sufficient unconditionally.
+# Under mutation: defect tree exits 0 → defect-fail fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-2: check-placeholders: test-sufficient but VP-INDEX has no row ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+
+# VP-INDEX with no rows (empty BC-to-VP table)
+cat > "$T/.factory/specs/verification-properties/VP-INDEX.md" <<'VPIX'
+| BC | Title (abbreviated) | VP(s) | Notes |
+|----|---------------------|-------|-------|
+VPIX
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (empty VP-INDEX, no BC files)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: BC file uses test-sufficient but has no row in VP-INDEX
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-0.00.002.md" <<'BCFILE'
+## Verification Properties
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| test-sufficient | some property | integration test |
+BCFILE
+    P142_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    P142_EXIT=$?
+    if [ "$P142_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT reject test-sufficient when BC has no VP-INDEX row)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$P142_OUT" | grep -qF "'BC-0.00.002' has no row in VP-INDEX"; then
+        echo "  PASS (clean-pass confirmed; test-sufficient correctly rejected with no-VP-INDEX-row message)"
+    else
+        echo "  FAIL (checker exited non-zero but expected no-VP-INDEX-row message not in output)"
+        echo "  Actual output: $P142_OUT"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-3: check-placeholders — test-sufficient where VP-INDEX agrees ──
+# Change 1 (POL-14 operator ruling): 'test-sufficient' MUST be accepted when
+# VP-INDEX classifies the BC as test-sufficient.
+#
+# This tests the acceptance path (green path). The mutation proves it can still
+# fail: removing the VP-INDEX row flips the clean-pass to a structural fail,
+# demonstrating the clean-pass assertion has real teeth (not a tautology).
+#
+# Mutation-flip: remove the test-sufficient acceptance (revert sentinel to always-reject).
+# Under mutation: clean tree exits 1 → STRUCTURAL FAIL fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-3: check-placeholders: test-sufficient accepted when VP-INDEX agrees ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+
+# Clean tree: BC file uses test-sufficient AND VP-INDEX classifies it as test-sufficient
+cat > "$T/.factory/specs/verification-properties/VP-INDEX.md" <<'VPIX'
+| BC | Title (abbreviated) | VP(s) | Notes |
+|----|---------------------|-------|-------|
+| BC-0.00.003 | Test BC | test-sufficient | covered by integration test suite |
+VPIX
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-0.00.003.md" <<'BCFILE'
+## Verification Properties
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| test-sufficient | some property | integration test |
+BCFILE
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker rejected test-sufficient even though VP-INDEX agrees — acceptance path broken"
+    P143_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P143_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: remove BC-0.00.003 row from VP-INDEX — now sentinel has no backing
+    cat > "$T/.factory/specs/verification-properties/VP-INDEX.md" <<'VPIX_BAD'
+| BC | Title (abbreviated) | VP(s) | Notes |
+|----|---------------------|-------|-------|
+VPIX_BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — test-sufficient accepted even after VP-INDEX row removed)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; removing VP-INDEX row correctly rejects test-sufficient sentinel)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-4: check-placeholders — em-dash in VP-NNN column still fails ──
+# After Change 1, em-dash (U+2014) in a VP-NNN column data row must STILL be rejected.
+# This is the R2-RULE unchanged-behavior regression test.
+#
+# Mutation-flip: accept '—' as a valid VP cell value.
+# Under mutation: defect tree exits 0 → defect-fail fires → FAILS.
+# (NV-1 also covers em-dash, but that test pre-dates Change 1; this test proves
+# the em-dash path survived the test-sufficient sentinel addition.)
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-4: check-placeholders: em-dash in VP-NNN col still fails after Change 1 ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+# VP-INDEX present but empty (not needed for em-dash rejection)
+cat > "$T/.factory/specs/verification-properties/VP-INDEX.md" <<'VPIX'
+| BC | Title (abbreviated) | VP(s) | Notes |
+|----|---------------------|-------|-------|
+VPIX
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (empty BC dir, empty VP-INDEX)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    cp "$FIXTURE_DIR/bad-placeholder-vp-emdash.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-vp-emdash-p14.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch em-dash in VP-NNN col after Change 1)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; em-dash in VP-NNN col correctly rejected after Change 1)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-5: check-placeholders — [filled by] in non-Stories Traceability field ──
+# Change 2 (POL-14/15 operator ruling): [filled by ...] exemption is ONLY for the
+# Traceability 'Stories' field. Any other field (Architecture Module, L2 Capability,
+# etc.) must still be rejected.
+#
+# Mutation-flip: blanket-exempt ALL [filled by ...] occurrences.
+# Under mutation: defect tree exits 0 → defect-fail fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-5: check-placeholders: [filled by] in non-Stories Traceability field ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (empty ss-01 dir)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    cp "$FIXTURE_DIR/bad-placeholder-stories-nonstories-field.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-nonstories.md"
+    P145_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    P145_EXIT=$?
+    if [ "$P145_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] in non-Stories Traceability field)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$P145_OUT" | grep -qF "[filled by architect]"; then
+        echo "  PASS (clean-pass confirmed; [filled by] in non-Stories field correctly detected)"
+    else
+        echo "  FAIL (checker exited non-zero but '[filled by architect]' not in output)"
+        echo "  Actual output: $P145_OUT"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-6: check-placeholders — [filled by] in Stories Traceability field passes ──
+# Change 2 (POL-14/15 operator ruling): [filled by ...] in '| Stories | ... |' rows is
+# EXEMPT. This tests the acceptance path (green path).
+#
+# Mutation-flip: remove the Stories-field exemption (Shape 1).
+# Under mutation: clean tree exits 1 → STRUCTURAL FAIL fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-6: check-placeholders: [filled by] in Stories Traceability row passes ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree: [filled by story-writer] in the Stories Traceability field
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-stories-clean.md" <<'BCCLEAN'
+## Traceability
+| Field | Value |
+|-------|-------|
+| L2 Capability | CAP-001 |
+| Architecture Module | scanner.rs |
+| Stories | [filled by story-writer] |
+BCCLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker rejected [filled by story-writer] in Stories field — exemption not working"
+    P146_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P146_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: rename Stories field to Architecture Module — [filled by] no longer exempt
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-stories-clean.md" <<'BCBAD'
+## Traceability
+| Field | Value |
+|-------|-------|
+| L2 Capability | CAP-001 |
+| Architecture Module | [filled by story-writer] |
+| Stories | scanner.rs |
+BCBAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] after moving to non-Stories field)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; [filled by] detected after moving from Stories to Architecture Module field)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-7: check-placeholders — [filled by] in ordinary prose still fails ──
+# Change 2 exempts ONLY the two Stories-context shapes. [filled by ...] anywhere
+# in ordinary prose must remain a violation.
+#
+# Mutation-flip: blanket-exempt ALL [filled by ...] occurrences.
+# Under mutation: defect tree exits 0 → defect-fail fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-7: check-placeholders: [filled by] in prose still fails after Change 2 ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (empty ss-01 dir)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    cp "$FIXTURE_DIR/bad-placeholder-filled-by-prose.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-filled-by-prose.md"
+    P147_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    P147_EXIT=$?
+    if [ "$P147_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] in ordinary prose)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$P147_OUT" | grep -qF "[filled by the product owner]"; then
+        echo "  PASS (clean-pass confirmed; [filled by] in prose correctly detected)"
+    else
+        echo "  FAIL (checker exited non-zero but expected prose [filled by] message not in output)"
+        echo "  Actual output: $P147_OUT"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-8: check-placeholders — Shape 2 bullet under wrong heading fails ──
+# Shape 2 exempts `- [filled by ...]` ONLY under "## Story Anchor".
+# Defect: move the bullet under a different H2 heading ("## Architecture Anchors").
+# Clean-pass assertion: "## Story Anchor" + bullet exits 0.
+# Defect-fail assertion: bullet under "## Architecture Anchors" must exit 1.
+#
+# Kills M4 (delete Shape 2 branch entirely): under M4, the clean tree already has
+# `- [filled by story-writer]` under "## Story Anchor" with NO exemption → exit 1
+# → STRUCTURAL FAIL on clean-pass → suite fails → M4 DIES.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-8: check-placeholders: Shape 2 bullet under wrong heading is flagged ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree: [filled by story-writer] bullet directly under "## Story Anchor"
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-story-anchor-clean.md" <<'CLEANBC'
+## Traceability
+| Field | Value |
+|-------|-------|
+| Stories | scanner.rs |
+
+## Story Anchor
+- [filled by story-writer]
+CLEANBC
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker rejected [filled by story-writer] under ## Story Anchor — Shape 2 exemption not working"
+    P148_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P148_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: move the bullet under "## Architecture Anchors" — no longer exempt
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-story-anchor-clean.md" <<'DEFECTBC'
+## Traceability
+| Field | Value |
+|-------|-------|
+| Stories | scanner.rs |
+
+## Architecture Anchors
+- [filled by story-writer]
+DEFECTBC
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] bullet under ## Architecture Anchors)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; [filled by] bullet under ## Architecture Anchors correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-9: check-placeholders — Shape 2 bullet without any Story Anchor heading fails ──
+# If there is no "## Story Anchor" heading in the file at all, a `- [filled by ...]`
+# bullet must be flagged as a violation — current_h2_heading is never "Story Anchor".
+# Defect: add a `- [filled by story-writer]` bullet with NO "## Story Anchor" in the file.
+# Clean-pass assertion: same file without the bullet exits 0.
+# Defect-fail assertion: file with only the bullet (no heading) must exit 1.
+#
+# Kills M8 (drop the `current_h2_heading == "Story Anchor"` condition so every
+# `- [filled by ...]` bullet is exempt regardless of heading): under M8, the defect
+# tree exits 0 → defect-fail fires → suite fails → M8 DIES.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-9: check-placeholders: Shape 2 bullet without Story Anchor heading is flagged ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree: no [filled by] bullet and no ## Story Anchor heading
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-no-story-anchor.md" <<'CLEANBC2'
+## Description
+This specification defines behavior without a Story Anchor section.
+
+## Acceptance Criteria
+- The system must respond within 200ms.
+CLEANBC2
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree without any [filled by] content"
+    P149_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P149_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: add a [filled by story-writer] bullet — no ## Story Anchor heading exists
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-no-story-anchor.md" <<'DEFECTBC2'
+## Description
+This specification defines behavior without a Story Anchor section.
+
+## Acceptance Criteria
+- The system must respond within 200ms.
+- [filled by story-writer]
+DEFECTBC2
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] bullet without ## Story Anchor heading)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; [filled by] bullet without ## Story Anchor correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-10: check-placeholders — S1-fix: subheading inside ## Story Anchor resets context ──
+# A `- [filled by ...]` bullet appearing AFTER a sub-heading (### or deeper) that is
+# itself nested inside "## Story Anchor" must be FLAGGED — the sub-heading resets
+# current_h2_heading to None, ending the Shape 2 exemption zone.
+#
+# Clean-pass: bullet DIRECTLY under "## Story Anchor" (no intervening sub-heading) → exempt.
+# Defect: bullet under "### Details" nested inside "## Story Anchor" → must be flagged.
+#
+# Kills MS1 (delete `else: current_h2_heading = None`): under MS1 the sub-heading does
+# NOT reset context, the bullet is still seen as under "Story Anchor", and exits 0 →
+# defect-fail fires → MS1 DIES.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-10: check-placeholders: bullet after sub-heading inside ## Story Anchor is flagged ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree: bullet directly under ## Story Anchor — must be exempt (exits 0)
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-subheading-reset-clean.md" <<'CLEANBC10'
+## Traceability
+| Field | Value |
+|-------|-------|
+| Stories | scanner.rs |
+
+## Story Anchor
+- [filled by story-writer]
+CLEANBC10
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker rejected [filled by story-writer] bullet directly under ## Story Anchor — Shape 2 exemption broken"
+    P1410_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P1410_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: intervening ### Details sub-heading resets context; bullet after it must be flagged
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-subheading-reset-clean.md" <<'DEFECTBC10'
+## Traceability
+| Field | Value |
+|-------|-------|
+| Stories | scanner.rs |
+
+## Story Anchor
+### Details
+- [filled by story-writer]
+DEFECTBC10
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] bullet after ### Details inside ## Story Anchor)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; [filled by] bullet after nested sub-heading correctly flagged)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-11: check-placeholders — S1-fix: prose (non-bullet) under ## Story Anchor is flagged ──
+# Shape 2 exempts ONLY `- [filled by ...]` bullet lines under "## Story Anchor".
+# A prose line such as `Stories: [filled by ...]` (no leading `- `) must still be flagged
+# even when `current_h2_heading == "Story Anchor"`.
+#
+# Clean-pass: bullet directly under "## Story Anchor" → exempt (exits 0).
+# Defect: prose line containing [filled by ...] directly under "## Story Anchor" → must be flagged.
+#
+# Kills MB (drop the `and line.lstrip().startswith("- ")` guard): under MB any line under
+# "## Story Anchor" is exempt regardless of whether it starts with "- "; the prose defect
+# exits 0 → defect-fail fires → MB DIES.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-11: check-placeholders: prose placeholder under ## Story Anchor is flagged ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree: bullet directly under ## Story Anchor — must be exempt (exits 0)
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-prose-under-anchor-clean.md" <<'CLEANBC11'
+## Traceability
+| Field | Value |
+|-------|-------|
+| Stories | scanner.rs |
+
+## Story Anchor
+- [filled by story-writer]
+CLEANBC11
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker rejected [filled by story-writer] bullet directly under ## Story Anchor — Shape 2 exemption broken"
+    P1411_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P1411_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: prose line (no leading "- ") under ## Story Anchor — Shape 2 does NOT cover it
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-prose-under-anchor-clean.md" <<'DEFECTBC11'
+## Traceability
+| Field | Value |
+|-------|-------|
+| Stories | scanner.rs |
+
+## Story Anchor
+Stories: [filled by story-writer]
+DEFECTBC11
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch prose [filled by] line under ## Story Anchor)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; prose [filled by] under ## Story Anchor correctly flagged)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-12: check-placeholders — S1-fix: non-standard "heading" (#nospace) inside
+#    ## Story Anchor must NOT reset current_h2_heading ──────────────────────────────────
+# A line starting with "#" but lacking the required space after the hashes (e.g.
+# "#nospace") is NOT a valid ATX heading per CommonMark and must be ignored by the
+# heading-context tracker.  If the ATX guard were removed (MX1 mutation:
+# `if _atx_rest.startswith(" ") or not _atx_rest:` → `if True:`), such lines would
+# trigger `else: current_h2_heading = None`, silently ending the Shape 2 exemption zone
+# and causing a false-positive flag on what should be an exempt bullet.
+#
+# Clean-pass: ## Story Anchor + #nospace line + bullet → checker exits 0 (bullet exempt).
+# Under MX1 the clean tree exits 1 (false positive) → STRUCTURAL FAIL fires → MX1 DIES.
+#
+# Defect: bullet after ### Details inside ## Story Anchor → must be flagged (reuses P14-10
+# defect shape; only reached when HEAD is the code under test).
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-12: check-placeholders: non-ATX #nospace line inside ## Story Anchor does not reset context ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree: ## Story Anchor then a #nospace non-heading line then a bullet.
+# The bullet must remain exempt because #nospace is not a valid ATX heading.
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-atx-guard-clean.md" <<'CLEANBC12'
+## Story Anchor
+#nospace-line-is-not-a-heading
+- [filled by story-writer]
+CLEANBC12
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker falsely rejected [filled by story-writer] bullet after #nospace inside ## Story Anchor — ATX guard too aggressive (MX1 regression)"
+    P1412_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P1412_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: proper ### sub-heading DOES reset context; bullet after it must be flagged
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-atx-guard-clean.md" <<'DEFECTBC12'
+## Story Anchor
+### Details
+- [filled by story-writer]
+DEFECTBC12
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] bullet after ### Details inside ## Story Anchor)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; #nospace non-heading does not break exemption; ### sub-heading does)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-13: check-placeholders — S1-fix: only a proper H2 ("## ") creates the
+#    exemption zone; an H3/H4/… heading whose text is "Story Anchor" must NOT ──────────
+# `current_h2_heading` is updated ONLY when the heading marker is exactly "## " (two
+# hashes + space).  A sub-heading such as "### Story Anchor" must NOT set
+# current_h2_heading to "Story Anchor" — it must reset it to None, ending any prior
+# exemption zone.
+#
+# Under MX3 (`line.startswith("## ")` → `line.startswith("#")`), "### Story Anchor" would
+# compute line[3:].strip() = "Story Anchor" and set current_h2_heading accordingly,
+# incorrectly making the subsequent bullet exempt.
+#
+# Clean-pass: proper ## Story Anchor + bullet → exempt (exits 0).
+# Defect: ## Other Section / ### Story Anchor / bullet — bullet must be flagged because the
+# exemption zone was opened by ## Other Section, then ## Story Anchor (H3) only resets
+# context to None under HEAD.  Under MX3 it sets context to "Story Anchor" → exits 0 →
+# defect-fail fires → MX3 DIES.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-13: check-placeholders: H3 heading named Story Anchor does not create exemption zone ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree: proper ## Story Anchor creates the exemption zone — bullet is exempt
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-h2-only-anchor-clean.md" <<'CLEANBC13'
+## Story Anchor
+- [filled by story-writer]
+CLEANBC13
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker rejected [filled by story-writer] under proper ## Story Anchor — Shape 2 exemption broken"
+    P1413_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P1413_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: ## Other Section followed by ### Story Anchor (H3) — bullet must NOT be exempt
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-h2-only-anchor-clean.md" <<'DEFECTBC13'
+## Other Section
+### Story Anchor
+- [filled by story-writer]
+DEFECTBC13
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] bullet after ### Story Anchor inside ## Other Section)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; H3 heading named Story Anchor does not create exemption zone)"
     fi
 fi
 rm -rf "$T"
