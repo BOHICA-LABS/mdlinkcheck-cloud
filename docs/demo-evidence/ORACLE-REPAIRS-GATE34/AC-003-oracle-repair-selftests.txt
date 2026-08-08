@@ -5,9 +5,18 @@
 ── selftest EI-1: check-ec-injectivity: BC-vs-registry divergent scenario (BI-051) ──
 ── selftest EI-2: check-ec-injectivity: genuine agreement not flagged (BI-051) ──
 ── selftest EI-3: check-ec-injectivity: borderline case in adjudication bucket (BI-051) ──
+── selftest EI-4: check-ec-injectivity: multi-schema TV file — no-Description section skipped ──
 ── selftest 7b: check-holdout-boundary: prose-form holdout EC-079 scenario leak (BI-049) ──
 ── selftest 7c: check-holdout-boundary: table-form EC-093 regression after BI-049 repair ──
 ── selftest 7d: check-holdout-boundary: prd.md:630 shape must-NOT-flag (suffix predicate, CORRECTION 1) ──
 ── selftest 5b: check-adr-consistency: BC body phantom reason code (BI-050) ──
 ── selftest 5c: check-adr-consistency: test-vectors phantom reason code via verdict-paren (BI-050) ──
 ── selftest 5d: check-adr-consistency: frontmatter changelog phantom NOT flagged, body phantom IS (BI-050) ──
+── selftest 5e: check-adr-consistency: spec ref ID D-018 in broken(...) NOT flagged (BLOCKING-2) ──
+── selftest 5f: check-adr-consistency: macos-latest near broken keyword NOT flagged (BLOCKING-3) ──
+── selftest 5g: check-adr-consistency: phantom reason code in Reason table column detected ──
+── selftest 5h: check-adr-consistency: uppercase E-IO-002 in Reason column detected (BLOCKING-5a) ──
+── selftest 5i: check-adr-consistency: annotated Reason cell `phantom-gamma` (per D-018) detected (BLOCKING-5b) ──
+── selftest 5j: check-adr-consistency: phantom on 'reason'-cased data row detected (BLOCKING-6) ──
+── selftest EI-5: check-ec-injectivity: Input column IS treated as comparable (BLOCKING-4) ──
+── selftest EI-6: check-ec-injectivity: Source MD File column correctly skipped (BLOCKING-4) ──
