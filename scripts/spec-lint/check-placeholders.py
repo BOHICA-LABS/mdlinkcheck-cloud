@@ -254,8 +254,10 @@ def check_file_lines(
     table_header_first_cell = None  # first cell of last non-separator | row
     in_vp_table_data = False        # True after VP-NNN header + separator row seen
 
-    # Change 2: track the most-recently-seen "## " heading for Stories-field exemption.
-    # Reset on every new "## " heading. Only updated outside fenced blocks.
+    # Change 2 / S1-fix: track the current H2 heading for Stories-field exemption.
+    # Set when a "## " heading is seen; cleared by ANY other ATX heading (H1, H3, …).
+    # This bounds the exemption zone: a subheading under "## Story Anchor" resets it.
+    # Only updated outside fenced blocks.
     current_h2_heading: "str | None" = None
 
     for lineno, line in enumerate(lines, 1):
@@ -270,12 +272,18 @@ def check_file_lines(
             table_header_first_cell = None
             continue
 
-        # ── H2 heading tracking (Change 2: Stories-field exemption) ──────────
-        # Track the text of the last "## " heading seen (outside fenced blocks).
-        # When current_h2_heading == "Story Anchor", bullet-list [filled by ...]
-        # items are exempt (Shape 2 of the Stories-field exemption).
-        if not in_fenced_code and line.startswith("## "):
-            current_h2_heading = line[3:].strip()
+        # ── ATX heading tracking (Change 2 / S1-fix: Stories-field exemption) ─
+        # Set current_h2_heading on "## " headings; CLEAR it on any other ATX
+        # heading level (H1, H3, H4, …).  This bounds the Shape 2 exemption zone:
+        # a subheading (### …) or H1 inside a "## Story Anchor" section resets the
+        # context so that bullets after it are no longer exempt.
+        if not in_fenced_code and line.startswith("#"):
+            _atx_rest = line.lstrip("#")
+            if _atx_rest.startswith(" ") or not _atx_rest:
+                if line.startswith("## "):
+                    current_h2_heading = line[3:].strip()
+                else:
+                    current_h2_heading = None
 
         # ── Table-context state machine (R2-RULE, gated: suppressed inside fenced blocks) ──
         # VP-TBD, SS-TBD, and [filled by] are still checked inside fenced blocks via

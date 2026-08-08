@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=62
+EXPECTED_TEST_COUNT=64
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -3999,6 +3999,116 @@ if [ "$CLEAN_PASS" = "1" ]; then
         echo "  FAIL (checker exited non-zero but expected prose [filled by] message not in output)"
         echo "  Actual output: $P147_OUT"
         FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-8: check-placeholders — Shape 2 bullet under wrong heading fails ──
+# Shape 2 exempts `- [filled by ...]` ONLY under "## Story Anchor".
+# Defect: move the bullet under a different H2 heading ("## Architecture Anchors").
+# Clean-pass assertion: "## Story Anchor" + bullet exits 0.
+# Defect-fail assertion: bullet under "## Architecture Anchors" must exit 1.
+#
+# Kills M4 (delete Shape 2 branch entirely): under M4, the clean tree already has
+# `- [filled by story-writer]` under "## Story Anchor" with NO exemption → exit 1
+# → STRUCTURAL FAIL on clean-pass → suite fails → M4 DIES.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-8: check-placeholders: Shape 2 bullet under wrong heading is flagged ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree: [filled by story-writer] bullet directly under "## Story Anchor"
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-story-anchor-clean.md" <<'CLEANBC'
+## Traceability
+| Field | Value |
+|-------|-------|
+| Stories | scanner.rs |
+
+## Story Anchor
+- [filled by story-writer]
+CLEANBC
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker rejected [filled by story-writer] under ## Story Anchor — Shape 2 exemption not working"
+    P148_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P148_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: move the bullet under "## Architecture Anchors" — no longer exempt
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-story-anchor-clean.md" <<'DEFECTBC'
+## Traceability
+| Field | Value |
+|-------|-------|
+| Stories | scanner.rs |
+
+## Architecture Anchors
+- [filled by story-writer]
+DEFECTBC
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] bullet under ## Architecture Anchors)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; [filled by] bullet under ## Architecture Anchors correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-9: check-placeholders — Shape 2 bullet without any Story Anchor heading fails ──
+# If there is no "## Story Anchor" heading in the file at all, a `- [filled by ...]`
+# bullet must be flagged as a violation — current_h2_heading is never "Story Anchor".
+# Defect: add a `- [filled by story-writer]` bullet with NO "## Story Anchor" in the file.
+# Clean-pass assertion: same file without the bullet exits 0.
+# Defect-fail assertion: file with only the bullet (no heading) must exit 1.
+#
+# Kills M8 (drop the `current_h2_heading == "Story Anchor"` condition so every
+# `- [filled by ...]` bullet is exempt regardless of heading): under M8, the defect
+# tree exits 0 → defect-fail fires → suite fails → M8 DIES.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-9: check-placeholders: Shape 2 bullet without Story Anchor heading is flagged ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+# Clean tree: no [filled by] bullet and no ## Story Anchor heading
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-no-story-anchor.md" <<'CLEANBC2'
+## Description
+This specification defines behavior without a Story Anchor section.
+
+## Acceptance Criteria
+- The system must respond within 200ms.
+CLEANBC2
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree without any [filled by] content"
+    P149_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P149_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: add a [filled by story-writer] bullet — no ## Story Anchor heading exists
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-no-story-anchor.md" <<'DEFECTBC2'
+## Description
+This specification defines behavior without a Story Anchor section.
+
+## Acceptance Criteria
+- The system must respond within 200ms.
+- [filled by story-writer]
+DEFECTBC2
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch [filled by] bullet without ## Story Anchor heading)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; [filled by] bullet without ## Story Anchor correctly detected)"
     fi
 fi
 rm -rf "$T"
