@@ -11,6 +11,8 @@ Rules:
   - A bare mention of a holdout EC ID (e.g. "EC-079 was removed") is PERMITTED.
   - A FULL scenario row in a table (concrete input + expected verdict + exit code)
     for a holdout-reserved ID is a VIOLATION.
+  - A FULL scenario in PROSE (arrow indicator + verdict word on same line as holdout
+    EC ID, e.g. "EC-151 ... input → broken") is a VIOLATION (BI-049 repair).
   - Sub-lettered aliases (EC-079b, EC-094a, EC-141b) whose BASE ID is a holdout
     ARE violations when they appear in visible artifact edge-case tables with concrete
     inputs and expected outputs (finding P3-021).
@@ -25,6 +27,9 @@ Holdout-only artifacts (NOT checked):
   .factory/holdout-scenarios/**
 
 Exit 1 if any violation found.
+
+POSITIVE-COVERAGE (D-057 / POLICY 11): emits on every run:
+  "N reserved holdout EC IDs checked across M files, K non-conforming"
 """
 import re
 import sys
@@ -92,6 +97,35 @@ def is_concrete_scenario_row(line: str, ec_id: str) -> bool:
     return bool(verdict_pattern.search(line))
 
 
+def is_concrete_scenario_prose(line: str) -> bool:
+    """
+    Determine if a non-table prose/bullet/code-fence line expresses a concrete
+    scenario specification for a holdout EC ID.
+
+    Requires BOTH of:
+      1. A scenario-arrow indicator (→, ->, =>) — present in "input → expected-output"
+         narrative constructions.
+      2. A verdict or exit-code word that names the expected output.
+
+    This two-part predicate is characteristic of prose scenario descriptions and
+    differs meaningfully from mere discussion (e.g. "EC-079 was removed" has no
+    arrow; "links that break → various outcomes" has no specific EC ID and would
+    not be checked here anyway).  The combination avoids flagging bare narrative
+    mentions of holdout IDs while catching the exact breach pattern documented in
+    adversary findings P7-S8-004 / P7-S8-005 (BI-049).
+    """
+    # Part 1: scenario arrow (input→output mapping indicator)
+    has_arrow = bool(re.search(r'→|->|=>', line))
+    if not has_arrow:
+        return False
+    # Part 2: verdict or exit-code word (the expected-output side)
+    verdict_pattern = re.compile(
+        r"\b(alive|broken|indeterminate|clean|exit\s+code\s+[012]|exit\s+[012]|exit-[012])\b",
+        re.IGNORECASE,
+    )
+    return bool(verdict_pattern.search(line))
+
+
 def should_check_file(path: Path) -> bool:
     s = str(path)
     # Skip holdout-scenarios directory (those are allowed to contain scenario details)
@@ -145,8 +179,8 @@ def main() -> int:
             if "HOLDOUT WARNING" in line:
                 continue
 
-            # Check bare holdout IDs in concrete table rows
             if re.match(r"^\s*\|", line):
+                # ── TABLE ROW: existing detection ──────────────────────────
                 # Check bare holdout IDs
                 for m in bare_holdout_pattern.finditer(line):
                     ec_id = f"EC-{m.group(1)}"
@@ -167,18 +201,45 @@ def main() -> int:
                             f"  {line.strip()[:120]}"
                         )
 
+            else:
+                # ── PROSE / BULLET / CODE-FENCE: BI-049 broadened detection ──
+                # Detects the exact breach shape from P7-S8-004/P7-S8-005:
+                # a prose line that names a holdout EC ID AND contains an
+                # arrow indicator + verdict word (concrete input→output narrative).
+                # Bare narrative mentions (no arrow, no verdict) are NOT flagged.
+                for m in bare_holdout_pattern.finditer(line):
+                    ec_id = f"EC-{m.group(1)}"
+                    if ec_id in holdout_ids and is_concrete_scenario_prose(line):
+                        violations.append(
+                            f"{md_file}:{lineno}: holdout {ec_id} has concrete prose scenario "
+                            f"in visible artifact (BI-049)\n"
+                            f"  {line.strip()[:120]}"
+                        )
+
+                # Sub-lettered aliases in prose
+                for m in sub_letter_pattern.finditer(line):
+                    ec_id_sub = f"EC-{m.group(1)}{m.group(2)}"
+                    base_id = f"EC-{m.group(1)}"
+                    if is_concrete_scenario_prose(line):
+                        violations.append(
+                            f"{md_file}:{lineno}: sub-lettered alias {ec_id_sub} (base={base_id} is holdout) "
+                            f"has concrete prose scenario in visible artifact [P3-021 pattern, BI-049]\n"
+                            f"  {line.strip()[:120]}"
+                        )
+
     if violations:
         for v in violations:
             print(v)
         print(
             f"\nCheck FAILED: {len(violations)} holdout boundary violations found "
-            f"({files_checked} files checked, {len(holdout_ids)} active holdout IDs)"
+            f"({len(holdout_ids)} reserved holdout EC IDs checked across {files_checked} files, "
+            f"{len(violations)} non-conforming)"
         )
         return 1
 
     print(
-        f"Check passed: {files_checked} visible artifact files checked — "
-        f"no concrete holdout scenarios leaked (pool: {len(holdout_ids)} IDs)"
+        f"Check passed: {len(holdout_ids)} reserved holdout EC IDs checked across "
+        f"{files_checked} files, 0 non-conforming"
     )
     return 0
 

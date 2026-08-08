@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=69
+EXPECTED_TEST_COUNT=74
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -4400,6 +4400,265 @@ BCBAD
         echo "  FAIL (checker exited non-zero but D-078-precondition message not in output)"
         echo "  Actual output: $P1414_OUT"
         FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 7b: check-holdout-boundary — prose-form holdout scenario leak (BI-049) ──
+# This test proves the BI-049 repair: the checker now detects a concrete holdout
+# scenario published in PROSE form (arrow indicator + verdict word on the same line
+# as a holdout EC ID).  This is the exact breach shape from P7-S8-004/P7-S8-005.
+#
+# Mutation-verify: removing the "else" branch (prose scanning) from the checker
+# makes the defect tree exit 0, causing this test's defect-fail assertion to FIRE —
+# proving the new code is the load-bearing detection path, not the table-row branch.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 7b: check-holdout-boundary: prose-form holdout EC-079 scenario leak (BI-049) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+# Same clean tree as test 7: prd.md with holdout declaration, no other files
+cat > "$T/.factory/specs/prd.md" <<'PRDSTUB7B'
+---
+---
+Holdout vectors **(EC-079, EC-093, EC-094, EC-141, EC-147, EC-148, EC-151)**
+PRDSTUB7B
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-holdout-boundary.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (prd.md with holdout decl, no other files)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+    cp "$FIXTURE_DIR/bad-holdout-leak-prose.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-bad-holdout-prose.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-holdout-boundary.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch prose-form holdout EC-079 scenario leak)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; prose-form holdout scenario correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 7c: check-holdout-boundary — table-form regression after BI-049 repair ──
+# Confirms that the existing table-row detection path is NOT broken by the BI-049
+# changes.  Uses EC-093 (a different holdout ID from test 7's EC-079) to ensure
+# independence.  This is the "table-form leak (proving no regression of existing
+# capability)" gate required by the BI-049 remediation spec.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 7c: check-holdout-boundary: table-form EC-093 regression after BI-049 repair ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+cat > "$T/.factory/specs/prd.md" <<'PRDSTUB7C'
+---
+---
+Holdout vectors **(EC-079, EC-093, EC-094, EC-141, EC-147, EC-148, EC-151)**
+PRDSTUB7C
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-holdout-boundary.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (prd.md holdout decl only)"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+    # Inject a TABLE-row leak for EC-093 (holdout), with concrete input + verdict
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/SELFTEST-bad-ec093-table.md" <<'BC7C'
+---
+bc_id: BC-2.01.SELFTEST-7C
+---
+## Edge Cases
+| ID | Description | Expected Behavior |
+|----|-------------|-------------------|
+| EC-093 | Concrete table-row scenario for holdout EC-093 | broken (dns-failure) |
+BC7C
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-holdout-boundary.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch table-form holdout EC-093 scenario)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; table-form EC-093 correctly detected — no regression)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5b: check-adr-consistency — BC body phantom reason code (BI-050) ──
+# POLICY 19 broad-corpus check: detects a phantom reason code in a BC file body,
+# via the Pattern 3 "(consistent with X taxonomy)" detector (broadened from ADR-only).
+# This is the E-CLI-001 breach shape from adversary finding P7-S5-018.
+#
+# Mutation-verify: removing check_broad_corpus() from main() makes the defect tree
+# exit 0, causing this test's defect-fail assertion to FIRE — proving the new broad
+# corpus scan is the load-bearing detection path.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5b: check-adr-consistency: BC body phantom reason code (BI-050) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5B'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `connection-timeout` | Connection timed out |
+| `dns-failure` | DNS lookup failed |
+| `tls-error` | TLS handshake failed |
+TAXSTUB5B
+
+# Clean tree: BC file with VALID reason code only (no phantom)
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-SELFTEST.md" <<'BCCLEAN'
+---
+bc_id: BC-SELFTEST
+modified: []
+---
+## Invariants
+1. Exit code 1 indicates broken links with reason `file-not-found`.
+2. Exit code 0 indicates no broken links found.
+BCCLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (BC file with valid reason code)"
+    ST5B_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    echo "  Output: $ST5B_CLEAN"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: BC body with phantom reason code via "(consistent with X taxonomy)" pattern
+    cp "$FIXTURE_DIR/bad-bc-phantom-code.md" \
+        "$T/.factory/specs/behavioral-contracts/ss-01/BC-SELFTEST-PHANTOM.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch BC body phantom reason code)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; BC body phantom reason code correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5c: check-adr-consistency — test-vectors phantom reason code (BI-050) ──
+# POLICY 19 broad-corpus check: detects a phantom reason code in a test-vectors-like
+# file via Pattern 2 "verdict (reason-code)" detector.
+# This is the malformed-fragment breach shape from adversary finding P7-S8-007.
+#
+# Mutation-verify: removing Pattern 2 from check_broad_corpus() makes the defect tree
+# exit 0, causing this test's defect-fail assertion to FIRE.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5c: check-adr-consistency: test-vectors phantom reason code via verdict-paren (BI-050) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5C'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `anchor-not-found` | Anchor not found |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5C
+
+# Clean tree: a test-vectors file with VALID reason codes in verdict+paren format
+cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TVCLEAN'
+## §1. Vectors
+
+| TV-ID | EC-ID | Description | BC | Input | Exit | Expected Behavior | Notes |
+|-------|-------|-------------|-----|-------|------|-------------------|-------|
+| TV-ST1 | EC-ST1 | Normal broken link | BC-2.07 | a.md | 1 | broken (file-not-found) | valid code |
+TVCLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean tree (test-vectors with valid reason code)"
+    ST5C_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    echo "  Output: $ST5C_CLEAN"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: inject test-vectors file with phantom reason code in verdict+paren format
+    cp "$FIXTURE_DIR/bad-test-vectors-phantom.md" \
+        "$T/.factory/specs/prd-supplements/test-vectors-phantom.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch test-vectors phantom reason code)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; test-vectors phantom reason code correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5d: check-adr-consistency — frontmatter changelog NOT flagged (BI-050) ──
+# POLICY 19 position-based predicate (D-081): a phantom reason code appearing ONLY
+# inside YAML frontmatter modified:/changelog: entries must NOT be flagged, because
+# frontmatter records historical names for documentation purposes.
+# The defect (which must be detected) is the SAME phantom code moved to the BC body.
+#
+# This test proves the D-081 predicate is position-based and non-vacuous:
+# - Clean tree: phantom only in frontmatter → exits 0 (not flagged, correct)
+# - Defect tree: phantom also in BC body → exits 1 (flagged, correct)
+# Mutation-verify: removing the frontmatter-skip guard makes the CLEAN TREE fail
+# (checker exits non-zero on the clean tree), firing the STRUCTURAL FAIL assertion
+# and proving the guard is load-bearing.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5d: check-adr-consistency: frontmatter changelog phantom NOT flagged, body phantom IS (BI-050) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5D'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `anchor-not-found` | Anchor not found |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5D
+
+# Clean tree: phantom code ONLY in YAML frontmatter modified: entry
+cp "$FIXTURE_DIR/good-bc-frontmatter-changelog.md" \
+    "$T/.factory/specs/behavioral-contracts/ss-01/BC-SELFTEST-CHANGELOG.md"
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker flagged phantom code in frontmatter — D-081 position-based"
+    echo "  guard is missing or broken (phantom in modified: entry must NOT be flagged)"
+    ST5D_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    echo "  Output: $ST5D_CLEAN"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: SAME phantom code moved to BC body — now must be flagged
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-SELFTEST-CHANGELOG.md" <<'BCBODY5D'
+---
+bc_id: BC-SELFTEST-5D
+modified: []
+---
+## Invariants
+1. Exit code 1 is used for all broken link outcomes.
+2. Exit code 2 is used for all configuration errors (consistent with phantom-historical-code taxonomy).
+BCBODY5D
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch phantom code in BC body)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; frontmatter phantom not flagged; body phantom flagged)"
     fi
 fi
 rm -rf "$T"
