@@ -2,7 +2,7 @@
 document_type: prd-supplement
 supplement_type: test-vectors
 level: L3
-version: "1.9"
+version: "1.10"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-06T00:00:00Z
@@ -12,7 +12,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/prd.md
 primary_consumers: [test-writer, holdout-evaluator]
 ---
@@ -20,7 +20,7 @@ primary_consumers: [test-writer, holdout-evaluator]
 # Test Vectors: mdlinkcheck
 
 > Primary consumers: test-writer, holdout-evaluator.
-> Concrete, executable test vectors derived from EC-001..EC-204 (active holdout pool excluded per HOLDOUT WARNING below) and T1..T16.
+> Concrete, executable test vectors derived from EC-001..EC-213 (active holdout pool excluded per HOLDOUT WARNING below) and T1..T16.
 >
 > **HOLDOUT WARNING:** The following ECs are NOT present in this file. They belong
 > exclusively in the hidden holdout evaluation scenarios under
@@ -348,7 +348,7 @@ mdlinkcheck --format json tests/corpus/fixtures/ > /tmp/corpus-result.json
 
 ---
 
-## §10. Supplementary Edge Case Registrations (EC-159..EC-204)
+## §10. Supplementary Edge Case Registrations (EC-159..EC-213)
 
 Rows in this section register ECs that were named in BC edge-case tables after
 test-vectors.md v1.6 was produced. Each row is the minimal registration needed
@@ -438,11 +438,41 @@ replacing a previously colliding ID in the referencing BC.
 | TV-203 | EC-203 | Redirect chain of 11 hops | BC-2.10.007 | `--online` | 1 | broken (too-many-redirects) | Formerly EC-087e in BC-2.10.007; EC-087e now owned by BC-2.10.004 (P4-015 malformed Retry-After) |
 | TV-204 | EC-204 | HTTP → HTTPS upgrade redirect (single hop) | BC-2.10.007 | `--online` | 0 | clean (redirect followed) | Formerly EC-087f in BC-2.10.007; EC-087f now owned by BC-2.10.004 (P4-015 clamped Retry-After) |
 
+### §10.7 Non-Markdown Target Resolution (SS-07) — EC-205, EC-206
+
+| TV | EC | Description | Flags | Exit | Verdict | Notes |
+|----|----|-------------|-------|------|---------|-------|
+| TV-205 | EC-205 | `[x](assets/logo.png#anchor)` where `assets/logo.png` exists | (none) | 0 | clean | Image file; fragment silently ignored per BC-2.07.006 |
+| TV-206 | EC-206 | `[x](scripts/build.sh)` where `scripts/build.sh` does not exist | (none) | 1 | broken (`file-not-found`) | Non-.md file existence check; file-not-found path per BC-2.07.006 PC4 |
+
+### §10.8 Filter Application — Invalid Glob (SS-11) — EC-207, EC-208
+
+| TV | EC | Description | Flags | Exit | Verdict | Notes |
+|----|----|-------------|-------|------|---------|-------|
+| TV-207 | EC-207 | `mdlinkcheck . --ignore '[abc'` (unclosed bracket) | `--ignore '[abc'` | 2 | Exit 2; error on stderr; no scanning | globset rejects unclosed bracket at startup; fail-fast before traversal per BC-2.11.004 |
+| TV-208 | EC-208 | `mdlinkcheck . --ignore 'valid/**' --ignore '[bad'` | `--ignore 'valid/**' --ignore '[bad'` | 2 | Exit 2 on first invalid; no scanning | One invalid glob triggers exit 2 even when a sibling glob is valid per BC-2.11.004 |
+
+### §10.9 Text Output Stream Separation (SS-12) — EC-209, EC-210
+
+| TV | EC | Description | Flags | Exit | Verdict | Notes |
+|----|----|-------------|-------|------|---------|-------|
+| TV-209 | EC-209 | No broken or indeterminate findings (clean corpus) | (none) | 0 | stdout empty; stderr: "No broken links found." | Zero-findings stream separation per BC-2.12.005 |
+| TV-210 | EC-210 | `a.md` containing 2 broken links | (none) | 1 | stdout: 2 finding lines; stderr: "2 broken link(s) in 1 file(s)." | Multi-finding stream separation per BC-2.12.005 |
+
+### §10.10 Help and Version Flags (SS-14) — EC-211, EC-212, EC-213
+
+| TV | EC | Description | Flags | Exit | Verdict | Notes |
+|----|----|-------------|-------|------|---------|-------|
+| TV-211 | EC-211 | `mdlinkcheck --help` with no PATH argument | `--help` | 0 | full help text on stdout; no scanning | clap intercepts before app::run(); no DirIndex or AnchorIndex constructed per BC-2.14.004 Invariant 4 |
+| TV-212 | EC-212 | `mdlinkcheck --version` | `--version` | 0 | `mdlinkcheck X.Y.Z` on stdout; no scanning | Version string matches Cargo.toml; no scanning per BC-2.14.004 |
+| TV-213 | EC-213 | `mdlinkcheck . --version` (PATH + --version together) | `--version` (with PATH) | 0 | version string on stdout; --version takes priority | clap intercepts --version before PATH processing per BC-2.14.004 Invariant 4 |
+
 ---
 
 ## Changelog
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.10 | 2026-08-07 | EC-205..EC-213 allocated (§10.7..§10.10): SS-07 EC-205..EC-206 (non-MD target resolution, BC-2.07.006), SS-11 EC-207..EC-208 (invalid --ignore glob, BC-2.11.004), SS-12 EC-209..EC-210 (text stream separation, BC-2.12.005), SS-14 EC-211..EC-213 (--help/--version, BC-2.14.004). §10 range updated to EC-159..EC-213. Intro range updated to EC-001..EC-213. input-hash corrected to 07d983a. |
 | 1.9 | 2026-08-06 | D-043 (macOS-only platform directive): T13 retired as platform-obsolete (kept with note; TV-042 macOS-scoped residual retained); TV-036 description updated (removed Linux CI cross-platform framing; restated per D-043 determinism rationale); TV-041 fixture description updated ("Linux/macOS" → "macOS"); TV-042 fixture description updated ("Linux FS" → "macOS FS"); TV-187 description updated (removed "Linux NFC" reference; macOS APFS NFD context only) |
 | 1.8 | 2026-08-05 | POL-16 EC injectivity remediation; EC-159..EC-204 registered in §10; holdout WARNING updated; CRLF column offset note added; §10 collision-remapping registry |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -20,6 +20,7 @@ capability: "CAP-012"
 lifecycle_status: active
 introduced: v1.3.0
 modified:
+  - "v1.6: EC-NEW-12 and EC-NEW-13 allocated as EC-209 and EC-210; placeholders replaced with real IDs in Edge Cases table. input-hash corrected to 07d983a (was c3e82ce, hash drift)."
   - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
   - "v1.5: (P4-023) Architecture Module note updated to name format_summary() separately; fixed pre-existing Edge Cases table header cell count."
 deprecated: null
@@ -61,8 +62,8 @@ contamination.
 ## Edge Cases
 | EC | Description | Expected |
 |----|-------------|---------|
-| EC-NEW-12 | 0 broken, 0 indeterminate | stdout empty; stderr: "No broken links found." |
-| EC-NEW-13 | 2 broken findings | stdout: 2 finding lines; stderr: "2 broken link(s) in 1 file(s)." |
+| EC-209 | 0 broken, 0 indeterminate | stdout empty; stderr: "No broken links found." |
+| EC-210 | 2 broken findings | stdout: 2 finding lines; stderr: "2 broken link(s) in 1 file(s)." |
 
 ## Canonical Test Vectors
 | Scenario | stdout | stderr |

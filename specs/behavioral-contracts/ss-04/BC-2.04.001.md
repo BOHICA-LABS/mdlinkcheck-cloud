@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -20,6 +20,7 @@ capability: "CAP-004"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.4: TV-BV013 row removed from Edge Cases table (TV is not an EC ID; the same scenario is already captured in the Canonical Test Vectors section row 3 and in test-vectors.md §0; removing it resolves check-id-resolution non-conforming EC ID finding)."
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
   - "v1.3: (WS-4-B) Citation-authority repair: L2 Capability row — fabricated excerpt with ... elisions replaced with verbatim title 'Code Context Exclusion'; gloss moved outside quotes. Proof-method join: VP-014 row-1 'property test (fuzz...)' → 'integration'; row-2 'integration test' → 'integration' (VP-INDEX authority). Edge Cases table: added Notes column header to accommodate pre-existing TV-BV013 3-cell row (TV-BV013 content unchanged)."
@@ -61,7 +62,6 @@ produces a `Tag::Link` event. This is DI-004 applied to the most common code con
 | EC-105 | `~~~`-fenced block | |
 | EC-108 | Unclosed fence at EOF with links inside | |
 | EC-109 | Fence inside list item | |
-| TV-BV013 | BRIEF.md lines 18-19: inline code spans | Exit 0 (canonical self-test) |
 
 ## Canonical Test Vectors
 | Input | Expected Output | Category |

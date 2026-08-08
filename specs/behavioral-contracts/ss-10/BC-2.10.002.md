@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -11,7 +11,7 @@ inputs:
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -25,6 +25,7 @@ modified:
   - "v1.5: D-014/INCONSISTENCY-002 — separated 'alive' (liveness outcome) from 'clean' (link verdict per DD-022); removed 'alive (clean)' / 'alive → clean' conflation. D-018 — confirmed 400-after-GET is indeterminate (not broken). P2-M01 — made partition truly total: added 0..=99, 1xx, HEAD-400-when-GET-also-400, GET-also-405 cases; aligned range claim to 'all valid HTTP status code values'. P2-M15 — corrected VP-007 proof method to kani and removed two unverifiable attribution rows. P2-m05 — fixed L2 Capability title to verbatim capabilities.md title. P2-m06 — fixed Related BCs swap. D-016 — added sub_reason field documentation."
   - "v1.6: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
   - "v1.7: (EC-collision) EC-087→EC-198 (HTTP 429 case; EC-087 canonical owner is test-vectors.md TV-087 self-signed TLS); new EC-087 row added for self-signed TLS cert. EC-090→EC-201 (HTTP 401 case; EC-090 canonical owner is BC-2.10.009 per test-vectors.md registry). (Task-12) clarified 'configured window' to reference BC-2.10.003."
+  - "v1.8: (misfiling-repair) Removed two duplicate VP rows that were parked in this table but owned by sibling BCs: 'HTTPS→HTTP downgrade → indeterminate' belongs to and is already asserted by BC-2.10.007 (PC3, Invariant 2, VP table line 76); 'private-IP target never sends outbound request' belongs to and is already asserted by BC-2.10.010 (PC2, Invariant 1, VP table line 85). Both rows deleted as confirmed duplicates per reference-integrity repair. No VP minted, no sentinel written (D-092 unmerged)."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -157,8 +158,6 @@ VP-021 does NOT check `sub_reason` values.
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | VP-007 | 429/5xx/timeout never produces broken verdict; 404/410 always produce broken (after full fallback) | kani (P0) |
-| — | https→http downgrade produces indeterminate (BC-2.10.007 integration test) | integration test |
-| — | private-IP target never sends outbound request (BC-2.10.010 integration test) | integration test |
 
 ## Traceability
 | Field | Value |

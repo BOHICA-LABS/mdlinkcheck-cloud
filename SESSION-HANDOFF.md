@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-090
+  Latest: §RESUME SNAPSHOT D-094
 -->
 
 ---
@@ -1569,7 +1569,7 @@ i. **D-088:** Do NOT use `git add -A` or `git add .` in state-manager bursts whi
 
 ---
 
-## §RESUME SNAPSHOT D-090
+## §RESUME SNAPSHOT D-090 [SUPERSEDED by D-094 — retained for audit]
 
 *Written: 2026-08-07 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes burst-19. Updated: 2026-08-07 burst-21 (WS-4-G Shard-A COMPLETE, D-091).*
 
@@ -1693,3 +1693,157 @@ e. **D-077 burn-down** must clear before the Phase-1 gate; it is now exactly the
 f. The reusable output-identity harness (both the `SPEC_LINT_REPO_OVERRIDE` path and the no-override CI path, with the four anti-vacuity assertions and the literal-loop zsh requirement) is documented in the burst-19/20 entries — reuse it, do not reinvent it.
 
 g. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
+
+---
+
+## §RESUME SNAPSHOT D-094
+
+*Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-090.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d, still **0 of 3 clean passes**. Session wrap D-094 closes BI-025 (5 vacuous VPs rewritten: VP-015/016/017/019/023; every harness now has a control broken-link assertion that fails a no-op scanner), BI-026 (50 proof-method joins repaired across WS-4 Shards A–E; BC VP-table rows now consistent with VP-INDEX authority), and the check-id-resolution defect (10→0 via EC-205..EC-213 allocation + TV-BV013 duplicate row removal). Em-dash corpus reduced 55→53 (BC-2.10.002:160-161 confirmed MISFILED — rows deleted). prd.md v1.11→v1.12. **PR #9 (feature/pol14-test-sufficient, head `87cefbf`) is OPEN at CHANGES-NEEDED** — B1 BLOCKING: M4 and M8 survive Shape 2 with zero selftest coverage. Prescribed fix: P14-8 (selftest killing M4) + P14-9 (selftest killing M8). BI-046 self-approval constraint is load-bearing; operator merge decision required. Remaining WS-4: **53 em-dash rows BLOCKED on PR #9 CHANGES-NEEDED**.
+
+### HEADS
+
+Verify each at resume before taking action. Resolve factory-artifacts HEAD via `git -C .factory log -1` — never trust a literal SHA recorded here for the current HEAD.
+
+| Ref | SHA | Note |
+|-----|-----|------|
+| develop | `c2e5cf1` | PR #8 squash-merge (BI-040 primitive layer); local == `origin/develop`; tree CLEAN; PUSHED |
+| feature/pol14-test-sufficient | `87cefbf` | PR #9 head; OPEN, CHANGES-NEEDED, CI 4/4 GREEN; B1 blocking |
+| factory-artifacts | run `git -C .factory log -1` | current HEAD — do not cite a literal SHA here |
+
+- Main repo working tree: branch `develop` (`c2e5cf1`). Tree CLEAN.
+- Worktrees: exactly THREE — main checkout (`develop`, `c2e5cf1`), `.factory` (`factory-artifacts`), and `.worktrees/pol14-test-sufficient` (`feature/pol14-test-sufficient`, `87cefbf`).
+- Open PRs: PR #9 (`feature/pol14-test-sufficient` → develop; head `87cefbf`; CHANGES-NEEDED).
+- `.factory` uncommitted: `logs/dispatcher-internal-2026-08-07.jsonl`, `logs/events-2026-08-07.jsonl`, `sidecar-learning.md` — deliberately excluded from state bursts; NOT a loss.
+- Nothing else is local-only.
+- `.factory/hooks/verify-sha-currency.sh`: NOT present — post-push hook verification gap (record only, not an implied pass).
+
+### WORKSTREAMS
+
+**WS-4 queue CLOSED except 53 em-dash rows BLOCKED on PR #9.**
+
+All non-em-dash WS-4 items resolved this session:
+- 9 EC-NEW-* rows → EC-205..EC-213 ALLOCATED (burst-23)
+- TV-BV013 at BC-2.04.001:63 CLOSED (duplicate Edge-Cases row removed; burst-23)
+- 5 vacuous VPs → BI-025 CLOSED (burst-23)
+- 50 proof-method joins → BI-026 CLOSED (burst-23)
+- BC-2.10.002:160-161 misfiled rows CLOSED (burst-23); em-dash 55→53
+
+Remaining: **53 VP-col `—` rows across 34 BC files** — all in test-sufficient BCs; legally require `test-sufficient` sentinel per D-092; cannot be repaired until D-092/D-093 land via PR #9 merge. Also: **25 `[filled by ...]` placeholders** (Stories field, BLOCKED on PR #9 D-093 carve-out).
+
+**PR #9 state (CHANGES-NEEDED):**
+- All 4 CI checks GREEN
+- B1 BLOCKING: M4 (`is_conforming_vp_cell("")` Shape 2) and M8 (Shape 2 with `--allow` flag) survive with zero selftest coverage — a no-op returning `true` passes all 62 selftests
+- Prescribed fix: P14-8 (selftest passing `""` asserts `false` — kills M4); P14-9 (Shape 2 `--allow` selftest — kills M8)
+- S1 field-anchoring suggestion (non-blocking)
+- BI-046 self-approval constraint: load-bearing at gate #28 (D-089) — operator merge decision required
+
+**Pass 7 — not started.** Run only after PR #9 merges and 53 em-dash rows are remediated.
+
+### CHECKER STATE
+
+All checkers at burst-23 close on `factory-artifacts`.
+
+| Checker | Status | Notes |
+|---------|--------|-------|
+| `check-counts` | **PASSES** 37 count checks | Baseline maintained |
+| `check-id-resolution` | **PASSES** 0/134 | Was 10 at D-090; EC-205..EC-213 allocated; TV-BV013 resolved |
+| `check-ec-injectivity` | **PASSES** 214 EC IDs, all injective | Was 205 at D-090 |
+| `check-holdout-boundary` | **PASSES** 134 visible files, pool 12 ids | Unchanged |
+| `check-index-integrity` | **PASSES** 80 structural checks (BC 66, VP 26) | Unchanged |
+| `check-placeholders` | 78 findings = 53 em-dash + 25 Stories | BOTH BLOCKED on PR #9; not a regression |
+
+### SPEC SNAPSHOT
+
+PRD v1.12 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired: EC-102→TV-BV013 per D-010) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003).
+
+D-001..D-094 (exhaustive). D-017..D-020 (exhaustive) restored by reconstruction; see process-gap-register PG-010.
+
+Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045.
+Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/046.
+
+### NEXT PRIORITIES (ordered)
+
+1. **Operator merge decision on PR #9** — B1 requires P14-8+P14-9 selftests before merge is safe. BI-046 constraint is load-bearing. Operator decides: (a) authorize devops-engineer to add P14-8+P14-9 and resubmit, or (b) merge as-is under operator override with documented rationale.
+2. **When PR #9 merges:** 53 em-dash rows become actionable → WS-5 em-dash burst → 25 Stories placeholders clear REQUIRED spec-lint → pass 7.
+3. **BI-046** (MEDIUM, blocks Phase 3) — separate reviewer identity/token. REQUIRED before story PRs begin.
+4. **BI-028** (HIGH) — VP code-fence symbol validation + 4 undefined types. Pre-Phase-3 cleanup.
+5. **DD-007 gloss discrepancy** UNADJUDICATED — L2-INDEX.md:131 / BC-2.01.009.md:40,51,57 / prd.md:630,701; pass-7 intake item.
+
+### CORRECTIONS REGISTER (carry as a standing caution)
+
+Every headline figure in the WS-4 chain was overstated in the SAME direction. The next session distrusts any un-executed number. Accumulated corrections from D-090 plus burst-23:
+
+| Claimed | Corrected | Field |
+|---------|-----------|-------|
+| ~306 | 178 | WS-4 total scope |
+| 259 (perimeter sweep) | 249 | executed pass-6 findings |
+| ~53 | 40 | POLICY-5 FABRICATED + MEANING-INVERTED |
+| ~40% | 30.3% | POLICY-5 fabrication rate |
+| ~42 CRITICAL | 40 | BI-027 CRITICAL count |
+| 16 BI-044 sites | 14 | actual sites (17 − 3 already fixed) |
+| 11/5 files EC-NEW-* | 9/4 files | actual EC-NEW-* scope |
+| ~36 pass-5 actionable | 37 | (under-statement; the one exception) |
+| WS-4-G Shard-A: "3 lines" | 4 lines + R5→R2b | BC-2.05.003 citation-authority scope |
+| 70 remaining WS-4 items | 53 (em-dash only) | id-resolution 10→0, vacuous VP 5→0 (burst-23) |
+| 39→40 FABRICATED | 40 confirmed (UNDERSTATEMENT) | WS-4 Shards A–E |
+| 43→50 proof-method joins | 50 confirmed (UNDERSTATEMENT of 7) | WS-4 Shards A–E |
+| 203 EC count in prd.md §5b | 212 (burst-23 repair) | understated vs 214 registered IDs |
+
+### STANDING DIRECTIVES
+
+| Directive | Rule |
+|-----------|------|
+| Autonomy | Level 4 — agents merge PRs after full pr-manager review lifecycle (D-028/D-031) |
+| spec-lint | ADVISORY until Phase-1 gate; flip to REQUIRED at gate with Stories-field carve-out (D-029/D-032/D-093) |
+| Platform matrix | macOS-latest ONLY in CI (D-043) |
+| SS-10 `--online` | IN SCOPE — do not re-propose descope (D-054) |
+| Context wrap | Wrap at 430K at clean boundaries; no fan-outs above 350K |
+| Wrappers | At `.factory/bin/` (D-047) |
+| `gh pr review` | IMPOSSIBLE — use `gh pr comment --body-file` (BI-039) |
+| `gen-bc-traceability` write mode | PROHIBITED until adjudicated (BI-041) |
+| Allowlists/skip-lists in checkers | FORBIDDEN (D-039) |
+| `prd.md` changelog entries | IMMUTABLE (D-034) |
+| `git add -A` in state bursts | FORBIDDEN while any PR agent is in flight — stage by explicit path (D-088) |
+| BI-022 fuzz nightly | Pin before Phase 6 |
+| Severity reporting | MUST use ranges, not point totals (PG-012, gate #27 Q5) |
+| Differential verification | MUST carry positive non-vacuity assertion (Lesson 46) |
+
+### WORKTREE INVENTORY
+
+Exactly three worktrees:
+
+| Path | Branch | HEAD | Note |
+|------|--------|------|------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | `develop` | `c2e5cf1` | main checkout; tree clean |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | run `git -C .factory log -1` | factory artifacts |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/pol14-test-sufficient` | `feature/pol14-test-sufficient` | `87cefbf` | PR #9 CHANGES-NEEDED; DO NOT merge without P14-8+P14-9 |
+
+Stash list EMPTY (D-056 still valid). No story worktrees (Phase 3 not started).
+
+### DECISION DELTA (D-094)
+
+| ID | Decision | Rationale | Phase | Date |
+|----|----------|-----------|-------|------|
+| D-094 | Session wrap — durable RESUME SNAPSHOT D-094 committed to factory-artifacts, superseding D-090 | Zero-context resume; single-commit burst TD-VSDD-053; BI-025/BI-026 CLOSED; id-resolution 10→0; em-dash 55→53; prd.md v1.12 | phase-1d | 2026-08-08 |
+
+### CAVEATS
+
+a. **`.factory/hooks/verify-sha-currency.sh` STILL ABSENT** — post-push hook verification gap. Record only; not an implied pass.
+
+b. **PR #9 CHANGES-NEEDED is load-bearing.** Do NOT merge PR #9 until P14-8+P14-9 selftests are added (B1 finding). BI-046 self-approval constraint applies; operator merge decision required.
+
+c. **spec-lint remains ADVISORY** until the Phase-1 gate; flip to REQUIRED on 3 clean passes with Stories-field carve-out per D-093.
+
+d. **BI-041:** `gen-bc-traceability.py --write` remains PROHIBITED pending adjudication.
+
+e. **D-077 burn-down** must clear before the Phase-1 gate. Remaining: 53 em-dash BLOCKED on PR #9 + 25 Stories BLOCKED on PR #9 (= 78 `check-placeholders` findings; not a regression).
+
+f. **DD-007 gloss discrepancy** at L2-INDEX.md:131 / BC-2.01.009.md:40,51,57 / prd.md:630,701 is UNADJUDICATED — do NOT fix until adjudicated. Pass-7 intake item.
+
+g. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
+
+h. **BI-027 adjudication pending** — 0 FABRICATED remain; formally closed in spec list but blocking issue still open; close or retain in next burst.

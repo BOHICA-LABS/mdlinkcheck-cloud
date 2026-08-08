@@ -1111,4 +1111,69 @@ PRD v1.11 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 **Dim-7 Attestation:** Agents dispatched this burst: product-owner ×5 (one per shard) for spec edits; state-manager for factory-artifacts commit. No adversary agent dispatched.
 
-**Closes:** (nothing — all 49 BC file edits address open BI-026/BI-027 findings; no formal BI closed by spec repairs alone). **Updates:** BI-002 (WS-4 Shards A–E COMPLETE; 70 remaining; 55 BLOCKED on PR #9), BI-026 (50 proof-method joins repaired; residual rows in deferred BCs), BI-027 (40 FABRICATED repaired; 0 remain; corrected rate 31.1%/132). **Adds:** D-092, D-093.
+---
+
+## Burst: burst 23 — Session Wrap D-094 (2026-08-07)
+
+**Parent-commit:** 555a3c8f3c530432bae16b8aecaaa74f7b1cb992 (factory(ws-4): shards A-E — 40 POLICY-5 fabrications + 50 proof-method joins repaired across 49 BC files)
+
+**Adversary verdict:** N/A — session wrap; no adversary pass dispatched this burst. Prior convergence state: WS-3 CONVERGED (3/3 clean). WS-4 queue CLOSED.
+
+**Archived from STATE.md Current Phase Steps (oldest row rotated out):**
+
+| PR #7 MERGED as `e1299b07`; BI-042/035 CLOSED; BI-023 checker repairs landed; D-086/D-087/D-088; worktree ws3 removed | state-manager | COMPLETE | PR #7 squash-merged develop `7b9aa6d`→`e1299b07`; 9-step pr-manager lifecycle, 3 review cycles, 5 blockers resolved; APPROVE at `791fc11` (freshness check not tautological — D-071 failure mode did not recur); CI 4/4 PASS; spec-lint ADVISORY FAIL accepted (D-029/D-032/D-077); SEC-001 LOW accepted; 55/55 selftests; check-canonical-facts OK; baseline PRESERVED (80 placeholders + 10 id-resolution findings). BI-042 CLOSED (selftest-22 teeth-test). BI-035 CLOSED. BI-023 items 2+3 CLOSED (checker repairs on develop). BI-045 already CLOSED. Worktree ws3 removed (tree-identical diff verified; `791fc11` reflog-recoverable). D-086/D-087/D-088. |
+
+**Burst narrative (4 agents, all disjoint files):**
+
+1. **BC-2.10.002 misfiling CLOSED.** Both surviving em-dash rows at PC3/PC16 were CONFIRMED-DUPLICATE-DELETE: they only cross-reference BC-2.10.007/010 and never owned the logic. BC-2.10.007 carries the HTTPS→HTTP downgrade in PC3 + I2 + VP row; BC-2.10.010 carries private-IP suppression in PC2 + I1 + VP row. Deleted from BC-2.10.002 only (v1.7→1.8). Em-dash corpus 55→53, verified. The predicted "2 residual findings surviving D-092" is now ZERO — all 53 remaining em-dash rows sit in `test-sufficient` BCs.
+
+2. **EC registry — check-id-resolution CLOSED 10→0.** EC-NEW-1/2→EC-205/206 (BC-2.07.006), EC-NEW-10/11→EC-207/208 (BC-2.11.004), EC-NEW-12/13→EC-209/210 (BC-2.12.005), EC-NEW-14/15/16→EC-211/212/213 (BC-2.14.004). Registered in test-vectors.md §10.7–§10.10 (TV-205..TV-213). `TV-BV013` at BC-2.04.001 resolved by REMOVING the redundant Edge-Cases row — identical scenario already in test-vectors.md §0. EC-102 not resurrected (D-010).
+
+3. **Five vacuous VPs rewritten (BI-025 CLOSED).** vp-015 (v1.2→v1.3), vp-016 (v1.2→v1.3), vp-017 (v1.3→v1.4), vp-019 (v1.1→v1.2), vp-023 (v1.0→v1.1). Every fixture now carries a control broken link with a guaranteed-nonexistent anchor, so a no-op scanner returning `vec![]` fails the control assertion. VP-023's new P4/P5/P6 kill `classify_url(_) -> Malformed("")` — the implementation marking every external HTTPS link broken. VP-016 gained Fixture 5 for DI-006 Pass 1.5 missing-target rule. All 5 proof methods still match VP-INDEX; VP count 26 UNCHANGED.
+
+4. **prd.md §5b EC-count reconciliation.** Declared 203→212, range EC-001..EC-204→EC-001..EC-213, with "213 IDs allocated; ID 102 retired — became TV-BV013 per D-010". prd.md v1.11→v1.12. §8 CHANGELOG NOT touched (D-034 protects versioned changelog; §5b is body prose, editable — clarified this session).
+
+**Final checker state at burst close:**
+
+- `check-counts` PASSES, 37 count checks
+- `check-id-resolution` PASSES, 0 findings / 134 files (was 10)
+- `check-ec-injectivity` PASSES, 214 EC IDs, all injective (was 205)
+- `check-holdout-boundary` PASSES, 134 visible files, pool 12 ids
+- `check-index-integrity` PASSES, 80 structural checks (BC 66, VP 26)
+- `check-placeholders` 78 findings = 53 em-dash + 25 Stories — BOTH classes BLOCKED on PR #9
+
+**PR #9 state:** `feature/pol14-test-sufficient` → develop, head `87cefbf`. All 4 CI checks GREEN. CHANGES-NEEDED. B1 BLOCKING: M4/M8 survive Shape 2 at 62/62 exit 0 with zero selftest coverage. Prescribed fix: P14-8 (kills M4) + P14-9 (kills M8). S1 suggestion: field-anchoring for Shape 2. BI-046 self-approval constraint is demonstrably load-bearing — operator merge decision required.
+
+**Corrections register additions:** 39→40 FABRICATED (UNDERSTATEMENT), 43→50 proof-method joins (UNDERSTATEMENT), 30.3%→31.1% fabrication rate, 1→0 mechanically-fixable em-dash, 2→0 post-D-092 residual, 203→212 prd.md §5b EC count.
+
+**Files touched (Dim-1): 15 unique files**
+- `.factory/specs/behavioral-contracts/ss-04/BC-2.04.001.md` — Edge-Cases TV-BV013 row removed
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.006.md` — EC-NEW-1/2 → EC-205/206
+- `.factory/specs/behavioral-contracts/ss-10/BC-2.10.002.md` — v1.7→v1.8; 2 duplicate em-dash rows deleted
+- `.factory/specs/behavioral-contracts/ss-11/BC-2.11.004.md` — EC-NEW-10/11 → EC-207/208
+- `.factory/specs/behavioral-contracts/ss-12/BC-2.12.005.md` — EC-NEW-12/13 → EC-209/210
+- `.factory/specs/behavioral-contracts/ss-14/BC-2.14.004.md` — EC-NEW-14/15/16 → EC-211/212/213
+- `.factory/specs/prd-supplements/test-vectors.md` — §10.7–§10.10 TV-205..TV-213 added
+- `.factory/specs/prd.md` — §5b 203→212 ECs; v1.11→v1.12
+- `.factory/specs/verification-properties/vp-015-two-pass-anchor-complete.md` — vacuous VP rewritten
+- `.factory/specs/verification-properties/vp-016-ignored-files-anchor-targets.md` — vacuous VP rewritten + DI-006 Fixture 5
+- `.factory/specs/verification-properties/vp-017-scan-terminates.md` — vacuous VP rewritten
+- `.factory/specs/verification-properties/vp-019-one-verdict-per-link.md` — vacuous VP rewritten; dead loop eliminated
+- `.factory/specs/verification-properties/vp-023-url-classifier-totality.md` — vacuous VP rewritten; kills Malformed("") constant impl
+- `.factory/STATE.md` — v3.0→v3.1; D-094 session wrap
+- `.factory/SESSION-HANDOFF.md` — D-090 SUPERSEDED by D-094; §RESUME SNAPSHOT D-094 added
+
+**Codifications:** D-094 (session wrap — durable RESUME SNAPSHOT D-094; supersedes D-090).
+
+**Artifact state at burst close:**
+PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-094 (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045. Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/046.
+
+**Dim-2 Attestation:** No `canonical-facts.toml` mutation this burst. Canonical facts corpus unchanged.
+
+**Dim-5 Attestation:** STATE.md — timestamp 2026-08-08T00:01:00Z, version 3.1, status: draft, producer: state-manager. burst-log.md — 23 bursts. SESSION-HANDOFF.md — D-094 snapshot replaces D-090.
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. WS-4 remaining: 53 em-dash BLOCKED on PR #9 (CHANGES-NEEDED, B1 blocking). All other WS-4 items CLOSED.
+
+**Dim-7 Attestation:** Agents dispatched this burst: product-owner ×1 (BC-2.10.002 misfiling), product-owner ×1 (EC registry), formal-verifier ×1 (vacuous VPs), product-owner ×1 (prd.md §5b); state-manager for factory-artifacts commit and session wrap.
+
+**Closes:** BI-025 (five vacuous VPs rewritten: VP-015/016/017/019/023; control broken-link fixtures + named falsifying behaviors added; VP-023 kills `classify_url(_) -> Malformed("")`). BI-026 (50 proof-method joins repaired across WS-4 Shards A–E; all BC VP-table rows now consistent with VP-INDEX authority). **Updates:** BI-002 (WS-4 queue CLOSED; 53 em-dash remaining BLOCKED on PR #9 CHANGES-NEEDED; 0 id-resolution; 0 vacuous VP; 0 residual post-D-092). BI-023 (check-id-resolution PASSES 0/134; EC-NEW-* CLOSED; TV-BV013 resolved). **Adds:** D-094.

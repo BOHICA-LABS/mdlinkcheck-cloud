@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -20,6 +20,7 @@ capability: "CAP-014"
 lifecycle_status: active
 introduced: v1.3.0
 modified:
+  - "v1.7: EC-NEW-14, EC-NEW-15, EC-NEW-16 allocated as EC-211, EC-212, EC-213; placeholders replaced with real IDs in Edge Cases table."
   - "v1.6: (exit-code ruling b.3) Added Invariant 4: clap intercepts --help/--version before app::run(); verdict::exit_code is never invoked; no DirIndex, AnchorIndex, Vec<Finding>, or Vec<IoError> is constructed."
   - "v1.5: (P4-016) Removed incorrect SS-11 subsystem label from cli.rs; removed fabricated ADR-007 parenthetical '(--help/--version are cli module concerns)' — ADR-007 does not contain that clause."
   - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
@@ -59,9 +60,9 @@ trigger false exits.
 ## Edge Cases
 | EC | Description |
 |----|-------------|
-| EC-NEW-14 | `mdlinkcheck --help` with no PATH → Exit 0; help text on stdout |
-| EC-NEW-15 | `mdlinkcheck --version` → Exit 0; `mdlinkcheck X.Y.Z` on stdout |
-| EC-NEW-16 | `mdlinkcheck . --version` (PATH + --version) → Exit 0; --version takes priority per clap |
+| EC-211 | `mdlinkcheck --help` with no PATH → Exit 0; help text on stdout |
+| EC-212 | `mdlinkcheck --version` → Exit 0; `mdlinkcheck X.Y.Z` on stdout |
+| EC-213 | `mdlinkcheck . --version` (PATH + --version) → Exit 0; --version takes priority per clap |
 
 ## Canonical Test Vectors
 | Command | Expected stdout | Expected exit |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -20,6 +20,7 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.1.0
 modified:
+  - "v1.3: EC-NEW-1 and EC-NEW-2 allocated as EC-205 and EC-206; placeholders replaced with real IDs in Edge Cases table."
   - "v1.2: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string was fabricated paraphrase; corrected to verbatim section title 'Relative Path Resolution' per capabilities.md §CAP-007."
   - "v1.1: (DirIndex-scope ruling) Precondition 2 clarified: 'exists as a regular file' is determined via EntryKind::File in DirIndex; Pass 1.5a ensures DirIndex is populated for non-.md link destination parent dirs so this routing decision is always available to path_resolver without I/O. Fixed pre-existing Edge Cases table cell-count error (EC-NEW-1/2 had extra column)."
 deprecated: null
@@ -68,8 +69,8 @@ to code files, images, PDFs, or any other non-Markdown file.
 |----|-------------|
 | EC-072 | `[x](notes.txt#section)` where `notes.txt` exists |
 | EC-073 | `[x](src/main.rs#L42-L50)` where `src/main.rs` exists |
-| EC-NEW-1 | `[x](assets/logo.png#anchor)` where `assets/logo.png` exists — clean (image file; fragment ignored) |
-| EC-NEW-2 | `[x](scripts/build.sh)` where file does not exist — broken (file-not-found) |
+| EC-205 | `[x](assets/logo.png#anchor)` where `assets/logo.png` exists — clean (image file; fragment ignored) |
+| EC-206 | `[x](scripts/build.sh)` where file does not exist — broken (file-not-found) |
 
 ## Canonical Test Vectors
 | Link | Filesystem State | Expected Verdict | Notes |

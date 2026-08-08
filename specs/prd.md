@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.11"
+version: "1.12"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-06T00:00:00Z
@@ -18,6 +18,8 @@ supplements:
   - prd-supplements/error-taxonomy.md
   - prd-supplements/test-vectors.md
   - prd-supplements/nfr-catalog.md
+modified:
+  - "1.12 (2026-08-07): EC-count reconciliation for EC-205..EC-213 — declared 203→212, range EC-001..EC-204→EC-001..EC-213; ID 102 retired per D-010 documented in §5b"
 ---
 
 # Product Requirements Document: mdlinkcheck
@@ -360,7 +362,7 @@ Nothing may fail with a reason outside this closed set.
 
 > **Supplement:** Canonical test vectors in `prd-supplements/test-vectors.md`.
 
-203 edge cases registered (EC-001..EC-204) and 16 correctness traps (T1–T16) converted to executable test vectors. Includes the self-referential BV-013 vector: `mdlinkcheck BRIEF.md` MUST exit 0 (TV-BV013 is now a visible required test vector per D-010). Holdout vectors **(EC-079, EC-093, EC-094, EC-141, EC-147, EC-148, EC-151, EC-156, EC-165, EC-166, EC-167, EC-168)** reserved for holdout evaluation and NOT in the visible test suite — 12 holdouts total. EC-151 is the BV-013 holdout scenario (D-010). EC-036, EC-049, EC-074, EC-157, EC-158 burned to visible tests (D-020): their holdout designation is retired; they are now normal visible tests in the suite — vectors TV-036, TV-049, TV-074, TV-157, TV-157b, TV-158, TV-158b are present in test-vectors.md v1.6 (P3-005 hotfix). DI-002/D-006/T12 flagship differentiator (KD-004 — case-sensitive filename comparison) now has falsifiable visible coverage via TV-036. EC-165..EC-168 are fresh replacement hidden scenarios (D-020) covering the same risk clusters; concrete inputs and expected outputs are stored ONLY in `.factory/holdout-scenarios/wave-scenarios/` per POL-18.
+212 edge cases registered (EC-001..EC-213) (213 IDs allocated; ID 102 is retired — became TV-BV013 per D-010, EC-151 as replacement holdout) and 16 correctness traps (T1–T16) converted to executable test vectors. Includes the self-referential BV-013 vector: `mdlinkcheck BRIEF.md` MUST exit 0 (TV-BV013 is now a visible required test vector per D-010). Holdout vectors **(EC-079, EC-093, EC-094, EC-141, EC-147, EC-148, EC-151, EC-156, EC-165, EC-166, EC-167, EC-168)** reserved for holdout evaluation and NOT in the visible test suite — 12 holdouts total. EC-151 is the BV-013 holdout scenario (D-010). EC-036, EC-049, EC-074, EC-157, EC-158 burned to visible tests (D-020): their holdout designation is retired; they are now normal visible tests in the suite — vectors TV-036, TV-049, TV-074, TV-157, TV-157b, TV-158, TV-158b are present in test-vectors.md v1.6 (P3-005 hotfix). DI-002/D-006/T12 flagship differentiator (KD-004 — case-sensitive filename comparison) now has falsifiable visible coverage via TV-036. EC-165..EC-168 are fresh replacement hidden scenarios (D-020) covering the same risk clusters; concrete inputs and expected outputs are stored ONLY in `.factory/holdout-scenarios/wave-scenarios/` per POL-18.
 
 ---
 

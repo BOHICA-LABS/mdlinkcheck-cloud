@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -20,6 +20,7 @@ capability: "CAP-011"
 lifecycle_status: active
 introduced: v1.3.0
 modified:
+  - "v1.7: EC-NEW-10 and EC-NEW-11 allocated as EC-207 and EC-208; placeholders replaced with real IDs in Edge Cases table."
   - v1.6: "WS-4 Shard E: POLICY-5 repair — L2 Capability fabricated quote replaced with verbatim CAP-011 title ('Filter Application')."
   - "v1.4: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
   - "v1.5: (Task-8) Removed incorrect SS-11 subsystem label from cli.rs (cli.rs is not an SS-11 module); fixed pre-existing Edge Cases table header cell count."
@@ -62,8 +63,8 @@ rejects, or empty patterns (implementation must define empty-glob behavior).
 ## Edge Cases
 | EC | Description | Expected |
 |----|-------------|---------|
-| EC-NEW-10 | `--ignore '[abc'` (unclosed bracket) | Exit 2; error on stderr; no scanning |
-| EC-NEW-11 | `--ignore 'valid/**' --ignore '[bad'` | Exit 2 on first invalid; no scanning |
+| EC-207 | `--ignore '[abc'` (unclosed bracket) | Exit 2; error on stderr; no scanning |
+| EC-208 | `--ignore 'valid/**' --ignore '[bad'` | Exit 2 on first invalid; no scanning |
 
 ## Canonical Test Vectors
 | Command | Expected |
