@@ -66,18 +66,30 @@ def extract_closed_reason_codes(taxonomy_path: Path) -> set[str]:
     """
     Extract the closed set of reason codes from error-taxonomy.md.
     Reason codes appear as `code` in backtick-delimited table cells.
+
+    Scans:
+      §2 (main catalog): primary reason codes (file-not-found, dns-failure, etc.)
+      §3b (optional sub_reason field): sub-reason codes (https-downgrade, private-ip)
+    Both sets are returned as a single flat set — the distinction between primary
+    reason code and sub_reason is not material for POLICY 19 validation.
     """
     codes: set[str] = set()
     if not taxonomy_path.exists():
         return codes
     in_catalog = False
+    in_subreason = False
     for line in slp.cm_splitlines(taxonomy_path.read_text(encoding="utf-8")):
-        # Section 2 is the catalog
+        # Section 2 is the main catalog
         if "## 2." in line:
             in_catalog = True
         if in_catalog and line.startswith("## ") and "## 2." not in line:
             in_catalog = False
-        if not in_catalog:
+        # Section 3b is the optional sub_reason field (https-downgrade, private-ip)
+        if "## 3b." in line:
+            in_subreason = True
+        if in_subreason and line.startswith("## ") and "## 3b." not in line:
+            in_subreason = False
+        if not (in_catalog or in_subreason):
             continue
         # Extract backtick-quoted reason codes like `file-not-found`
         for m in re.finditer(r"`([a-z][a-z0-9-]+)`", line):
@@ -152,20 +164,16 @@ def check_adr(path: Path, valid_reason_codes: set[str]) -> list[str]:
         # Check all backtick-quoted reason codes that look like reason codes (POLICY 19)
         for m in re.finditer(r"`([a-z][a-z0-9-]{3,})`", line):
             code = m.group(1)
-            if "-" in code and code not in valid_reason_codes:
-                # Exclude codes that are clearly not reason codes
-                if code not in {
-                    "--insecure", "--online", "--ignore", "--allow", "--format",
-                    "sub_reason", "schema_version", "http-indeterminate",
-                    "https-downgrade", "private-ip",
-                }:
-                    # Is it in a "Reason codes" context?
-                    context = line.lower()
-                    if any(kw in context for kw in ("reason", "verdict", "broken", "exit")):
-                        violations.append(
-                            f"{path}:{lineno}: reason code '{code}' not in closed taxonomy\n"
-                            f"  {line.strip()[:100]}"
-                        )
+            if not _is_reason_code_candidate(code):
+                continue
+            if code not in valid_reason_codes:
+                # Is it in a "Reason codes" context?
+                context = line.lower()
+                if any(kw in context for kw in ("reason", "verdict", "broken", "exit")):
+                    violations.append(
+                        f"{path}:{lineno}: reason code '{code}' not in closed taxonomy\n"
+                        f"  {line.strip()[:100]}"
+                    )
 
     return violations
 
@@ -186,16 +194,43 @@ def _is_spec_ref_id(code: str) -> bool:
     return bool(_SPEC_REF_ID_RE.match(code))
 
 
+def _is_reason_code_candidate(code: str) -> bool:
+    """Return True if code is a plausible reason-code candidate for POLICY 19 checking.
+
+    Applies ALL structural discriminators to avoid false positives:
+      - Must contain a hyphen (single-word tokens are not reason codes)
+      - Must not start with '--' (CLI flags like --insecure)
+      - Must not be a schema/sub_reason technical term
+      - Must not be a spec cross-reference ID (DD-007, EC-123, D-018, DI-010, etc.)
+
+    BLOCKING-2: apply this to ALL three patterns (Pattern 1, 2, 3) so spec reference
+    IDs like DI-010 and D-018 are never treated as reason codes even in Pattern 2/3
+    contexts like 'broken (D-018)' or '(consistent with DI-010 taxonomy)'.
+    """
+    if "-" not in code:
+        return False
+    if code.startswith("--"):
+        return False
+    if code.lower() in {"sub_reason", "schema_version"}:
+        return False
+    if _is_spec_ref_id(code):
+        return False
+    return True
+
+
 def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[str], int]:
     """
     POLICY 19: check any spec file (non-ADR) for reason code violations.
     Returns (violations, occurrences_count).
 
     Detection patterns:
-      Pattern 1: backtick-quoted codes (broadened to uppercase for E-IO-002 class)
-                 with exit/error/reason/verdict/taxonomy context guard
+      Pattern 1: backtick-quoted codes with keyword-in-line context guard.
+                 _is_reason_code_candidate() filters out CLI flags and spec ref IDs.
       Pattern 2: verdict + parenthetical "broken (malformed-fragment)"
       Pattern 3: taxonomy-reference "(consistent with E-CLI-001 taxonomy)"
+
+    All three patterns apply _is_reason_code_candidate() to exclude spec reference
+    IDs (D-018, DI-010, EC-123) and CLI flags (BLOCKING-2).
 
     Position-based predicate (D-081): YAML frontmatter is excluded from scanning.
     Frontmatter is identified as the content between the first and second "---" markers
@@ -237,21 +272,12 @@ def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[s
         # Per-line deduplication: avoid double-counting same code on same line
         seen_codes_this_line: set[str] = set()
 
-        # ── Pattern 1: backtick-quoted codes, broadened to uppercase (BI-050) ──
+        # ── Pattern 1: backtick-quoted codes (BLOCKING-2: uses _is_reason_code_candidate) ──
         for m in re.finditer(r"`([A-Za-z][A-Za-z0-9-]{2,})`", line):
             code = m.group(1)
             if code in seen_codes_this_line:
                 continue
-            if "-" not in code:
-                continue
-            # Skip CLI flags (start with --)
-            if code.startswith("--"):
-                continue
-            # Skip schema/sub_reason technical terms
-            if code.lower() in {"sub_reason", "schema_version"}:
-                continue
-            # Skip spec cross-reference IDs (position-based: uppercase prefix + digit)
-            if _is_spec_ref_id(code):
+            if not _is_reason_code_candidate(code):
                 continue
             # Context guard: only flag if the line discusses reason codes / verdicts / errors
             context = line.lower()
@@ -261,34 +287,36 @@ def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[s
                 continue
             seen_codes_this_line.add(code)
             occurrences += 1
-            if code not in valid_reason_codes and code.lower() not in {
-                "http-indeterminate", "https-downgrade", "private-ip",
-            }:
+            if code not in valid_reason_codes:
                 violations.append(
                     f"{path}:{lineno}: reason code '{code}' not in closed taxonomy (POLICY 19)\n"
                     f"  {line.strip()[:100]}"
                 )
 
-        # ── Pattern 2: verdict + parenthetical reason code ──
+        # ── Pattern 2: verdict + parenthetical reason code ────────────────────────
+        # BLOCKING-2: apply _is_reason_code_candidate() to exclude spec ref IDs (D-018, DI-010)
         for m in VERDICT_PAREN_CODE_RE.finditer(line):
             code = m.group(1)
             if code in seen_codes_this_line:
                 continue
+            if not _is_reason_code_candidate(code):
+                continue
             seen_codes_this_line.add(code)
             occurrences += 1
-            if code not in valid_reason_codes and code.lower() not in {
-                "http-indeterminate", "https-downgrade", "private-ip",
-            }:
+            if code not in valid_reason_codes:
                 violations.append(
                     f"{path}:{lineno}: verdict reason code '{code}' not in closed taxonomy "
                     f"(POLICY 19)\n"
                     f"  {line.strip()[:100]}"
                 )
 
-        # ── Pattern 3: taxonomy-reference parenthetical ──
+        # ── Pattern 3: taxonomy-reference parenthetical ───────────────────────────
+        # BLOCKING-2: apply _is_reason_code_candidate() to exclude spec ref IDs
         for m in TAXONOMY_CODE_RE.finditer(line):
             code = m.group(1)
             if code in seen_codes_this_line:
+                continue
+            if not _is_reason_code_candidate(code):
                 continue
             seen_codes_this_line.add(code)
             occurrences += 1

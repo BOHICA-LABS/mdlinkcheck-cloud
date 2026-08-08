@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=83
+EXPECTED_TEST_COUNT=84
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -5298,6 +5298,72 @@ BCBODY5D
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; frontmatter phantom not flagged; body phantom flagged)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5e: check-adr-consistency — spec ref ID D-018 in broken(...) NOT flagged (BLOCKING-2) ──
+# Proves BLOCKING-2: _is_reason_code_candidate() is applied to Pattern 2 (VERDICT_PAREN_CODE_RE)
+# so spec reference IDs like D-018, DI-010 in "broken (D-018)" patterns are NOT treated
+# as reason codes and do NOT trigger phantom-code violations.
+#
+# Clean tree: BC body with "broken (D-018)" → D-018 is a spec ref ID → must NOT be flagged
+# Defect tree: replace D-018 with a genuine phantom reason code → must BE flagged
+# Mutation-verify: removing the _is_reason_code_candidate() call from Pattern 2 makes the
+#   clean tree fail (D-018 treated as phantom reason code), firing the STRUCTURAL FAIL
+#   assertion — proving the guard is load-bearing.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5e: check-adr-consistency: spec ref ID D-018 in broken(...) NOT flagged (BLOCKING-2) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5E'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `connection-timeout` | Connection timed out |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5E
+
+# Clean tree: BC body with "broken (D-018)" — D-018 is a spec reference ID, not a reason code
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-SELFTEST-5E.md" <<'BC5ECLEAN'
+---
+bc_id: BC-SELFTEST-5E
+modified: []
+---
+## Invariants
+1. Exit code 1 when broken (D-018) decision is applied.
+2. Exit code 0 for clean links.
+BC5ECLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker flagged D-018 in broken(...) — spec ref ID must NOT be a reason code"
+    ST5E_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    echo "  Output: $ST5E_CLEAN"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: replace D-018 with a genuine phantom reason code
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-SELFTEST-5E.md" <<'BC5EBAD'
+---
+bc_id: BC-SELFTEST-5E
+modified: []
+---
+## Invariants
+1. Exit code 1 when broken (phantom-reason) decision is applied.
+2. Exit code 0 for clean links.
+BC5EBAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch phantom reason code in broken(...) pattern)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; D-018 spec ref not flagged; phantom-reason correctly detected)"
     fi
 fi
 rm -rf "$T"
