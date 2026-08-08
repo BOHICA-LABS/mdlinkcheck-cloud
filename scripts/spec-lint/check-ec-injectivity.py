@@ -156,28 +156,79 @@ def extract_ec_rows(path: Path) -> list[tuple[str, str, str, int]]:
     return rows
 
 
-def extract_tv_rows(path: Path) -> list[tuple[str, str, str, int]]:
+def extract_tv_rows(path: Path) -> tuple[list[tuple[str, str, str, int]], int]:
     """
     Parse test-vectors.md for EC references.
-    TV rows look like: | TV-NNN | EC-NNN | Description | ... | exit_code | verdict | reason |
-    Returns list of (ec_id, description, verdict_raw, lineno).
+    Schema-aware: identifies the Description column from each section's header row
+    and skips rows in sections where no Description column exists.
 
-    BI-044: EC ID column now uses the shared grammar (EC-\d{1,4}[a-z]?) via EC_TOKEN_RE.pattern.
+    Returns (rows, skipped_no_desc_col):
+      rows: list of (ec_id, description, verdict_raw, lineno)
+      skipped_no_desc_col: count of TV data rows skipped because their section
+        has no Description column (not comparable to BC citations)
+
+    BI-044: EC ID column uses the shared grammar (EC-\d{1,4}[a-z]?) via EC_TOKEN_RE.
+    BLOCKING-1: schema-aware column extraction instead of hard-coded column index 3.
     """
-    rows = []
+    rows: list[tuple[str, str, str, int]] = []
+    skipped_no_desc_col = 0
     lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
+
+    current_desc_col: int | None = None  # Description column index for the current section
+
     for lineno, line in enumerate(lines, 1):
-        # Match TV table row that contains an EC-NNN column (BI-044: \d{1,4} shared grammar)
-        m = re.match(
-            r"^\|\s*(TV-[\w]+)\s*\|\s*(EC-\d{1,4}[a-z]?)\s*\|\s*(.+?)\s*\|.*?\|\s*(\d|n/a)\s*\|\s*(.+?)\s*\|",
-            line,
-        )
-        if m:
-            ec_id = m.group(2)
-            desc = m.group(3).strip()
-            verdict_raw = m.group(5).strip()
-            rows.append((ec_id, desc, verdict_raw, lineno))
-    return rows
+        cells = slp.split_table_cells(line)
+        if not cells:
+            continue
+
+        # Separator row: no state change
+        if slp.is_table_separator_row(cells):
+            continue
+
+        first = cells[0].strip()
+
+        # Header row detection: first cell is "TV" (header text, not a TV-NNN data ID)
+        # and second cell is "EC" — both are case-insensitive exact matches against header text.
+        if (first.upper() in ("TV", "TV ID", "TV-ID")
+                and len(cells) >= 2
+                and cells[1].strip().upper() in ("EC", "EC ID", "EC-ID")):
+            # New table section: scan columns for a Description column (case-insensitive substring)
+            current_desc_col = None
+            for i, cell in enumerate(cells):
+                if "description" in cell.strip().lower():
+                    current_desc_col = i
+                    break
+            continue
+
+        # Data row: first cell must match TV-xxx identifier pattern
+        if not re.match(r'^TV-[\w]+$', first):
+            continue
+
+        # EC ID must be in second cell (BI-044: shared EC grammar)
+        if len(cells) < 2 or not slp.EC_TOKEN_RE.fullmatch(cells[1]):
+            continue
+
+        ec_id = cells[1]
+
+        # Skip rows in sections with no Description column (not comparable to BC citations)
+        if current_desc_col is None or current_desc_col >= len(cells):
+            skipped_no_desc_col += 1
+            continue
+
+        desc = cells[current_desc_col].strip()
+
+        # Extract verdict: scan cells from right to left for a verdict-like value
+        verdict_raw = ""
+        for cell in reversed(cells):
+            cell_stripped = cell.strip()
+            if re.match(r'^(alive|broken|indeterminate|clean|dead|valid)\b',
+                        cell_stripped, re.IGNORECASE):
+                verdict_raw = cell_stripped
+                break
+
+        rows.append((ec_id, desc, verdict_raw, lineno))
+
+    return rows, skipped_no_desc_col
 
 
 # ── BC-vs-Registry thresholds (BI-051) ────────────────────────────────────────
@@ -227,6 +278,7 @@ def main() -> int:
     ec_map: dict[str, list[tuple[str, str, str, int]]] = defaultdict(list)
 
     tv_file_str = str(TV_FILE)
+    total_tv_skipped = 0  # count of TV rows skipped due to no Description column
 
     for md_file in sorted(SPECS.rglob("*.md")):
         files_scanned += 1
@@ -235,8 +287,10 @@ def main() -> int:
             for ec_id, desc, verdict, lineno in extract_ec_rows(md_file):
                 ec_map[ec_id].append((str(md_file), desc, verdict, lineno))
         elif md_file == TV_FILE:
-            # test-vectors.md: scan for TV rows
-            for ec_id, desc, verdict, lineno in extract_tv_rows(md_file):
+            # test-vectors.md: scan for TV rows (schema-aware, BLOCKING-1)
+            tv_rows, tv_skipped = extract_tv_rows(md_file)
+            total_tv_skipped += tv_skipped
+            for ec_id, desc, verdict, lineno in tv_rows:
                 ec_map[ec_id].append((tv_file_str, desc, verdict, lineno))
         # other spec files: no EC citations expected; just counted for completeness
 
@@ -339,9 +393,21 @@ def main() -> int:
         if not bc_occs or not tv_occs:
             continue  # Cannot compare without both a BC citation and a registry entry
 
-        tv_desc = tv_occs[0][1]  # canonical description from first TV row for this EC
-
         for bc_filepath, bc_desc, bc_verdict, bc_lineno in bc_occs:
+            # ADVISORY-6: compare against ALL TV rows and take the best (highest-Jaccard) match.
+            # When an EC appears in multiple table sections (e.g., main vectors + regression table),
+            # using the first TV row could yield J=0 even when another row agrees well.
+            best_tv_desc = tv_occs[0][1]  # fallback
+            best_jaccard_for_tv = -1.0
+            for _, tv_desc_cand, _, _ in tv_occs:
+                t1_cand = _significant_tokens(tv_desc_cand)
+                t2_cand = _significant_tokens(bc_desc)
+                union_cand = t1_cand | t2_cand
+                j_cand = len(t1_cand & t2_cand) / len(union_cand) if union_cand else 1.0
+                if j_cand > best_jaccard_for_tv:
+                    best_jaccard_for_tv = j_cand
+                    best_tv_desc = tv_desc_cand
+            tv_desc = best_tv_desc
             registry_citations += 1
             result = _compare_bc_to_registry(bc_desc, tv_desc)
             t1 = _significant_tokens(tv_desc)
@@ -393,8 +459,9 @@ def main() -> int:
         else f"INCOMPLETE — only {files_scanned} of {total_files} scanned"
     )
     print(
-        f"\n{registry_citations} EC citations compared across "
-        f"{files_scanned} of {total_files} spec files ({completeness}), "
+        f"\n{registry_citations} EC citations compared "
+        f"({total_tv_skipped} non-comparable TV rows skipped — no Description column) "
+        f"across {files_scanned} of {total_files} spec files ({completeness}), "
         f"{len(registry_divergent)} divergent, {len(registry_adjudication)} require adjudication"
     )
 

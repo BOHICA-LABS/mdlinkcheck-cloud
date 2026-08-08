@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=82
+EXPECTED_TEST_COUNT=83
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -4704,7 +4704,8 @@ mkdir -p "$T/.factory/specs/prd-supplements"
 # Clean tree: BC description AGREES with TV description
 # TV: "Symlink outside root boundary traversal"  BC: "Symlink traversal outside root boundary"
 # Jaccard: shared tokens {symlink, outside, root, boundary, traversal} / union = 1.0 → PASS
-printf '| TV-001 | EC-001 | Symlink outside root boundary traversal | `doc.md` | 1 | broken | reason |\n' \
+# Header row required by BLOCKING-1 schema-aware extract_tv_rows (no header → row skipped)
+printf '| TV | EC | Description | Input | Exit | Verdict | Reason |\n|---|---|---|---|---|---|---|\n| TV-001 | EC-001 | Symlink outside root boundary traversal | `doc.md` | 1 | broken | reason |\n' \
     > "$T/.factory/specs/prd-supplements/test-vectors.md"
 
 cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI1-SELFTEST.md" <<'BCEI1CLEAN'
@@ -4769,7 +4770,8 @@ mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
 mkdir -p "$T/.factory/specs/prd-supplements"
 
 # TV: "Missing file at link destination" — strong description with unique tokens
-printf '| TV-002 | EC-002 | Missing file at link destination | `doc.md` | 1 | broken | reason |\n' \
+# Header row required by BLOCKING-1 schema-aware extract_tv_rows
+printf '| TV | EC | Description | Input | Exit | Verdict | Reason |\n|---|---|---|---|---|---|---|\n| TV-002 | EC-002 | Missing file at link destination | `doc.md` | 1 | broken | reason |\n' \
     > "$T/.factory/specs/prd-supplements/test-vectors.md"
 
 # BC: "Missing file at link destination" — identical (Jaccard=1.0)
@@ -4839,7 +4841,8 @@ mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
 mkdir -p "$T/.factory/specs/prd-supplements"
 
 # TV: borderline pair — Jaccard ≈ 0.091 with BC below (adjudication, not divergent)
-printf '| TV-003 | EC-003 | Link target points to missing file path | `doc.md` | 1 | broken | reason |\n' \
+# Header row required by BLOCKING-1 schema-aware extract_tv_rows
+printf '| TV | EC | Description | Input | Exit | Verdict | Reason |\n|---|---|---|---|---|---|---|\n| TV-003 | EC-003 | Link target points to missing file path | `doc.md` | 1 | broken | reason |\n' \
     > "$T/.factory/specs/prd-supplements/test-vectors.md"
 
 # BC: borderline description (shares "path" token with TV, low but nonzero Jaccard)
@@ -4887,6 +4890,92 @@ BCEI3BAD
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed with adjudication; zero-overlap correctly detected as divergent)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test EI-4: check-ec-injectivity — multi-schema TV file, no-Description section skipped ──
+# Proves BLOCKING-1: rows in TV sections without a Description column are skipped
+# (no false SCENARIO-MISMATCH), while rows in sections WITH a Description column are
+# still compared (genuine divergence is detected).
+#
+# TV has two sections:
+#   Section A (Description column): EC-004 "Symlink traversal check" — comparable
+#   Section B (no Description column): EC-004 also present — rows skipped
+# BC cites EC-004 with a matching description (Jaccard ≥ 0.10) → exit 0.
+# Coverage line must mention skipped TV rows (proves schema-aware extraction ran).
+#
+# Defect: change BC EC-004 to zero-overlap description → exit 1 SCENARIO-MISMATCH.
+# Mutation-verify: reverting extract_tv_rows to hardcoded column index 3 would cause
+#   section B to contribute description = Exit value "1" (J=0 with BC) into tv_occs;
+#   ADVISORY-6 best-match might still pick section A's match, but the skipped count in
+#   the coverage line would be 0 → STRUCTURAL FAIL asserts → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest EI-4: check-ec-injectivity: multi-schema TV file — no-Description section skipped ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/prd-supplements"
+
+# TV: section A has Description column (EC-004 comparable), section B has none (EC-004 skipped)
+cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TVEI4'
+| TV | EC | Description | Input | Exit | Verdict | Reason |
+|---|---|---|---|---|---|---|
+| TV-004 | EC-004 | Symlink traversal check | `doc.md` | 1 | broken | reason |
+| TV | EC | Input | Exit | Verdict | Reason |
+|---|---|---|---|---|---|
+| TV-004b | EC-004 | `doc2.md` | 1 | broken | reason |
+TVEI4
+
+# BC: EC-004 with matching description (Jaccard ≥ 0.10)
+# TV: {symlink, traversal, check}, BC: {symlink, traversal, outside, root} → J=2/5=0.4 → AGREE
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI4-SELFTEST.md" <<'BCEI4CLEAN'
+---
+bc_id: BC-EI4-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-004 | Symlink traversal outside root |
+BCEI4CLEAN
+
+EI4_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+EI4_CLEAN_EXIT=$?
+CLEAN_PASS=0
+if [ "$EI4_CLEAN_EXIT" -ne 0 ]; then
+    echo "  STRUCTURAL FAIL: multi-schema TV incorrectly triggered exit 1 (section B should be skipped)"
+    echo "  Output: $EI4_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+elif echo "$EI4_CLEAN_OUT" | grep -q "non-comparable TV rows skipped"; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: coverage line does not mention skipped TV rows (schema-aware extraction not working)"
+    echo "  Output: $EI4_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: change BC EC-004 to zero-overlap description → SCENARIO-MISMATCH
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI4-SELFTEST.md" <<'BCEI4BAD'
+---
+bc_id: BC-EI4-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-004 | TLS handshake timeout during certificate chain validation |
+BCEI4BAD
+    EI4_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+    EI4_EXIT=$?
+    if [ "$EI4_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT detect SCENARIO-MISMATCH for EC-004)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$EI4_OUT" | grep -q "SCENARIO-MISMATCH EC-004"; then
+        echo "  PASS (clean-pass with skipped rows confirmed; EC-004 divergence correctly detected)"
+    else
+        echo "  FAIL (checker exited non-zero but SCENARIO-MISMATCH EC-004 not in output)"
+        echo "  Actual: $EI4_OUT"
+        FAILURES=$((FAILURES + 1))
     fi
 fi
 rm -rf "$T"
@@ -5212,7 +5301,6 @@ BCBODY5D
     fi
 fi
 rm -rf "$T"
-
 # ── Post-test structural guards ────────────────────────────────────────────
 echo ""
 if [ "$TESTS_RUN" -ne "$EXPECTED_TEST_COUNT" ]; then
