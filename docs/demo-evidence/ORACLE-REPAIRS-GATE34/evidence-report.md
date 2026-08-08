@@ -13,7 +13,7 @@
 |----|-------------|---------------|--------|
 | AC-1 | Pre-flight guard: 0 unproven scope reductions / 15 checkers; 10/10 primitives | `AC-001-preflight-guard.txt` | PASS |
 | AC-2 | Full selftest suite: **91/91** pass (each proves clean-pass AND defect-fail) | `AC-002-selftest-91of91.txt` | PASS |
-| AC-3 | 21 new oracle-repair selftests all pass (G5, P14-15/16/17, EI-1/2/3/4/5/6, 7b/7c/7d, 5b/5c/5d/5e/5f/5g/5h/5i/5j) | `AC-003-oracle-repair-selftests.txt` | PASS |
+| AC-3 | 22 new oracle-repair selftests all pass (G5, P14-15/16/17, EI-1/2/3/4/5/6, 7b/7c/7d, 5b/5c/5d/5e/5f/5g/5h/5i/5j) | `AC-003-oracle-repair-selftests.txt` | PASS |
 
 ---
 
@@ -60,7 +60,7 @@ Selftest passed: 91/91 negative tests verified (each proved clean-pass + defect-
 
 **Evidence:** `AC-003-oracle-repair-selftests.txt`
 
-New selftests added by this PR (21 total, delivered across 4 review cycles):
+New selftests added by this PR (22 total, delivered across 4 review cycles):
 
 | Test | Checker | What it proves |
 |------|---------|----------------|
@@ -87,4 +87,4 @@ New selftests added by this PR (21 total, delivered across 4 review cycles):
 | 5i | check-adr-consistency | Annotated cell `` `phantom-gamma` (per D-018) `` detected |
 | 5j | check-adr-consistency | Phantom on same row as bare "reason" data cell detected |
 
-**Result: PASS — all 21 new tests pass with non-vacuous clean and defect arms**
+**Result: PASS — all 22 new tests pass with non-vacuous clean and defect arms**
