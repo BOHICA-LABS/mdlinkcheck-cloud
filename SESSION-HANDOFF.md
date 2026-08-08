@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-094
+  Latest: §RESUME SNAPSHOT D-098
 -->
 
 ---
@@ -1696,7 +1696,7 @@ g. **Never dispatch a burst onto a branch another burst may merge or delete (D-0
 
 ---
 
-## §RESUME SNAPSHOT D-094
+## §RESUME SNAPSHOT D-094 [SUPERSEDED by D-098 — retained for audit]
 
 *Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-090.*
 
@@ -1852,3 +1852,173 @@ f. **DD-007 gloss discrepancy** at L2-INDEX.md:131 / BC-2.01.009.md:40,51,57 / p
 g. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
 
 h. **BI-027 adjudication pending** — 0 FABRICATED remain; formally closed in spec list but blocking issue still open; close or retain in next burst.
+
+---
+
+## §RESUME SNAPSHOT D-098
+
+*Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-094.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d, still **0 of 3 clean passes**. Session wrap D-098 records PR #9 (`feature/pol14-test-sufficient`) **APPROVED at a42e155** (68/68 selftests; six mutants dead: MS1/MX1/MX3/MB/M4/M8; 4/4 CI green) — **MERGE GATED TO OPERATOR** (no self-approval possible; BI-039/BI-046 structural constraint). Actionability pre-check EXECUTED: 53 em-dash rows span 33 BC files; exact bijection with VP-INDEX `test-sufficient` set (anti-vacuity proven). S3 sequencing gate established (D-100): S3 must land BEFORE the 53-row rewrite. BI-046 ESCALATED AS GATE: needs separate reviewer identity/token = operator infrastructure decision, not a mechanical fix. Remaining WS-4: **53 em-dash rows BLOCKED on PR #9 merge + 25 Stories BLOCKED on PR #9 merge**.
+
+### HEADS
+
+Verify each at resume before taking action. Resolve factory-artifacts HEAD via `git -C .factory log -1` — never trust a literal SHA recorded here for the current HEAD.
+
+| Ref | SHA | Note |
+|-----|-----|------|
+| develop | `c2e5cf1` | PR #8 squash-merge (BI-040 primitive layer); local == `origin/develop`; tree CLEAN; PUSHED |
+| feature/pol14-test-sufficient | `a42e155` | PR #9 head; APPROVED; CI 4/4 GREEN; MERGE GATED TO OPERATOR |
+| factory-artifacts | run `git -C .factory log -1` | current HEAD — do not cite a literal SHA here |
+
+- Main repo working tree: branch `develop` (`c2e5cf1`). Tree CLEAN.
+- Worktrees: exactly THREE — main checkout (`develop`, `c2e5cf1`), `.factory` (`factory-artifacts`), and `.worktrees/pol14-test-sufficient` (`feature/pol14-test-sufficient`, `a42e155`).
+- Open PRs: PR #9 (`feature/pol14-test-sufficient` → develop; head `a42e155`; APPROVED — MERGE GATED TO OPERATOR).
+- `.factory` uncommitted: `logs/dispatcher-internal-2026-08-07.jsonl`, `logs/events-2026-08-07.jsonl`, `sidecar-learning.md` — deliberately excluded from state bursts; NOT a loss.
+- Nothing else is local-only.
+- `.factory/hooks/verify-sha-currency.sh`: FORMALLY RETIRED (D-099) — do not carry as per-wrap caveat.
+
+### WORKSTREAMS
+
+**WS-4 queue CLOSED except 53 em-dash rows BLOCKED on PR #9 merge.**
+
+All non-em-dash WS-4 items resolved in prior sessions:
+- 9 EC-NEW-* rows → EC-205..EC-213 ALLOCATED (burst-23)
+- TV-BV013 at BC-2.04.001:63 CLOSED (burst-23)
+- 5 vacuous VPs → BI-025 CLOSED (burst-23)
+- 50 proof-method joins → BI-026 CLOSED (burst-23)
+- BC-2.10.002:160-161 misfiled rows CLOSED (burst-23); em-dash 55→53
+
+Remaining: **53 VP-col `—` rows across 33 BC files** — all in test-sufficient BCs; legally require `test-sufficient` sentinel per D-092. Also: **25 `[filled by ...]` placeholders** (Stories field, BLOCKED on PR #9 D-093 carve-out).
+
+**PR #9 state (APPROVED at a42e155 — MERGE GATED TO OPERATOR):**
+- All 4 CI checks GREEN
+- 68/68 selftests PASS
+- Six mutants killed guard-independently: MS1/MX1/MX3/MB/M4/M8
+- BI-039/BI-046 structural constraint: `gh pr review --approve` impossible on self-authored PR; three COMMENTED reviews posted; merge requires operator
+- Actionability pre-check EXECUTED (D-082): 53 rows / 33 BC files; exact bijection VP-INDEX test-sufficient set; anti-vacuity proven
+- S3 sequencing gate (D-100): S3 must land BEFORE 53-row rewrite
+
+**S3 fix (D-100):** One-line guard — require non-empty Proof Method alongside `test-sufficient`. Must land BEFORE the 53-row rewrite (rows migrate off `—` exactly when rewrite runs). No blocking technical dependency beyond PR #9 merging.
+
+**Pass 7 — not started.** Run only after: PR #9 merged + S3 landed + 53 em-dash rows rewritten + check-placeholders=0.
+
+### CHECKER STATE
+
+All checkers at burst-24 close on `factory-artifacts` (UNCHANGED from burst-23 — no spec changes this burst).
+
+| Checker | Status | Notes |
+|---------|--------|-------|
+| `check-counts` | **PASSES** 37 count checks | Baseline maintained |
+| `check-id-resolution` | **PASSES** 0/134 | Was 10 at D-090; EC-205..EC-213 allocated; TV-BV013 resolved |
+| `check-ec-injectivity` | **PASSES** 214 EC IDs, all injective | Unchanged |
+| `check-holdout-boundary` | **PASSES** 134 visible files, pool 12 ids | Unchanged |
+| `check-index-integrity` | **PASSES** 80 structural checks (BC 66, VP 26) | Unchanged |
+| `check-placeholders` | 78 findings = 53 em-dash + 25 Stories | BOTH BLOCKED on PR #9 merge; not a regression |
+
+### SPEC SNAPSHOT
+
+PRD v1.12 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired: EC-102→TV-BV013 per D-010) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003).
+
+D-001..D-100 (exhaustive). D-017..D-020 (exhaustive) restored by reconstruction; see process-gap-register PG-010.
+
+Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045.
+Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/046.
+
+### NEXT PRIORITIES (ordered — gate #30 post-approval sequence, D-095/D-096/D-097/D-100)
+
+1. **Operator confirms PR #9 merge** — BLOCKING all below. No self-approval; operator executes merge via gate-#28 mechanism (D-089).
+2. **Land S3 (D-100)** — one-line fix: require non-empty Proof Method alongside `test-sufficient`. MUST execute BEFORE step 3.
+3. **Rewrite 53 em-dash rows** to `test-sufficient` sentinel across 33 test-sufficient BCs; cross-check each against VP-INDEX (sentinel valid ONLY where VP-INDEX classifies that BC as test-sufficient).
+4. **Verify D-077 burn-down clean** using REPAIRED checkers — `check-placeholders` must reach 0 (53 em-dash → sentinel, 25 Stories → exempt under D-093).
+5. **BI-046 escalated as gate (D-097 escalation clause)** — needs separate reviewer identity/token; operator infrastructure decision; REQUIRED before Phase 3 story PRs begin.
+6. **Adversary pass 7 (D-095)** — pre-dispatch operator gate still stands; streak re-counts from ZERO against frozen HEAD; severity reporting in RANGES, not point totals (PG-012).
+
+### CORRECTIONS REGISTER (carry as a standing caution)
+
+Every headline figure in the WS-4 chain was overstated in the SAME direction. D-098 adds three new rows. Third consecutive prescription wrong in KIND rather than merely overstated in magnitude.
+
+| Claimed | Corrected | Field |
+|---------|-----------|-------|
+| ~306 | 178 | WS-4 total scope |
+| 259 (perimeter sweep) | 249 | executed pass-6 findings |
+| ~53 | 40 | POLICY-5 FABRICATED + MEANING-INVERTED |
+| ~40% | 30.3% | POLICY-5 fabrication rate |
+| ~42 CRITICAL | 40 | BI-027 CRITICAL count |
+| 16 BI-044 sites | 14 | actual sites (17 − 3 already fixed) |
+| 11/5 files EC-NEW-* | 9/4 files | actual EC-NEW-* scope |
+| ~36 pass-5 actionable | 37 | (under-statement; the one exception) |
+| WS-4-G Shard-A: "3 lines" | 4 lines + R5→R2b | BC-2.05.003 citation-authority scope |
+| 70 remaining WS-4 items | 53 (em-dash only) | id-resolution 10→0, vacuous VP 5→0 (burst-23) |
+| 39→40 FABRICATED | 40 confirmed (UNDERSTATEMENT) | WS-4 Shards A–E |
+| 43→50 proof-method joins | 50 confirmed (UNDERSTATEMENT of 7) | WS-4 Shards A–E |
+| 203 EC count in prd.md §5b | 212 (burst-23 repair) | understated vs 214 registered IDs |
+| D-096 P14-8: "passes `""` to `is_conforming_vp_cell`, asserts `false` — kills M4" | Actual M4 kill = different mechanism; prescription named a detail of S3 (empty Proof Method guard), not M4's kill path — wrong in KIND (third consecutive prescription wrong in kind) | D-096 B1 prescription |
+| validate-pr-review-posted hook: "fires on `pr-review.md`, demands `gh pr review`" — prescribed as satisfiable | Hook misfires on literal filename; structurally impossible on self-authored PRs (BI-039); multi-cycle immutable-audit convention (pr-review-55113c4.md, pr-review-a42e155.md) conflicts with hook's single-file expectation | hook gap discovered burst-24 |
+| Cycle-3 reviewer boundary probe: `gh pr review --approve` prescribed as the approval path | Confirmed structurally impossible; `gh pr comment` used; three COMMENTED reviews constitute the approval record | BI-039/BI-046 interaction confirmed |
+
+### STANDING DIRECTIVES
+
+| Directive | Rule |
+|-----------|------|
+| Autonomy | Level 4 — agents merge PRs after full pr-manager review lifecycle (D-028/D-031) |
+| spec-lint | ADVISORY until Phase-1 gate; flip to REQUIRED at gate with Stories-field carve-out (D-029/D-032/D-093) |
+| Platform matrix | macOS-latest ONLY in CI (D-043) |
+| SS-10 `--online` | IN SCOPE — do not re-propose descope (D-054) |
+| Context wrap | Wrap at 430K at clean boundaries; no fan-outs above 350K |
+| Wrappers | At `.factory/bin/` (D-047) |
+| `gh pr review` | IMPOSSIBLE — use `gh pr comment --body-file` (BI-039) |
+| `gen-bc-traceability` write mode | PROHIBITED until adjudicated (BI-041) |
+| Allowlists/skip-lists in checkers | FORBIDDEN (D-039) |
+| `prd.md` changelog entries | IMMUTABLE (D-034) |
+| `git add -A` in state bursts | FORBIDDEN while any PR agent is in flight — stage by explicit path (D-088) |
+| BI-022 fuzz nightly | Pin before Phase 6 |
+| Severity reporting | MUST use ranges, not point totals (PG-012, gate #27 Q5) |
+| Differential verification | MUST carry positive non-vacuity assertion (Lesson 46) |
+| `verify-sha-currency.sh` | FORMALLY RETIRED for this project (D-099) — do not carry as per-wrap caveat; record as factory-engine packaging gap (CI-063 class) |
+
+### WORKTREE INVENTORY
+
+Exactly three worktrees:
+
+| Path | Branch | HEAD | Note |
+|------|--------|------|------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | `develop` | `c2e5cf1` | main checkout; tree clean |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | run `git -C .factory log -1` | factory artifacts |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/pol14-test-sufficient` | `feature/pol14-test-sufficient` | `a42e155` | PR #9 APPROVED — MERGE GATED TO OPERATOR |
+
+Stash list EMPTY (D-056 still valid). No story worktrees (Phase 3 not started).
+
+### DECISION DELTA (D-094..D-100)
+
+| ID | Decision | Rationale | Phase | Date |
+|----|----------|-----------|-------|------|
+| D-094 | Session wrap — durable RESUME SNAPSHOT D-094 committed to factory-artifacts, superseding D-090 | Zero-context resume; single-commit burst TD-VSDD-053; BI-025/BI-026 CLOSED; id-resolution 10→0; em-dash 55→53; prd.md v1.12 | phase-1d | 2026-08-08 |
+| D-095 | Pass 7 DEFERRED — dispatch ONLY after (1) PR #9 merged, (2) 53 em-dash rows rewritten (VP-INDEX cross-check required), (3) D-077 burn-down verified clean (check-placeholders must reach 0). Pre-dispatch operator gate. Streak from ZERO. Severity in RANGES (PG-012). | Gate #30 operator ruling. | phase-1d | 2026-08-08 |
+| D-096 | PR #9 B1 mandatory remediation: add P14-8 (kills M4) + P14-9 (kills M8), re-run M4/M8 mutations confirm BOTH DIE, apply S1. FRESH review verdict at new head — no covered_sha shortcut. Merge on APPROVE via gate-#28 mechanism. | Gate #30 operator ruling. B1: M4/M8 survive Shape 2 at 62/62 exit 0 with zero selftest coverage. | phase-1d | 2026-08-08 |
+| D-097 | BI-046 (reviewer identity) authorized to resolve NOW via normal review lifecycle. Escalate as gate if resolution requires policy/scope ruling. REQUIRED before Phase 3 story PRs begin. | Gate #30 operator ruling. | phase-1d | 2026-08-08 |
+| D-098 | Burst-24 session/burst wrap — RESUME SNAPSHOT D-098 committed to factory-artifacts, superseding D-094 | PR #9 APPROVED at a42e155 (68/68; six mutants die; 4/4 CI green) — MERGE GATED TO OPERATOR; 53 em-dash rows ACTIONABLE (exact bijection VP-INDEX; 33 BC files); S3 before 53-row rewrite (D-100); BI-046 escalated as gate; D-099/D-100 codified | phase-1d | 2026-08-08 |
+| D-099 | `verify-sha-currency.sh` wrap step FORMALLY RETIRED for this project — orchestrator's direct git-inspection plus checker re-runs is the accepted stronger substitute. Record as factory-engine packaging gap (CI-063 class). Stop carrying as a per-wrap caveat. | Operator ruling. Hook absent; carrying as per-wrap gap produced no actionable outcome and obscured real gaps. | phase-1d | 2026-08-08 |
+| D-100 | S3 (require non-empty Proof Method alongside `test-sufficient`) MUST land before the 53 em-dash rows are rewritten — S3 becomes live exactly when those rows migrate off `—` | If skipped, `test-sufficient` accepts empty Proof Method (D-078 violation). Ordering: PR #9 merge → S3 → 53-row rewrite. One-line fix. | phase-1d | 2026-08-08 |
+
+### CAVEATS
+
+a. **PR #9 APPROVED at a42e155 — MERGE GATED TO OPERATOR.** All six mutants dead; 68/68 selftests; 4/4 CI green. No self-approval possible (BI-039/BI-046); operator must execute merge.
+
+b. **S3 sequencing gate (D-100) is load-bearing.** `test-sufficient` currently accepts empty Proof Method. S3 must land BEFORE the 53-row rewrite. One-line fix; do not skip.
+
+c. **spec-lint remains ADVISORY** until the Phase-1 gate; flip to REQUIRED on 3 clean passes with Stories-field carve-out per D-093.
+
+d. **BI-041:** `gen-bc-traceability.py --write` remains PROHIBITED pending adjudication.
+
+e. **D-077 burn-down** must clear before the Phase-1 gate. Remaining: 53 em-dash BLOCKED on PR #9 merge + 25 Stories BLOCKED on PR #9 merge (= 78 `check-placeholders` findings; not a regression).
+
+f. **DD-007 gloss discrepancy** at L2-INDEX.md:131 / BC-2.01.009.md:40,51,57 / prd.md:630,701 is UNADJUDICATED — do NOT fix until adjudicated. Pass-7 intake item.
+
+g. **Never dispatch a burst onto a branch another burst may merge or delete (D-041).**
+
+h. **BI-027 adjudication pending** — 0 FABRICATED remain; formally closed in spec list but blocking issue still open; close or retain in next burst.
+
+i. **BI-046 ESCALATED AS GATE** — separate reviewer identity/token required before Phase 3 story PRs begin; operator infrastructure decision.

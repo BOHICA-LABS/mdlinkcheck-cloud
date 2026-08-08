@@ -1176,4 +1176,56 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 **Dim-7 Attestation:** Agents dispatched this burst: product-owner ×1 (BC-2.10.002 misfiling), product-owner ×1 (EC registry), formal-verifier ×1 (vacuous VPs), product-owner ×1 (prd.md §5b); state-manager for factory-artifacts commit and session wrap.
 
-**Closes:** BI-025 (five vacuous VPs rewritten: VP-015/016/017/019/023; control broken-link fixtures + named falsifying behaviors added; VP-023 kills `classify_url(_) -> Malformed("")`). BI-026 (50 proof-method joins repaired across WS-4 Shards A–E; all BC VP-table rows now consistent with VP-INDEX authority). **Updates:** BI-002 (WS-4 queue CLOSED; 53 em-dash remaining BLOCKED on PR #9 CHANGES-NEEDED; 0 id-resolution; 0 vacuous VP; 0 residual post-D-092). BI-023 (check-id-resolution PASSES 0/134; EC-NEW-* CLOSED; TV-BV013 resolved). **Adds:** D-094.
+---
+
+## Burst: burst-24 — PR #9 B1 Remediation APPROVED at a42e155 (2026-08-08)
+
+**Parent-commit:** `f90d537` (factory(audit): preserve PR #9 review-evidence + gate #30 D-095/D-096/D-097)
+
+**Adversary verdict:** No adversary pass this burst. Session wrap + B1 remediation result recording only. Convergence counter UNCHANGED: 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. Pass 7 DEFERRED (D-095) until PR #9 merged + S3 landed + 53 rows rewritten + burn-down clean.
+
+**Current Phase Steps archival:** The following row (oldest, associated with burst-19) was removed from STATE.md Current Phase Steps to make room for the burst-24 row:
+
+> `| compact-state DONE (a70306d); D-017..D-020 (exhaustive) restored (002111a); BI-040 code-CLOSED on fix/bi-040-primitive-layer (4 commits, NOT merged); BI-044 CLOSED (14 sites); D-088 WS-4 re-derivation COMPLETE (286 actionable); 0 of 3 clean passes | state-manager | COMPLETE | compact-state: 16 CLOSED blockers archived, D-002 superseded decision archived, current_cycle pointer set. D-017..D-020 (exhaustive) restored: 4 decisions absent from Decisions Log reconstructed from prd.md/BC-2.11.002.md, PG-010 filed. BI-040 all 3 stages on branch fix/bi-040-primitive-layer: output-identity byte-exact, 55/55 selftests + 9/9 primitive tests. BI-044 CLOSED (14 sites). BI-043 OPEN (10-file evidence). D-088 WS-4 re-derivation: 286 actionable; 138 dispatchable; BI-040 must MERGE before WS-4 dispatch. |`
+
+PR #9 (`feature/pol14-test-sufficient`) advanced from CHANGES-NEEDED through two additional review cycles to APPROVE:
+
+- **Head 87cefbf** (cycle 1): Original submission. Review found B1 (M4+M8 survive Shape 2 with zero coverage; `is_conforming_vp_cell` → `true` passes all tests), S1 (ATX heading reset incomplete), and others. Verdict: CHANGES-NEEDED. Recorded in `code-delivery/BI-POL14-TEST-SUFFICIENT/pr-review.md` (immutable cycle-1 audit record, 9,627 bytes).
+
+- **Head 55113c4** (cycle 2): Author applied P14-8, P14-9, S1 (partial), raised `EXPECTED_TEST_COUNT` 62→64. Review found S1 fix uncovered (three of four ATX-heading shapes still exempt), and mutations MS1/MX1/MX3/MB survived cycle-2 test suite. Verdict: CHANGES-NEEDED. Recorded in `code-delivery/BI-POL14-TEST-SUFFICIENT/pr-review-55113c4.md`.
+
+- **Head a42e155** (cycle 3): Author applied P14-10/P14-11/P14-12/P14-13, raised `EXPECTED_TEST_COUNT` 64→68, repaired all four ATX-heading shapes. All six mutants (MS1/MX1/MX3/MB/M4/M8) killed guard-independently. 4/4 CI green. Verdict: APPROVE. Recorded in `code-delivery/BI-POL14-TEST-SUFFICIENT/pr-review-a42e155.md`.
+
+All three reviews posted as COMMENTS (not `gh pr review --approve`) due to BI-039 structural constraint. Merge GATED TO OPERATOR — no self-approval possible; operator must execute the merge.
+
+**Actionability pre-check EXECUTED (D-082):** 53 em-dash rows span 33 BC files; exact bijection with VP-INDEX `test-sufficient` classification set (66 BC rows parsed; anti-vacuity perturbation test passed). Rows are ACTIONABLE — no phantom rows.
+
+**S3 sequencing gate identified (D-100):** `test-sufficient` sentinel currently accepts EMPTY Proof Method. S3 (one-line guard: non-empty Proof Method required alongside `test-sufficient`) must land BEFORE the 53-row rewrite, because S3 becomes live exactly when those rows migrate off `—`. Ordering: PR #9 merge → S3 → 53-row rewrite.
+
+**BI-046 escalated as gate (D-097 escalation clause):** Reviewer identity resolution requires separate reviewer identity/token — operator infrastructure decision, not a mechanical fix. REQUIRED before Phase 3 story PRs begin.
+
+**Hook gap noted:** `validate-pr-review-posted` hook fires on literal filename `pr-review.md`; conflicts with multi-cycle immutable-audit convention. Additionally demands `gh pr review --approve|--request-changes` which GitHub structurally CANNOT record on self-authored PRs (BI-039). Hook is a known misfire for this project.
+
+**verify-sha-currency.sh FORMALLY RETIRED (D-099):** Operator ruling. Hook absent from this project; carrying as per-wrap caveat produced no actionable outcome and obscured real gaps. Formal retirement stops it recurring as a per-wrap caveat.
+
+**Codifications:** D-098 (session/burst wrap — D-098 supersedes D-094). D-099 (verify-sha-currency.sh FORMALLY RETIRED). D-100 (S3 before 53-row rewrite — sequencing gate).
+
+**Artifact state at burst close:**
+PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-100 (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045. Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/046.
+
+**Dim-2 Attestation:** No `canonical-facts.toml` mutation this burst. Canonical facts corpus unchanged.
+
+**Dim-5 Attestation:** STATE.md — timestamp 2026-08-08T05:36:00Z, version 3.1, status: draft, producer: state-manager. burst-log.md — 24 bursts. SESSION-HANDOFF.md — D-098 snapshot replaces D-094.
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. PR #9 APPROVED at a42e155 — MERGE GATED TO OPERATOR. 53 em-dash ACTIONABLE (exact bijection VP-INDEX). Next convergence step: operator merge → S3 → rewrite 53 rows → pass 7 (D-095).
+
+**Dim-7 Attestation:** Agents dispatched this burst: code-reviewer ×3 (PR #9 cycles 1-3 review); state-manager for factory-artifacts commit and session wrap.
+
+**Files touched (Dim-1): 5 unique files (factory-artifacts only — no develop-side changes this burst)**
+- `.factory/STATE.md`
+- `.factory/SESSION-HANDOFF.md`
+- `.factory/cycles/phase-1d/burst-log.md`
+- `.factory/code-delivery/BI-POL14-TEST-SUFFICIENT/pr-review-55113c4.md`
+- `.factory/code-delivery/BI-POL14-TEST-SUFFICIENT/pr-review-a42e155.md`
+
+**Closes:** N/A — no blockers closed this burst. **Updates:** BI-002 (PR #9 APPROVED at a42e155 — MERGE GATED TO OPERATOR; 53 em-dash ACTIONABLE; S3 before rewrite (D-100)). BI-023 (BLOCKED on PR #9 OPEN, APPROVED not yet merged). BI-046 (ESCALATED AS GATE per D-097 escalation clause). **Adds:** D-098, D-099, D-100.
