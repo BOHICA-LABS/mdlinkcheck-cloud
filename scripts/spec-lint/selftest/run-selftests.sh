@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=86
+EXPECTED_TEST_COUNT=88
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -5485,6 +5485,140 @@ TV5GBAD
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; valid reason code not flagged; phantom in Reason column detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test EI-5: check-ec-injectivity — Input column IS treated as comparable (BLOCKING-4) ──
+# Proves BLOCKING-4: a TV section whose column 2 header contains "Input" is treated
+# as a comparable description column, so rows in that section ARE compared.
+# Clean: BC description AGREES with TV Input value (high Jaccard) → exit 0
+# Defect: BC description is disjoint from TV Input value → SCENARIO-MISMATCH → exit 1
+# Mutation-verify: reverting the synonym set to only {"description"} makes the Input-section
+#   rows be skipped → clean tree still exits 0 but STRUCTURAL FAIL fires because the
+#   coverage line shows "0 EC citations compared" (no BC-vs-TV comparison took place),
+#   meaning the checker would silently miss real Input-section divergences.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest EI-5: check-ec-injectivity: Input column IS treated as comparable (BLOCKING-4) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/prd-supplements"
+
+# TV: section with Input column (comparable), EC-005 with specific input description
+# Header row required by BLOCKING-1 schema-aware extract_tv_rows
+printf '| TV | EC | Input | Exit | Verdict | Reason |\n|---|---|---|---|---|---|\n| TV-005 | EC-005 | Symlink traversal outside root | 1 | broken | reason |\n' \
+    > "$T/.factory/specs/prd-supplements/test-vectors.md"
+
+# BC: EC-005 with AGREEING description (Jaccard ≥ 0.10)
+# TV: {symlink, traversal, outside, root}, BC: {symlink, traversal, outside, root, boundary}
+# Shared: {symlink, traversal, outside, root} → J = 4/5 = 0.8 → AGREE
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI5-SELFTEST.md" <<'BCEI5CLEAN'
+---
+bc_id: BC-EI5-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-005 | Symlink traversal outside root boundary |
+BCEI5CLEAN
+
+CLEAN_PASS=0
+EI5_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+EI5_CLEAN_EXIT=$?
+if [ "$EI5_CLEAN_EXIT" -eq 0 ]; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on Input-column TV with agreeing BC description"
+    echo "  Output: $EI5_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: change BC to disjoint description (zero token overlap with TV Input value)
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI5-SELFTEST.md" <<'BCEI5BAD'
+---
+bc_id: BC-EI5-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-005 | TLS handshake timeout during certificate chain validation |
+BCEI5BAD
+    EI5_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+    EI5_EXIT=$?
+    if [ "$EI5_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — Input column rows not being compared; synonym set too narrow)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$EI5_OUT" | grep -q "SCENARIO-MISMATCH EC-005"; then
+        echo "  PASS (clean-pass confirmed; Input column rows ARE compared; divergent correctly detected)"
+    else
+        echo "  FAIL (checker exited non-zero but SCENARIO-MISMATCH EC-005 not in output)"
+        echo "  Actual: $EI5_OUT"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test EI-6: check-ec-injectivity — Source MD File column correctly skipped (BLOCKING-4) ──
+# Proves BLOCKING-4: a TV section whose column 2 header is "Source MD File" is treated
+# as non-comparable (filename column), so rows in that section are correctly skipped.
+# Clean: BC cites EC-006, TV has EC-006 in Source MD File section → rows skipped → exit 0
+# Defect: replace TV column header with "Input" (comparable), BC has disjoint description
+#   → rows ARE compared → SCENARIO-MISMATCH EC-006 → exit 1
+# Mutation-verify: treating all columns (including Source MD File) as comparable would
+#   make the clean tree fail (EC-006's source-file value used as description against BC →
+#   zero token overlap → SCENARIO-MISMATCH), firing the STRUCTURAL FAIL assertion.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest EI-6: check-ec-injectivity: Source MD File column correctly skipped (BLOCKING-4) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/prd-supplements"
+
+# TV: section with Source MD File column (non-comparable), EC-006
+# The filename value `test.md` has zero overlap with any meaningful BC scenario prose.
+printf '| TV | EC | Source MD File | Exit | Verdict | Reason |\n|---|---|---|---|---|---|\n| TV-006 | EC-006 | `test.md` | 0 | clean | reason |\n' \
+    > "$T/.factory/specs/prd-supplements/test-vectors.md"
+
+# BC: EC-006 with any description — no comparison because TV rows are skipped
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI6-SELFTEST.md" <<'BCEI6CLEAN'
+---
+bc_id: BC-EI6-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-006 | TLS handshake timeout during certificate chain validation |
+BCEI6CLEAN
+
+CLEAN_PASS=0
+EI6_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+EI6_CLEAN_EXIT=$?
+if [ "$EI6_CLEAN_EXIT" -eq 0 ]; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker fired on Source MD File section — non-comparable rows not skipped"
+    echo "  Output: $EI6_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: change TV column from "Source MD File" to "Input" (comparable) — rows now compared.
+    # BC description is disjoint from TV Input value → SCENARIO-MISMATCH EC-006
+    printf '| TV | EC | Input | Exit | Verdict | Reason |\n|---|---|---|---|---|---|\n| TV-006 | EC-006 | Normal file link traversal without special characters | 0 | clean | reason |\n' \
+        > "$T/.factory/specs/prd-supplements/test-vectors.md"
+    EI6_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+    EI6_EXIT=$?
+    if [ "$EI6_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — Source MD File not correctly skipped, or Input not recognised)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$EI6_OUT" | grep -q "SCENARIO-MISMATCH EC-006"; then
+        echo "  PASS (clean-pass confirmed; Source MD File skipped; Input column correctly compared)"
+    else
+        echo "  FAIL (checker exited non-zero but SCENARIO-MISMATCH EC-006 not in output)"
+        echo "  Actual: $EI6_OUT"
+        FAILURES=$((FAILURES + 1))
     fi
 fi
 rm -rf "$T"

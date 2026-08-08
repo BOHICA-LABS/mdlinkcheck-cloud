@@ -156,25 +156,36 @@ def extract_ec_rows(path: Path) -> list[tuple[str, str, str, int]]:
     return rows
 
 
-def extract_tv_rows(path: Path) -> tuple[list[tuple[str, str, str, int]], int]:
+def extract_tv_rows(path: Path) -> tuple[list[tuple[str, str, str, int]], dict[str, int]]:
     """
     Parse test-vectors.md for EC references.
     Schema-aware: identifies the Description column from each section's header row
-    and skips rows in sections where no Description column exists.
+    and skips rows in sections where no comparable Description column exists.
 
-    Returns (rows, skipped_no_desc_col):
+    Returns (rows, skipped_by_col):
       rows: list of (ec_id, description, verdict_raw, lineno)
-      skipped_no_desc_col: count of TV data rows skipped because their section
-        has no Description column (not comparable to BC citations)
+      skipped_by_col: dict mapping non-comparable column name (or
+        "no-description-column" for sections with no recognised header) to
+        the count of TV data rows skipped.  Used for auditable skip-count
+        reporting in the completeness assertion.
 
     BI-044: EC ID column uses the shared grammar (EC-\d{1,4}[a-z]?) via EC_TOKEN_RE.
     BLOCKING-1: schema-aware column extraction instead of hard-coded column index 3.
+    BLOCKING-4: expanded synonym set — Input and Source MD Content are comparable;
+      Source MD File, Source MD, and Link are non-comparable (filename/URL columns).
     """
     rows: list[tuple[str, str, str, int]] = []
-    skipped_no_desc_col = 0
+    skipped_by_col: dict[str, int] = {}
     lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
 
     current_desc_col: int | None = None  # Description column index for the current section
+    current_skip_col_name: str | None = None  # non-comparable col name for the current section
+
+    # Non-comparable column names (exact match after strip+lower) — these are filename/URL
+    # columns whose values are NOT scenario prose and must not be used for comparison.
+    _NON_COMPARABLE = {"source md file", "source md", "link"}
+    # Comparable scenario-prose keywords (case-insensitive substring match).
+    _COMPARABLE_KEYWORDS = ["description", "input", "source md content", "scenario"]
 
     for lineno, line in enumerate(lines, 1):
         cells = slp.split_table_cells(line)
@@ -192,11 +203,20 @@ def extract_tv_rows(path: Path) -> tuple[list[tuple[str, str, str, int]], int]:
         if (first.upper() in ("TV", "TV ID", "TV-ID")
                 and len(cells) >= 2
                 and cells[1].strip().upper() in ("EC", "EC ID", "EC-ID")):
-            # New table section: scan columns for a Description column (case-insensitive substring)
+            # New table section: scan columns for a comparable Description column.
+            # Non-comparable filename/URL columns are tracked for the audit message.
             current_desc_col = None
+            current_skip_col_name = None
             for i, cell in enumerate(cells):
-                if "description" in cell.strip().lower():
+                h = cell.strip().lower()
+                if h in _NON_COMPARABLE:
+                    # Record the first non-comparable column seen (for audit if no comparable found)
+                    if current_skip_col_name is None:
+                        current_skip_col_name = cell.strip()
+                    continue
+                if any(kw in h for kw in _COMPARABLE_KEYWORDS):
                     current_desc_col = i
+                    current_skip_col_name = None  # found a comparable column — no skip needed
                     break
             continue
 
@@ -210,9 +230,10 @@ def extract_tv_rows(path: Path) -> tuple[list[tuple[str, str, str, int]], int]:
 
         ec_id = cells[1]
 
-        # Skip rows in sections with no Description column (not comparable to BC citations)
+        # Skip rows in sections with no comparable Description column
         if current_desc_col is None or current_desc_col >= len(cells):
-            skipped_no_desc_col += 1
+            skip_key = current_skip_col_name if current_skip_col_name else "no-description-column"
+            skipped_by_col[skip_key] = skipped_by_col.get(skip_key, 0) + 1
             continue
 
         desc = cells[current_desc_col].strip()
@@ -228,7 +249,7 @@ def extract_tv_rows(path: Path) -> tuple[list[tuple[str, str, str, int]], int]:
 
         rows.append((ec_id, desc, verdict_raw, lineno))
 
-    return rows, skipped_no_desc_col
+    return rows, skipped_by_col
 
 
 # ── BC-vs-Registry thresholds (BI-051) ────────────────────────────────────────
@@ -278,7 +299,7 @@ def main() -> int:
     ec_map: dict[str, list[tuple[str, str, str, int]]] = defaultdict(list)
 
     tv_file_str = str(TV_FILE)
-    total_tv_skipped = 0  # count of TV rows skipped due to no Description column
+    total_tv_skipped_by_col: dict[str, int] = {}  # col_name → rows skipped (BLOCKING-4)
 
     for md_file in sorted(SPECS.rglob("*.md")):
         files_scanned += 1
@@ -287,9 +308,10 @@ def main() -> int:
             for ec_id, desc, verdict, lineno in extract_ec_rows(md_file):
                 ec_map[ec_id].append((str(md_file), desc, verdict, lineno))
         elif md_file == TV_FILE:
-            # test-vectors.md: scan for TV rows (schema-aware, BLOCKING-1)
-            tv_rows, tv_skipped = extract_tv_rows(md_file)
-            total_tv_skipped += tv_skipped
+            # test-vectors.md: scan for TV rows (schema-aware, BLOCKING-1/4)
+            tv_rows, tv_skipped_by_col = extract_tv_rows(md_file)
+            for col_name, cnt in tv_skipped_by_col.items():
+                total_tv_skipped_by_col[col_name] = total_tv_skipped_by_col.get(col_name, 0) + cnt
             for ec_id, desc, verdict, lineno in tv_rows:
                 ec_map[ec_id].append((tv_file_str, desc, verdict, lineno))
         # other spec files: no EC citations expected; just counted for completeness
@@ -458,9 +480,18 @@ def main() -> int:
         if files_scanned == total_files
         else f"INCOMPLETE — only {files_scanned} of {total_files} scanned"
     )
+    total_tv_skipped = sum(total_tv_skipped_by_col.values())
+    if total_tv_skipped_by_col:
+        skip_parts = ", ".join(
+            f"{name} \xd7{cnt}"
+            for name, cnt in sorted(total_tv_skipped_by_col.items())
+        )
+        skip_msg = f"{total_tv_skipped} non-comparable TV rows skipped (sections: {skip_parts})"
+    else:
+        skip_msg = "0 non-comparable TV rows skipped"
     print(
         f"\n{registry_citations} EC citations compared "
-        f"({total_tv_skipped} non-comparable TV rows skipped — no Description column) "
+        f"({skip_msg}) "
         f"across {files_scanned} of {total_files} spec files ({completeness}), "
         f"{len(registry_divergent)} divergent, {len(registry_adjudication)} require adjudication"
     )
