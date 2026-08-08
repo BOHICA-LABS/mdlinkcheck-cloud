@@ -218,18 +218,30 @@ def _is_reason_code_candidate(code: str) -> bool:
     return True
 
 
+# Pattern for positional reason-code detection in prose (BLOCKING-3):
+# A backtick-quoted token is a reason-code candidate in prose ONLY when it
+# appears immediately after one of these trigger phrases:
+#   1. "reason code `...`"
+#   2. "reason: `...`"    (YAML-style inline)
+#   3. "sub_reason `...`"
+_PROSE_REASON_CODE_RE = re.compile(
+    r"(?i)(?:reason\s+code|reason:|sub_reason)\s+`([A-Za-z][A-Za-z0-9-]{2,})`"
+)
+
+
 def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[str], int]:
     """
     POLICY 19: check any spec file (non-ADR) for reason code violations.
     Returns (violations, occurrences_count).
 
     Detection patterns:
-      Pattern 1: backtick-quoted codes with keyword-in-line context guard.
-                 _is_reason_code_candidate() filters out CLI flags and spec ref IDs.
+      Pattern 1: backtick-quoted codes with POSITIONAL predicate (BLOCKING-3):
+                 - In table rows: only the column whose header is 'Reason' or 'Reason Code'
+                 - In prose: only tokens immediately after 'reason code', 'reason:', 'sub_reason'
       Pattern 2: verdict + parenthetical "broken (malformed-fragment)"
       Pattern 3: taxonomy-reference "(consistent with E-CLI-001 taxonomy)"
 
-    All three patterns apply _is_reason_code_candidate() to exclude spec reference
+    All three patterns now apply _is_reason_code_candidate() to exclude spec reference
     IDs (D-018, DI-010, EC-123) and CLI flags (BLOCKING-2).
 
     Position-based predicate (D-081): YAML frontmatter is excluded from scanning.
@@ -246,6 +258,11 @@ def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[s
     in_frontmatter = False
     frontmatter_closed = False
     dash_count = 0
+
+    # Pattern 1 state: track which column is the Reason column in the current table section.
+    # Updated when a header row is encountered that contains a 'Reason' or 'Reason Code' cell.
+    # (BLOCKING-3 positional predicate — position 1: table Reason column)
+    current_reason_col_p1: int | None = None
 
     for lineno, line in enumerate(lines, 1):
         stripped = line.strip()
@@ -269,29 +286,78 @@ def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[s
         if in_frontmatter:
             continue
 
+        # Parse table structure for Pattern 1 positional predicate
+        cells = slp.split_table_cells(line)
+        is_table_line = bool(cells)
+
+        # Section-boundary reset: when we leave a table (any non-table line — blank,
+        # prose, heading, HR `---`), clear the Reason column tracking. The next table
+        # section's header will set it fresh. Prevents a §2 "Reason" column index from
+        # bleeding into an adjacent §3 "Notes" column (different schema). (BLOCKING-3)
+        if not is_table_line:
+            current_reason_col_p1 = None
+
+        if is_table_line and not slp.is_table_separator_row(cells):
+            # Check if this is a table header row (contains a 'Reason' or 'Reason Code' cell)
+            found_reason_col = None
+            for i, cell in enumerate(cells):
+                if cell.lower() in ("reason", "reason code"):
+                    found_reason_col = i
+                    break
+            if found_reason_col is not None:
+                # Update Reason column tracking for subsequent data rows
+                current_reason_col_p1 = found_reason_col
+
         # Per-line deduplication: avoid double-counting same code on same line
         seen_codes_this_line: set[str] = set()
 
-        # ── Pattern 1: backtick-quoted codes (BLOCKING-2: uses _is_reason_code_candidate) ──
-        for m in re.finditer(r"`([A-Za-z][A-Za-z0-9-]{2,})`", line):
-            code = m.group(1)
-            if code in seen_codes_this_line:
-                continue
-            if not _is_reason_code_candidate(code):
-                continue
-            # Context guard: only flag if the line discusses reason codes / verdicts / errors
-            context = line.lower()
-            if not any(kw in context for kw in (
-                "reason", "verdict", "broken", "exit", "error", "taxonomy", "indeterminate"
-            )):
-                continue
-            seen_codes_this_line.add(code)
-            occurrences += 1
-            if code not in valid_reason_codes:
-                violations.append(
-                    f"{path}:{lineno}: reason code '{code}' not in closed taxonomy (POLICY 19)\n"
-                    f"  {line.strip()[:100]}"
-                )
+        # ── Pattern 1: positional predicate (BLOCKING-3) ─────────────────────────
+        # Replaces the broad keyword-in-line context guard with position-based detection.
+        # Only tokens in syntactic reason-code positions are candidates.
+        if is_table_line:
+            # Table row: only scan the Reason column cell (if known and this is a data row)
+            is_header_row = any(cell.lower() in ("reason", "reason code") for cell in cells)
+            if (not is_header_row
+                    and not slp.is_table_separator_row(cells)
+                    and current_reason_col_p1 is not None
+                    and current_reason_col_p1 < len(cells)):
+                reason_cell = cells[current_reason_col_p1]
+                # Simple-value guard (BLOCKING-3 repair): only check cells whose entire
+                # content is a single lowercase hyphenated token (optionally in backticks).
+                # Long notes cells (library names, anchor slug examples, explanatory text)
+                # are excluded — they are not in a syntactic reason-code position even
+                # though they share the Reason column. Matches: `file-not-found`, dns-failure.
+                # Does NOT match: "CommonMark ... `pulldown-cmark` handles correctly",
+                # "`foo-1`; `Foo-1` normalizes", or any cell with spaces.
+                m_simple = re.fullmatch(r"`?([a-z][a-z0-9-]{2,})`?", reason_cell.strip())
+                if m_simple:
+                    code = m_simple.group(1)
+                    if code not in seen_codes_this_line and _is_reason_code_candidate(code):
+                        seen_codes_this_line.add(code)
+                        occurrences += 1
+                        if code not in valid_reason_codes:
+                            violations.append(
+                                f"{path}:{lineno}: reason code '{code}' not in closed taxonomy "
+                                f"(POLICY 19)\n"
+                                f"  {line.strip()[:100]}"
+                            )
+        else:
+            # Prose line: use positional patterns (BLOCKING-3 positions 2 and 3)
+            # Matches: "reason code `X`", "reason: `X`", "sub_reason `X`"
+            for m in _PROSE_REASON_CODE_RE.finditer(line):
+                code = m.group(1)
+                if code in seen_codes_this_line:
+                    continue
+                if not _is_reason_code_candidate(code):
+                    continue
+                seen_codes_this_line.add(code)
+                occurrences += 1
+                if code not in valid_reason_codes:
+                    violations.append(
+                        f"{path}:{lineno}: reason code '{code}' not in closed taxonomy "
+                        f"(POLICY 19)\n"
+                        f"  {line.strip()[:100]}"
+                    )
 
         # ── Pattern 2: verdict + parenthetical reason code ────────────────────────
         # BLOCKING-2: apply _is_reason_code_candidate() to exclude spec ref IDs (D-018, DI-010)

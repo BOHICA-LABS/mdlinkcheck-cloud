@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=84
+EXPECTED_TEST_COUNT=86
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -5367,6 +5367,128 @@ BC5EBAD
     fi
 fi
 rm -rf "$T"
+
+# ── Test 5f: check-adr-consistency — macos-latest near broken keyword NOT flagged (BLOCKING-3) ──
+# Proves BLOCKING-3: Pattern 1 uses a positional predicate — backtick-quoted tokens on lines
+# containing keyword "broken" are NOT flagged unless they appear in one of the three
+# positional reason-code contexts (table Reason column, "reason code `...`", "reason: `...`").
+# This eliminates false positives for infrastructure tokens like macos-latest, Retry-After,
+# test-sufficient, and anchor slugs that happen to appear near verdict keywords.
+#
+# Clean tree: BC body with "`macos-latest`" on a line that also contains "broken" —
+#   NOT in positional context → must NOT be flagged
+# Defect tree: append Pattern 2 line with genuine phantom code → must BE flagged
+# Mutation-verify: reverting to keyword-in-line guard makes the clean tree fail (macos-latest
+#   on a line with "broken" gets flagged as phantom), firing STRUCTURAL FAIL → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5f: check-adr-consistency: macos-latest near broken keyword NOT flagged (BLOCKING-3) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5F'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `connection-timeout` | Connection timed out |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5F
+
+# Clean tree: macos-latest on a line containing "broken" — not in positional reason-code context
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-SELFTEST-5F.md" <<'BC5FCLEAN'
+---
+bc_id: BC-SELFTEST-5F
+modified: []
+---
+## Invariants
+1. The CI runner uses `macos-latest` image for broken link detection tests.
+2. Exit code 1 indicates broken links with reason `file-not-found`.
+BC5FCLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker flagged macos-latest near broken keyword — positional predicate not working"
+    ST5F_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    echo "  Output: $ST5F_CLEAN"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: append Pattern 2 line with genuine phantom reason code
+    printf '3. Exit code 2 occurs for broken (phantom-runner) configuration errors.\n' \
+        >> "$T/.factory/specs/behavioral-contracts/ss-01/BC-SELFTEST-5F.md"
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch phantom reason code in verdict+paren context)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; macos-latest not flagged; phantom-runner correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5g: check-adr-consistency — genuine reason code in Reason table column IS detected ──
+# Proves BLOCKING-3 Pattern 1 (table mode): a phantom reason code in a table's Reason column
+# IS detected; a valid reason code in the Reason column is NOT flagged.
+# The positional predicate correctly targets the Reason column cell and skips all other cells.
+#
+# Clean tree: table with a Reason column header; data row with valid `file-not-found` → exit 0
+# Defect tree: replace valid code with `phantom-reason` in Reason column → exit 1
+# Mutation-verify: removing the Reason-column tracking from Pattern 1 makes the defect tree
+#   exit 0 (phantom not detected), firing the defect-fail assertion → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5g: check-adr-consistency: phantom reason code in Reason table column detected ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5G'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `connection-timeout` | Connection timed out |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5G
+
+# Clean tree: test-vectors table with Reason column containing a valid reason code
+cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TV5GCLEAN'
+## §1. Test Vectors
+
+| TV-ID | EC-ID | Verdict | Reason |
+|-------|-------|---------|--------|
+| TV-001 | EC-001 | broken | `file-not-found` |
+TV5GCLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker flagged valid reason code in Reason table column"
+    ST5G_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    echo "  Output: $ST5G_CLEAN"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: replace valid reason code with phantom in Reason column
+    cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TV5GBAD'
+## §1. Test Vectors
+
+| TV-ID | EC-ID | Verdict | Reason |
+|-------|-------|---------|--------|
+| TV-001 | EC-001 | broken | `phantom-reason` |
+TV5GBAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch phantom reason code in Reason column)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; valid reason code not flagged; phantom in Reason column detected)"
+    fi
+fi
+rm -rf "$T"
+
 # ── Post-test structural guards ────────────────────────────────────────────
 echo ""
 if [ "$TESTS_RUN" -ne "$EXPECTED_TEST_COUNT" ]; then
