@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -68,7 +68,7 @@ entered the scan set.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | --ignore wins over explicit PATH | unit test |
+| test-sufficient | --ignore wins over explicit PATH | unit test |
 
 ## Traceability
 | Field | Value |

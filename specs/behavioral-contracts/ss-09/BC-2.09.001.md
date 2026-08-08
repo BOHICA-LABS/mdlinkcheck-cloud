@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -71,8 +71,8 @@ syntactic correctness using the WHATWG URL parser. A URL that fails WHATWG parse
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | WHATWG-invalid URLs → malformed-url in offline mode | unit test |
-| — | No HTTP requests in offline mode | unit test |
+| test-sufficient | WHATWG-invalid URLs → malformed-url in offline mode | unit test |
+| test-sufficient | No HTTP requests in offline mode | unit test |
 
 ## Traceability
 | Field | Value |

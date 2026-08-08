@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -75,8 +75,8 @@ rejects, or empty patterns (implementation must define empty-glob behavior).
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Invalid glob exits 2 before any traversal | unit test |
-| — | Error message includes offending pattern | unit test |
+| test-sufficient | Invalid glob exits 2 before any traversal | unit test |
+| test-sufficient | Error message includes offending pattern | unit test |
 
 ## Traceability
 | Field | Value |

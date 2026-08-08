@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -80,8 +80,8 @@ DNS-level error), a GET request is attempted. The final verdict is based on the 
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | GET fallback on exactly {400,403,404,405,501,999} + transport | unit test with mock HTTP |
-| — | No GET fallback on 200 | unit test |
+| test-sufficient | GET fallback on exactly {400,403,404,405,501,999} + transport | unit test with mock HTTP |
+| test-sufficient | No GET fallback on 200 | unit test |
 
 ## Traceability
 | Field | Value |

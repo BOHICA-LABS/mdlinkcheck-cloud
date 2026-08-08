@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.7"
+version: "1.8"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -73,8 +73,8 @@ trigger false exits.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | --help exits 0 without scanning | integration test |
-| — | --version output matches Cargo.toml version | integration test |
+| test-sufficient | --help exits 0 without scanning | integration test |
+| test-sufficient | --version output matches Cargo.toml version | integration test |
 
 ## Traceability
 | Field | Value |

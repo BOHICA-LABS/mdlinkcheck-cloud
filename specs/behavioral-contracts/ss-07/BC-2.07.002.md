@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -70,8 +70,8 @@ fallback.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Root-relative resolved from git root | integration test |
-| — | Fallback works in non-git directory | integration test |
+| test-sufficient | Root-relative resolved from git root | integration test |
+| test-sufficient | Fallback works in non-git directory | integration test |
 
 ## Traceability
 | Field | Value |

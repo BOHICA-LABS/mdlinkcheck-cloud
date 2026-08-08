@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -67,8 +67,8 @@ share one 10-second budget).
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Timeout after 10s produces http-timeout | unit test with mock slow server |
-| — | http-timeout is indeterminate not broken | unit test |
+| test-sufficient | Timeout after 10s produces http-timeout | unit test with mock slow server |
+| test-sufficient | http-timeout is indeterminate not broken | unit test |
 
 ## Traceability
 | Field | Value |

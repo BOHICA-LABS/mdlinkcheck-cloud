@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -70,8 +70,8 @@ a usage error.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Invalid --format value → exit 2 | unit test |
-| — | Last --format wins when repeated | unit test |
+| test-sufficient | Invalid --format value → exit 2 | unit test |
+| test-sufficient | Last --format wins when repeated | unit test |
 
 ## Traceability
 | Field | Value |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -71,7 +71,7 @@ This is R1's "default `.`" behavior.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Scan always terminates for finite inputs | proptest (bounded depth + symlink cycle) |
+| test-sufficient | Scan always terminates for finite inputs | proptest (bounded depth + symlink cycle) |
 
 ## Traceability
 | Field | Value |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -93,7 +93,7 @@ than each triggering an independent pause cycle.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Request count equals number of unique normalized URLs, not occurrences | integration test with httpmock request counter |
+| test-sufficient | Request count equals number of unique normalized URLs, not occurrences | integration test with httpmock request counter |
 
 ## Related BCs
 - BC-2.10.001: defines the fetch protocol used for the single request

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -73,8 +73,8 @@ an explicit non-goal (D-011). Indeterminate findings do NOT count toward N.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Summary on stderr, findings on stdout | integration test (separate streams) |
-| — | Summary always emitted (no suppression flag) | integration test |
+| test-sufficient | Summary on stderr, findings on stdout | integration test (separate streams) |
+| test-sufficient | Summary always emitted (no suppression flag) | integration test |
 
 ## Traceability
 | Field | Value |

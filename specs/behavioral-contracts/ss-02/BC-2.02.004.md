@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -63,7 +63,7 @@ regardless of its extension. Explicit intent overrides the extension filter appl
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Explicit non-.md args are parsed | unit test |
+| test-sufficient | Explicit non-.md args are parsed | unit test |
 
 ## Traceability
 | Field | Value |

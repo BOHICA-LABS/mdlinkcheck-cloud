@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.1"
+version: "1.2"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -63,7 +63,7 @@ Directory symlinks are never followed (BC-2.01.004).
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Dangling symlink always produces broken-symlink reason | unit test |
+| test-sufficient | Dangling symlink always produces broken-symlink reason | unit test |
 
 ## Traceability
 | Field | Value |

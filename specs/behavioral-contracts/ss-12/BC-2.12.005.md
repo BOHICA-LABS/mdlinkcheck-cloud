@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -75,8 +75,8 @@ contamination.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | No finding lines on stderr | integration test (capture stderr; assert no finding-line pattern) |
-| — | Summary never appears on stdout | integration test (capture stdout; assert no summary pattern) |
+| test-sufficient | No finding lines on stderr | integration test (capture stderr; assert no finding-line pattern) |
+| test-sufficient | Summary never appears on stdout | integration test (capture stdout; assert no summary pattern) |
 
 ## Traceability
 | Field | Value |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -83,8 +83,8 @@ to code files, images, PDFs, or any other non-Markdown file.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Non-.md file targets never trigger anchor_resolver | unit test (routing verification) |
-| — | Fragment on non-.md file never produces anchor-not-found | unit test (EC-072, EC-073) |
+| test-sufficient | Non-.md file targets never trigger anchor_resolver | unit test (routing verification) |
+| test-sufficient | Fragment on non-.md file never produces anchor-not-found | unit test (EC-072, EC-073) |
 
 ## Traceability
 | Field | Value |

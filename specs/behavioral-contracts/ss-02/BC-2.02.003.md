@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -64,7 +64,7 @@ and the scan continues for all other files. The run will ultimately exit 2 due t
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Non-UTF-8 file produces target-unreadable; scan continues | unit test |
+| test-sufficient | Non-UTF-8 file produces target-unreadable; scan continues | unit test |
 
 ## Traceability
 | Field | Value |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -82,8 +82,8 @@ Private/link-local ranges checked (non-exhaustive; implementation must cover at 
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Private-IP URLs never produce outbound HTTP requests | unit test (mock DNS resolver returns private IP; assert no socket open) |
-| — | Private-IP verdict is indeterminate, not broken | unit test |
+| test-sufficient | Private-IP URLs never produce outbound HTTP requests | unit test (mock DNS resolver returns private IP; assert no socket open) |
+| test-sufficient | Private-IP verdict is indeterminate, not broken | unit test |
 
 ## Traceability
 | Field | Value |

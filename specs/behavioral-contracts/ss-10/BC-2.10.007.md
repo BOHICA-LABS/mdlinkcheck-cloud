@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -72,8 +72,8 @@ upgrades are followed. HTTPS→HTTP downgrades produce `indeterminate` with a wa
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | >10 redirects → too-many-redirects | unit test |
-| — | HTTPS→HTTP downgrade → indeterminate | unit test |
+| test-sufficient | >10 redirects → too-many-redirects | unit test |
+| test-sufficient | HTTPS→HTTP downgrade → indeterminate | unit test |
 
 ## Traceability
 | Field | Value |

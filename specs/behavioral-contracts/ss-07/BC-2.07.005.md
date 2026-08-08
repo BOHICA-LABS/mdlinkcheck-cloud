@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -84,8 +84,8 @@ for directory targets. `path_resolver.rs` owns this routing decision.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Plain directory link (no fragment) → clean | unit test |
-| — | Directory link with fragment → broken (target-is-directory) | unit test |
+| test-sufficient | Plain directory link (no fragment) → clean | unit test |
+| test-sufficient | Directory link with fragment → broken (target-is-directory) | unit test |
 
 ## Traceability
 | Field | Value |

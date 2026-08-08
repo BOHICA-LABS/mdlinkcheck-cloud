@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -67,8 +67,8 @@ explicit scope decision (DD-009), documented as a known limitation.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Bare URLs in prose produce zero findings | unit test |
-| — | Angle-bracket autolinks produce external-URL findings | unit test |
+| test-sufficient | Bare URLs in prose produce zero findings | unit test |
+| test-sufficient | Angle-bracket autolinks produce external-URL findings | unit test |
 
 ## Traceability
 | Field | Value |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.3"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -92,8 +92,8 @@ cohesion.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | BOM-stripped and non-BOM files produce identical (line, column) findings | unit test |
-| — | scanner.rs produces clean string (no BOM/CRLF) before parser invocation | unit test (inspect string at scanner.rs boundary) |
+| test-sufficient | BOM-stripped and non-BOM files produce identical (line, column) findings | unit test |
+| test-sufficient | scanner.rs produces clean string (no BOM/CRLF) before parser invocation | unit test (inspect string at scanner.rs boundary) |
 
 ## Traceability
 | Field | Value |

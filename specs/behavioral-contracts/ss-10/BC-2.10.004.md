@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -87,8 +87,8 @@ URL that triggered the 429 receives verdict `indeterminate (http-indeterminate)`
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | 429 triggers host pause per Retry-After | unit test with mock HTTP |
-| — | Only the 429 host is paused | unit test |
+| test-sufficient | 429 triggers host pause per Retry-After | unit test with mock HTTP |
+| test-sufficient | Only the 429 host is paused | unit test |
 
 ## Traceability
 | Field | Value |

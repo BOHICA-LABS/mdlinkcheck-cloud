@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -78,8 +78,8 @@ mock server), not internal thread counts or pool sizes.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Per-host limit enforced: mock server observes ≤ 4 concurrent connections | integration (mock HTTP server counting concurrent connections) |
-| — | Global limit enforced: total concurrent connections ≤ 32 | integration (multi-host mock) |
+| test-sufficient | Per-host limit enforced: mock server observes ≤ 4 concurrent connections | integration (mock HTTP server counting concurrent connections) |
+| test-sufficient | Global limit enforced: total concurrent connections ≤ 32 | integration (multi-host mock) |
 
 ## Traceability
 | Field | Value |

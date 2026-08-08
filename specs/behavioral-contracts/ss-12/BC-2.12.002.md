@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -71,8 +71,8 @@ in red, indeterminate findings in yellow, file path in bold.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | NO_COLOR suppresses ANSI codes | integration test |
-| — | Piped output has no ANSI codes by default | integration test |
+| test-sufficient | NO_COLOR suppresses ANSI codes | integration test |
+| test-sufficient | Piped output has no ANSI codes by default | integration test |
 
 ## Traceability
 | Field | Value |

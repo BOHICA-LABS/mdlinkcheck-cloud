@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -70,7 +70,7 @@ by binary-searching a precomputed array of line-start byte positions.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| — | Line numbers are identical for LF and CRLF equivalents | property test |
+| test-sufficient | Line numbers are identical for LF and CRLF equivalents | property test |
 
 ## Traceability
 | Field | Value |
