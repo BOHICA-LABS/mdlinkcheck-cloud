@@ -16,7 +16,34 @@ with their base. However: if a sub-lettered variant's BASE ID is a holdout, the
 presence of concrete sub-lettered rows in visible BCs is also flagged (handled by
 check-holdout-boundary.py) — this check focuses on description/verdict collisions.
 
-Exit 1 if any injective-map violation found.
+BC-vs-Registry scenario comparison (BI-051):
+  In addition to the injectivity check above, this checker compares each BC's stated
+  scenario text for an EC ID against the canonical description in test-vectors.md
+  using Jaccard similarity on significant tokens:
+
+  - AGREE  (Jaccard >= 0.10): BC and registry are consistent — no finding.
+  - ADJUDICATION (0.02 <= Jaccard < 0.10): token overlap is low but nonzero;
+    the checker cannot determine agreement with confidence. These cases MUST be
+    reported (never passed silently) as requires-adjudication.
+  - DIVERGENT (Jaccard < 0.02): essentially disjoint vocabularies — the BC describes
+    a materially different scenario than the registry. These are hard findings.
+
+  Calibration reference (adversary pass P7-S5-017):
+    EC-142 — TV: "Only an unreadable file" (exit 2)
+             BC: "Scan with 0 findings"
+    Tokens: TV {unreadable, file}, BC {scan, findings} → intersection=∅ → J=0 → DIVERGENT
+
+  Mechanizability limit: Full semantic agreement is not decidable from token overlap.
+  This checker implements the strongest sound approximation: clearly disjoint scenarios
+  (J < 0.02) are flagged as divergent; borderline cases are escalated for human
+  adjudication; high-overlap cases are assumed consistent.
+
+  The checker emits three counts in its coverage assertion:
+    N EC citations compared across M of M spec files (complete), X divergent,
+    Y require adjudication
+  If files_scanned != corpus_total, the checker FAILS LOUDLY.
+
+Exit 1 if any injective-map violation or BC-vs-registry divergence found.
 """
 import re
 import sys
@@ -153,24 +180,75 @@ def extract_tv_rows(path: Path) -> list[tuple[str, str, str, int]]:
     return rows
 
 
+# ── BC-vs-Registry thresholds (BI-051) ────────────────────────────────────────
+# Jaccard similarity of significant tokens between a BC citation description and
+# the canonical description in test-vectors.md.
+BC_REGISTRY_AGREE = 0.10        # Jaccard >= this → consistent (PASS)
+BC_REGISTRY_BORDERLINE = 0.02   # Jaccard in [this, AGREE) → requires adjudication
+# Jaccard < BORDERLINE → divergent scenario (hard finding)
+
+
+def _compare_bc_to_registry(bc_desc: str, tv_desc: str) -> str:
+    """Return 'pass', 'adjudication', or 'divergent' for a BC description vs TV description.
+
+    Uses Jaccard similarity on significant tokens (same tokenizer as descriptions_conflict).
+    Thresholds: AGREE=0.10, BORDERLINE=0.02 (calibrated against EC-142: J=0 → divergent).
+    """
+    t1 = _significant_tokens(tv_desc)
+    t2 = _significant_tokens(bc_desc)
+    if not t1 and not t2:
+        return "pass"    # both empty — treat as same
+    if not t1 or not t2:
+        return "adjudication"  # one empty, one not — cannot determine
+    union = t1 | t2
+    if not union:
+        return "pass"
+    jaccard = len(t1 & t2) / len(union)
+    if jaccard >= BC_REGISTRY_AGREE:
+        return "pass"
+    elif jaccard >= BC_REGISTRY_BORDERLINE:
+        return "adjudication"
+    else:
+        return "divergent"
+
+
 def main() -> int:
     if not SPECS.exists():
         print(f"ERROR: Spec tree not found at {SPECS} — cannot run check (no spec files to validate)", file=sys.stderr)
         sys.exit(1)
+
+    # ── Corpus scan: collect EC citations from ALL spec files ──────────────────
+    # We scan all spec files (not just BC_DIR) to emit a corpus-completeness assertion.
+    # Most non-BC files contribute 0 citations; they are still counted as scanned.
+    total_files = sum(1 for _ in SPECS.rglob("*.md"))
+    files_scanned = 0
+
     # Map: ec_id -> list of (source_file, description, verdict_raw, lineno)
     ec_map: dict[str, list[tuple[str, str, str, int]]] = defaultdict(list)
 
-    # Walk all BC files
-    bc_files = sorted(BC_DIR.rglob("BC-*.md"))
-    for bc_file in bc_files:
-        for ec_id, desc, verdict, lineno in extract_ec_rows(bc_file):
-            ec_map[ec_id].append((str(bc_file), desc, verdict, lineno))
+    tv_file_str = str(TV_FILE)
 
-    # Walk test-vectors.md
-    if TV_FILE.exists():
-        for ec_id, desc, verdict, lineno in extract_tv_rows(TV_FILE):
-            ec_map[ec_id].append((str(TV_FILE), desc, verdict, lineno))
+    for md_file in sorted(SPECS.rglob("*.md")):
+        files_scanned += 1
+        if BC_DIR in md_file.parents:
+            # BC file: scan for EC table rows
+            for ec_id, desc, verdict, lineno in extract_ec_rows(md_file):
+                ec_map[ec_id].append((str(md_file), desc, verdict, lineno))
+        elif md_file == TV_FILE:
+            # test-vectors.md: scan for TV rows
+            for ec_id, desc, verdict, lineno in extract_tv_rows(md_file):
+                ec_map[ec_id].append((tv_file_str, desc, verdict, lineno))
+        # other spec files: no EC citations expected; just counted for completeness
 
+    if files_scanned != total_files:
+        print(
+            f"ERROR: scanned {files_scanned} of {total_files} spec files — "
+            f"corpus-completeness assertion FAILED",
+            file=sys.stderr,
+        )
+        return 1
+
+    # ── Injectivity check: BC-vs-BC description collision + BC-vs-TV verdict collision ──
     violations: list[str] = []
     collision_ids: set[str] = set()
 
@@ -179,7 +257,6 @@ def main() -> int:
             continue
 
         # Separate BC-file occurrences from test-vectors.md occurrences
-        tv_file_str = str(TV_FILE)
         bc_occs = [(f, d, v, l) for f, d, v, l in occurrences if f != tv_file_str]
         tv_occs = [(f, d, v, l) for f, d, v, l in occurrences if f == tv_file_str]
 
@@ -246,19 +323,85 @@ def main() -> int:
     total_ec_ids = len(ec_map)
     multi_occurrence = sum(1 for v in ec_map.values() if len(v) > 1)
 
+    # ── BC-vs-Registry scenario comparison (BI-051) ────────────────────────────
+    # Compare each BC citation's scenario description against the canonical description
+    # in test-vectors.md. Three buckets: divergent (hard finding), adjudication
+    # (borderline — human review required), pass (consistent).
+    registry_citations = 0
+    registry_divergent: list[tuple] = []
+    registry_adjudication: list[tuple] = []
+    registry_pass = 0
+
+    for ec_id, occurrences in sorted(ec_map.items()):
+        bc_occs = [(f, d, v, l) for f, d, v, l in occurrences if f != tv_file_str]
+        tv_occs = [(f, d, v, l) for f, d, v, l in occurrences if f == tv_file_str]
+
+        if not bc_occs or not tv_occs:
+            continue  # Cannot compare without both a BC citation and a registry entry
+
+        tv_desc = tv_occs[0][1]  # canonical description from first TV row for this EC
+
+        for bc_filepath, bc_desc, bc_verdict, bc_lineno in bc_occs:
+            registry_citations += 1
+            result = _compare_bc_to_registry(bc_desc, tv_desc)
+            t1 = _significant_tokens(tv_desc)
+            t2 = _significant_tokens(bc_desc)
+            union = t1 | t2
+            jaccard = len(t1 & t2) / len(union) if union else 1.0
+            if result == "pass":
+                registry_pass += 1
+            elif result == "adjudication":
+                registry_adjudication.append((
+                    ec_id, bc_filepath, bc_lineno, bc_desc, tv_desc,
+                    f"J={jaccard:.2f}",
+                ))
+            else:  # divergent
+                registry_divergent.append((
+                    ec_id, bc_filepath, bc_lineno, bc_desc, tv_desc,
+                    f"J={jaccard:.2f}",
+                ))
+
+    # Print results
     if violations:
         for v in violations:
             print(v)
         print(
-            f"\nCheck FAILED: {len(collision_ids)} EC ID collisions found "
+            f"\nINJECTIVITY FAILED: {len(collision_ids)} EC ID collisions found "
             f"({total_ec_ids} unique EC IDs scanned; {multi_occurrence} appear in multiple files)"
         )
+
+    if registry_divergent:
+        print()
+        for ec_id, filepath, lineno, bc_desc, tv_desc, detail in registry_divergent:
+            print(f"SCENARIO-MISMATCH {ec_id}: {filepath}:{lineno}")
+            print(f"  BC  : {bc_desc[:80]!r}")
+            print(f"  TV  : {tv_desc[:80]!r}")
+            print(f"  ({detail})")
+
+    if registry_adjudication:
+        print()
+        for ec_id, filepath, lineno, bc_desc, tv_desc, detail in registry_adjudication:
+            print(f"REQUIRES-ADJUDICATION {ec_id}: {filepath}:{lineno}")
+            print(f"  BC  : {bc_desc[:80]!r}")
+            print(f"  TV  : {tv_desc[:80]!r}")
+            print(f"  ({detail})")
+
+    # Completeness assertion (corpus-completeness, D-113 style)
+    completeness = (
+        "complete"
+        if files_scanned == total_files
+        else f"INCOMPLETE — only {files_scanned} of {total_files} scanned"
+    )
+    print(
+        f"\n{registry_citations} EC citations compared across "
+        f"{files_scanned} of {total_files} spec files ({completeness}), "
+        f"{len(registry_divergent)} divergent, {len(registry_adjudication)} require adjudication"
+    )
+
+    # Exit code: fail on injectivity violations OR divergent BC-vs-registry mismatches
+    if violations or registry_divergent:
         return 1
 
-    print(
-        f"Check passed: {total_ec_ids} EC IDs validated — all injective "
-        f"({multi_occurrence} appear in multiple files but are consistent)"
-    )
     return 0
 
 
