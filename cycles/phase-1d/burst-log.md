@@ -1328,3 +1328,45 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 - `.factory/cycles/phase-1d/burst-log.md`
 
 **Closes:** D-077 burn-down CLOSED (check-placeholders=0). **Updates:** BI-002 (PR #10 MERGED f8ee4eb; 53-row rewrite COMPLETE 671109d; D-077 CLEAR; full spec-lint GREEN 9/9; pass 7 ARMED-GATED D-095). BI-023 (PR #10 MERGED f8ee4eb; S3/D-100 live; 53-row rewrite COMPLETE; check-placeholders=0; D-077 CLEAR; full spec-lint GREEN 9/9). **Adds:** D-106, D-107, D-108, D-109.
+
+---
+
+## Burst-27 — Pass 7 Authorization + BI-047 + D-108 Scope Correction
+
+*2026-08-08 — state-manager. Single-commit burst TD-VSDD-053. Supersedes D-106 with D-110.*
+
+**Trigger:** Session wrap at context ceiling (~420K/430K); pass-7 authorization (gate #31) recorded with freeze anchors; new blocking issue BI-047 discovered (EXCLUDE_PATHS skip-set; D-039 class); D-108 burn-down zero scope-corrected.
+
+**Agent dispatches this burst:** state-manager only. No spec agents dispatched. No adversary pass dispatched. No develop-side changes.
+
+### Events
+
+**Gate #31 — Pass 7 AUTHORIZED (D-111):** Operator independently verified all D-095 preconditions: (1) PR #9 MERGED as d4e76fa, (2) PR #10 MERGED as f8ee4eb, (3) 53-row sentinel rewrite COMPLETE at 671109d, (4) check-placeholders=0 (D-077 CLEAR), (5) zero open PRs, (6) develop 4/4 required CI checks green, (7) spec-lint advisory-red accepted. Frozen perimeter recorded: `specs/` tree hash `ace1745871122cd1fa2c46cf27c5493cc1083411` (authoritative freeze anchor; invariant across state-only commits; chosen over branch SHA because bookkeeping commits move the branch SHA without changing the spec tree). Last commit touching `specs/`: `671109d`. Tooling: develop `f8ee4eb`; `scripts/spec-lint` tree `f2392b456c3bd669e3efbe86b3e6eae62e302ed1`. Perimeter size: 134 `.md` files under `specs/`; 66 BCs + BC-INDEX.md.
+
+**Pass 7 NOT dispatched — context-grounds deferral (D-112):** Orchestrator was at ~420K of 430K context ceiling. D-037 requires the orchestrator to hold the entire findings set in context to persist the report (adversary agent is read-only). Pass 6 produced 259 findings; dispatching into ~10K of headroom risked losing the pass findings mid-record — same failure class as pass-3 (29 of 39 findings stored as stubs). Standing directive: wrap at a clean boundary when approaching 430K. Pass 7 is authorized (gate #31 open); all constraints carry forward. **Pass 7 MUST be the first substantive act of the next session.**
+
+**NEW BI-047 — EXCLUDE_PATHS skip-set (D-039 class):** Discovered by cross-referencing sibling checker file counts. `check-placeholders.py` reports 133 files; `check-id-resolution` and `check-holdout-boundary` both report 134 files. Root cause: an `EXCLUDE_PATHS` skip-set at approximately line 222 of `check-placeholders.py` excludes `.factory/policies.yaml` and `SPECS/prd.md` (a misnamed path that appears to match the real `specs/prd.md`) plus directory exclusions for `/.factory/cycles/` and `/.factory/planning/`. Effect: `prd.md` excluded WHOLESALE from placeholder checking. `prd.md` contains 1 unadjudicated `[filled by]` occurrence — live vs. historical status unadjudicated; this is a pass-7 intake item. The `SUPPRESSION_PATTERN` guard in `run-selftests.sh:48` enforces a fixed vocabulary (`ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET`) but not the CONCEPT of path-keyed skip-sets; `EXCLUDE_PATHS` evades detection. D-081 established the correct mechanism: scope by document position (a function), NOT a named set. This structural gap — a skip-set that evades the guard — is more serious than the single instance. **BI-047 OPENED as HIGH, blocking phase-1 gate.** Not fixed in this burst (D-039-class defects are recorded before remediation; remediation scheduled for a repair burst).
+
+**D-108 scope correction (D-113):** D-108 claimed "check-placeholders=0 / D-077 burn-down CLEAR / full spec-lint GREEN (9/9)" as absolute characterizations. Corrected: check-placeholders=0 holds for 133 of 134 spec files. `prd.md` was excluded wholesale by the unguarded EXCLUDE_PATHS skip-set (BI-047). The D-108 row in STATE.md is NOT retracted — a SCOPE CORRECTION note is APPENDED per standing audit-trail discipline. D-077 burn-down zero is now formally scope-qualified. The correction is captured in D-113 and the CORRECTIONS REGISTER in SESSION-HANDOFF.md §D-110.
+
+**Convergence UNCHANGED:** 0 of 3 clean passes. Trajectory →0→32→34→39→37→259. Trajectory-tail →34→39→37→259. No adversary pass dispatched; no clean pass recorded.
+
+**Codifications:** D-110 (session wrap — RESUME SNAPSHOT D-110, supersedes D-106). D-111 (pass 7 AUTHORIZED at gate #31; frozen perimeter recorded verbatim). D-112 (pass 7 deliberately NOT dispatched on context grounds). D-113 (D-108 scope correction; burn-down zero qualified to 133/134).
+
+**Artifact state at burst close:**
+PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-113 (exhaustive). 33 BC files carry `test-sufficient` sentinels in 53 VP-column rows. Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045. Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/046/047.
+
+**Dim-2 Attestation:** No `canonical-facts.toml` mutation this burst. Canonical facts corpus unchanged.
+
+**Dim-5 Attestation:** STATE.md — timestamp 2026-08-08T14:31:00Z, version 3.1, status: draft, producer: state-manager. burst-log.md — 27 bursts. SESSION-HANDOFF.md — D-110 snapshot supersedes D-106.
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. check-placeholders=0 SCOPED (133/134; prd.md excluded by EXCLUDE_PATHS BI-047; D-113 scope correction). D-077 burn-down CLEAR (scoped). spec-lint REQUIRED flip mechanically satisfiable (D-109); NOT executed. Pass 7 AUTHORIZED (gate #31; D-111); NOT dispatched (context ceiling; D-112). Next convergence step: first act next session → adversary pass 7 → streak to 3 clean passes → Phase-1 human approval → spec-lint flip to REQUIRED.
+
+**Dim-7 Attestation:** Agents dispatched this burst: state-manager (session wrap and factory-artifacts commit). No spec agents or adversary dispatched.
+
+**Files touched (Dim-1): 3 unique files (factory-artifacts only — no develop-side changes this burst)**
+- `.factory/STATE.md`
+- `.factory/SESSION-HANDOFF.md`
+- `.factory/cycles/phase-1d/burst-log.md`
+
+**Opens:** BI-047 (EXCLUDE_PATHS skip-set; prd.md excluded wholesale; D-039 class; HIGH). **Updates:** BI-002 (pass 7 AUTHORIZED gate #31; NOT dispatched context ceiling; NEW BI-047; D-108 zero SCOPED 133/134; D-113 scope correction). **Adds:** D-110, D-111, D-112, D-113. **Scope-qualifies:** D-108 (burn-down zero SCOPED to 133/134 per D-113).

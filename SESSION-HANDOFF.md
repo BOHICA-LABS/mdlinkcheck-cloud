@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-106
+  Latest: §RESUME SNAPSHOT D-110
 -->
 
 ---
@@ -2140,7 +2140,7 @@ k. **BI-046 DEFERRED pre-Phase-3 (D-104)**: merges remain OPERATOR-GATED until r
 
 ---
 
-## §RESUME SNAPSHOT D-106
+## §RESUME SNAPSHOT D-106 [SUPERSEDED by D-110 — retained for audit]
 
 *Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-101.*
 
@@ -2255,6 +2255,131 @@ Exactly two worktrees. `fix/s3-test-sufficient-proof-method` worktree removed; r
 - **verify-sha-currency.sh RETIRED** (D-099): no longer carried as per-wrap caveat; orchestrator's direct git-inspection + checker re-runs is the accepted substitute.
 - **hook validate-pr-review-posted will MISFIRE** on every PR review in this repo (D-105/CI-063); use `gh pr comment` as workaround.
 - **step-counter hook** misfires on single-turn STEP_COMPLETE counts (D-105/CI-063); does not reflect true lifecycle completion.
+- **BI-041 --write PROHIBITED**: write mode is lossy; do not enable until annotation handling is adjudicated.
+- **D-041 sequencing guard**: never dispatch a burst onto a branch another burst holds merge-or-delete authority over.
+- **D-039 no suppression**: allowlists, skip-sets, deferral sets forbidden in any spec-lint checker.
+- **D-034 immutable changelogs**: `prd.md` versioned changelog entries must not be retroactively edited.
+- **Five vacuous verification results remain** from earlier passes: any verification claim requires three-part evidence (WHAT was checked, HOW it was verified, WHAT the outcome was as an executed predicate).
+
+---
+
+## §RESUME SNAPSHOT D-110
+
+*Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-106.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean passes, trajectory →0→32→34→39→37→259, trajectory-tail →34→39→37→259. The spec perimeter is NOW FROZEN at `specs/` tree hash `ace1745871122cd1fa2c46cf27c5493cc1083411` (D-111). Pass 7 is AUTHORIZED at gate #31 but was NOT dispatched — orchestrator was at ~420K/430K context ceiling and D-037 requires the full findings set to fit in context (pass 6 produced 259 findings; dispatching into ~10K headroom risked the same stub-loss failure as pass-3, D-112). Pass 7 MUST be the first substantive act of the next session. A NEW BLOCKING ISSUE BI-047 was discovered: `check-placeholders.py` carries an unguarded `EXCLUDE_PATHS` skip-set (D-039 class) that excludes `prd.md` wholesale — the 133/134 file-count discrepancy across sibling checkers was the visible tell. D-108's burn-down zero is now SCOPE-QUALIFIED: valid for 133 of 134 spec files, not absolute (D-113). The SUPPRESSION_PATTERN guard misses the EXCLUDE_PATHS concept by vocabulary. spec-lint REQUIRED flip stays scheduled at the Phase-1 human approval gate (D-109). DEV-11 (Run A endpoint) and BI-046 (reviewer identity) are PENDING HUMAN decisions.
+
+### HEADS
+
+All heads verified at wrap time. Everything is pushed; nothing is local-only.
+
+| Artifact | SHA / Tree Hash | Notes |
+|----------|----------------|-------|
+| factory-artifacts (at burst-close) | `cf0c5c7b5b74b33b9aa0398d31b138a22a25dfb4` | HEAD before this burst; this burst creates the next commit |
+| `specs/` tree hash (FROZEN PERIMETER) | `ace1745871122cd1fa2c46cf27c5493cc1083411` | Authoritative freeze anchor for pass 7; invariant across state-only commits |
+| Last commit touching `specs/` | `671109d` | 53-row sentinel rewrite |
+| develop HEAD | `f8ee4eb` | PR #10 merged; S3/D-100/D-107 closed |
+| scripts/spec-lint tree | `f2392b456c3bd669e3efbe86b3e6eae62e302ed1` | Tooling side frozen |
+
+### WORKSTREAMS
+
+**IN FLIGHT:** None — this was a state-only burst.
+
+**NEXT:** Adversary pass 7 against frozen perimeter `specs/` tree `ace1745871122cd1fa2c46cf27c5493cc1083411`. Streak from ZERO. Severity in RANGES (PG-012). Skip-list admission requires positive-coverage evidence (D-057). Feed pass-7 intake items: BI-047 (EXCLUDE_PATHS defect), unadjudicated `prd.md` `[filled by]` occurrence, DD-007 gloss discrepancy.
+
+**GATED:** BI-046 (reviewer identity) — PENDING HUMAN decision; required before Phase 3. DEV-11 (Run A endpoint) — PENDING HUMAN decision.
+
+### CHECKER STATE (scope-qualified)
+
+All 9 checkers run against develop @ f8ee4eb after 53-row sentinel rewrite (671109d). State is post-PR#10, post-53-row-rewrite:
+
+| Checker | State | Scope Caveat |
+|---------|-------|-------------|
+| check-placeholders | **0 SCOPED** | ONLY 133 of 134 spec files; `prd.md` EXCLUDED WHOLESALE by unguarded EXCLUDE_PATHS skip-set (BI-047; D-039 class); 1 unadjudicated `[filled by]` in prd.md |
+| check-counts | PASS 37 | None |
+| check-id-resolution | PASS 0/134 | None |
+| check-ec-injectivity | PASS 214 IDs | None |
+| check-holdout-boundary | PASS 134 visible | None |
+| check-index-integrity | PASS 80 checks | None |
+| check-adr-consistency | PASS 8 ADRs | None |
+| check-title-sync | PASS 66 BC titles | None |
+| check-canonical-facts | PASS 31 bindings/11 facts | None |
+
+**D-077 burn-down:** CLEAR (scoped — 133 of 134 spec files; burn-down zero is scope-qualified per D-113).
+
+spec-lint as a whole: 9/9 PASS with scope caveat on check-placeholders. REQUIRED flip mechanically satisfiable (D-109); NOT executed; scheduled at Phase-1 gate.
+
+### SPEC SNAPSHOT
+
+PRD v1.12 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-113 (exhaustive). 33 BC files carry `test-sufficient` sentinels in 53 VP-column rows.
+
+Closed BIs: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045.
+Open BIs: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/046/047.
+
+### CORRECTIONS REGISTER
+
+*(Corrections to prior STATE.md/SESSION-HANDOFF.md claims made in this snapshot)*
+
+| Correction | What was wrong | Correct characterization | Corrective Decision |
+|-----------|---------------|-------------------------|---------------------|
+| D-108 scope | "check-placeholders=0 / D-077 burn-down CLEAR / full spec-lint GREEN (9/9)" stated as absolute | SCOPED to 133 of 134 spec files; `prd.md` excluded wholesale by unguarded EXCLUDE_PATHS skip-set (BI-047); 1 unadjudicated `[filled by]` in prd.md; burn-down zero is scope-qualified, not absolute | D-113 |
+| D-106/D-108 BI-002 checker state | BI-002 row stated check-placeholders=0 without scope caveat | Same as above — scoped zero | D-113 |
+
+*(Prior corrections carried forward from D-106 snapshot — see §RESUME SNAPSHOT D-106 [SUPERSEDED] for the D-091 CORRECTIONS REGISTER)*
+
+### NEXT PRIORITIES
+
+1. **Adversary pass 7** — FIRST substantive act next session; frozen perimeter = `specs/` tree `ace1745871122cd1fa2c46cf27c5493cc1083411` (D-111); streak from ZERO; severity in RANGES (PG-012); skip-list admission needs positive-coverage evidence (D-057); feed intake items: BI-047, unadjudicated `prd.md` `[filled by]`, DD-007 gloss discrepancy.
+2. **Passes 8 and 9** as streak logic dictates.
+3. **STOP at Phase-1 HUMAN GATE** — spec-lint → REQUIRED flip ONLY there (D-109).
+4. **PENDING HUMAN at Phase-1 gate:** DEV-11 (Run A endpoint) and BI-046 (reviewer identity) resolution.
+5. **Resolve BI-047** — replace file-keyed EXCLUDE_PATHS skip-set with position-based function per D-081; broaden SUPPRESSION_PATTERN guard to catch the concept, not a fixed vocabulary.
+6. **Still open:** BI-002/007/010/017/021/022/023/024/027/028/037/039/041/046 + BI-047.
+
+### STANDING DIRECTIVES
+
+- **D-037 context ceiling:** Never dispatch an adversary pass within ~10K of context ceiling. Pass 6 produced 259 findings; dispatching into ~10K headroom risks stub-loss. Always dispatch from a fresh session.
+- **D-039 no suppression:** Allowlists, skip-sets, deferral sets forbidden in any spec-lint checker.
+- **D-034 immutable changelogs:** `prd.md` versioned changelog entries must not be retroactively edited.
+- **D-041 sequencing guard:** Never dispatch a burst onto a branch another burst holds merge-or-delete authority over.
+- **D-057 skip-list admission:** Positive-coverage evidence required; mutation-only is insufficient.
+- **D-082 executed predicates:** All quantitative claims must come from EXECUTED predicates, not reading/counting.
+- **D-088 explicit staging:** State-manager must stage by explicit path only; never `git add -A` during factory bursts.
+- **PG-012 severity ranges:** Severity always reported in RANGES, never point totals.
+- **BI-041 --write PROHIBITED:** Write mode is lossy; do not enable until annotation handling is adjudicated.
+- **hook validate-pr-review-posted will MISFIRE** on every PR in this repo (D-105/CI-063); use `gh pr comment` as workaround.
+- **step-counter hook** misfires on single-turn STEP_COMPLETE counts (D-105/CI-063).
+- **D-099 verify-sha-currency.sh RETIRED:** No longer carried as per-wrap caveat.
+- **Five vacuous verification results remain** from earlier passes: any verification claim requires three-part evidence.
+
+### WORKTREE INVENTORY
+
+Exactly TWO worktrees:
+
+| Worktree | Branch | HEAD | Notes |
+|----------|--------|------|-------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | `develop` | `f8ee4eb` | main checkout; PR #10 merged |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | `cf0c5c7` (pre-burst) | state artifacts; this burst adds a new commit |
+
+No other worktrees. `fix/s3-test-sufficient-proof-method` remote branch was deleted post-merge.
+
+### DECISION DELTA (D-110..D-113)
+
+| ID | Summary |
+|----|---------|
+| D-110 | Session wrap — this RESUME SNAPSHOT D-110, supersedes D-106 |
+| D-111 | Pass 7 AUTHORIZED at gate #31; frozen perimeter = specs/ tree `ace1745871122cd1fa2c46cf27c5493cc1083411`; D-095 preconditions independently verified by operator |
+| D-112 | Pass 7 dispatch deliberately deferred — context ceiling ~420K/430K; D-037 requires full findings set in context; pass 6 produced 259 findings; dispatching into ~10K risked stub-loss; pass 7 must be first act next session |
+| D-113 | Burn-down scope correction: D-108's zero holds for 133 of 134 spec files; prd.md excluded wholesale by unguarded EXCLUDE_PATHS; D-108 characterization SCOPE-QUALIFIED (not retracted) |
+
+### CAVEATS
+
+- **EXCLUDE_PATHS skip-set (BI-047):** `check-placeholders.py` excludes `prd.md` wholesale; burn-down zero is scoped to 133/134; SUPPRESSION_PATTERN guard misses the concept — structural gap in enforcement, more serious than the single instance.
+- **verify-sha-currency.sh RETIRED** (D-099): no longer carried as per-wrap caveat.
+- **hook validate-pr-review-posted will MISFIRE** on every PR in this repo (D-105/CI-063).
+- **step-counter hook** misfires on single-turn STEP_COMPLETE counts (D-105/CI-063).
 - **BI-041 --write PROHIBITED**: write mode is lossy; do not enable until annotation handling is adjudicated.
 - **D-041 sequencing guard**: never dispatch a burst onto a branch another burst holds merge-or-delete authority over.
 - **D-039 no suppression**: allowlists, skip-sets, deferral sets forbidden in any spec-lint checker.
