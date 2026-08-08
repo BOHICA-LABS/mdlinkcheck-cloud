@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-098
+  Latest: §RESUME SNAPSHOT D-101
 -->
 
 ---
@@ -1855,7 +1855,7 @@ h. **BI-027 adjudication pending** — 0 FABRICATED remain; formally closed in s
 
 ---
 
-## §RESUME SNAPSHOT D-098
+## §RESUME SNAPSHOT D-098 [SUPERSEDED by D-101 — retained for audit]
 
 *Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-094.*
 
@@ -2022,3 +2022,118 @@ g. **Never dispatch a burst onto a branch another burst may merge or delete (D-0
 h. **BI-027 adjudication pending** — 0 FABRICATED remain; formally closed in spec list but blocking issue still open; close or retain in next burst.
 
 i. **BI-046 ESCALATED AS GATE** — separate reviewer identity/token required before Phase 3 story PRs begin; operator infrastructure decision.
+
+---
+
+## §RESUME SNAPSHOT D-101
+
+*Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-098.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d, still **0 of 3 clean passes**. Session wrap D-101 records PR #9 (`feature/pol14-test-sufficient`) **MERGED as d4e76fa** (D-092/D-093 on develop; check-placeholders 78→53; stale body corrected before merge — was 55 findings/62 tests; corrected to 53 findings/68 tests + full mutation table). PR #10 (`fix/s3-test-sufficient-proof-method`, head `a14711e`) **OPENED+APPROVED** (0 blocking; 69/69 selftests; P14-14 guard-independent via revert-mutation; 4/4 CI green) — **MERGE GATED TO OPERATOR**. Actionability pre-check EXECUTED: all 53 em-dash rows carry non-empty Proof Method; VP-INDEX bijection confirmed across 33 BC files; S3 rejects none. BI-046 DEFERRED to pre-Phase-3 (D-104): separate reviewer identity/token = operator infrastructure decision. Pass 7 DEFERRED (D-095): dispatch only after (1) PR #10 merged, (2) 53-row rewrite to `test-sufficient`, (3) check-placeholders=0. Hook misfires classified CI-063 (D-105): `validate-pr-review-posted` (literal `pr-review.md` pattern + impossible `gh pr review --approve`) and step-counter (current-turn only). trajectory-tail →34→39→37→259.
+
+### HEADS
+
+Verify each at resume before taking action. Resolve factory-artifacts HEAD via `git -C .factory log -1` — never trust a literal SHA recorded here for the current HEAD.
+
+| Ref | SHA | Note |
+|-----|-----|------|
+| develop | `d4e76fa` | PR #9 squash-merge (D-092/D-093 landed); local == `origin/develop`; tree CLEAN; PUSHED |
+| fix/s3-test-sufficient-proof-method | `a14711e` | PR #10 head; APPROVED 0 blocking; CI 4/4 GREEN; MERGE GATED TO OPERATOR |
+| factory-artifacts | run `git -C .factory log -1` | current HEAD — do not cite a literal SHA here |
+
+### WORKSTREAMS
+
+| Workstream | Status | Notes |
+|-----------|--------|-------|
+| WS-4 Shards A–E | COMPLETE | 40 FABRICATED repaired; 50 proof-method joins; D-092/D-093 landed as d4e76fa |
+| 53 em-dash rows rewrite | BLOCKED | BLOCKED on PR #10 merge; actionable: all 53 carry non-empty Proof Method; bijection VP-INDEX confirmed |
+| 25 Stories field | BLOCKED | BLOCKED on Phase 2 decomposition; exempt from check-placeholders per D-093 |
+| S3 non-empty Proof Method precondition | BLOCKED | PR #10 (a14711e) OPEN+APPROVED; MERGE GATED TO OPERATOR |
+
+### CHECKER STATE
+
+| Checker | State | Count | Notes |
+|---------|-------|-------|-------|
+| check-placeholders | RED | 53 | em-dash only (53 em-dash; 0 Stories after D-093 carve-out); BLOCKED on PR #10 merge + 53-row rewrite |
+| check-id-resolution | GREEN | 0/134 | PASSES; 0 unresolved IDs |
+| check-counts | GREEN | 37 | PASSES |
+| check-ec-injectivity | GREEN | 214 ECs | PASSES |
+| check-holdout-boundary | GREEN | — | PASSES |
+| check-index-integrity | GREEN | 80 | PASSES |
+| spec-lint (CI job) | ADVISORY | — | Not a required status check until Phase-1 gate (D-093) |
+
+### SPEC SNAPSHOT
+
+PRD v1.12 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-105 (exhaustive).
+
+Closed BIs: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045.
+
+Open BIs: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/046.
+
+### NEXT PRIORITIES
+
+1. **Operator confirms PR #10 merge** (S3, gate-#28 mechanism) — BLOCKING all below.
+2. **Rewrite 53 em-dash rows** to `test-sufficient` sentinel across 33 BC files; cross-check each against VP-INDEX; confirm all rows carry non-empty Proof Method (S3 rejects none).
+3. **Verify D-077 burn-down**: check-placeholders must reach 0.
+4. **BI-046 pre-Phase-3 gate** (operator infrastructure decision, D-104) — REQUIRED before Phase 3 story PRs begin.
+5. **Adversary pass 7** (D-095) — pre-dispatch operator gate; streak from ZERO against frozen HEAD; severity in RANGES not point totals (PG-012).
+
+### CORRECTIONS REGISTER
+
+No new corrections this session.
+
+Prior corrections from D-090 session remain on record in SESSION-HANDOFF.md §D-090 §CORRECTIONS REGISTER.
+
+PR #9 body correction (D-102): operator-directed body correction before merge. Body had claimed 55 findings/62 tests; corrected to 53 findings/68 tests + full mutation table before squash-merge to develop.
+
+### STANDING DIRECTIVES
+
+a. **D-088 explicit-path-only staging**: never use `git add -A` while a PR worktree is in flight; stage by explicit path.
+
+b. **D-039 no suppression in checkers**: allowlists, skip-sets, deferral sets forbidden in spec-lint checkers.
+
+c. **D-082 executed-predicate constraint**: all quantitative claims in findings/dispatches from EXECUTED predicates, not from reading/counting.
+
+d. **D-034 immutable changelogs**: `prd.md` versioned changelog entries are IMMUTABLE; do NOT retroactively update.
+
+e. **D-058 covered_sha discipline**: `covered_sha` hand-editing is REJECTED as a merge-authorization mechanism.
+
+f. **D-099 verify-sha-currency.sh RETIRED**: no longer carried as a per-wrap caveat; formally retired for this project.
+
+g. **D-041 no cross-burst branch conflicts**: never dispatch a burst onto a branch another burst holds merge-or-delete authority over.
+
+h. **D-082 discipline boundary**: if a tool call fails as "impossible," do NOT retry as an executed predicate; report the impossibility.
+
+i. **validate-pr-review-posted CI-063 (D-105)**: hook fires on literal `pr-review.md` (conflicts with SHA-keyed convention) AND demands impossible `gh pr review --approve`; use `gh pr comment --body-file` as the working mechanism; in-prompt warning until hook is fixed.
+
+j. **step-counter CI-063 (D-105)**: step-counter hook counts only current-turn STEP_COMPLETE emissions, not full lifecycle; misfire is documented, not a gate failure.
+
+k. **BI-046 DEFERRED pre-Phase-3 (D-104)**: merges remain OPERATOR-GATED until resolved; REQUIRED before Phase 3 story PRs begin.
+
+### WORKTREE INVENTORY
+
+| Worktree | Path | Branch | Status |
+|----------|------|--------|--------|
+| Main checkout | `/Users/jmagady/Dev/mdlinkcheck-cloud` | `develop` | CLEAN, `d4e76fa` |
+| factory-artifacts | `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | this burst |
+
+### DECISION DELTA D-098..D-105
+
+| ID | Summary |
+|----|---------|
+| D-099 | `verify-sha-currency.sh` FORMALLY RETIRED for this project; CI-063 class factory-engine gap |
+| D-100 | S3 must land before 53-row rewrite (ordering constraint) |
+| D-101 | Session wrap — this RESUME SNAPSHOT; supersedes D-098 |
+| D-102 | PR #9 merge conditional on stale body correction first |
+| D-103 | S3 landed as PR #10 (not added to PR #9 at cycle limit) |
+| D-104 | BI-046 DEFERRED to pre-Phase-3; merges remain operator-gated |
+| D-105 | validate-pr-review-posted and step-counter hook misfires classified CI-063 |
+
+### CAVEATS
+
+- **BI-046 structural gap**: AI review independence is nominal, not structural — all PRs authored by `drbothen`; `gh pr review` structurally impossible; review-as-comment is the accepted workaround (D-089/D-104); REQUIRED to resolve before Phase 3.
+- **hook validate-pr-review-posted will MISFIRE** on every PR review in this repo (D-105); use `gh pr comment` as workaround.
+- **step-counter hook** misfires on single-turn STEP_COMPLETE counts (D-105); does not reflect true lifecycle completion.
+- **check-placeholders 53**: not a regression — 53 em-dash rows are genuinely pending PR #10 merge + 53-row rewrite; 25 Stories exempt per D-093.

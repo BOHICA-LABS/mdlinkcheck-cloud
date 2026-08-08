@@ -1229,3 +1229,49 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 - `.factory/code-delivery/BI-POL14-TEST-SUFFICIENT/pr-review-a42e155.md`
 
 **Closes:** N/A — no blockers closed this burst. **Updates:** BI-002 (PR #9 APPROVED at a42e155 — MERGE GATED TO OPERATOR; 53 em-dash ACTIONABLE; S3 before rewrite (D-100)). BI-023 (BLOCKED on PR #9 OPEN, APPROVED not yet merged). BI-046 (ESCALATED AS GATE per D-097 escalation clause). **Adds:** D-098, D-099, D-100.
+
+---
+
+## Burst: burst-25 — PR #9 MERGED (d4e76fa); PR #10 OPENED+APPROVED (a14711e, S3); BI-046 DEFERRED pre-Phase-3; D-101..D-105 (2026-08-08)
+
+**Parent-commit:** `fc7263f` (factory(phase-1d): D-098 session wrap — PR #9 APPROVED at a42e155)
+
+**Adversary verdict:** No adversary pass this burst. Session wrap only. Convergence counter UNCHANGED: 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. Pass 7 DEFERRED (D-095) until PR #10 merged + 53 rows rewritten + check-placeholders=0 + operator gate.
+
+**Current Phase Steps archival:** The following row (oldest, associated with burst-20 / PR #8 MERGED) was removed from STATE.md Current Phase Steps to make room for the burst-25 row:
+
+> `| PR #8 MERGED (c2e5cf1; BI-040/BI-043 CLOSED; BI-046 OPENED; D-089 gate #28); WS-4 UNBLOCKED; develop e1299b0→c2e5cf1; session-checkpoints.md: D-089 archived | state-manager | COMPLETE | PR #8 squash-merged; shared primitive layer closes BI-040 (55/55 selftests + 10/10 primitives); B1/B2/W2/W7/S2 found+fixed during 3-cycle review; BI-043 CLOSED (zero parent.parent.parent on develop); BI-046 OPENED (reviewer independence pre-phase-3 condition); D-089 gate #28 ruling (review-as-comment + autonomy-L4 authorized). |`
+
+**PR #9 MERGED (d4e76fa):** Operator executed squash-merge of `feature/pol14-test-sufficient` (head `a42e155`) to `develop` as `d4e76fa`. Stale PR body corrected before merge per D-102 (body had claimed 55 findings/62 tests; corrected to 53 findings/68 tests + full mutation table). D-092/D-093 now on develop. `check-placeholders` 78→53 (25 Stories exempt under D-093's carve-out). develop `c2e5cf1`→`d4e76fa`.
+
+**PR #10 OPENED+APPROVED (a14711e):** `fix/s3-test-sufficient-proof-method` opened as PR #10 (closes S3: require non-empty Proof Method alongside `test-sufficient` sentinel). Single-line guard in `is_conforming_vp_cell`: reject `vp_val.strip() == ""`. Head `a14711e`. Selftest P14-14 added (69/69 total). Revert-mutation kills P14-14 guard-independently (non-vacuous). Independent review posted as comment per BI-039 constraint: APPROVE 0 blocking, 1 MINOR, 1 INFO. Recorded in `code-delivery/S3-PROOF-METHOD/pr-review-a14711e.md` (21,907 bytes). 4/4 CI green. **MERGE GATED TO OPERATOR** (BI-046 DEFERRED — D-104).
+
+**Actionability pre-check EXECUTED (D-082):** All 53 em-dash rows verified to carry non-empty Proof Method. VP-INDEX bijection across 33 BC files confirmed (S3 rejects none). The 53-row rewrite is fully ACTIONABLE the moment PR #10 merges.
+
+**BI-046 DEFERRED to pre-Phase-3 (D-104):** Auto-mode classifier blocked a combined review+merge dispatch on self-approval grounds during this session. Operator ruled DEFER to pre-Phase-3 (not a mechanical fix; requires separate reviewer identity/token). Merges remain OPERATOR-GATED until resolved. REQUIRED before Phase 3 story PRs begin (D-089).
+
+**Hook misfires classified CI-063 (D-105):** Two structural defects documented:
+1. `validate-pr-review-posted`: fires on literal `pr-review.md` (conflicts with SHA-keyed immutable-audit convention); demands `gh pr review --approve/--request-changes` which GitHub structurally CANNOT record on self-authored PRs (BI-039).
+2. Step-counter: counts only current-turn STEP_COMPLETE emissions, not full lifecycle.
+Both are factory-engine packaging gaps. ~12 misfirings across three agents this session. Effective mitigation: in-prompt warning. Agent behaviour under misfire was correct in later cases (refused to fabricate verdict, refused to overwrite audit records). D-082 discipline boundary preserved: cycle-3 reviewer attempted `gh pr review --approve`; permission classifier blocked it; no approval was ever recorded.
+
+**Codifications:** D-101 (session wrap — D-101 supersedes D-098). D-102 (PR #9 merge conditional on stale body correction first — D-102 codifies the correction requirement). D-103 (S3 as follow-on PR #10 rather than added to PR #9 at cycle limit). D-104 (BI-046 DEFERRED to pre-Phase-3; merges OPERATOR-GATED). D-105 (validate-pr-review-posted + step-counter hook misfires classified CI-063 factory-engine packaging gaps).
+
+**Artifact state at burst close:**
+PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003). D-001..D-105 (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045. Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/046.
+
+**Dim-2 Attestation:** No `canonical-facts.toml` mutation this burst. Canonical facts corpus unchanged.
+
+**Dim-5 Attestation:** STATE.md — timestamp 2026-08-08T09:30:00Z, version 3.1, status: draft, producer: state-manager. burst-log.md — 25 bursts. SESSION-HANDOFF.md — D-101 snapshot supersedes D-098.
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259 UNCHANGED. PR #10 (S3, a14711e) OPEN+APPROVED — MERGE GATED TO OPERATOR. All 53 em-dash rows ACTIONABLE (VP-INDEX bijection; non-empty Proof Method verified). Next convergence step: operator merge PR #10 → rewrite 53 rows → burn-down → pass 7 (D-095).
+
+**Dim-7 Attestation:** Agents dispatched this burst: code-reviewer ×1 (PR #10 independent review); state-manager for session wrap, factory-artifacts commit.
+
+**Files touched (Dim-1): 4 unique files (factory-artifacts only — no develop-side changes this burst)**
+- `.factory/STATE.md`
+- `.factory/SESSION-HANDOFF.md`
+- `.factory/cycles/phase-1d/burst-log.md`
+- `.factory/code-delivery/S3-PROOF-METHOD/pr-review-a14711e.md`
+
+**Closes:** N/A — no blockers closed this burst. **Updates:** BI-002 (PR #9 MERGED d4e76fa; PR #10 OPEN+APPROVED a14711e; 53 rows ACTIONABLE; next: operator merge PR #10). BI-023 (PR #9 MERGED d4e76fa; check-placeholders 78→53; BLOCKED on PR #10 merge + 53-row rewrite). BI-046 (DEFERRED to pre-Phase-3 D-104; merges OPERATOR-GATED). **Adds:** D-101, D-102, D-103, D-104, D-105.
