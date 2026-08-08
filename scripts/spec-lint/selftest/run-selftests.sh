@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=68
+EXPECTED_TEST_COUNT=69
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -4334,6 +4334,72 @@ DEFECTBC13
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; H3 heading named Story Anchor does not create exemption zone)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-14: check-placeholders — test-sufficient with empty Proof Method fails ──
+# S3-fix (D-078 precondition): 'test-sufficient' must be rejected when the Proof
+# Method cell is empty, even if VP-INDEX classifies the BC as test-sufficient.
+# This is the same precondition VP-NONE already has (asymmetry was the defect).
+#
+# Clean-pass: test-sufficient + non-empty Proof Method + VP-INDEX agrees → exits 0.
+# Defect: clear the Proof Method cell → exits 1 with D-078 precondition message.
+#
+# Mutation-flip: remove the new proof_method.strip() guard from the test-sufficient
+# branch (i.e. revert S3-fix to HEAD~1). Under mutation: defect tree exits 0 →
+# defect-fail assertion fires → FAILS. Proves the new guard is load-bearing.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-14: check-placeholders: test-sufficient with empty Proof Method fails ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/verification-properties"
+
+# VP-INDEX: BC-0.00.004 classified as test-sufficient
+cat > "$T/.factory/specs/verification-properties/VP-INDEX.md" <<'VPIX'
+| BC | Title (abbreviated) | VP(s) | Notes |
+|----|---------------------|-------|-------|
+| BC-0.00.004 | Test BC | test-sufficient | covered by integration test suite |
+VPIX
+
+# Clean tree: test-sufficient with a non-empty Proof Method → must be accepted
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-0.00.004.md" <<'BCCLEAN'
+## Verification Properties
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| test-sufficient | some property | integration test |
+BCCLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker rejected test-sufficient with non-empty Proof Method — D-078 precondition too strict"
+    P1414_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  Actual output: $P1414_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: clear the Proof Method cell — sentinel now names no test at all
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-0.00.004.md" <<'BCBAD'
+## Verification Properties
+| VP-NNN | Property | Proof Method |
+|--------|----------|-------------|
+| test-sufficient | some property |  |
+BCBAD
+    P1414_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    P1414_EXIT=$?
+    if [ "$P1414_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT reject test-sufficient with empty Proof Method)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$P1414_OUT" | grep -qF "Proof Method cell must be non-empty (D-078 precondition)"; then
+        echo "  PASS (clean-pass confirmed; test-sufficient with empty Proof Method correctly rejected)"
+    else
+        echo "  FAIL (checker exited non-zero but D-078-precondition message not in output)"
+        echo "  Actual output: $P1414_OUT"
+        FAILURES=$((FAILURES + 1))
     fi
 fi
 rm -rf "$T"
