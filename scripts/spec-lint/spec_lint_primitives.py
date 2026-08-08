@@ -12,9 +12,17 @@ EXEMPT from override guard: this module has no REPO= assignment and is not
 a checker or generator. The pattern '^REPO[[:space:]]*=.*SPEC_LINT_REPO_OVERRIDE'
 correctly skips this file.
 
-EXEMPT from suppression guard: this module contains no suppression constructs
-(no ALLOWLIST, SKIP_LIST, SKIP_SET, KNOWN_COLLISIONS, KNOWN_VIOLATIONS,
-KNOWN_ISSUES, WHITELIST, or SUPPRESS_SET assignments).
+EXEMPT from suppression guard: this module contains no suppression constructs.
+The broadened guard (BI-047) checks two things:
+  Pass 1 — name vocabulary: ALLOWLIST, _DEFERRAL, SKIP_LIST, SKIP_SET,
+    KNOWN_COLLISIONS, KNOWN_VIOLATIONS, KNOWN_ISSUES, WHITELIST, SUPPRESS_SET,
+    EXCLUDE_PATHS, OMIT_FILES, DEFERRED, PENDING, GRANDFATHERED.
+  Pass 1 — structural shape: {str(REPO / "...") or {str(SPECS / "...") patterns
+    (PATH_SHAPE_PATTERN — catches path-set construction regardless of variable name).
+  Pass 2 — proven scope reduction: allowed only when checker also emits a
+    corpus-completeness assertion ("N of M spec files").
+This module contains none of the above — no path-set construction, no named
+suppression variables, and no scope reduction of any kind.
 
 Governing decisions: D-039, D-069, D-072, D-077, D-078, D-081, D-082
 Work stream: WS-3b / BI-040

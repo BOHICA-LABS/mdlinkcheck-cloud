@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=75
+EXPECTED_TEST_COUNT=82
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -41,11 +41,33 @@ trap cleanup_all EXIT INT TERM
 
 # ── Guard patterns (single canonical definitions) ─────────────────────────
 # Each pattern is defined ONCE here. Both the pre-flight checks and the guard
-# selftests (G1, G2) use these variables — there is no second copy of either
-# pattern anywhere in this file. This means any mutation to OVERRIDE_PATTERN
-# or SUPPRESSION_PATTERN will make both the pre-flight guard AND G1/G2 flip.
+# selftests (G1, G2, G5) use these variables — there is no second copy of any
+# pattern anywhere in this file. Any mutation to OVERRIDE_PATTERN,
+# SUPPRESSION_PATTERN, PATH_SHAPE_PATTERN, or COMPLETENESS_PATTERN will flip
+# both the pre-flight guard AND the corresponding guard selftest.
 OVERRIDE_PATTERN='^REPO[[:space:]]*=.*(slp\.find_repo_root|os\.environ\.get[^#]*SPEC_LINT_REPO_OVERRIDE)'
-SUPPRESSION_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET)[[:space:]]*[=:]'
+
+# SUPPRESSION_PATTERN: name-based detection of scope-reducing constructs.
+# Catches common names for exclusion sets / skip sets regardless of content.
+# Extended in this burst (BI-047) to include EXCLUDE_PATHS and other plausible
+# future names (OMIT_FILES, DEFERRED, PENDING, GRANDFATHERED).
+SUPPRESSION_PATTERN='(ALLOWLIST|_DEFERRAL|SKIP_LIST|SKIP_SET|KNOWN_COLLISIONS|KNOWN_VIOLATIONS|KNOWN_ISSUES|WHITELIST|SUPPRESS_SET|EXCLUDE_PATHS|OMIT_FILES|DEFERRED|PENDING|GRANDFATHERED)[[:space:]]*[=:]'
+
+# PATH_SHAPE_PATTERN: shape-based detection of path-string-in-set constructs.
+# Catches the structural pattern {str(REPO / ...) or {str(SPECS / ...) which is
+# the footprint of a file-path-keyed exclusion set, however the variable is named.
+# This is the shape that made EXCLUDE_PATHS invisible to the old name-based guard.
+PATH_SHAPE_PATTERN='\{[[:space:]]*str\((REPO|SPECS)[[:space:]]*/[[:space:]]*"'
+
+# COMPLETENESS_PATTERN: detects a runtime corpus-completeness assertion in a checker.
+# A checker with a scope reduction is "proven" if it emits a completeness assertion
+# of the form "N of M spec files" at runtime. Checkers with scope reductions but
+# without this assertion are "unproven" and fail the guard.
+# The pattern accepts both literal counts ("of 134 spec files") and f-string
+# placeholders ("of {total_files} spec files") — the curly braces in {total_files}
+# are matched by [0-9a-zA-Z_{}]+.
+COMPLETENESS_PATTERN='of[[:space:]]+[0-9a-zA-Z_{}]+[[:space:]]+spec files'
+
 SPLITLINES_PATTERN='\.splitlines\(\)'
 
 run_override_guard() {
@@ -85,29 +107,60 @@ run_override_guard() {
 }
 
 run_suppression_guard() {
-    # Verify no check-*.py in $1, nor any generator, contains a hardcoded suppression
-    # allowlist construct. Scope matches run_override_guard (Stage 3: all generators included).
+    # Verify no check-*.py in $1, nor any generator, contains an UNPROVEN scope-reducing
+    # construct. "Unproven" means: a scope reduction exists without a corresponding
+    # runtime corpus-completeness assertion.
+    #
+    # Design principle (BI-047): the guard's real criterion is NOT "no scope reduction
+    # exists" — some scope reduction is legitimate (e.g., ADR files routed to a
+    # separate policy code path). The correct criterion is "no UNPROVEN scope reduction":
+    # a checker may narrow its scope ONLY if it emits a runtime assertion proving the
+    # parts sum to the full corpus.
+    #
+    # Two-pass detection:
+    # Pass 1 (DETECT): file has SUPPRESSION_PATTERN (name-based) OR PATH_SHAPE_PATTERN
+    #                  (structural: path-string-in-set, the footprint of EXCLUDE_PATHS).
+    # Pass 2 (VERIFY): if scope reduction detected, check for COMPLETENESS_PATTERN.
+    #                  Found → PASS (proven).  Not found → FAIL (unproven).
+    #
+    # Scope matches run_override_guard (Stage 3: all generators included).
     # D-057: prints runtime count of files scanned; fails if 0 files found.
-    # Returns 0 = all clear, 2 = guard fired (suppression found, or no files found).
+    # Returns 0 = all clear, 2 = guard fired (unproven suppression found, or no files).
     local dir="$1"
     local count=0
+    local proven_count=0
     for f in "$dir"/check-*.py "$dir/gen-bc-traceability.py" "$dir/gen-slug-corpus.py" \
              "$dir/gen-bc-index.py" "$dir/gen-ec-registry.py" "$dir/gen-prd-sections.py" "$dir/gen-rtm.py"; do
         [[ -f "$f" ]] || continue
         count=$((count + 1))
+        # Pass 1: detect any scope-reducing construct (by name OR structural shape)
+        has_scope_reduction=0
         if grep -qE "$SUPPRESSION_PATTERN" "$f" 2>/dev/null; then
-            echo "STRUCTURAL GUARD FAILED: $(basename "$f") contains a hardcoded suppression allowlist"
-            echo "  Checkers must not silently suppress real findings via allowlists, skip-lists,"
-            echo "  deferral sets, or known-issues collections — fix the spec, not the checker."
-            echo "  Remove any variable matching: $SUPPRESSION_PATTERN"
-            return 2
+            has_scope_reduction=1
+        elif grep -qE "$PATH_SHAPE_PATTERN" "$f" 2>/dev/null; then
+            has_scope_reduction=1
+        fi
+        if [[ "$has_scope_reduction" -eq 1 ]]; then
+            # Pass 2: verify a completeness assertion exists (proves scope is accounted for)
+            if grep -qE "$COMPLETENESS_PATTERN" "$f" 2>/dev/null; then
+                proven_count=$((proven_count + 1))
+                # Proven scope reduction — allowed
+            else
+                echo "STRUCTURAL GUARD FAILED: $(basename "$f") has an UNPROVEN scope reduction"
+                echo "  A scope-reducing construct was found but no corpus-completeness assertion"
+                echo "  exists to prove the parts sum to the full corpus."
+                echo "  Add a runtime assertion of the form: 'N of M spec files (complete)'"
+                echo "  or remove the scope reduction entirely."
+                echo "  Detected by: SUPPRESSION_PATTERN or PATH_SHAPE_PATTERN"
+                return 2
+            fi
         fi
     done
     if [[ "$count" -eq 0 ]]; then
         echo "STRUCTURAL GUARD FAILED: no check-*.py files found in $dir — nothing scanned"
         return 2
     fi
-    echo "Pre-flight guard passed: $count checkers/generators scanned, 0 suppression constructs found"
+    echo "Pre-flight guard passed: $count checkers/generators scanned, $proven_count proven scope reductions, 0 unproven"
     return 0
 }
 
@@ -157,20 +210,33 @@ if ! run_override_guard "$LINT_DIR"; then
 fi
 echo ""
 
-# ── Pre-flight guard 2: no hardcoded suppression allowlists ───────────────
-# Checkers must not contain allowlists, skip-lists, or deferral sets that
-# silently suppress real findings. The same Phase-2-deferral defect caught in
-# P4-021 (check-index-integrity) re-emerged in check-ec-injectivity; this
-# guard closes the class structurally. See SUPPRESSION_PATTERN definition above.
+# ── Pre-flight guard 2: no UNPROVEN scope-reducing constructs ─────────────
+# Checkers may reduce their scope (narrow the files or tokens checked) ONLY if
+# they emit a runtime corpus-completeness assertion proving the parts sum to the
+# full corpus. A scope reduction without a completeness assertion is "unproven"
+# and fails this guard.
+#
+# Detection criterion (BI-047 repair):
+#   Name-based (SUPPRESSION_PATTERN): catches known exclusion-set names.
+#   Shape-based (PATH_SHAPE_PATTERN): catches path-string-in-set regardless of
+#     variable name. This is the shape that made EXCLUDE_PATHS invisible to the
+#     original name-only guard — a gap root-caused by the adversary at P7-S5-017.
+#
+# Correctness criterion: A scope reduction is PROVEN (allowed) if the checker
+# also contains COMPLETENESS_PATTERN — a runtime assertion of the form
+# "N of M spec files". The guard does NOT require "no scope reduction exists";
+# it requires "no UNPROVEN scope reduction". Checkers like check-adr-consistency
+# that route ADRs to POLICY 12 and emit "X+Y=Z of Z spec files (complete)" are
+# structurally proven and are not flagged.
 #
 # NOTE: Guard ordering is load-bearing (F-15). run_override_guard uses
 # "if ! grep ..." so a grep read-error fails CLOSED (guard fires). By contrast,
-# run_suppression_guard uses "if grep ..." so a read-error is treated as "no
-# match" and fails OPEN. However, run_override_guard runs first: an unreadable
-# checker causes guard 1 to fire (exit 2) before guard 2 ever sees the file.
-# Guard 2's fail-open is therefore unreachable today, but the ordering must not
-# be changed without also fixing guard 2's error-handling.
-echo "Pre-flight structural guard: checking for hardcoded suppression allowlists in all checkers..."
+# run_suppression_guard's Pass 1 uses "if grep ..." so a read-error is treated
+# as "no match" — fails OPEN on the detection side. However, run_override_guard
+# runs first: an unreadable checker causes guard 1 to fire (exit 2) before
+# guard 2 ever sees the file. Guard 2's fail-open is therefore unreachable today,
+# but the ordering must not be changed without also fixing guard 2's error-handling.
+echo "Pre-flight structural guard: checking for unproven scope-reducing constructs in all checkers..."
 if ! run_suppression_guard "$LINT_DIR"; then
     exit 2
 fi
@@ -2030,14 +2096,16 @@ rm -rf "$T"
 # This test calls the REAL function (defined above). SUPPRESSION_PATTERN has one
 # canonical definition; any mutation to it will flip this test. There is no
 # duplicate pattern copy here — that was the original B-7 defect class.
+# Under the broadened guard (BI-047): KNOWN_COLLISIONS is detected by
+# SUPPRESSION_PATTERN (name-based); it has no completeness assertion → UNPROVEN → FAIL.
 TESTS_RUN=$((TESTS_RUN + 1))
-echo "── guard selftest G2: suppression-allowlist pre-flight guard fires ──"
+echo "── guard selftest G2: suppression-allowlist pre-flight guard fires (KNOWN_COLLISIONS, unproven) ──"
 T=$(make_temp)
 
-# Clean pass: run_suppression_guard returns 0 for a checker with no suppression allowlists
+# Clean pass: run_suppression_guard returns 0 for a checker with no suppression constructs
 cat > "$T/check-stub.py" <<'CLEANSTUB'
 REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
-# This checker has no suppression allowlists — all violations are reported
+# This checker has no suppression constructs — all violations are reported
 CLEANSTUB
 
 CLEAN_PASS=0
@@ -2045,20 +2113,71 @@ if run_suppression_guard "$T" > /dev/null 2>&1; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
     CLEAN_PASS=1
 else
-    echo "  STRUCTURAL FAIL: guard fired on a clean checker with no suppression allowlists"
+    echo "  STRUCTURAL FAIL: guard fired on a clean checker with no suppression constructs"
     FAILURES=$((FAILURES + 1))
 fi
 
 if [ "$CLEAN_PASS" = "1" ]; then
-    # Defect: replace stub with a checker containing KNOWN_COLLISIONS (D-039 violation)
+    # Defect: replace stub with a checker containing KNOWN_COLLISIONS (unproven scope reduction)
     cat > "$T/check-stub.py" <<'BADSTUB'
-KNOWN_COLLISIONS = {"EC-001", "EC-002"}  # hardcoded suppression allowlist
+KNOWN_COLLISIONS = {"EC-001", "EC-002"}  # hardcoded suppression allowlist — no completeness assertion
 BADSTUB
     if run_suppression_guard "$T" > /dev/null 2>&1; then
-        echo "  FAIL (guard did NOT detect KNOWN_COLLISIONS suppression allowlist)"
+        echo "  FAIL (guard did NOT detect KNOWN_COLLISIONS unproven scope reduction)"
         FAILURES=$((FAILURES + 1))
     else
-        echo "  PASS (clean-pass confirmed; guard correctly detects KNOWN_COLLISIONS suppression allowlist)"
+        echo "  PASS (clean-pass confirmed; guard correctly detects KNOWN_COLLISIONS as unproven scope reduction)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Guard test G5: broadened guard — EXCLUDE_PATHS proven vs unproven (BI-047) ──
+# Proves the new PATH_SHAPE_PATTERN and COMPLETENESS_PATTERN variables are load-bearing:
+# - Clean tree: EXCLUDE_PATHS + completeness assertion → PASS (proven scope reduction)
+# - Defect tree: EXCLUDE_PATHS without completeness assertion → FAIL (unproven)
+#
+# Mutation-verify: either removing the completeness assertion from the clean stub,
+# or removing PATH_SHAPE_PATTERN from the guard, flips the clean-pass / defect-fail.
+# Since PATH_SHAPE_PATTERN has one canonical definition, this test covers both arms.
+#
+# Calibration: this test directly catches the BI-047 defect class (EXCLUDE_PATHS was
+# invisible to the old name-based guard because its name was not in SUPPRESSION_PATTERN).
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── guard selftest G5: broadened guard — EXCLUDE_PATHS proven vs unproven (BI-047) ──"
+T=$(make_temp)
+
+# Clean tree: checker has EXCLUDE_PATHS (matched by PATH_SHAPE_PATTERN) AND
+# a corpus-completeness assertion (matched by COMPLETENESS_PATTERN) → PROVEN → PASS.
+cat > "$T/check-stub.py" <<'G5CLEAN'
+REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
+EXCLUDE_PATHS = {str(REPO / ".factory" / "specs" / "prd.md")}
+# Proven: emits corpus-completeness assertion so scope reduction is accounted for
+print(f"0 findings across {files_checked} of {total_files} spec files (complete)")
+G5CLEAN
+
+CLEAN_PASS=0
+if run_suppression_guard "$T" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    G5_CLEAN_OUT=$(run_suppression_guard "$T" 2>&1)
+    echo "  STRUCTURAL FAIL: guard fired on EXCLUDE_PATHS + completeness assertion (should be PROVEN)"
+    echo "  Output: $G5_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: same EXCLUDE_PATHS but NO completeness assertion → UNPROVEN → FAIL
+    cat > "$T/check-stub.py" <<'G5BAD'
+REPO = Path(os.environ.get("SPEC_LINT_REPO_OVERRIDE", "")).resolve() if os.environ.get("SPEC_LINT_REPO_OVERRIDE") else Path(__file__).resolve().parent.parent.parent
+EXCLUDE_PATHS = {str(REPO / ".factory" / "specs" / "prd.md")}
+# No completeness assertion — scope reduction is unproven
+G5BAD
+    if run_suppression_guard "$T" > /dev/null 2>&1; then
+        echo "  FAIL (guard did NOT detect EXCLUDE_PATHS without completeness assertion as unproven)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; EXCLUDE_PATHS without completeness assertion correctly detected as unproven)"
     fi
 fi
 rm -rf "$T"
@@ -4400,6 +4519,374 @@ BCBAD
         echo "  FAIL (checker exited non-zero but D-078-precondition message not in output)"
         echo "  Actual output: $P1414_OUT"
         FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-15: check-placeholders — live placeholder in prd.md prose MUST flag (D-113) ──
+# REPAIR 4 (BI-047): prd.md now enters scope (134 of 134 files). This test proves that a
+# live [filled by architect] placeholder in prd.md prose OUTSIDE a changelog section IS
+# flagged — no file-path exclusion can suppress it.
+# Clean: prd.md exists but has no placeholder → exit 0
+# Defect: add a live [filled by architect] in plain prose → exit 1
+# Mutation-verify: removing the prd.md from scope (e.g., restoring EXCLUDE_PATHS) makes
+# the defect tree exit 0 → defect-fail assertion fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-15: check-placeholders: live placeholder in prd.md prose must flag (D-113) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts"
+
+# Clean tree: prd.md with no live placeholders
+cat > "$T/.factory/specs/prd.md" <<'P1415CLEAN'
+---
+---
+## 2. Behavioral Contracts
+
+This section documents the behavioral contracts.
+P1415CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    P1415_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  STRUCTURAL FAIL: checker failed on clean prd.md with no placeholders"
+    echo "  Actual output: $P1415_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: inject a live [filled by architect] in prd.md prose (NOT in any changelog section)
+    cat > "$T/.factory/specs/prd.md" <<'P1415BAD'
+---
+---
+## 2. Behavioral Contracts
+
+Architecture module: [filled by architect]
+P1415BAD
+    P1415_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    P1415_EXIT=$?
+    if [ "$P1415_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT flag live [filled by architect] in prd.md prose)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$P1415_OUT" | grep -qF "[filled by architect]"; then
+        echo "  PASS (clean-pass confirmed; live [filled by architect] in prd.md prose correctly flagged)"
+    else
+        echo "  FAIL (checker exited non-zero but expected [filled by architect] not in output)"
+        echo "  Actual: $P1415_OUT"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-16: check-placeholders — changelog narrative VP-TBD NOT flagged (D-081 P1) ──
+# REPAIR 4 (BI-047): the D-081 Predicate 1 (changelog narrative section) exempts VP-TBD
+# tokens inside ### v\d+ heading sections. This test proves the predicate is load-bearing:
+# Clean: prd.md with VP-TBD inside a ### v1.4 changelog section → exit 0 (not flagged)
+# Defect: move VP-TBD to plain prose OUTSIDE the changelog section → exit 1 (flagged)
+# Mutation-verify: removing the changelog narrative exemption from check_file_lines makes
+# the clean tree exit 1 → STRUCTURAL FAIL asserts → FAILS. Proves D-081 P1 is load-bearing.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-16: check-placeholders: changelog-narrative VP-TBD not flagged (D-081 P1) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts"
+
+# Clean tree: VP-TBD inside a ### v1.4 changelog narrative section (historical, exempt)
+cat > "$T/.factory/specs/prd.md" <<'P1416CLEAN'
+---
+---
+## Changelog
+
+### v1.4 — Adversary Pass-1 Remediation
+
+**F-007 (VP-TBD backfill):** All `VP-TBD` placeholders replaced across 37 BC files. Zero VP-TBD remaining.
+P1416CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    P1416_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  STRUCTURAL FAIL: D-081 P1 exemption missing — VP-TBD in changelog narrative was flagged"
+    echo "  Actual output: $P1416_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: same VP-TBD moved to plain prose OUTSIDE any changelog section
+    cat > "$T/.factory/specs/prd.md" <<'P1416BAD'
+---
+---
+## 2. Verification Properties
+
+The VP-TBD placeholder remains unfilled.
+P1416BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT flag VP-TBD in plain prose)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; changelog-narrative VP-TBD exempt; prose VP-TBD flagged)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test P14-17: check-placeholders — backtick citation NOT flagged (D-081 P2) ──
+# REPAIR 4 (BI-047): the D-081 Predicate 2 (backtick span) exempts placeholder tokens
+# inside inline code spans. This test proves the predicate is load-bearing:
+# Clean: prd.md with `[filled by architect]` inside backticks → exit 0 (cited reference)
+# Defect: remove backticks → live placeholder in plain prose → exit 1 (flagged)
+# Mutation-verify: removing the backtick span exemption from check_file_lines makes the
+# clean tree exit 1 → STRUCTURAL FAIL asserts → FAILS. Proves D-081 P2 is load-bearing.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest P14-17: check-placeholders: backtick citation of placeholder not flagged (D-081 P2) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts"
+
+# Clean tree: [filled by architect] inside backticks — cited reference, not live
+cat > "$T/.factory/specs/prd.md" <<'P1417CLEAN'
+---
+---
+## Changelog
+
+### v1.9 — Repair Pass
+
+Closed all 22 `[filled by architect]` placeholders across 26 BC files.
+P1417CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    P1417_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" 2>&1)
+    echo "  STRUCTURAL FAIL: backtick citation of [filled by architect] was incorrectly flagged"
+    echo "  Actual output: $P1417_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: remove backticks → live [filled by architect] in changelog prose
+    # NOTE: this is ALSO in a changelog section (### v1.9), so BOTH predicates would fire.
+    # To isolate P2 specifically: put the defect OUTSIDE any changelog section.
+    cat > "$T/.factory/specs/prd.md" <<'P1417BAD'
+---
+---
+## 2. Behavioral Contracts
+
+Architecture module: [filled by architect]
+P1417BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-placeholders.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT flag [filled by architect] without backticks)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; backtick citation exempt; unquoted live placeholder flagged)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test EI-1: check-ec-injectivity — BC-vs-registry divergent scenario (BI-051) ──
+# Proves the new BC-vs-registry comparison detects a clearly divergent scenario:
+# the BC description has zero token overlap with the TV canonical description.
+# Calibration: EC-142 (BC: "Scan with 0 findings", TV: "Only an unreadable file",
+# Jaccard=0.0) is the real-corpus proof case — this selftest is its mechanical equivalent.
+# Clean: BC description agrees with TV → exit 0
+# Defect: BC description completely different (disjoint tokens) → exit 1 (SCENARIO-MISMATCH)
+# Mutation-verify: removing the _compare_bc_to_registry call from main() makes the defect
+# tree exit 0 → defect-fail assertion fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest EI-1: check-ec-injectivity: BC-vs-registry divergent scenario (BI-051) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/prd-supplements"
+
+# Clean tree: BC description AGREES with TV description
+# TV: "Symlink outside root boundary traversal"  BC: "Symlink traversal outside root boundary"
+# Jaccard: shared tokens {symlink, outside, root, boundary, traversal} / union = 1.0 → PASS
+printf '| TV-001 | EC-001 | Symlink outside root boundary traversal | `doc.md` | 1 | broken | reason |\n' \
+    > "$T/.factory/specs/prd-supplements/test-vectors.md"
+
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI1-SELFTEST.md" <<'BCEI1CLEAN'
+---
+bc_id: BC-EI1-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-001 | Symlink traversal outside root boundary |
+BCEI1CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    EI1_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+    echo "  STRUCTURAL FAIL: checker failed on agreeing BC+TV descriptions"
+    echo "  Output: $EI1_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: overwrite BC with a completely different description (zero token overlap)
+    # BC: "Exit code zero when scan passes without errors" — zero overlap with TV symlink description
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI1-SELFTEST.md" <<'BCEI1BAD'
+---
+bc_id: BC-EI1-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-001 | Exit code zero when scan passes without errors |
+BCEI1BAD
+    EI1_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+    EI1_EXIT=$?
+    if [ "$EI1_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT detect divergent BC-vs-registry scenario)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$EI1_OUT" | grep -q "SCENARIO-MISMATCH EC-001"; then
+        echo "  PASS (clean-pass confirmed; divergent BC-vs-registry scenario correctly detected)"
+    else
+        echo "  FAIL (checker exited non-zero but SCENARIO-MISMATCH EC-001 not in output)"
+        echo "  Actual: $EI1_OUT"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test EI-2: check-ec-injectivity — BC-vs-registry genuine agreement NOT flagged (BI-051) ──
+# Proves the pass bucket works: a BC description that genuinely agrees with the TV canonical
+# description (high Jaccard) is NOT flagged.
+# Clean: agreeing descriptions → exit 0 (no SCENARIO-MISMATCH)
+# Defect: change BC to completely different description → exit 1
+# Mutation-verify: lowering BC_REGISTRY_AGREE threshold to 0 would make all cases "divergent"
+# and the clean tree would exit 1 → STRUCTURAL FAIL asserts → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest EI-2: check-ec-injectivity: genuine agreement not flagged (BI-051) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/prd-supplements"
+
+# TV: "Missing file at link destination" — strong description with unique tokens
+printf '| TV-002 | EC-002 | Missing file at link destination | `doc.md` | 1 | broken | reason |\n' \
+    > "$T/.factory/specs/prd-supplements/test-vectors.md"
+
+# BC: "Missing file at link destination" — identical (Jaccard=1.0)
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI2-SELFTEST.md" <<'BCEI2CLEAN'
+---
+bc_id: BC-EI2-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-002 | Missing file at link destination |
+BCEI2CLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    EI2_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+    echo "  STRUCTURAL FAIL: checker flagged genuine agreement between BC and TV descriptions"
+    echo "  Output: $EI2_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: change BC to completely different scenario (zero overlap)
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI2-SELFTEST.md" <<'BCEI2BAD'
+---
+bc_id: BC-EI2-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-002 | TLS handshake timeout during certificate validation |
+BCEI2BAD
+    EI2_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+    EI2_EXIT=$?
+    if [ "$EI2_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — did NOT detect divergent scenario after changing BC)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; genuine agreement not flagged; divergent correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test EI-3: check-ec-injectivity — borderline case in adjudication bucket (BI-051) ──
+# Proves the adjudication bucket is populated for borderline Jaccard values.
+# Design: clean tree = borderline BC+TV description pair (Jaccard in [0.02, 0.10)) → exit 0
+# with "1 require adjudication" in output. Defect = change BC to zero-overlap → exit 1.
+# This structure satisfies the two-step clean-pass/defect-fail pattern:
+#   clean-pass: exit 0 AND "1 require adjudication" in output (proves borderline lands in bucket)
+#   defect-fail: exit 1 (from divergent case — proves threshold is enforced)
+# Mutation-verify: raising BC_REGISTRY_BORDERLINE above the clean pair's Jaccard makes
+# it "divergent" → clean tree exits 1 → STRUCTURAL FAIL asserts → FAILS.
+#
+# Calibration pair (Jaccard ≈ 0.091 → adjudication):
+#   TV: "Link target points to missing file path"
+#       tokens: {link, target, points, missing, file, path} → unique: {link,target,points,missing,file,path}
+#   BC: "Broken reference to non-existent document path"
+#       tokens: {broken, reference, non, existent, document, path} → unique: {broken,ref,non,existent,doc,path}
+#   Shared: {path} → Jaccard = 1/11 ≈ 0.091 → in [0.02, 0.10) → ADJUDICATION
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest EI-3: check-ec-injectivity: borderline case in adjudication bucket (BI-051) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/prd-supplements"
+
+# TV: borderline pair — Jaccard ≈ 0.091 with BC below (adjudication, not divergent)
+printf '| TV-003 | EC-003 | Link target points to missing file path | `doc.md` | 1 | broken | reason |\n' \
+    > "$T/.factory/specs/prd-supplements/test-vectors.md"
+
+# BC: borderline description (shares "path" token with TV, low but nonzero Jaccard)
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI3-SELFTEST.md" <<'BCEI3CLEAN'
+---
+bc_id: BC-EI3-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-003 | Broken reference to non-existent document path |
+BCEI3CLEAN
+
+EI3_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+EI3_CLEAN_EXIT=$?
+CLEAN_PASS=0
+if [ "$EI3_CLEAN_EXIT" -ne 0 ]; then
+    echo "  STRUCTURAL FAIL: borderline case incorrectly triggered exit 1 (should land in adjudication)"
+    echo "  Output: $EI3_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+elif echo "$EI3_CLEAN_OUT" | grep -q "1 require adjudication"; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: borderline case did not land in adjudication bucket (output has no '1 require adjudication')"
+    echo "  Output: $EI3_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: change BC to zero-overlap description → exit 1 (divergent)
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI3-SELFTEST.md" <<'BCEI3BAD'
+---
+bc_id: BC-EI3-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-003 | TLS certificate chain validation error during SSL handshake |
+BCEI3BAD
+    EI3_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+    EI3_EXIT=$?
+    if [ "$EI3_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — zero-overlap description should be divergent/exit 1)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed with adjudication; zero-overlap correctly detected as divergent)"
     fi
 fi
 rm -rf "$T"
