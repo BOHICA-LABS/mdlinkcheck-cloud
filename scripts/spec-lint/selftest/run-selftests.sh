@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=88
+EXPECTED_TEST_COUNT=91
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -5485,6 +5485,200 @@ TV5GBAD
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; valid reason code not flagged; phantom in Reason column detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5h: check-adr-consistency — uppercase `E-IO-002` in Reason column detected (BLOCKING-5a) ──
+# Proves BLOCKING-5a: the character class broadened to [A-Za-z] so uppercase-leading
+# tokens like `E-IO-002` reach _is_reason_code_candidate() and are detected when
+# not in the closed taxonomy.
+# Clean: Reason column has valid `file-not-found` → exit 0
+# Defect: Reason column has `E-IO-002` (uppercase, not in taxonomy) → exit 1
+# Mutation-verify: reverting to [a-z] makes `E-IO-002` match fail → checker exits 0
+#   on the defect tree → defect-fail assertion fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5h: check-adr-consistency: uppercase E-IO-002 in Reason column detected (BLOCKING-5a) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5H'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `connection-timeout` | Connection timed out |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5H
+
+# Clean tree: table with Reason column containing a valid lowercase reason code
+cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TV5HCLEAN'
+## §1. Test Vectors
+
+| TV-ID | EC-ID | Verdict | Reason |
+|-------|-------|---------|--------|
+| TV-001 | EC-001 | broken | `file-not-found` |
+TV5HCLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker flagged valid reason code in Reason column"
+    ST5H_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    echo "  Output: $ST5H_CLEAN"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: replace valid code with `E-IO-002` (uppercase-leading, not in taxonomy)
+    cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TV5HBAD'
+## §1. Test Vectors
+
+| TV-ID | EC-ID | Verdict | Reason |
+|-------|-------|---------|--------|
+| TV-001 | EC-001 | broken | `E-IO-002` |
+TV5HBAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — uppercase E-IO-002 in Reason column not detected; [a-z] class bug)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; uppercase E-IO-002 in Reason column correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5i: check-adr-consistency — annotated cell `phantom-gamma` (per D-018) detected (BLOCKING-5b) ──
+# Proves BLOCKING-5b: re.match (not fullmatch) extracts the leading token from
+# annotated cells like `phantom-gamma` (per D-018).  fullmatch would have dropped
+# the entire cell (no match), silently missing the phantom code.
+# Clean: Reason column has valid `file-not-found` → exit 0
+# Defect: Reason column has `` `phantom-gamma` (per D-018) `` → leading token
+#   "phantom-gamma" extracted and detected as non-taxonomy code → exit 1
+# Mutation-verify: reverting to fullmatch makes the defect tree exit 0 (annotated
+#   cell skipped) → defect-fail assertion fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5i: check-adr-consistency: annotated Reason cell \`phantom-gamma\` (per D-018) detected (BLOCKING-5b) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5I'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `connection-timeout` | Connection timed out |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5I
+
+# Clean tree: table with Reason column containing a valid reason code
+cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TV5ICLEAN'
+## §1. Test Vectors
+
+| TV-ID | EC-ID | Verdict | Reason |
+|-------|-------|---------|--------|
+| TV-001 | EC-001 | broken | `file-not-found` |
+TV5ICLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker flagged valid reason code in Reason column"
+    ST5I_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    echo "  Output: $ST5I_CLEAN"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: annotated Reason cell with phantom code followed by inline citation
+    cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TV5IBAD'
+## §1. Test Vectors
+
+| TV-ID | EC-ID | Verdict | Reason |
+|-------|-------|---------|--------|
+| TV-001 | EC-001 | broken | `phantom-gamma` (per D-018) |
+TV5IBAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — annotated Reason cell phantom-gamma not detected; fullmatch bug)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; annotated phantom-gamma (per D-018) correctly detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5j: check-adr-consistency — data "reason" cell does NOT hijack column index (BLOCKING-5c) ──
+# Proves BLOCKING-5c: header detection uses separator-based confirmation, not cell
+# value matching.  A data row whose Notes cell value is exactly "reason" no longer
+# re-points current_reason_col_p1, so a phantom code in the real Reason column of a
+# SUBSEQUENT row is still detected.
+#
+# Table structure:
+#   Header row: | Status | Reason | Notes |     ← Reason at col 1, confirmed by separator
+#   Separator:  |--------|--------|-------|
+#   Data row 1: | broken | file-not-found | reason |   ← Notes="reason"; without fix, hijacks to col 2
+#   Data row 2: | broken | phantom-reason | irrelevant |  ← defect here; col 2 = "irrelevant" (no hyphen)
+#
+# Clean tree: only row 1 (valid file-not-found in Reason col) + Notes "reason" cell → exit 0
+# Defect: add row 2 with phantom-reason in Reason col → with fix col index is 1 → detected → exit 1
+#   Without fix: "reason" data cell hijacked col index to 2; row 2 checks "irrelevant" (no hyphen)
+#   → _is_reason_code_candidate skips it → phantom missed → exit 0 (bug reproduced)
+# Mutation-verify: reverting to the old update block makes the defect tree exit 0 →
+#   defect-fail assertion fires → FAILS.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5j: check-adr-consistency: data 'reason' cell does NOT hijack column index (BLOCKING-5c) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5J'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `connection-timeout` | Connection timed out |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5J
+
+# Clean tree: table with data row that has "reason" in Notes column
+# After fix: "reason" in Notes cell does NOT hijack Reason column index → file-not-found valid → exit 0
+cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TV5JCLEAN'
+## §1. Test Vectors
+
+| Status | Reason | Notes |
+|--------|--------|-------|
+| broken | `file-not-found` | reason |
+TV5JCLEAN
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on table with valid Reason column and 'reason' in Notes"
+    ST5J_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    echo "  Output: $ST5J_CLEAN"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: add row with phantom-reason in the real Reason column (col 1),
+    # and "irrelevant" in the Notes column (col 2).
+    # Without fix: "reason" in Notes of row 1 hijacked col index to 2;
+    #   row 2 checks cells[2]="irrelevant" (no hyphen) → phantom-reason missed → exit 0 (bug)
+    # With fix: col index stays at 1; row 2 checks cells[1]="phantom-reason" → detected → exit 1
+    cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TV5JBAD'
+## §1. Test Vectors
+
+| Status | Reason | Notes |
+|--------|--------|-------|
+| broken | `file-not-found` | reason |
+| broken | `phantom-reason` | irrelevant |
+TV5JBAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — phantom-reason in Reason col NOT detected; column hijack bug)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; 'reason' data cell not hijacking; phantom-reason detected)"
     fi
 fi
 rm -rf "$T"

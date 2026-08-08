@@ -260,9 +260,11 @@ def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[s
     dash_count = 0
 
     # Pattern 1 state: track which column is the Reason column in the current table section.
-    # Updated when a header row is encountered that contains a 'Reason' or 'Reason Code' cell.
     # (BLOCKING-3 positional predicate — position 1: table Reason column)
+    # (BLOCKING-5c) Updated ONLY when a separator row confirms the previous row was a header —
+    # prevents data cells whose value is exactly "reason" from hijacking the column index.
     current_reason_col_p1: int | None = None
+    prev_row_cells: list[str] | None = None  # previous table row, for separator-based confirmation
 
     for lineno, line in enumerate(lines, 1):
         stripped = line.strip()
@@ -296,17 +298,24 @@ def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[s
         # bleeding into an adjacent §3 "Notes" column (different schema). (BLOCKING-3)
         if not is_table_line:
             current_reason_col_p1 = None
+            prev_row_cells = None
 
-        if is_table_line and not slp.is_table_separator_row(cells):
-            # Check if this is a table header row (contains a 'Reason' or 'Reason Code' cell)
-            found_reason_col = None
-            for i, cell in enumerate(cells):
-                if cell.lower() in ("reason", "reason code"):
-                    found_reason_col = i
-                    break
-            if found_reason_col is not None:
-                # Update Reason column tracking for subsequent data rows
-                current_reason_col_p1 = found_reason_col
+        if is_table_line:
+            if slp.is_table_separator_row(cells):
+                # Separator confirms the previous row was a table header.
+                # (BLOCKING-5c) Only update current_reason_col_p1 from a confirmed header
+                # row — never from a data row, which prevents a data cell whose value is
+                # exactly "reason" from hijacking the column index and masking phantoms.
+                if prev_row_cells is not None:
+                    for i, cell in enumerate(prev_row_cells):
+                        if cell.lower() in ("reason", "reason code"):
+                            current_reason_col_p1 = i
+                            break
+                prev_row_cells = None
+            else:
+                # Non-separator row: remember it as a candidate header row.
+                # It is confirmed as a header only if the NEXT line is a separator.
+                prev_row_cells = cells
 
         # Per-line deduplication: avoid double-counting same code on same line
         seen_codes_this_line: set[str] = set()
@@ -322,14 +331,32 @@ def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[s
                     and current_reason_col_p1 is not None
                     and current_reason_col_p1 < len(cells)):
                 reason_cell = cells[current_reason_col_p1]
-                # Simple-value guard (BLOCKING-3 repair): only check cells whose entire
-                # content is a single lowercase hyphenated token (optionally in backticks).
-                # Long notes cells (library names, anchor slug examples, explanatory text)
-                # are excluded — they are not in a syntactic reason-code position even
-                # though they share the Reason column. Matches: `file-not-found`, dns-failure.
-                # Does NOT match: "CommonMark ... `pulldown-cmark` handles correctly",
-                # "`foo-1`; `Foo-1` normalizes", or any cell with spaces.
-                m_simple = re.fullmatch(r"`?([a-z][a-z0-9-]{2,})`?", reason_cell.strip())
+                reason_stripped = reason_cell.strip()
+                # Two-branch token guard (BLOCKING-3 repair, BLOCKING-5a/5b):
+                #
+                # Branch A — backtick-quoted cell: extract the leading backtick-quoted token,
+                #   allowing optional trailing annotation (e.g., `phantom-gamma` (per D-018)).
+                #   (BLOCKING-5a) [A-Za-z] catches uppercase-leading codes like `E-IO-002`.
+                #   (BLOCKING-5b) re.match (not fullmatch) allows trailing annotation text.
+                #
+                # Branch B — bare token: the entire cell must be a single lowercase hyphenated
+                #   token (re.fullmatch, [a-z]).  This preserves the BLOCKING-3 guard against
+                #   CapCase prose cells like "Dot-dir skipped by default" or "Non-UTF-8
+                #   reported as I/O error" — they fail [a-z] (uppercase first letter) and are
+                #   silently excluded, exactly as before.  Bare lowercase annotated cells like
+                #   "file-not-found (default)" are also handled here via re.match + [a-z].
+                if reason_stripped.startswith("`"):
+                    # Branch A: backtick-quoted leading token — allows trailing annotation
+                    # text (e.g., `phantom-gamma` (per D-018)). re.match stops after the
+                    # closing backtick so the annotation is never mis-parsed.
+                    m_simple = re.match(r"`([A-Za-z][a-zA-Z0-9-]{2,})`", reason_stripped)
+                else:
+                    # Branch B: bare token — the entire cell must be a single lowercase
+                    # hyphenated token (re.fullmatch + [a-z]).  This preserves the
+                    # BLOCKING-3 guard: prose cells like "Dot-dir skipped by default" or
+                    # "edge-case match" fail fullmatch (trailing words) or fail [a-z]
+                    # (CapCase), so they are silently excluded exactly as before.
+                    m_simple = re.fullmatch(r"([a-z][a-z0-9-]{2,})", reason_stripped)
                 if m_simple:
                     code = m_simple.group(1)
                     if code not in seen_codes_this_line and _is_reason_code_candidate(code):
