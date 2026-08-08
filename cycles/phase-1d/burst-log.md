@@ -1449,6 +1449,52 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 ---
 
+---
+
+## Burst-30
+
+**Date:** 2026-08-08
+
+**Step:** BI-055 RESOLVED — human-ordered PRIVATE→PUBLIC repository visibility change (D-127, 2026-08-08T22:55:24Z); branch protections verified intact post-flip (D-128); PR #11 now 4/4 required checks PASS; `Spec lint` fails as intended per D-124; AWAITING OPERATOR-CONFIRMED MERGE (D-120); D-127..D-128 (exhaustive) appended to Decisions Log; BI-055 moved to blocking-issues-resolved.md; burst narrative appended to cycles/phase-1d/burst-log.md; trajectory-tail →39→37→259→273-275 (unchanged)
+
+**Agent:** state-manager
+
+**Status:** COMPLETE
+
+**Narrative:**
+GitHub Actions billing gate (BI-055) blocked all four required CI status checks — every job exited in 2–4s with a billing annotation, making it structurally impossible for any PR to satisfy branch protection requirements. This blocked PR #11 (oracle repairs), all content-remediation PRs, and every Phase-3 story PR.
+
+Human operator executed the visibility change: `gh repo edit BOHICA-LABS/mdlinkcheck-cloud --visibility public --accept-visibility-change-consequences` at 2026-08-08T22:55:24Z UTC. Public repos use free GitHub-hosted runners, removing the billing gate.
+
+**Secret pre-clearance confirmed:** Operator pre-scanned both branches; orchestrator independently corroborated — `.mcp.json` is fully env-var interpolated (`${PERPLEXITY_API_KEY}`, `${TAVILY_API_KEY}`, `${CONTEXT7_API_KEY}`, no literal values); scan for GitHub tokens (`ghp_`/`gho_`/`github_pat_`), OpenAI-style keys, AWS access-key IDs, PEM private-key headers, and Slack tokens across both `develop` and `factory-artifacts` trees returned ZERO matches.
+
+**WALL-TIME BOUNDARY (D-127):** CI timings before 2026-08-08T22:55:24Z are private-runner; at/after are free public runners. NFR-001/NFR-002/NFR-008 baselines MUST NOT be compared across this boundary without re-baselining.
+
+Post-flip verification (D-128): branch protection survived intact on both `develop` and `main`, including the load-bearing `required_approving_review_count: 0`. All four required status check contexts confirmed: `["Format check","Clippy (deny warnings)","Test (macos-latest)","Build release (macos-latest)"]` with `strict: true`, `required_linear_history: true`, `allow_force_pushes: false`. PR #11 (head `b2f55ac`) now shows 4/4 required checks PASS; advisory `Spec lint` executes for 9–11s and reports a real failure per D-124 (correct and intended).
+
+**D-127..D-128 (exhaustive) recorded. Convergence status unchanged: 0 of 3 clean passes. Trajectory-tail: →39→37→259→273-275.**
+
+**STATE.md changes:**
+- Frontmatter `current_step` updated: `D-121..D-128 (exhaustive); trajectory-tail →39→37→259→273-275`
+- Frontmatter `timestamp` advanced
+- D-127 and D-128 appended to Decisions Log
+- BI-055 marked RESOLVED in Blocking Issues table (with resolution text)
+- Session Resume Checkpoint updated: Position (pass 7 COMPLETE, PR #11 awaiting merge D-120) + Next burst (post-PR-#11-merge sequence)
+- Spec snapshot updated: D-001..D-128 (exhaustive); BI-055 removed from Open BI list; BI-047/049/050/051 REPAIRED-PENDING-MERGE
+- Last Updated metadata row updated: trajectory-tail →39→37→259→273-275
+
+**Updated:** BI-055 → RESOLVED (moved to `cycles/phase-1d/blocking-issues-resolved.md`). BI-047/049/050/051 remain REPAIRED-PENDING-MERGE (head `b2f55ac`).
+
+**Artifact state at burst close:**
+PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12. D-001..D-128 (exhaustive). Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045/046/048/055. Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/047/049/050/051/052/053/054. BI-047/049/050/051 REPAIRED-PENDING-MERGE (head b2f55ac). Checker state (fix/oracle-repairs-gate34, post-repair): 6 pass / 3 fail — true mechanical baseline D-124.
+
+**Files touched:**
+- `.factory/STATE.md`
+- `.factory/cycles/phase-1d/blocking-issues-resolved.md`
+- `.factory/cycles/phase-1d/burst-log.md`
+
+---
+
 <!-- Archived from STATE.md Current Phase Steps — removed per keep-last-5 rule when Burst-29 was added -->
 
 ## Archived: Burst-24 (removed from STATE.md Current Phase Steps by Burst-29)
