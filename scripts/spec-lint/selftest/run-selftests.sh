@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=74
+EXPECTED_TEST_COUNT=75
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -4486,6 +4486,69 @@ BC7C
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; table-form EC-093 correctly detected — no regression)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 7d: check-holdout-boundary — must-NOT-flag prd.md:630 shape (CORRECTION 1) ──
+# Validates the suffix-based predicate (D-081) added in CORRECTION 1:
+#
+#   Clean tree:  EC-093 appears AFTER the arrows and verdict words on the line
+#                ("https→http downgrade (broken) ... Removed EC-093")
+#                → suffix after EC-093 has NO arrow → must NOT fire → exits 0
+#
+#   Defect tree: EC-093 appears BEFORE the arrow+verdict
+#                ("EC-093 (test https link → broken) was removed")
+#                → suffix after EC-093 HAS arrow + verdict → must fire → exits 1
+#
+# Mutation-verify: reverting is_concrete_scenario_prose() to the old whole-line
+# predicate (checking `line` instead of `suffix = line[match_start:]`) makes the
+# CLEAN tree fail (whole-line arrow + verdict fires), causing the STRUCTURAL FAIL
+# assertion to trigger — proving suffix-binding is the load-bearing change.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 7d: check-holdout-boundary: prd.md:630 shape must-NOT-flag (suffix predicate, CORRECTION 1) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs"
+cat > "$T/.factory/specs/prd.md" <<'PRDSTUB7D'
+---
+---
+Holdout vectors **(EC-079, EC-093, EC-094, EC-141, EC-147, EC-148, EC-151)**
+PRDSTUB7D
+
+# Clean tree: line shaped like prd.md:630 — arrow and verdict appear BEFORE the EC ID.
+# EC-093 appears only as "Removed EC-093" at the end, with no arrow in its suffix.
+mkdir -p "$T/.factory/specs/prd-supplements"
+cat > "$T/.factory/specs/prd-supplements/changelog-note.md" <<'CHNOTE7D'
+## Changelog
+
+- Added https→http downgrade detection (broken, not indeterminate). DNS failure (broken),
+  too-many-redirects (broken). Removed holdout EC-093. error-taxonomy.md §2.3 updated.
+CHNOTE7D
+
+CLEAN_PASS=0
+if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-holdout-boundary.py" > /dev/null 2>&1; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker fired on prd.md:630 shape — false positive NOT eliminated"
+    echo "  (EC-093 has no arrow in its suffix; suffix-based predicate must NOT fire here)"
+    ST7D_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-holdout-boundary.py" 2>&1)
+    echo "  Output: $ST7D_CLEAN"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: same changelog line but EC-093 appears BEFORE the arrow+verdict
+    cat > "$T/.factory/specs/prd-supplements/changelog-note.md" <<'CHNOTE7D_BAD'
+## Changelog
+
+- EC-093 (test input with https link → broken) was removed from the visible test suite.
+CHNOTE7D_BAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-holdout-boundary.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — did NOT catch EC-093 with arrow+verdict in suffix)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (prd.md:630 shape not flagged; inverted shape correctly detected)"
     fi
 fi
 rm -rf "$T"

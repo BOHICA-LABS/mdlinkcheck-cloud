@@ -333,6 +333,21 @@ def main() -> int:
     broad_files_checked = 0
     total_occurrences = 0
 
+    # CORRECTION 2 (D-057 / POLICY 11): independently compute the ground-truth
+    # spec corpus total (all .md files under SPECS excluding holdout-scenarios,
+    # cycles, and planning — regardless of routing to broad vs ADR path).
+    # This total must equal broad_files_checked + adrs_checked after the loops;
+    # any divergence means a scope gap and we fail loudly.
+    def _in_spec_corpus(path: Path) -> bool:
+        s = str(path)
+        if "holdout-scenarios" in s:
+            return False
+        if "/.factory/cycles/" in s or "/.factory/planning/" in s:
+            return False
+        return True
+
+    total_corpus = sum(1 for f in SPECS.rglob("*.md") if _in_spec_corpus(f))
+
     # ── POLICY 12 + 19 for ADRs (original scope, unchanged) ──────────────────
     if not ADR_DIR.exists():
         print(f"ERROR: ADR directory not found: {ADR_DIR}")
@@ -352,21 +367,33 @@ def main() -> int:
         violations.extend(new_v)
         total_occurrences += new_occ
 
+    # POSITIVE-COVERAGE completeness assertion (D-057 / POLICY 11):
+    # Parts must sum to the independently-computed corpus total.
+    total_scanned = broad_files_checked + adrs_checked
+    if total_scanned != total_corpus:
+        print(
+            f"ERROR: scope gap — {broad_files_checked} broad + {adrs_checked} ADRs "
+            f"= {total_scanned} scanned, but corpus total is {total_corpus}; "
+            f"check _in_spec_corpus / should_check_for_broad_p19 filter alignment"
+        )
+        return 2
+
     if violations:
         for v in violations:
             print(v)
         print(
             f"\nCheck FAILED: {len(violations)} violations found "
             f"({total_occurrences} reason-code occurrences validated across "
-            f"{broad_files_checked} files, {len(violations)} non-conforming; "
-            f"{adrs_checked} ADRs additionally checked for POLICY 12 exit-code semantics)"
+            f"{broad_files_checked} files scanned + {adrs_checked} ADRs routed to POLICY 12 "
+            f"= {total_scanned} of {total_corpus} spec files (complete), "
+            f"{len(violations)} non-conforming)"
         )
         return 1
 
     print(
         f"Check passed: {total_occurrences} reason-code occurrences validated across "
-        f"{broad_files_checked} files, 0 non-conforming "
-        f"({adrs_checked} ADRs additionally checked for POLICY 12 exit-code semantics)"
+        f"{broad_files_checked} files scanned + {adrs_checked} ADRs routed to POLICY 12 "
+        f"= {total_scanned} of {total_corpus} spec files (complete), 0 non-conforming"
     )
     return 0
 

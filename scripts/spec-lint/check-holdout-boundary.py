@@ -97,33 +97,37 @@ def is_concrete_scenario_row(line: str, ec_id: str) -> bool:
     return bool(verdict_pattern.search(line))
 
 
-def is_concrete_scenario_prose(line: str) -> bool:
+def is_concrete_scenario_prose(line: str, match_start: int) -> bool:
     """
-    Determine if a non-table prose/bullet/code-fence line expresses a concrete
-    scenario specification for a holdout EC ID.
+    Determine if the PORTION OF THE LINE AFTER position `match_start` (i.e., after
+    the end of the holdout EC ID token) expresses a concrete scenario specification.
 
-    Requires BOTH of:
-      1. A scenario-arrow indicator (→, ->, =>) — present in "input → expected-output"
-         narrative constructions.
-      2. A verdict or exit-code word that names the expected output.
+    Requires BOTH of, in the SUFFIX after the EC ID match end:
+      1. A scenario-arrow indicator (→, ->) — the input→expected-output mapping signal.
+      2. A verdict or exit-code word — the expected-output side.
 
-    This two-part predicate is characteristic of prose scenario descriptions and
-    differs meaningfully from mere discussion (e.g. "EC-079 was removed" has no
-    arrow; "links that break → various outcomes" has no specific EC ID and would
-    not be checked here anyway).  The combination avoids flagging bare narrative
-    mentions of holdout IDs while catching the exact breach pattern documented in
-    adversary findings P7-S8-004 / P7-S8-005 (BI-049).
+    Position-based predicate (D-081 principle): by restricting to the suffix, the
+    checker binds the arrow+verdict pair to the specific EC ID match, rather than
+    detecting co-occurrence anywhere on the line.  This eliminates the false-positive
+    shape from adversary correction P7-S8-004 (correction 1): a line where the arrow
+    appears in text that PRECEDES the EC ID (e.g. "https→http ...Removed EC-093")
+    has no arrow in the suffix after EC-093, so it does NOT fire.
+
+    Known limitation: a real breach written as "→ broken occurs for EC-151 (input X)"
+    — where the arrow appears BEFORE the EC ID — would not be detected.  This is an
+    uncommon prose structure; if observed it should be added as a future test case.
     """
-    # Part 1: scenario arrow (input→output mapping indicator)
-    has_arrow = bool(re.search(r'→|->|=>', line))
+    suffix = line[match_start:]
+    # Part 1: scenario arrow AFTER the EC ID match
+    has_arrow = bool(re.search(r'→|->', suffix))
     if not has_arrow:
         return False
-    # Part 2: verdict or exit-code word (the expected-output side)
+    # Part 2: verdict or exit-code word AFTER the EC ID match
     verdict_pattern = re.compile(
         r"\b(alive|broken|indeterminate|clean|exit\s+code\s+[012]|exit\s+[012]|exit-[012])\b",
         re.IGNORECASE,
     )
-    return bool(verdict_pattern.search(line))
+    return bool(verdict_pattern.search(suffix))
 
 
 def should_check_file(path: Path) -> bool:
@@ -147,6 +151,11 @@ def main() -> int:
 
     violations: list[str] = []
     files_checked = 0
+
+    # CORRECTION 2 (D-057 / POLICY 11): compute total spec corpus independently so
+    # the completeness assertion is falsifiable — if the loop filter drifts from this
+    # ground-truth count, the check fails loudly rather than silently under-counting.
+    total_corpus = sum(1 for f in SPECS.rglob("*.md") if should_check_file(f))
 
     # Build sub-letter patterns for holdout base IDs
     # e.g. EC-079 is holdout -> also check EC-079a, EC-079b, EC-079c etc.
@@ -209,7 +218,7 @@ def main() -> int:
                 # Bare narrative mentions (no arrow, no verdict) are NOT flagged.
                 for m in bare_holdout_pattern.finditer(line):
                     ec_id = f"EC-{m.group(1)}"
-                    if ec_id in holdout_ids and is_concrete_scenario_prose(line):
+                    if ec_id in holdout_ids and is_concrete_scenario_prose(line, m.end()):
                         violations.append(
                             f"{md_file}:{lineno}: holdout {ec_id} has concrete prose scenario "
                             f"in visible artifact (BI-049)\n"
@@ -220,26 +229,37 @@ def main() -> int:
                 for m in sub_letter_pattern.finditer(line):
                     ec_id_sub = f"EC-{m.group(1)}{m.group(2)}"
                     base_id = f"EC-{m.group(1)}"
-                    if is_concrete_scenario_prose(line):
+                    if is_concrete_scenario_prose(line, m.end()):
                         violations.append(
                             f"{md_file}:{lineno}: sub-lettered alias {ec_id_sub} (base={base_id} is holdout) "
                             f"has concrete prose scenario in visible artifact [P3-021 pattern, BI-049]\n"
                             f"  {line.strip()[:120]}"
                         )
 
+    # POSITIVE-COVERAGE completeness assertion (D-057 / POLICY 11):
+    # files_checked must equal total_corpus — any divergence means the loop filter
+    # and the ground-truth count are inconsistent (scope gap).
+    if files_checked != total_corpus:
+        print(
+            f"ERROR: scope gap — {files_checked} files scanned != {total_corpus} total "
+            f"spec files matching should_check_file(); check filter logic"
+        )
+        return 2
+
     if violations:
         for v in violations:
             print(v)
         print(
             f"\nCheck FAILED: {len(violations)} holdout boundary violations found "
-            f"({len(holdout_ids)} reserved holdout EC IDs checked across {files_checked} files, "
+            f"({len(holdout_ids)} reserved holdout EC IDs checked across "
+            f"{files_checked} of {total_corpus} spec files (complete), "
             f"{len(violations)} non-conforming)"
         )
         return 1
 
     print(
         f"Check passed: {len(holdout_ids)} reserved holdout EC IDs checked across "
-        f"{files_checked} files, 0 non-conforming"
+        f"{files_checked} of {total_corpus} spec files (complete), 0 non-conforming"
     )
     return 0
 
