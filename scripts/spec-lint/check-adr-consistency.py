@@ -324,18 +324,26 @@ def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[s
         # Replaces the broad keyword-in-line context guard with position-based detection.
         # Only tokens in syntactic reason-code positions are candidates.
         if is_table_line:
-            # Table row: only scan the Reason column cell (if known and this is a data row)
-            is_header_row = any(cell.lower() in ("reason", "reason code") for cell in cells)
-            if (not is_header_row
-                    and not slp.is_table_separator_row(cells)
+            # Table row: only scan the Reason column cell (if known and this is a data row).
+            # Separator-confirmed header detection (BLOCKING-5c) means current_reason_col_p1
+            # is only set AFTER the separator row — true header rows are never processed here.
+            # The `current_reason_col_p1 is not None` guard below prevents any confusion.
+            # The old `is_header_row` variable (any cell == "reason") was redundant and caused
+            # BLOCKING-6: data rows whose first cell was literally "reason" were silently
+            # skipped, hiding phantom codes in the Reason column of those rows.
+            if (not slp.is_table_separator_row(cells)
                     and current_reason_col_p1 is not None
                     and current_reason_col_p1 < len(cells)):
                 reason_cell = cells[current_reason_col_p1]
                 reason_stripped = reason_cell.strip()
-                # Two-branch token guard (BLOCKING-3 repair, BLOCKING-5a/5b):
+                # Two-branch token guard (BLOCKING-3 repair, BLOCKING-5a/5b, WARNING-8):
                 #
                 # Branch A — backtick-quoted cell: extract the leading backtick-quoted token,
-                #   allowing optional trailing annotation (e.g., `phantom-gamma` (per D-018)).
+                #   allowing optional trailing annotation that starts with '(' or '[' only
+                #   (e.g., `phantom-gamma` (per D-018)).  WARNING-8: the trailing annotation
+                #   anchor `(?:\s*[([].*)?$` excludes prose cells like
+                #   `` `pulldown-cmark` handles this correctly per CommonMark `` whose trailing
+                #   text starts with a letter, not '(' or '['.
                 #   (BLOCKING-5a) [A-Za-z] catches uppercase-leading codes like `E-IO-002`.
                 #   (BLOCKING-5b) re.match (not fullmatch) allows trailing annotation text.
                 #
@@ -347,9 +355,10 @@ def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[s
                 #   "file-not-found (default)" are also handled here via re.match + [a-z].
                 if reason_stripped.startswith("`"):
                     # Branch A: backtick-quoted leading token — allows trailing annotation
-                    # text (e.g., `phantom-gamma` (per D-018)). re.match stops after the
-                    # closing backtick so the annotation is never mis-parsed.
-                    m_simple = re.match(r"`([A-Za-z][a-zA-Z0-9-]{2,})`", reason_stripped)
+                    # that begins with '(' or '[' (e.g., `phantom-gamma` (per D-018)).
+                    # WARNING-8: the `(?:\s*[([].*)?$` anchor prevents prose cells whose
+                    # trailing text starts with a letter from matching as reason codes.
+                    m_simple = re.match(r"`?([A-Za-z][a-zA-Z0-9-]{2,})`?(?:\s*[([].*)?$", reason_stripped)
                 else:
                     # Branch B: bare token — the entire cell must be a single lowercase
                     # hyphenated token (re.fullmatch + [a-z]).  This preserves the

@@ -5608,26 +5608,24 @@ TV5IBAD
 fi
 rm -rf "$T"
 
-# ── Test 5j: check-adr-consistency — data "reason" cell does NOT hijack column index (BLOCKING-5c) ──
-# Proves BLOCKING-5c: header detection uses separator-based confirmation, not cell
-# value matching.  A data row whose Notes cell value is exactly "reason" no longer
-# re-points current_reason_col_p1, so a phantom code in the real Reason column of a
-# SUBSEQUENT row is still detected.
+# ── Test 5j: check-adr-consistency — phantom code on same row as bare "reason" data cell detected (BLOCKING-6) ──
+# Proves BLOCKING-6: the old `is_header_row` guard (any cell == "reason") silently
+# skipped data rows whose first (non-Reason) cell was the bare word "reason", hiding
+# phantom codes that appeared in the Reason column of THAT SAME ROW.
 #
 # Table structure:
-#   Header row: | Status | Reason | Notes |     ← Reason at col 1, confirmed by separator
-#   Separator:  |--------|--------|-------|
-#   Data row 1: | broken | file-not-found | reason |   ← Notes="reason"; without fix, hijacks to col 2
-#   Data row 2: | broken | phantom-reason | irrelevant |  ← defect here; col 2 = "irrelevant" (no hyphen)
+#   Header row: | Case   | Reason           | Notes |   ← Reason at col 1, confirmed by separator
+#   Separator:  |--------|------------------|-------|
+#   Data row:   | reason | `file-not-found` | x     |   ← Case="reason"; old code skipped the entire row
 #
-# Clean tree: only row 1 (valid file-not-found in Reason col) + Notes "reason" cell → exit 0
-# Defect: add row 2 with phantom-reason in Reason col → with fix col index is 1 → detected → exit 1
-#   Without fix: "reason" data cell hijacked col index to 2; row 2 checks "irrelevant" (no hyphen)
-#   → _is_reason_code_candidate skips it → phantom missed → exit 0 (bug reproduced)
-# Mutation-verify: reverting to the old update block makes the defect tree exit 0 →
+# Clean tree: data row with "reason" in Case col AND a valid `file-not-found` in Reason col → exit 0
+#   Assertion: output must also report ≥ 1 reason-code occurrence (non-vacuous — row was not skipped).
+# Defect: same row but `phantom-5j` in Reason col → with fix, detected → exit 1
+#   Without fix: `is_header_row` guard fired on "reason" in Case cell → row silently skipped → exit 0 (bug)
+# Mutation-verify: restoring the `is_header_row` guard makes the defect tree exit 0 →
 #   defect-fail assertion fires → FAILS.
 TESTS_RUN=$((TESTS_RUN + 1))
-echo "── selftest 5j: check-adr-consistency: data 'reason' cell does NOT hijack column index (BLOCKING-5c) ──"
+echo "── selftest 5j: check-adr-consistency: phantom on 'reason'-cased data row detected (BLOCKING-6) ──"
 T=$(make_temp)
 mkdir -p "$T/.factory/specs/architecture/decisions"
 mkdir -p "$T/.factory/specs/prd-supplements"
@@ -5639,46 +5637,48 @@ cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5J'
 | `dns-failure` | DNS lookup failed |
 TAXSTUB5J
 
-# Clean tree: table with data row that has "reason" in Notes column
-# After fix: "reason" in Notes cell does NOT hijack Reason column index → file-not-found valid → exit 0
+# Clean tree: data row with "reason" in Case col AND valid `file-not-found` in Reason col.
+# After fix: row is processed → file-not-found validates → exit 0 with ≥1 occurrence.
 cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TV5JCLEAN'
 ## §1. Test Vectors
 
-| Status | Reason | Notes |
-|--------|--------|-------|
-| broken | `file-not-found` | reason |
+| Case   | Reason           | Notes |
+|--------|------------------|-------|
+| reason | `file-not-found` | x     |
 TV5JCLEAN
 
 CLEAN_PASS=0
-if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+ST5J_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+ST5J_RC=$?
+if [ "$ST5J_RC" -ne 0 ]; then
+    echo "  STRUCTURAL FAIL: checker failed on table with valid Reason column and 'reason' in Case col"
+    echo "  Output: $ST5J_OUT"
+    FAILURES=$((FAILURES + 1))
+elif ! echo "$ST5J_OUT" | grep -q "[1-9][0-9]* reason-code occurrences validated"; then
+    echo "  STRUCTURAL FAIL: checker exited 0 but reported 0 occurrences — row was silently skipped"
+    echo "  Output: $ST5J_OUT"
+    FAILURES=$((FAILURES + 1))
+else
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
     CLEAN_PASS=1
-else
-    echo "  STRUCTURAL FAIL: checker failed on table with valid Reason column and 'reason' in Notes"
-    ST5J_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
-    echo "  Output: $ST5J_CLEAN"
-    FAILURES=$((FAILURES + 1))
 fi
 
 if [ "$CLEAN_PASS" = "1" ]; then
-    # Defect: add row with phantom-reason in the real Reason column (col 1),
-    # and "irrelevant" in the Notes column (col 2).
-    # Without fix: "reason" in Notes of row 1 hijacked col index to 2;
-    #   row 2 checks cells[2]="irrelevant" (no hyphen) → phantom-reason missed → exit 0 (bug)
-    # With fix: col index stays at 1; row 2 checks cells[1]="phantom-reason" → detected → exit 1
+    # Defect: same table but `phantom-5j` in the Reason column of the "reason" data row.
+    # Without fix: `is_header_row` guard fires → row silently skipped → phantom-5j missed → exit 0 (bug)
+    # With fix: row is processed → phantom-5j detected as non-taxonomy code → exit 1
     cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TV5JBAD'
 ## §1. Test Vectors
 
-| Status | Reason | Notes |
-|--------|--------|-------|
-| broken | `file-not-found` | reason |
-| broken | `phantom-reason` | irrelevant |
+| Case   | Reason        | Notes |
+|--------|---------------|-------|
+| reason | `phantom-5j`  | x     |
 TV5JBAD
     if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
-        echo "  FAIL (checker returned 0 — phantom-reason in Reason col NOT detected; column hijack bug)"
+        echo "  FAIL (checker returned 0 — phantom-5j on 'reason' data row NOT detected; is_header_row bug)"
         FAILURES=$((FAILURES + 1))
     else
-        echo "  PASS (clean-pass confirmed; 'reason' data cell not hijacking; phantom-reason detected)"
+        echo "  PASS (clean-pass + ≥1 occurrence confirmed; phantom-5j on 'reason' data row detected)"
     fi
 fi
 rm -rf "$T"
