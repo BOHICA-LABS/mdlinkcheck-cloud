@@ -1760,18 +1760,20 @@ All checkers at burst-23 close on `factory-artifacts`.
 
 PRD v1.12 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired: EC-102→TV-BV013 per D-010) | holdout pool 12 (5 active: HS-001/004..007; 2 retired: HS-002/003).
 
-D-001..D-094 (exhaustive). D-017..D-020 (exhaustive) restored by reconstruction; see process-gap-register PG-010.
+D-001..D-097 (exhaustive). D-017..D-020 (exhaustive) restored by reconstruction; see process-gap-register PG-010.
 
 Closed: BI-005/006/008/009/011/012/013/014/015/016/018/019/020/025/026/029/030/031/032/033/034/035/036/038/040/042/043/044/045.
 Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/046.
 
-### NEXT PRIORITIES (ordered)
+### NEXT PRIORITIES (ordered — gate #30 7-step sequence, D-095/D-096/D-097)
 
-1. **Operator merge decision on PR #9** — B1 requires P14-8+P14-9 selftests before merge is safe. BI-046 constraint is load-bearing. Operator decides: (a) authorize devops-engineer to add P14-8+P14-9 and resubmit, or (b) merge as-is under operator override with documented rationale.
-2. **When PR #9 merges:** 53 em-dash rows become actionable → WS-5 em-dash burst → 25 Stories placeholders clear REQUIRED spec-lint → pass 7.
-3. **BI-046** (MEDIUM, blocks Phase 3) — separate reviewer identity/token. REQUIRED before story PRs begin.
-4. **BI-028** (HIGH) — VP code-fence symbol validation + 4 undefined types. Pre-Phase-3 cleanup.
-5. **DD-007 gloss discrepancy** UNADJUDICATED — L2-INDEX.md:131 / BC-2.01.009.md:40,51,57 / prd.md:630,701; pass-7 intake item.
+1. **PR #9 B1 remediation (D-096)** — add selftest P14-8 (passes `""` to `is_conforming_vp_cell`, asserts `false` — kills M4), add selftest P14-9 (Shape 2 with `--allow` flag — kills M8), re-run mutations M4 and M8 and confirm BOTH DIE, apply S1 (reset `current_h2_heading` on an ATX heading of ANY level and/or require bullet to name the Stories field, so `- Architecture Module: [filled by architect]` under `## Story Anchor` is not silently exempt).
+2. **FRESH review verdict at new head (D-096)** — explicitly NO `covered_sha` shortcut, no carry-over of the `87cefbf` verdict. Operator-mandated.
+3. **Merge PR #9 on APPROVE** via gate-#28 mechanism (review-as-comment + autonomy-L4; D-089).
+4. **BI-046 resolution (D-097)** — authorized NOW via normal review lifecycle; escalate as gate if resolution requires a policy or scope ruling rather than a mechanical fix. REQUIRED before Phase 3 story PRs begin.
+5. **Rewrite 53 em-dash rows** to `test-sufficient` sentinel across 33 test-sufficient BCs; cross-check each against VP-INDEX (sentinel valid ONLY where VP-INDEX classifies that BC as test-sufficient).
+6. **Verify D-077 burn-down clean** using REPAIRED checkers — `check-placeholders` must reach 0 (53 em-dash → sentinel, 25 Stories → exempt under D-093).
+7. **Adversary pass 7 (D-095)** — pre-dispatch operator gate still stands; streak re-counts from ZERO against frozen HEAD; severity reporting in RANGES, not point totals (PG-012).
 
 ### CORRECTIONS REGISTER (carry as a standing caution)
 
@@ -1829,6 +1831,9 @@ Stash list EMPTY (D-056 still valid). No story worktrees (Phase 3 not started).
 | ID | Decision | Rationale | Phase | Date |
 |----|----------|-----------|-------|------|
 | D-094 | Session wrap — durable RESUME SNAPSHOT D-094 committed to factory-artifacts, superseding D-090 | Zero-context resume; single-commit burst TD-VSDD-053; BI-025/BI-026 CLOSED; id-resolution 10→0; em-dash 55→53; prd.md v1.12 | phase-1d | 2026-08-08 |
+| D-095 | Pass 7 DEFERRED — dispatch ONLY after (1) PR #9 merged, (2) 53 em-dash rows rewritten to `test-sufficient` sentinel (VP-INDEX cross-check required), (3) D-077 burn-down verified clean (check-placeholders must reach 0). Pre-dispatch operator gate still stands. Streak from ZERO. Severity in RANGES (PG-012). | Gate #30 operator ruling. | phase-1d | 2026-08-08 |
+| D-096 | PR #9 B1 mandatory remediation: add P14-8 (kills M4) + P14-9 (kills M8), re-run M4/M8 mutations confirm BOTH DIE, apply S1 (reset current_h2_heading on any ATX heading level). FRESH review verdict at new head — no covered_sha shortcut, no carry-over of 87cefbf verdict. Merge on APPROVE via gate-#28 mechanism. | Gate #30 operator ruling. B1: M4/M8 survive Shape 2 at 62/62 exit 0 with zero selftest coverage. | phase-1d | 2026-08-08 |
+| D-097 | BI-046 (reviewer identity) authorized to resolve NOW via normal review lifecycle. Escalate as gate if resolution requires policy/scope ruling. REQUIRED before Phase 3 story PRs begin (D-089 pre-Phase-3 condition). | Gate #30 operator ruling. | phase-1d | 2026-08-08 |
 
 ### CAVEATS
 
