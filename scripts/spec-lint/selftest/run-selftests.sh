@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=92
+EXPECTED_TEST_COUNT=93
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -4894,40 +4894,45 @@ BCEI3BAD
 fi
 rm -rf "$T"
 
-# ── Test EI-4: check-ec-injectivity — multi-schema TV file, no-Description section skipped ──
-# Proves BLOCKING-1: rows in TV sections without a Description column are skipped
-# (no false SCENARIO-MISMATCH), while rows in sections WITH a Description column are
-# still compared (genuine divergence is detected).
+# ── Test EI-4: check-ec-injectivity — multi-schema TV file, non-comparable section skipped ──
+# Proves BLOCKING-1: rows in TV sections with ONLY non-comparable columns are skipped
+# (no false SCENARIO-MISMATCH), while rows in sections with comparable columns are compared.
+#
+# BI-057 update: "Input" and "Link" are now comparable (multi-column concatenation).
+# To trigger a genuine skip, section B uses only "Source MD File" (non-comparable filename
+# column) + "Expected Exit" + "Verdict" — none of which match _COMPARABLE_KEYWORDS.
 #
 # TV has two sections:
 #   Section A (Description column): EC-004 "Symlink traversal check" — comparable
-#   Section B (no Description column): EC-004 also present — rows skipped
+#   Section B (Source MD File only): EC-004 also present — rows skipped (filename column)
 # BC cites EC-004 with a matching description (Jaccard ≥ 0.10) → exit 0.
-# Coverage line must mention skipped TV rows (proves schema-aware extraction ran).
+# Coverage line must mention TV rows skipped (proves schema-aware extraction ran).
 #
 # Defect: change BC EC-004 to zero-overlap description → exit 1 SCENARIO-MISMATCH.
-# Mutation-verify: reverting extract_tv_rows to hardcoded column index 3 would cause
-#   section B to contribute description = Exit value "1" (J=0 with BC) into tv_occs;
-#   ADVISORY-6 best-match might still pick section A's match, but the skipped count in
-#   the coverage line would be 0 → STRUCTURAL FAIL asserts → FAILS.
+# Mutation-verify: expanding _COMPARABLE_KEYWORDS to include "source md file" or "expected exit"
+#   would make section B rows comparable, yielding J=0 (filename vs BC description);
+#   ADVISORY-6 best-match selects section A's higher-J row, but the skip count in the
+#   coverage line would drop to 0 → STRUCTURAL FAIL fires → MUTATION DIES.
 TESTS_RUN=$((TESTS_RUN + 1))
-echo "── selftest EI-4: check-ec-injectivity: multi-schema TV file — no-Description section skipped ──"
+echo "── selftest EI-4: check-ec-injectivity: multi-schema TV file — non-comparable section skipped ──"
 T=$(make_temp)
 mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
 mkdir -p "$T/.factory/specs/prd-supplements"
 
-# TV: section A has Description column (EC-004 comparable), section B has none (EC-004 skipped)
+# TV: section A has Description column (EC-004 comparable),
+#     section B has ONLY Source MD File + Expected Exit + Verdict (non-comparable)
 cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TVEI4'
-| TV | EC | Description | Input | Exit | Verdict | Reason |
-|---|---|---|---|---|---|---|
-| TV-004 | EC-004 | Symlink traversal check | `doc.md` | 1 | broken | reason |
-| TV | EC | Input | Exit | Verdict | Reason |
-|---|---|---|---|---|---|
-| TV-004b | EC-004 | `doc2.md` | 1 | broken | reason |
+| TV | EC | Description | Exit | Verdict |
+|---|---|---|---|---|
+| TV-004 | EC-004 | Symlink traversal check | 1 | broken |
+
+| TV | EC | Source MD File | Expected Exit | Verdict |
+|---|---|---|---|---|
+| TV-004b | EC-004 | `docs/a.md` | 1 | broken |
 TVEI4
 
 # BC: EC-004 with matching description (Jaccard ≥ 0.10)
-# TV: {symlink, traversal, check}, BC: {symlink, traversal, outside, root} → J=2/5=0.4 → AGREE
+# TV section A: {symlink, traversal, check}, BC: {symlink, traversal, outside, root} → J=2/5=0.4
 cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI4-SELFTEST.md" <<'BCEI4CLEAN'
 ---
 bc_id: BC-EI4-SELFTEST
@@ -4945,11 +4950,11 @@ if [ "$EI4_CLEAN_EXIT" -ne 0 ]; then
     echo "  STRUCTURAL FAIL: multi-schema TV incorrectly triggered exit 1 (section B should be skipped)"
     echo "  Output: $EI4_CLEAN_OUT"
     FAILURES=$((FAILURES + 1))
-elif echo "$EI4_CLEAN_OUT" | grep -q "non-comparable TV rows skipped"; then
+elif echo "$EI4_CLEAN_OUT" | grep -q "TV rows skipped"; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
     CLEAN_PASS=1
 else
-    echo "  STRUCTURAL FAIL: coverage line does not mention skipped TV rows (schema-aware extraction not working)"
+    echo "  STRUCTURAL FAIL: coverage line does not mention TV rows skipped (schema-aware extraction not working)"
     echo "  Output: $EI4_CLEAN_OUT"
     FAILURES=$((FAILURES + 1))
 fi
@@ -5911,6 +5916,91 @@ if [ "$CLEAN_PASS" = "1" ]; then
     else
         echo "  FAIL (checker exited non-zero but SCENARIO-MISMATCH EC-006 not in output)"
         echo "  Actual: $EI6_OUT"
+        FAILURES=$((FAILURES + 1))
+    fi
+fi
+rm -rf "$T"
+
+# ── Test EI-7: check-ec-injectivity — §2 Filesystem column parseable (BI-057 change a) ──
+# Proves that the §2 TV table shape (Source MD File | Link | Filesystem) is now parsed:
+# both Link and Filesystem columns are collected as comparable by extract_tv_rows().
+#
+# TV fixture uses the §2-shape header.  BC has EC-007 with a description that shares
+# significant tokens with the TV Filesystem column value → Jaccard ≥ 0.10 → AGREE → exit 0.
+# Coverage assertion greps for "1 EC citation" to confirm a comparison WAS performed
+# (not silently skipped).  If "filesystem" were removed from _COMPARABLE_KEYWORDS the TV
+# row would have no comparable column → skipped_by_col++ → ecs_bc_only++ → 0 citations
+# compared → grep fails → STRUCTURAL FAIL → mutation is killed.
+#
+# Defect: change BC EC-007 to a zero-overlap description → SCENARIO-MISMATCH → exit 1.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest EI-7: check-ec-injectivity: §2 Filesystem column parseable (BI-057 a) ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+mkdir -p "$T/.factory/specs/prd-supplements"
+
+# TV: §2 shape — Source MD File (non-comparable), Link + Filesystem (both comparable).
+# Filesystem value has clear token overlap with the clean BC description.
+cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TVEI7'
+| TV | EC | Source MD File | Link | Filesystem |
+|---|---|---|---|---|
+| TV-007 | EC-007 | `docs/guide.md` | valid link | recursive directory traversal |
+TVEI7
+
+# BC: EC-007 with description that agrees with TV Filesystem column value.
+# TV tokens from Link+Filesystem: {valid, link, recursive, directory, traversal}
+# BC tokens: {recursive, directory, scan, deep, filesystem, structure}
+# Intersection: {recursive, directory} → J = 2/9 ≈ 0.22 → AGREE → exit 0
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI7-SELFTEST.md" <<'BCEI7CLEAN'
+---
+bc_id: BC-EI7-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-007 | Recursive directory scan with deep filesystem structure |
+BCEI7CLEAN
+
+EI7_CLEAN_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+EI7_CLEAN_EXIT=$?
+CLEAN_PASS=0
+if [ "$EI7_CLEAN_EXIT" -ne 0 ]; then
+    echo "  STRUCTURAL FAIL: checker fired on §2-shape TV fixture — Filesystem column not parsed"
+    echo "  Output: $EI7_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+elif echo "$EI7_CLEAN_OUT" | grep -q "1 EC citation"; then
+    # Coverage confirms a comparison was performed (not skipped due to unparseable column).
+    # Mutation kill: if "filesystem" removed from _COMPARABLE_KEYWORDS, TV rows have no
+    # comparable column → skipped_by_col → 0 EC citations compared → grep fails → STRUCTURAL FAIL.
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: coverage line does not show '1 EC citation' — Filesystem column rows not compared"
+    echo "  Output: $EI7_CLEAN_OUT"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: completely disjoint BC description → SCENARIO-MISMATCH EC-007
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI7-SELFTEST.md" <<'BCEI7BAD'
+---
+bc_id: BC-EI7-SELFTEST
+---
+## Edge Cases
+| ID | Description |
+|----|-------------|
+| EC-007 | TLS certificate pinning failure during mutual authentication |
+BCEI7BAD
+    EI7_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-ec-injectivity.py" 2>&1)
+    EI7_EXIT=$?
+    if [ "$EI7_EXIT" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — §2 Filesystem column not producing SCENARIO-MISMATCH)"
+        FAILURES=$((FAILURES + 1))
+    elif echo "$EI7_OUT" | grep -q "SCENARIO-MISMATCH EC-007"; then
+        echo "  PASS (clean-pass with §2-shape comparison confirmed; EC-007 divergence correctly detected)"
+    else
+        echo "  FAIL (checker exited non-zero but SCENARIO-MISMATCH EC-007 not in output)"
+        echo "  Actual: $EI7_OUT"
         FAILURES=$((FAILURES + 1))
     fi
 fi
