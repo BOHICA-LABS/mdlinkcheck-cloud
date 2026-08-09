@@ -4895,24 +4895,29 @@ fi
 rm -rf "$T"
 
 # ── Test EI-4: check-ec-injectivity — multi-schema TV file, non-comparable section skipped ──
-# Proves BLOCKING-1: rows in TV sections with ONLY non-comparable columns are skipped
-# (no false SCENARIO-MISMATCH), while rows in sections with comparable columns are compared.
-#
-# BI-057 update: "Input" and "Link" are now comparable (multi-column concatenation).
-# To trigger a genuine skip, section B uses only "Source MD File" (non-comparable filename
-# column) + "Expected Exit" + "Verdict" — none of which match _COMPARABLE_KEYWORDS.
+# Proves: rows in TV sections with ONLY non-comparable columns are skipped (no false
+# SCENARIO-MISMATCH), while rows in sections with comparable columns are compared.
 #
 # TV has two sections:
 #   Section A (Description column): EC-004 "Symlink traversal check" — comparable
 #   Section B (Source MD File only): EC-004 also present — rows skipped (filename column)
 # BC cites EC-004 with a matching description (Jaccard ≥ 0.10) → exit 0.
-# Coverage line must mention TV rows skipped (proves schema-aware extraction ran).
+#
+# Coverage line must report a POSITIVE skip count to prove schema-aware extraction ran.
+# The clean-pass assertion uses grep -qE "[1-9][0-9]* TV rows skipped" — this requires
+# at LEAST one row skipped (n ≥ 1).  The zero-skip branch emits "no TV rows skipped"
+# (not "0 TV rows skipped") so both forms of the message are lexically distinguishable.
+# BLOCKING-1 fix (gate #35): tightening from grep -q "TV rows skipped" to
+# grep -qE "[1-9][0-9]* TV rows skipped" ensures the guard cannot pass when skip count
+# is zero (i.e., when section B is incorrectly parsed as comparable).
 #
 # Defect: change BC EC-004 to zero-overlap description → exit 1 SCENARIO-MISMATCH.
-# Mutation-verify: expanding _COMPARABLE_KEYWORDS to include "source md file" or "expected exit"
-#   would make section B rows comparable, yielding J=0 (filename vs BC description);
-#   ADVISORY-6 best-match selects section A's higher-J row, but the skip count in the
-#   coverage line would drop to 0 → STRUCTURAL FAIL fires → MUTATION DIES.
+#
+# Mutation-verify: expanding _COMPARABLE_KEYWORDS to include "source md file" or
+#   "expected exit" would make section B rows comparable; ADVISORY-6 best-match would
+#   pick section A's higher-J row; but the skip count in the coverage line would drop
+#   to 0 → "no TV rows skipped" (not "[1-9][0-9]* TV rows skipped") → STRUCTURAL FAIL
+#   fires → MUTATION DIES.  Verified live: gate #35 cycle-2 mutation evidence.
 TESTS_RUN=$((TESTS_RUN + 1))
 echo "── selftest EI-4: check-ec-injectivity: multi-schema TV file — non-comparable section skipped ──"
 T=$(make_temp)
@@ -4950,11 +4955,11 @@ if [ "$EI4_CLEAN_EXIT" -ne 0 ]; then
     echo "  STRUCTURAL FAIL: multi-schema TV incorrectly triggered exit 1 (section B should be skipped)"
     echo "  Output: $EI4_CLEAN_OUT"
     FAILURES=$((FAILURES + 1))
-elif echo "$EI4_CLEAN_OUT" | grep -q "TV rows skipped"; then
+elif echo "$EI4_CLEAN_OUT" | grep -qE "[1-9][0-9]* TV rows skipped"; then
     TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
     CLEAN_PASS=1
 else
-    echo "  STRUCTURAL FAIL: coverage line does not mention TV rows skipped (schema-aware extraction not working)"
+    echo "  STRUCTURAL FAIL: coverage line does not report positive skip count (schema-aware extraction not working; expected '[1-9][0-9]* TV rows skipped')"
     echo "  Output: $EI4_CLEAN_OUT"
     FAILURES=$((FAILURES + 1))
 fi
@@ -5923,14 +5928,19 @@ rm -rf "$T"
 
 # ── Test EI-7: check-ec-injectivity — §2 Filesystem column parseable (BI-057 change a) ──
 # Proves that the §2 TV table shape (Source MD File | Link | Filesystem) is now parsed:
-# both Link and Filesystem columns are collected as comparable by extract_tv_rows().
+# the Filesystem column is collected as comparable by extract_tv_rows().
+#
+# Note: "link" is NOT in _COMPARABLE_KEYWORDS (decision B, gate #35).  In §2-shape rows
+# the Link cell (a URL/relative path) is silently ignored; Filesystem is the sole
+# comparable column.  Coverage is unchanged — the row is still compared via Filesystem.
 #
 # TV fixture uses the §2-shape header.  BC has EC-007 with a description that shares
 # significant tokens with the TV Filesystem column value → Jaccard ≥ 0.10 → AGREE → exit 0.
 # Coverage assertion greps for "1 EC citation" to confirm a comparison WAS performed
 # (not silently skipped).  If "filesystem" were removed from _COMPARABLE_KEYWORDS the TV
-# row would have no comparable column → skipped_by_col++ → ecs_bc_only++ → 0 citations
-# compared → grep fails → STRUCTURAL FAIL → mutation is killed.
+# row would have no comparable column (Link is not comparable, Source MD File is
+# explicitly non-comparable) → skipped_by_col++ → ecs_bc_only++ → 0 citations compared
+# → grep fails → STRUCTURAL FAIL → mutation is killed.
 #
 # Defect: change BC EC-007 to a zero-overlap description → SCENARIO-MISMATCH → exit 1.
 TESTS_RUN=$((TESTS_RUN + 1))
@@ -5939,8 +5949,8 @@ T=$(make_temp)
 mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
 mkdir -p "$T/.factory/specs/prd-supplements"
 
-# TV: §2 shape — Source MD File (non-comparable), Link + Filesystem (both comparable).
-# Filesystem value has clear token overlap with the clean BC description.
+# TV: §2 shape — Source MD File (non-comparable), Link (not comparable — decision B gate #35),
+# Filesystem (comparable).  Filesystem value has clear token overlap with BC description.
 cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TVEI7'
 | TV | EC | Source MD File | Link | Filesystem |
 |---|---|---|---|---|
@@ -5948,9 +5958,9 @@ cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TVEI7'
 TVEI7
 
 # BC: EC-007 with description that agrees with TV Filesystem column value.
-# TV tokens from Link+Filesystem: {valid, link, recursive, directory, traversal}
+# TV tokens from Filesystem only: {recursive, directory, traversal}
 # BC tokens: {recursive, directory, scan, deep, filesystem, structure}
-# Intersection: {recursive, directory} → J = 2/9 ≈ 0.22 → AGREE → exit 0
+# Intersection: {recursive, directory} → J = 2/8 ≈ 0.25 → AGREE → exit 0
 cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-EI7-SELFTEST.md" <<'BCEI7CLEAN'
 ---
 bc_id: BC-EI7-SELFTEST

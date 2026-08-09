@@ -206,13 +206,16 @@ def extract_tv_rows(
     _NON_COMPARABLE = {"source md file", "source md"}
 
     # Comparable scenario-prose keywords (case-insensitive substring match).
-    # BI-057 change (a): "filesystem", "heading", "link", "mock server" added so the
+    # BI-057 change (a): "filesystem", "heading", "mock server" added so the
     # §2/§3/§4 table shapes in test-vectors.md are parsed rather than skipped.
-    # "link" moved from _NON_COMPARABLE to _COMPARABLE_KEYWORDS — in multi-column
-    # mode a Link cell alongside Filesystem or Heading provides useful Jaccard tokens.
+    # "link" is NOT in this list: link-target columns (URLs / relative paths) are
+    # filenames/destinations, not scenario prose.  Making them comparable inflates
+    # Jaccard and suppresses findings without adding coverage (row counts are unchanged
+    # whether "link" is comparable or not — §2/§3/§4 coverage comes from "filesystem",
+    # "heading", and "mock server").  Decision B authorized by orchestrator (gate #35).
     _COMPARABLE_KEYWORDS = [
         "description", "input", "source md content", "scenario",
-        "filesystem", "heading", "link", "mock server",
+        "filesystem", "heading", "mock server",
     ]
 
     for lineno, line in enumerate(lines, 1):
@@ -668,7 +671,7 @@ def main() -> int:
     skip_msg = (
         f"{total_tv_skipped} TV rows skipped "
         f"({'; '.join(skip_detail_parts)})"
-        if skip_detail_parts else "0 TV rows skipped"
+        if skip_detail_parts else "no TV rows skipped"
     )
 
     # D-132 per-EC pairing disclosure
