@@ -1,0 +1,27 @@
+# AC-007: E-class population gate — PASS (unmutated) and FAIL (table-line mutant)
+#
+# Proves BLOCKING-1 fix: the independent canary probe (E-[A-Z]+-\d+, wider than
+# the E-[A-Z]{2,4}-\d{3} detector) is an actual gate, not a tautology.
+# With the fix, the table-line mutant (if is_table_line: continue before Pattern 4)
+# causes the gate to fire: canary still sees 8 occurrences, detector sees only 3.
+
+## PASS — live corpus, unmutated checker
+
+ADR reason-code occurrences: 0 counted toward reason-code total (8 ADR files; Patterns 1-3 not applied — deliberate named gap, avoids check_adr() overlap)
+E-class population: population=8, examined=6, skipped=2 (frontmatter, D-081)
+Check FAILED: 9 violations found (78 reason-code occurrences + 6 E-class code occurrences validated across 126 non-ADR + 8 ADRs (POLICY 12 + POLICY 19) = 134 of 134 spec files (complete), 9 non-conforming)
+Exit code: 1 (violations found — gate PASSED, checker exits 1 for content violations, 2 for instrument failures)
+
+## FAIL — live corpus, table-line mutant injected
+# Mutant: `if is_table_line: continue` inserted before Pattern 4 loop.
+# BC-2.01.009.md:71, :73 and interface-definitions.md:237 are in table cells — skipped.
+
+ADR reason-code occurrences: 0 counted toward reason-code total (8 ADR files; Patterns 1-3 not applied — deliberate named gap, avoids check_adr() overlap)
+ERROR: E-class accounting gap — population=8 != examined=3 + skipped=2; an E-class occurrence is being dropped by an undeclared routing path
+Exit code: 2 (gate FIRED — population mismatch detected)
+
+## Population arithmetic (mutant):
+#   canary population = 8 (E-[A-Z]+-\d+ sees all 8, including table-cell lines)
+#   examined          = 3 (only non-table prose lines: BC-2.01.009.md:44,:52 + BC-2.11.004.md:61)
+#   frontmatter skip  = 2 (BC-2.01.009.md:23 — two codes on one frontmatter line, unchanged)
+#   gate: 8 != 3 + 2 → fires → exit 2

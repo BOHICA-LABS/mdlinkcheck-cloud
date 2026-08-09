@@ -156,40 +156,78 @@ def extract_ec_rows(path: Path) -> list[tuple[str, str, str, int]]:
     return rows
 
 
-def extract_tv_rows(path: Path) -> tuple[list[tuple[str, str, str, int]], dict[str, int]]:
+def extract_tv_rows(
+    path: Path,
+) -> tuple[list[tuple[str, str, str, int]], dict[str, int], int, int]:
     """
     Parse test-vectors.md for EC references.
-    Schema-aware: identifies the Description column from each section's header row
-    and skips rows in sections where no comparable Description column exists.
+    Multi-column schema-aware: collects ALL comparable columns per section and
+    concatenates them to form the scenario description.
 
-    Returns (rows, skipped_by_col):
+    Returns (rows, skipped_by_col, skipped_no_tv_id, skipped_no_ec):
       rows: list of (ec_id, description, verdict_raw, lineno)
       skipped_by_col: dict mapping non-comparable column name (or
-        "no-description-column" for sections with no recognised header) to
-        the count of TV data rows skipped.  Used for auditable skip-count
-        reporting in the completeness assertion.
+        "no-description-column") to count of EC-valid TV rows skipped (D-132).
+      skipped_no_tv_id: count of table rows that failed the TV-NNN ID gate
+        (e.g. unrecognized rows in sections with no TV/EC header).
+      skipped_no_ec: count of TV-NNN rows where the second cell is not a valid
+        EC token (e.g. TV-BV013, TV-S001..TV-S016 — legitimately EC-less rows).
+
+    BI-057 change (a): multi-column concatenation replaces single-column election.
+      Now parses all three previously-skipped TV table shapes:
+        §2 (Source MD File | Link | Filesystem): scenario = Filesystem + Link cols
+        §3 (Source MD | Heading | Link):         scenario = Heading + Link cols
+        §4 (Link | Mock Server / Setup):         scenario = Link + Mock Server cols
+      Columns "Source MD File" and "Source MD" remain non-comparable (filenames).
+
+    BI-057 change (c): non-table lines reset section parser state to prevent stale
+      column indices from §N bleeding into §N+1 when an unrecognised header appears.
+      Any row whose first cell is "TV" but whose second cell is not "EC" is also
+      explicitly treated as an unrecognised header and resets state.
 
     BI-044: EC ID column uses the shared grammar (EC-\d{1,4}[a-z]?) via EC_TOKEN_RE.
-    BLOCKING-1: schema-aware column extraction instead of hard-coded column index 3.
+    BLOCKING-1: schema-aware column extraction.
     BLOCKING-4: expanded synonym set — Input and Source MD Content are comparable;
-      Source MD File, Source MD, and Link are non-comparable (filename/URL columns).
+      Source MD File and Source MD are non-comparable (filename columns).
+      "Link", "Filesystem", "Heading", "Mock Server" are now comparable (BI-057 a).
     """
     rows: list[tuple[str, str, str, int]] = []
     skipped_by_col: dict[str, int] = {}
+    skipped_no_tv_id = 0
+    skipped_no_ec = 0
     lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
 
-    current_desc_col: int | None = None  # Description column index for the current section
-    current_skip_col_name: str | None = None  # non-comparable col name for the current section
+    # BI-057 change (a): multi-column desc extraction replaces single-column election.
+    current_desc_cols: list[int] = []   # comparable column indices for current section
+    current_skip_col_name: str | None = None  # first non-comparable col (for audit)
 
-    # Non-comparable column names (exact match after strip+lower) — these are filename/URL
-    # columns whose values are NOT scenario prose and must not be used for comparison.
-    _NON_COMPARABLE = {"source md file", "source md", "link"}
+    # Non-comparable column names (exact match after strip+lower) — filenames/paths
+    # that are NOT useful scenario prose on their own.
+    _NON_COMPARABLE = {"source md file", "source md"}
+
     # Comparable scenario-prose keywords (case-insensitive substring match).
-    _COMPARABLE_KEYWORDS = ["description", "input", "source md content", "scenario"]
+    # BI-057 change (a): "filesystem", "heading", "mock server" added so the
+    # §2/§3/§4 table shapes in test-vectors.md are parsed rather than skipped.
+    # "link" is NOT in this list: link-target columns (URLs / relative paths) are
+    # filenames/destinations, not scenario prose.  Making them comparable inflates
+    # Jaccard and suppresses findings without adding coverage (row counts are unchanged
+    # whether "link" is comparable or not — §2/§3/§4 coverage comes from "filesystem",
+    # "heading", and "mock server").  Decision B authorized by orchestrator (gate #35).
+    _COMPARABLE_KEYWORDS = [
+        "description", "input", "source md content", "scenario",
+        "filesystem", "heading", "mock server",
+    ]
 
     for lineno, line in enumerate(lines, 1):
         cells = slp.split_table_cells(line)
+
+        # BI-057 change (c): reset section state on any non-table line (blank, prose, HR).
+        # This prevents a section's column indices from bleeding into the next section
+        # when an unrecognised header appears (e.g. §7 "TV | Heading Text" carries
+        # stale desc_col from §6 without this guard).
         if not cells:
+            current_desc_cols = []
+            current_skip_col_name = None
             continue
 
         # Separator row: no state change
@@ -198,47 +236,62 @@ def extract_tv_rows(path: Path) -> tuple[list[tuple[str, str, str, int]], dict[s
 
         first = cells[0].strip()
 
-        # Header row detection: first cell is "TV" (header text, not a TV-NNN data ID)
-        # and second cell is "EC" — both are case-insensitive exact matches against header text.
-        if (first.upper() in ("TV", "TV ID", "TV-ID")
-                and len(cells) >= 2
-                and cells[1].strip().upper() in ("EC", "EC ID", "EC-ID")):
-            # New table section: scan columns for a comparable Description column.
-            # Non-comparable filename/URL columns are tracked for the audit message.
-            current_desc_col = None
-            current_skip_col_name = None
-            for i, cell in enumerate(cells):
-                h = cell.strip().lower()
-                if h in _NON_COMPARABLE:
-                    # Record the first non-comparable column seen (for audit if no comparable found)
-                    if current_skip_col_name is None:
-                        current_skip_col_name = cell.strip()
-                    continue
-                if any(kw in h for kw in _COMPARABLE_KEYWORDS):
-                    current_desc_col = i
-                    current_skip_col_name = None  # found a comparable column — no skip needed
-                    break
+        # Header row detection: first cell is "TV" (header text, not a TV-NNN data ID).
+        if first.upper() in ("TV", "TV ID", "TV-ID") and len(cells) >= 2:
+            if cells[1].strip().upper() in ("EC", "EC ID", "EC-ID"):
+                # Recognised TV-section header: collect ALL comparable columns.
+                current_desc_cols = []
+                current_skip_col_name = None
+                for i, cell in enumerate(cells):
+                    h = cell.strip().lower()
+                    if h in _NON_COMPARABLE:
+                        # Track first non-comparable col for audit if no comparable found
+                        if current_skip_col_name is None and not current_desc_cols:
+                            current_skip_col_name = cell.strip()
+                        continue
+                    if any(kw in h for kw in _COMPARABLE_KEYWORDS):
+                        current_desc_cols.append(i)
+            else:
+                # BI-057 change (c): unrecognised TV-headed row (e.g. "TV | Heading Text")
+                # — reset state to prevent stale column inheritance.
+                current_desc_cols = []
+                current_skip_col_name = None
             continue
 
-        # Data row: first cell must match TV-xxx identifier pattern
+        # Data row: first cell must match TV-NNN identifier pattern.
+        # Rows that fail this gate are not TV data rows (e.g. non-TV table headers,
+        # prose rows within table blocks).
         if not re.match(r'^TV-[\w]+$', first):
+            skipped_no_tv_id += 1
             continue
 
-        # EC ID must be in second cell (BI-044: shared EC grammar)
+        # EC ID must be in second cell (BI-044: shared EC grammar).
+        # TV-BV013, TV-S001..TV-S016 legitimately have no EC token — counted separately.
         if len(cells) < 2 or not slp.EC_TOKEN_RE.fullmatch(cells[1]):
+            skipped_no_ec += 1
             continue
 
         ec_id = cells[1]
 
-        # Skip rows in sections with no comparable Description column
-        if current_desc_col is None or current_desc_col >= len(cells):
+        # Skip rows in sections with no comparable columns (D-132: explicit counting).
+        if not current_desc_cols:
             skip_key = current_skip_col_name if current_skip_col_name else "no-description-column"
             skipped_by_col[skip_key] = skipped_by_col.get(skip_key, 0) + 1
             continue
 
-        desc = cells[current_desc_col].strip()
+        # BI-057 change (a): concatenate all comparable columns for the scenario description.
+        # Columns that are out-of-range or empty are silently skipped.
+        # Do NOT include Expected Exit, Expected Verdict/Verdict, or Flags — they are
+        # single-token/enumerated values that inflate Jaccard similarity artificially.
+        desc_parts = []
+        for col_idx in current_desc_cols:
+            if col_idx < len(cells):
+                part = cells[col_idx].strip()
+                if part:
+                    desc_parts.append(part)
+        desc = " ".join(desc_parts)
 
-        # Extract verdict: scan cells from right to left for a verdict-like value
+        # Extract verdict: scan cells from right to left for a verdict-like value.
         verdict_raw = ""
         for cell in reversed(cells):
             cell_stripped = cell.strip()
@@ -249,7 +302,7 @@ def extract_tv_rows(path: Path) -> tuple[list[tuple[str, str, str, int]], dict[s
 
         rows.append((ec_id, desc, verdict_raw, lineno))
 
-    return rows, skipped_by_col
+    return rows, skipped_by_col, skipped_no_tv_id, skipped_no_ec
 
 
 # ── BC-vs-Registry thresholds (BI-051) ────────────────────────────────────────
@@ -290,8 +343,8 @@ def main() -> int:
         sys.exit(1)
 
     # ── Corpus scan: collect EC citations from ALL spec files ──────────────────
-    # We scan all spec files (not just BC_DIR) to emit a corpus-completeness assertion.
-    # Most non-BC files contribute 0 citations; they are still counted as scanned.
+    # D-132: we track skip counts at every granularity where the checker can skip,
+    # so parts provably sum to the whole.
     total_files = sum(1 for _ in SPECS.rglob("*.md"))
     files_scanned = 0
 
@@ -299,22 +352,68 @@ def main() -> int:
     ec_map: dict[str, list[tuple[str, str, str, int]]] = defaultdict(list)
 
     tv_file_str = str(TV_FILE)
-    total_tv_skipped_by_col: dict[str, int] = {}  # col_name → rows skipped (BLOCKING-4)
+
+    # D-132 skip counters — TV extraction granularity
+    total_tv_skipped_by_col: dict[str, int] = {}   # col_name → rows skipped (no comparable col)
+    total_tv_skipped_no_tv_id = 0                   # rows that failed TV-NNN ID gate
+    total_tv_skipped_no_ec = 0                      # TV-NNN rows with no valid EC token (TV-BV013, TV-S001..S016)
+
+    # D-132 skip counters — BC extraction granularity
+    total_bc_rows_scanned = 0    # total table rows seen in BC files (excluding separators)
+    total_bc_rows_parsed = 0     # rows that produced a valid (ec_id, desc) tuple
+    total_bc_skipped_no_ec = 0   # rows where first cell was not a valid EC token
+    total_bc_skipped_empty = 0   # EC rows where rest_cells was empty
+
+    # BI-057 change (d): checked invariant for other spec files.
+    # The "other spec files: no EC citations expected" comment was an unverified
+    # assumption.  We now assert it at runtime: any other spec file that produces
+    # a parseable EC row is an unexpected citation and fails the checker.
+    other_spec_ec_violations: list[str] = []
 
     for md_file in sorted(SPECS.rglob("*.md")):
         files_scanned += 1
         if BC_DIR in md_file.parents:
-            # BC file: scan for EC table rows
-            for ec_id, desc, verdict, lineno in extract_ec_rows(md_file):
-                ec_map[ec_id].append((str(md_file), desc, verdict, lineno))
+            # BC file: scan for EC table rows — track all skip sites (D-132)
+            raw_rows = slp.cm_splitlines(md_file.read_text(encoding="utf-8"))
+            start = parse_frontmatter_end(raw_rows)
+            for raw_lineno, raw_line in enumerate(raw_rows[start:], start=start + 1):
+                cells = slp.split_table_cells(raw_line)
+                if not cells:
+                    continue
+                if slp.is_table_separator_row(cells):
+                    continue
+                # Count every non-separator table row as "scanned"
+                total_bc_rows_scanned += 1
+                if not slp.EC_TOKEN_RE.fullmatch(cells[0]):
+                    total_bc_skipped_no_ec += 1
+                    continue
+                rest_cells = [c for c in cells[1:] if c and not re.match(r"^-+$", c)]
+                if not rest_cells:
+                    total_bc_skipped_empty += 1
+                    continue
+                total_bc_rows_parsed += 1
+                ec_id = cells[0]
+                desc = rest_cells[0]
+                verdict_raw = rest_cells[1] if len(rest_cells) > 1 else ""
+                ec_map[ec_id].append((str(md_file), desc, verdict_raw, raw_lineno))
         elif md_file == TV_FILE:
-            # test-vectors.md: scan for TV rows (schema-aware, BLOCKING-1/4)
-            tv_rows, tv_skipped_by_col = extract_tv_rows(md_file)
+            # test-vectors.md: schema-aware multi-column extraction (BI-057 a/c)
+            tv_rows, tv_skipped_by_col, tv_no_id, tv_no_ec = extract_tv_rows(md_file)
             for col_name, cnt in tv_skipped_by_col.items():
                 total_tv_skipped_by_col[col_name] = total_tv_skipped_by_col.get(col_name, 0) + cnt
+            total_tv_skipped_no_tv_id += tv_no_id
+            total_tv_skipped_no_ec += tv_no_ec
             for ec_id, desc, verdict, lineno in tv_rows:
                 ec_map[ec_id].append((tv_file_str, desc, verdict, lineno))
-        # other spec files: no EC citations expected; just counted for completeness
+        else:
+            # BI-057 change (d): assert no parseable EC rows in other spec files.
+            # This converts the previous silent assumption into a checked invariant.
+            for other_ec_id, other_desc, other_verdict, other_lineno in extract_ec_rows(md_file):
+                other_spec_ec_violations.append(
+                    f"UNEXPECTED-EC-CITATION {other_ec_id}: {md_file}:{other_lineno} "
+                    f"(only BC_DIR and TV_FILE should contain EC rows; "
+                    f"add this file to BC_DIR or TV_FILE scope)"
+                )
 
     if files_scanned != total_files:
         print(
@@ -324,13 +423,52 @@ def main() -> int:
         )
         return 1
 
+    if other_spec_ec_violations:
+        for msg in other_spec_ec_violations:
+            print(msg)
+        print(
+            f"\nERROR: {len(other_spec_ec_violations)} EC row(s) found in files outside "
+            f"BC_DIR and TV_FILE — checked invariant violated (BI-057 change d)"
+        )
+        return 1
+
+    # D-132 completeness assertion — TV extraction
+    total_tv_parsed = sum(1 for occs in ec_map.values() for f, _, _, _ in occs if f == tv_file_str)
+    total_tv_skipped_col = sum(total_tv_skipped_by_col.values())
+    # Note: total_tv_skipped_no_tv_id counts table rows that are NOT TV-NNN data rows at all
+    # (unrecognised rows, non-TV header rows within TV-section tables). These do not contribute
+    # EC rows by definition, so they are reported for transparency but not summed into EC totals.
+
+    # D-132 completeness assertion — BC extraction
+    bc_check = total_bc_rows_parsed + total_bc_skipped_no_ec + total_bc_skipped_empty
+    if bc_check != total_bc_rows_scanned:
+        print(
+            f"ERROR: D-132 BC-row completeness broken — "
+            f"parsed={total_bc_rows_parsed} + skipped_no_ec={total_bc_skipped_no_ec} + "
+            f"skipped_empty={total_bc_skipped_empty} = {bc_check} "
+            f"!= scanned={total_bc_rows_scanned}",
+            file=sys.stderr,
+        )
+        return 1
+
     # ── Injectivity check: BC-vs-BC description collision + BC-vs-TV verdict collision ──
     violations: list[str] = []
     collision_ids: set[str] = set()
 
+    # D-132: track how many EC IDs were actually tested for collision (vs single-occurrence skip)
+    ecs_tested_collision = 0
+    ecs_single_occurrence = 0
+
+    # D-132: track verdict comparison counts
+    verdict_comparisons_performed = 0
+    verdict_comparisons_skipped_no_bc_verdict = 0
+
     for ec_id, occurrences in sorted(ec_map.items()):
         if len(occurrences) <= 1:
+            ecs_single_occurrence += 1
             continue
+
+        ecs_tested_collision += 1
 
         # Separate BC-file occurrences from test-vectors.md occurrences
         bc_occs = [(f, d, v, l) for f, d, v, l in occurrences if f != tv_file_str]
@@ -342,10 +480,7 @@ def main() -> int:
         verdict_collision_detail: list[str] = []
 
         # Description collision: across BC files, independent of verdict column presence.
-        # BC descriptions are expected paraphrases of TV descriptions (TV captures the
-        # canonical input-file name, not a scenario description), so BC-vs-TV is skipped.
         if len(bc_occs) > 1:
-            # Group by normalized description; if more than one distinct group → collision
             groups: dict = {}
             for occ in bc_occs:
                 key = normalize_desc(occ[1])
@@ -354,12 +489,14 @@ def main() -> int:
                 groups[key].append(occ)
 
             if len(groups) > 1:
-                # Check if ANY pair of groups has genuinely conflicting descriptions
                 norm_descs = list(groups.keys())
                 for i in range(len(norm_descs)):
+                    if has_desc_collision:
+                        break
                     for j in range(i + 1, len(norm_descs)):
                         if descriptions_conflict(norm_descs[i], norm_descs[j]):
                             has_desc_collision = True
+                            break
 
                 if has_desc_collision:
                     for filepath, desc, verdict_raw, lineno in bc_occs:
@@ -372,7 +509,9 @@ def main() -> int:
             tv_verdicts = [normalize_verdict(o[2]) for o in tv_occs if o[2].strip()]
             for bc_filepath, bc_desc, bc_verdict_raw, bc_lineno in bc_occs:
                 if not bc_verdict_raw.strip():
+                    verdict_comparisons_skipped_no_bc_verdict += 1
                     continue  # BC row has no verdict column — skip verdict comparison
+                verdict_comparisons_performed += 1
                 bc_norm = normalize_verdict(bc_verdict_raw)
                 for tv_norm in tv_verdicts:
                     if tv_norm and bc_norm != tv_norm:
@@ -400,25 +539,34 @@ def main() -> int:
     multi_occurrence = sum(1 for v in ec_map.values() if len(v) > 1)
 
     # ── BC-vs-Registry scenario comparison (BI-051) ────────────────────────────
-    # Compare each BC citation's scenario description against the canonical description
-    # in test-vectors.md. Three buckets: divergent (hard finding), adjudication
-    # (borderline — human review required), pass (consistent).
     registry_citations = 0
     registry_divergent: list[tuple] = []
     registry_adjudication: list[tuple] = []
     registry_pass = 0
 
+    # D-132: track per-EC pairing skip (largest blind spot — BI-057 change b)
+    ecs_bc_only = 0    # ECs with BC citation(s) but no TV row
+    ecs_tv_only = 0    # ECs with TV row(s) but no BC citation
+    ecs_compared = 0   # ECs that had both BC and TV rows → entered comparison
+
     for ec_id, occurrences in sorted(ec_map.items()):
         bc_occs = [(f, d, v, l) for f, d, v, l in occurrences if f != tv_file_str]
         tv_occs = [(f, d, v, l) for f, d, v, l in occurrences if f == tv_file_str]
 
-        if not bc_occs or not tv_occs:
-            continue  # Cannot compare without both a BC citation and a registry entry
+        if not bc_occs and not tv_occs:
+            # Cannot happen (would not be in ec_map), but guard for safety
+            continue
+        if not bc_occs:
+            ecs_tv_only += 1
+            continue
+        if not tv_occs:
+            ecs_bc_only += 1
+            continue
+
+        ecs_compared += 1
 
         for bc_filepath, bc_desc, bc_verdict, bc_lineno in bc_occs:
             # ADVISORY-6: compare against ALL TV rows and take the best (highest-Jaccard) match.
-            # When an EC appears in multiple table sections (e.g., main vectors + regression table),
-            # using the first TV row could yield J=0 even when another row agrees well.
             best_tv_desc = tv_occs[0][1]  # fallback
             best_jaccard_for_tv = -1.0
             for _, tv_desc_cand, _, _ in tv_occs:
@@ -436,6 +584,11 @@ def main() -> int:
             t2 = _significant_tokens(bc_desc)
             union = t1 | t2
             jaccard = len(t1 & t2) / len(union) if union else 1.0
+
+            # Known tokenizer artifact (BI-057): _significant_tokens() drops punctuation
+            # and sub-3-char tokens, so EC-031 ("[x]()" → tokens={}) vs any BC description
+            # scores J=0 despite being semantically identical. Route to adjudication rather
+            # than divergent so the case is disclosed but not treated as a hard finding.
             if result == "pass":
                 registry_pass += 1
             elif result == "adjudication":
@@ -449,7 +602,29 @@ def main() -> int:
                     f"J={jaccard:.2f}",
                 ))
 
-    # Print results
+    # D-132 completeness assertion — per-EC pairing
+    ecs_paired_total = ecs_bc_only + ecs_tv_only + ecs_compared
+    if ecs_paired_total != total_ec_ids:
+        print(
+            f"ERROR: D-132 per-EC pairing completeness broken — "
+            f"bc_only={ecs_bc_only} + tv_only={ecs_tv_only} + compared={ecs_compared} "
+            f"= {ecs_paired_total} != total_ec_ids={total_ec_ids}",
+            file=sys.stderr,
+        )
+        return 1
+
+    # D-132 completeness assertion — collision test
+    collision_total = ecs_single_occurrence + ecs_tested_collision
+    if collision_total != total_ec_ids:
+        print(
+            f"ERROR: D-132 collision-test completeness broken — "
+            f"single_occurrence={ecs_single_occurrence} + tested={ecs_tested_collision} "
+            f"= {collision_total} != total_ec_ids={total_ec_ids}",
+            file=sys.stderr,
+        )
+        return 1
+
+    # ── Print results ──────────────────────────────────────────────────────────
     if violations:
         for v in violations:
             print(v)
@@ -474,27 +649,66 @@ def main() -> int:
             print(f"  TV  : {tv_desc[:80]!r}")
             print(f"  ({detail})")
 
-    # Completeness assertion (corpus-completeness, D-113 style)
+    # Completeness assertion (corpus-completeness + D-132 multi-granularity)
     completeness = (
         "complete"
         if files_scanned == total_files
         else f"INCOMPLETE — only {files_scanned} of {total_files} scanned"
     )
-    total_tv_skipped = sum(total_tv_skipped_by_col.values())
+    total_tv_skipped = total_tv_skipped_col + total_tv_skipped_no_ec
+    # Build TV skip detail message (D-132)
+    skip_detail_parts = []
     if total_tv_skipped_by_col:
-        skip_parts = ", ".join(
+        skip_detail_parts.append(", ".join(
             f"{name} \xd7{cnt}"
             for name, cnt in sorted(total_tv_skipped_by_col.items())
+        ))
+    if total_tv_skipped_no_ec:
+        skip_detail_parts.append(
+            f"legitimately-EC-less \xd7{total_tv_skipped_no_ec} "
+            f"(TV-BV013 + TV-S001..TV-S016)"
         )
-        skip_msg = f"{total_tv_skipped} non-comparable TV rows skipped (sections: {skip_parts})"
-    else:
-        skip_msg = "0 non-comparable TV rows skipped"
+    skip_msg = (
+        f"{total_tv_skipped} TV rows skipped "
+        f"({'; '.join(skip_detail_parts)})"
+        if skip_detail_parts else "no TV rows skipped"
+    )
+
+    # D-132 per-EC pairing disclosure
+    pairing_msg = (
+        f"{ecs_compared} EC IDs compared "
+        f"({ecs_bc_only} BC-only, {ecs_tv_only} TV-only, "
+        f"{ecs_single_occurrence} single-occurrence skipped)"
+    )
+
+    # D-132 verdict and collision disclosure
+    verdict_msg = (
+        f"{verdict_comparisons_performed} verdict comparisons performed "
+        f"({verdict_comparisons_skipped_no_bc_verdict} skipped — no BC verdict column)"
+    )
+    collision_msg = (
+        f"{ecs_tested_collision} EC IDs tested for collision "
+        f"({ecs_single_occurrence} single-occurrence not tested)"
+    )
+
+    # D-132 BC-row disclosure
+    bc_row_msg = (
+        f"BC rows: {total_bc_rows_parsed} parsed, "
+        f"{total_bc_skipped_no_ec} skipped-no-ec, "
+        f"{total_bc_skipped_empty} skipped-empty "
+        f"(= {total_bc_rows_scanned} scanned)"
+    )
+
     print(
         f"\n{registry_citations} EC citations compared "
         f"({skip_msg}) "
         f"across {files_scanned} of {total_files} spec files ({completeness}), "
         f"{len(registry_divergent)} divergent, {len(registry_adjudication)} require adjudication"
     )
+    print(f"D-132: {pairing_msg}")
+    print(f"D-132: {verdict_msg}")
+    print(f"D-132: {collision_msg}")
+    print(f"D-132: {bc_row_msg}")
 
     # Exit code: fail on injectivity violations OR divergent BC-vs-registry mismatches
     if violations or registry_divergent:
