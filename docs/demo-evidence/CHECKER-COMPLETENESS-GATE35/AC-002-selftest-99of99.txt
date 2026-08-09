@@ -211,6 +211,8 @@ Property test passed: 300/300 cases verified (total_candidates == sum(buckets) f
   PASS (clean-pass confirmed; E-ZZZ-001 in taxonomy-ref context correctly routed to Pattern 4)
 ── selftest 5o (BLOCKING-1): check-adr-consistency: E-class population gate fires on undeclared routing ──
   PASS (clean-pass confirmed; E-VERBOSE-001 correctly triggers population gate → exit 2)
+── selftest 5o-b (NIT-1): check-adr-consistency: wide-only E-class code in frontmatter — no false accounting gap ──
+  PASS (clean-pass confirmed; E-VERBOSE-001 in frontmatter counted as skipped=1, no false gap)
 ── selftest 5p (BLOCKING-2): check-adr-consistency: one ADR reason-code defect → exactly one violation ──
   PASS (clean-pass confirmed; phantom-zeta produces exactly 1 violation — no double-count)
 ── selftest EI-5: check-ec-injectivity: Input column IS treated as comparable (BLOCKING-4) ──
@@ -220,7 +222,4 @@ Property test passed: 300/300 cases verified (total_candidates == sum(buckets) f
 ── selftest EI-7: check-ec-injectivity: §2 Filesystem column parseable (BI-057 a) ──
   PASS (clean-pass with §2-shape comparison confirmed; EC-007 divergence correctly detected)
 
-Selftest passed: 98/98 negative tests verified (each proved clean-pass + defect-fail)
-RC=0
-
-Captured at: fd74bd73aa640f17102139345bb8b2aed29d3f58
+Selftest passed: 99/99 negative tests verified (each proved clean-pass + defect-fail)

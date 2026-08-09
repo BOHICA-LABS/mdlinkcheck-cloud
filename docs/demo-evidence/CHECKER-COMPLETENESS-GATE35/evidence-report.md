@@ -1,7 +1,7 @@
 # Demo Evidence Report — CHECKER-COMPLETENESS-GATE35
 
 **Branch:** fix/checker-completeness-gate35
-**Head SHA:** b4bbbc3
+**Head SHA:** 72db558
 **Captured:** 2026-08-08
 **Type:** CLI tool evidence (terminal output)
 
@@ -9,8 +9,8 @@
 
 | AC | Description | Status |
 |----|-------------|--------|
-| AC-1 | Pre-flight guard: 0 unproven scope reductions; 10/10 primitives; 98/98 selftests | PASS |
-| AC-2 | Full selftest suite: 98/98 pass | PASS |
+| AC-1 | Pre-flight guard: 0 unproven scope reductions; 10/10 primitives; 99/99 selftests | PASS |
+| AC-2 | Full selftest suite: 99/99 pass | PASS |
 | AC-3 | New selftest 5k: E-IO-002 + E-CLI-001 + malformed-fragment detected as a set | PASS |
 | AC-4 | New selftest EI-7: §2 Filesystem column parsed; EC-007 divergence detected | PASS |
 | AC-5 | check-adr-consistency live corpus: 9 violations (78 reason-code + 6 E-class occ; ADR gap disclosed) | PASS (widened as expected) |
@@ -20,7 +20,7 @@
 ## Evidence Files
 
 - `AC-001-preflight.txt` — pre-flight guard output (15 checkers, 0 unproven, 10/10 primitives)
-- `AC-002-selftest-98of98.txt` — full selftest run confirming 98/98
+- `AC-002-selftest-99of99.txt` — full selftest run confirming 99/99
 - `AC-005-adr-consistency-live.txt` — live corpus run; 9 violations from 134 files
 - `AC-006-ec-injectivity-live.txt` — live corpus run; 42 divergent, 22 adjudication, D-132 counts
 - `AC-007-eclass-population-gate.txt` — population gate PASS (unmutated) and FAIL (table-line mutant)
@@ -41,7 +41,7 @@
 
 ## Selftest Run (98/98 confirmed)
 
-See `AC-002-selftest-98of98.txt`. New and modified tests in this PR:
+See `AC-002-selftest-99of99.txt`. New and modified tests in this PR:
 - `selftest 5k (BI-056)`: PASS — all three phantom codes detected: E-IO-002, E-CLI-001, malformed-fragment
 - `selftest 5l (AC-3+AC-2)`: PASS — E-class code in ADR TABLE CELL detected (updated fixture kills table-line mutant)
 - `selftest 5m (AC-1)`: PASS — frontmatter E-class code disclosed as named skip (skipped=1)
