@@ -245,7 +245,7 @@ else:
     # Auto-resolve PR from current branch via gh.
     try:
         _gh_r = subprocess.run(
-            ["gh", "pr", "view", "--json", "number,headSha"],
+            ["gh", "pr", "view", "--json", "number,headRefOid"],
             capture_output=True, text=True,
             cwd=str(_SCRIPT_REPO), timeout=30,
         )
@@ -254,16 +254,31 @@ else:
         print("  Install from https://cli.github.com/ or pass --pr N explicitly.",
               flush=True)
         sys.exit(2)
-    if _gh_r.returncode != 0 or not _gh_r.stdout.strip():
+    if _gh_r.returncode != 0:
+        # Distinguish a malformed gh query from a genuine no-PR condition.
+        # "Unknown JSON field" means the requested field does not exist in gh's
+        # schema — that is a verifier bug, not a user condition.
+        if "Unknown JSON field" in _gh_r.stderr or "unknown field" in _gh_r.stderr.lower():
+            print(f"\nREFUSED — gh query returned an unexpected error "
+                  f"(possible bad JSON field name in verifier).", flush=True)
+            print(f"  (gh said: {_gh_r.stderr.strip()[:200]})", flush=True)
+            print(f"  This is a bug in verify-evidence-figures.py. "
+                  f"Please file an issue.", flush=True)
+        else:
+            print("\nREFUSED — no open pull request found for current branch.",
+                  flush=True)
+            print("  Create a PR first, or pass --pr N explicitly.", flush=True)
+            if _gh_r.stderr.strip():
+                print(f"  (gh said: {_gh_r.stderr.strip()[:120]})", flush=True)
+        sys.exit(2)
+    if not _gh_r.stdout.strip():
         print("\nREFUSED — no open pull request found for current branch.", flush=True)
         print("  Create a PR first, or pass --pr N explicitly.", flush=True)
-        if _gh_r.stderr.strip():
-            print(f"  (gh said: {_gh_r.stderr.strip()[:120]})", flush=True)
         sys.exit(2)
     try:
         _gh_meta  = _json.loads(_gh_r.stdout.strip())
         pr_number = _gh_meta["number"]
-        _gh_head  = _gh_meta.get("headSha", "")
+        _gh_head  = _gh_meta.get("headRefOid", "")
     except (_json.JSONDecodeError, KeyError) as _e:
         print(f"\nREFUSED — could not parse PR metadata from gh: {_e}", flush=True)
         sys.exit(2)

@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-16 test cases (T01-T16).  Each proves:
+17 test cases (T01-T17).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
+
+T17 (gh field contract) exercises the REAL gh CLI, not an env stub.
+  If gh is unavailable: LOUD SKIP (counted and printed, not a silent pass).
+  If gh is available:  defect=bad field name → gh exits non-zero; clean=
+  correct field names → gh does not emit "Unknown JSON field" error.
 
 Test isolation: _VEF_TEST_* env vars redirect all file I/O and subprocess
 calls to a temp directory.  The real repo is used for git commands (which
@@ -20,6 +25,11 @@ from pathlib import Path
 REPO     = Path(__file__).resolve().parent.parent.parent
 VERIFIER = REPO / "scripts" / "verify-evidence-figures.py"
 EV_DIR_REL = "docs/demo-evidence/CHECKER-COMPLETENESS-GATE35"
+
+# Exact JSON fields requested by the verifier's gh pr view call.
+# This constant is the single source of truth for T17's contract check.
+# If the verifier changes its fields, update both here AND in the script.
+GH_PR_FIELDS = "number,headRefOid"
 
 # ── Mock tool outputs ─────────────────────────────────────────────────────────
 # MOCK_HEAD chosen to contain no live EI figures (174/42/22) or combined
@@ -446,6 +456,58 @@ def t16_correct_pr_number_routing():
     return run_test("T16 correct-pr-number-routing [check8]", defect, clean)
 
 
+def t17_gh_field_contract():
+    """T17: REAL gh CLI invocation uses valid field names (not an env stub).
+
+    This test exercises the actual gh binary, bypassing all _VEF_TEST_* mocks.
+    It proves that the exact JSON fields requested by the verifier are accepted
+    by gh -- catching typos like 'headSha' (invalid) vs 'headRefOid' (valid).
+
+    If gh is unavailable in the environment: LOUD SKIP -- counted in output.
+
+    Defect present: gh pr view --json number,headShaBROKEN exits non-zero and
+                    stderr contains "Unknown JSON field" (invalid field name).
+    Defect absent:  gh pr view --json {GH_PR_FIELDS} does NOT produce
+                    "Unknown JSON field" in stderr (field names are valid).
+                    Note: gh may still exit 1 if no PR exists for the current
+                    branch -- that is OK; we are testing field validity only.
+    """
+    import shutil as _shutil
+    if not _shutil.which("gh"):
+        print("  SKIP  T17 gh-field-contract [gh unavailable]"
+              "  **** LOUD SKIP — not a pass ****")
+        return None  # distinct from True (pass) and False (fail)
+
+    # Defect present: request a field that does not exist in gh's schema.
+    r_bad = subprocess.run(
+        ["gh", "pr", "view", "--json", "number,headShaBROKEN"],
+        capture_output=True, text=True,
+        cwd=str(REPO), timeout=30,
+    )
+    defect_ok = (r_bad.returncode != 0
+                 and "Unknown JSON field" in r_bad.stderr)
+    if not defect_ok:
+        print(f"    FAIL T17 [defect-present]: expected non-zero + 'Unknown JSON field'")
+        print(f"      rc={r_bad.returncode}  stderr={r_bad.stderr[:200]!r}")
+
+    # Defect absent: the fields the verifier actually requests are accepted by gh.
+    # "Unknown JSON field" in stderr is the discriminating signal for a bad field.
+    # gh may still exit 1 for branch-has-no-pr -- that is a distinct condition.
+    r_ok = subprocess.run(
+        ["gh", "pr", "view", "--json", GH_PR_FIELDS],
+        capture_output=True, text=True,
+        cwd=str(REPO), timeout=30,
+    )
+    clean_ok = "Unknown JSON field" not in r_ok.stderr
+    if not clean_ok:
+        print(f"    FAIL T17 [clean]: 'Unknown JSON field' in stderr for {GH_PR_FIELDS!r}")
+        print(f"      rc={r_ok.returncode}  stderr={r_ok.stderr[:200]!r}")
+
+    passed = defect_ok and clean_ok
+    print(f"  {'PASS' if passed else 'FAIL'}  T17 gh-field-contract [real-gh-path]")
+    return passed
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 TESTS = [
     t01_post_merge_context,
@@ -464,6 +526,7 @@ TESTS = [
     t14_no_open_pr,
     t15_artifact_head_mismatch,
     t16_correct_pr_number_routing,
+    t17_gh_field_contract,
 ]
 
 
@@ -471,16 +534,19 @@ def main():
     print(f"\ntest-vef.py -- verify-evidence-figures.py selftest suite")
     print("=" * 60)
     results = [fn() for fn in TESTS]
-    n_pass  = sum(results)
+    n_pass = sum(1 for r in results if r is True)
+    n_skip = sum(1 for r in results if r is None)
+    n_fail = sum(1 for r in results if r is False)
     n_total = len(results)
     print("=" * 60)
-    if n_pass == n_total:
+    if n_fail == 0:
+        skip_note = f"  ({n_skip} loud-skip)" if n_skip else ""
         print(f"PASS  {n_pass}/{n_total} tests verified "
-              "(each proved clean-pass + defect-fail)")
+              f"(each proved clean-pass + defect-fail){skip_note}")
         sys.exit(0)
     else:
         print(f"FAIL  {n_pass}/{n_total} tests passed  "
-              f"({n_total - n_pass} failed)")
+              f"({n_fail} failed, {n_skip} loud-skipped)")
         sys.exit(1)
 
 
