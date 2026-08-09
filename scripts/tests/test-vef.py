@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-18 test cases (T01-T18).  Each proves:
+24 test cases (T01-T24).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
 
@@ -360,6 +360,55 @@ def t08_adr_novel_spelling():
     return run_test("T08 adr-novel-spelling [SUGGESTION-10]", defect)
 
 
+def t22_adr_novel_wrong_rc():
+    """B-1 Case B: wrong rc figure in ADR novel prose -> adr-consistency/novel-spelling fail.
+
+    Before B-1 fix: old code gated on `live_rc in _line`; '77' (not '78') was
+    never examined -> silent PASS (defect).
+    After fix: context-word key catches the combined reason-code+E-class line
+    regardless of which rc integer appears on it.
+    """
+    def defect(env):
+        # live rc=78; injecting 77 (wrong) with novel spelling that has no '+' connector
+        novel = "Post-fix: 77 reason-code detections, 6 E-class occurrences found.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T22 adr-novel-wrong-rc [B-1 Case-B]", defect)
+
+
+def t23_adr_novel_wrong_rc_ec():
+    """B-1 Case C: wrong rc+ec figures in ADR novel prose -> adr-consistency/novel-spelling fail.
+
+    Both rc and ec are wrong (55 and 9 instead of 78 and 6); neither appears
+    in the line, so the old `live_rc in _line` gate skipped it entirely.
+    """
+    def defect(env):
+        # live rc=78 ec=6; injecting 55 and 9 (both wrong), novel spelling
+        novel = "Post-fix: 55 reason-code detections and 9 E-class occurrences found.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T23 adr-novel-wrong-rc-ec [B-1 Case-C]", defect)
+
+
+def t24_ei_novel_wrong_div():
+    """B-1 Case D: wrong divergent figure in EI novel prose -> ec-injectivity/novel-spelling/div fail.
+
+    Before B-1 fix: old EI scan searched for re.escape('42') (live ldiv);
+    '99 divergent' contains no '42' -> silent PASS (defect).
+    After fix: per-metric context scan finds 'N divergent', extracts 99,
+    compares to ldiv=42 -> detected.
+    """
+    def defect(env):
+        # live ldiv=42; injecting 99 (wrong) in novel EI prose
+        novel = "Summary: injectivity run gave 99 divergent citations after adjudication.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T24 ei-novel-wrong-div [B-1 Case-D]", defect)
+
+
 def t09_adr_unparseable():
     """BLOCKING-D: unparseable adr output -> check2/check3/check6/check2a never register -> gate fires."""
     def defect(env):
@@ -683,6 +732,9 @@ TESTS = [
     t06_prev_label_replaced,
     t07_ei_novel_spelling,
     t08_adr_novel_spelling,
+    t22_adr_novel_wrong_rc,
+    t23_adr_novel_wrong_rc_ec,
+    t24_ei_novel_wrong_div,
     t09_adr_unparseable,
     t10_ledger_examined_wrong,
     t11_ledger_min_count,
