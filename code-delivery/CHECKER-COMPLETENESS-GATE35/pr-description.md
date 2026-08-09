@@ -3,8 +3,14 @@
 **Epic:** Spec-Lint Integrity — Gate #35 Checker Completeness
 **Mode:** maintenance
 **Branch:** fix/checker-completeness-gate35
-**Head SHA:** 72db5580a98d8f8b2cf4326a83b6a7f0fc55441e
+**Head SHA:** 39efec2607dd954cf2ef7cfe4ec390b33973d912
 **Base:** develop
+
+> **SHA note:** `39efec2` is a documentation-only commit (evidence artifact rename +
+> `evidence-report.md` update under `docs/demo-evidence/`); it contains no change under
+> `scripts/`. The source tree under test is byte-identical to `72db558`. Evidence artifacts
+> and the selftest run recorded in AC-002 were captured at `72db558`; they remain valid at
+> `39efec2` precisely because the source is identical.
 
 ![Tests](https://img.shields.io/badge/selftests-99%2F99-brightgreen)
 ![Primitives](https://img.shields.io/badge/primitives-10%2F10-brightgreen)
@@ -211,7 +217,7 @@ output rather than screen recordings.
 | AC | Description | Evidence | Status |
 |----|-------------|----------|--------|
 | AC-1 | Pre-flight guard: 0 unproven scope reductions across 15 checkers; 10/10 primitives | `docs/demo-evidence/CHECKER-COMPLETENESS-GATE35/AC-001-preflight.txt` | PASS |
-| AC-2 | Full selftest suite: 99/99 pass at `72db558` (artifact captured at `fd74bd7`; reflects 98/98 pre-`5o-b`) | `docs/demo-evidence/CHECKER-COMPLETENESS-GATE35/AC-002-selftest-98of98.txt` | PASS |
+| AC-2 | Full selftest suite: 99/99 pass — run captured at `72db558`; valid at `39efec2` (docs-only head, source tree byte-identical) | `docs/demo-evidence/CHECKER-COMPLETENESS-GATE35/AC-002-selftest-99of99.txt` | PASS |
 | AC-3 | New selftest 5k: all three calibration codes detected as a set | Embedded in AC-002 output | PASS |
 | AC-4 | New selftest EI-7: §2 Filesystem column parsed and EC-007 divergence detected | Embedded in AC-002 output | PASS |
 | AC-5 | check-adr-consistency on live corpus: 9 violations (78 reason-code + 6 E-class occurrences validated across 134 of 134 spec files) | `docs/demo-evidence/CHECKER-COMPLETENESS-GATE35/AC-005-adr-consistency-live.txt` | PASS |
@@ -373,7 +379,7 @@ spec-corpus-frozen-at: "ace1745871122cd1fa2c46cf27c5493cc1083411"
 - [x] `.factory/specs/` untouched — frozen perimeter tree `ace1745871122cd1fa2c46cf27c5493cc1083411`
 - [x] No changes to Rust source, Cargo.toml, or CI workflows
 - [x] Baseline widened as expected: 4→9 adr-consistency violations; 110→174 ec-injectivity comparisons; 9→42 divergent; 5→22 adjudication
-- [x] Required CI checks passing (Format check, Clippy, Test macos-latest, Build release macos-latest) — all PASS at `72db558`
+- [x] Required CI checks passing (Format check, Clippy, Test macos-latest, Build release macos-latest) — all PASS at `39efec2`
 - [ ] PR review convergence complete — pending
 - [ ] Operator merge authorization — pending (D-120; scripts/spec-lint/** is a restricted file pattern)
 
