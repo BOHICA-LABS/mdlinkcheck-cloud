@@ -6,16 +6,76 @@ documents being checked. Exit non-zero with per-mismatch report on failure.
 
 Usage:  python3 scripts/verify-evidence-figures.py
 
+Context requirement (Item 0):
+  Must be run on a feature branch with commits ahead of 'develop'.
+  When HEAD has no commits ahead of develop (e.g. on develop itself, or
+  immediately after a merge), the branch-dependent checks — head-SHA,
+  rollback count, live-PR-body — are undefined and would produce misleading
+  failures rather than meaningful verification.
+  In that context the script exits with code 2 (REFUSED) with a clear
+  diagnostic.  This is fail-closed by design: an ambiguous context cannot
+  produce a meaningful PASS.
+
+Exit codes:
+  0  — PASS: all figure checks match live output and git state.
+  1  — FAIL: one or more figure mismatches detected.
+  2  — REFUSED: context not applicable (post-merge / no branch commits).
+
 Structural guarantee (BLOCKING-D):
-  Every check that performs a live-vs-document comparison MUST register itself
-  in `checks_ran`.  The PASS gate asserts REQUIRED_CHECKS == checks_ran, so a
-  future check added without an else-fail AND without the registry call still
-  cannot produce a false PASS.
+  Every check that performs a live-vs-document comparison MUST call
+  anchor_check() or checks_ran.add(key) after performing the comparison.
+  The PASS gate asserts REQUIRED_CHECKS == checks_ran, so a check added
+  without anchor_check() AND without checks_ran.add() cannot produce a
+  false PASS.
+
+  The anchor_check() helper enforces this structurally: calling it IS the
+  registration.  No separate checks_ran.add() needed — making omission
+  mechanically detectable by the REQUIRED_CHECKS gate.
+
+  Note: checks_ran.add() placed unconditionally (at module scope, not inside
+  a comparison body) still tricks the registry.  anchor_check() catches this
+  by only registering when the anchor is present, so the comparison IS
+  guaranteed to have run.
+
+Test-mode overrides (_VEF_TEST_* environment variables):
+  EXCLUSIVELY for scripts/tests/test-vef.py.  Never set in CI or production.
+  When active, a WARNING is printed and the run is identified as non-production.
+  _VEF_TEST_REPO      — override repo root for file reads (temp dir for fixtures)
+  _VEF_TEST_ADR_FILE  — path to file containing mock adr-consistency output
+  _VEF_TEST_EI_FILE   — path to file containing mock ec-injectivity output
+  _VEF_TEST_ST_FILE   — path to file containing mock selftest output
+  _VEF_TEST_N_AHEAD   — integer string, override git rev-list --count result
+  _VEF_TEST_HEAD      — mock git HEAD sha (40 hex chars)
+  _VEF_TEST_GH_BODY   — path to file containing mock gh pr body text
+
+  Git commands (git show for provenance stamps) always run against the real
+  git repo (_SCRIPT_REPO), not the test tmpdir, so stamp verification remains
+  live even in test mode.
 """
-import re, subprocess, sys
+import os, re, subprocess, sys
 from pathlib import Path
 
-REPO    = Path(__file__).resolve().parent.parent
+# Real script location — used for git operations so they always run in a valid
+# git worktree, even when _VEF_TEST_REPO points to a temp directory.
+_SCRIPT_REPO = Path(__file__).resolve().parent.parent
+
+# ── Test-mode overrides ────────────────────────────────────────────────────────
+_TEST_REPO        = os.environ.get("_VEF_TEST_REPO")
+_TEST_ADR_FILE    = os.environ.get("_VEF_TEST_ADR_FILE")
+_TEST_EI_FILE     = os.environ.get("_VEF_TEST_EI_FILE")
+_TEST_ST_FILE     = os.environ.get("_VEF_TEST_ST_FILE")
+_TEST_N_AHEAD     = os.environ.get("_VEF_TEST_N_AHEAD")
+_TEST_HEAD        = os.environ.get("_VEF_TEST_HEAD")
+_TEST_GH_BODY     = os.environ.get("_VEF_TEST_GH_BODY")
+_TEST_MODE        = any([_TEST_REPO, _TEST_ADR_FILE, _TEST_EI_FILE, _TEST_ST_FILE,
+                         _TEST_N_AHEAD, _TEST_HEAD, _TEST_GH_BODY])
+
+if _TEST_MODE:
+    print("WARNING: _VEF_TEST_* env vars active — non-production test run", flush=True)
+
+# REPO: used for file reads (PR_DESC, EV_RPT, AC files).
+# In test mode this is the temp fixture directory.
+REPO    = Path(_TEST_REPO) if _TEST_REPO else _SCRIPT_REPO
 PR_DESC = REPO / ".factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-description.md"
 EV_RPT  = REPO / "docs/demo-evidence/CHECKER-COMPLETENESS-GATE35/evidence-report.md"
 EV_DIR  = REPO / "docs/demo-evidence/CHECKER-COMPLETENESS-GATE35"
@@ -26,31 +86,66 @@ STAMPED = [
 ]
 
 # ── Required-checks registry (BLOCKING-D structural guarantee) ────────────────
-# Every check listed here MUST call checks_ran.add(key) after performing at
-# least one live-vs-document comparison.  The PASS gate at the bottom asserts
-# this set is fully populated.  A future check that forgets the else-branch AND
-# the registry call will still be caught here.
+# Every check listed here MUST register itself via anchor_check() (or
+# checks_ran.add(key) for legacy checks that predate anchor_check()).
+# The PASS gate at the bottom asserts this set is fully populated.
+#
+# anchor_check() is the canonical registration mechanism — see its docstring.
+# Legacy checks (check2, check3, check4, check6, check8) call checks_ran.add()
+# directly inside their else-fail branches; both patterns are equivalent.
 REQUIRED_CHECKS = {
     "check2-adr-figures",
     "check3-ledger-triple",
     "check4-ei-figures",
     "check6-completeness",
+    "check7-rollback",          # SUGGESTION-8: was unregistered
     "check8-live-pr-body",
+    "check9-head-sha-ev",       # SUGGESTION-8: was unregistered
+    "check2a-e-cli-001",        # SUGGESTION-8: was unregistered
+    "check4a-ac002-suffix",     # SUGGESTION-8: was unregistered
 }
 checks_ran: set = set()
 
-fails = []
+fails: list = []
 
-def fail(label, expected, got):
+
+def fail(label: str, expected: str, got: str) -> None:
     fails.append(f"  [{label}]\n    expected : {expected}\n    got      : {got}")
+
+
+def anchor_check(key: str, m, fail_label: str, fail_expected: str) -> bool:
+    """Assert anchor was found; register check key if so.
+
+    Called immediately after re.search / re.findall / next(glob(), None).
+    If anchor is falsy:  records a failure and returns False.
+                         key is NOT added to checks_ran — REQUIRED_CHECKS
+                         gate independently catches the omission.
+    If anchor is truthy: adds key to checks_ran and returns True.
+
+    This is the CANONICAL way to add a check key to REQUIRED_CHECKS.
+    Calling anchor_check() IS the registration — no separate
+    checks_ran.add(key) needed.  Adding a key to REQUIRED_CHECKS without
+    pairing it with anchor_check() will be caught by the gate: mechanically
+    impossible to have a false PASS from a forgotten registration.
+    """
+    if not m:
+        fail(fail_label, fail_expected, "anchor not found — check cannot run")
+        return False
+    checks_ran.add(key)
+    return True
+
 
 # Allowed return codes per command (keyed on cmd[-1]).
 # Default {0, 1}: checkers exit 0 (clean) or 1 (violations found).
 # Anything else signals a crash — surface it as a failure.
 ALLOWED_RC: dict = {}
 
+
 def sh(*cmd, timeout=180, allowed_rc=None):
-    r = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO, timeout=timeout)
+    # Git commands must run in a valid git worktree.  In test mode REPO may
+    # be a temp dir without git history, so use _SCRIPT_REPO for git.
+    _cwd = _SCRIPT_REPO if cmd[0] == "git" else REPO
+    r = subprocess.run(cmd, capture_output=True, text=True, cwd=_cwd, timeout=timeout)
     allowed = allowed_rc if allowed_rc is not None else ALLOWED_RC.get(cmd[-1], {0, 1})
     if r.returncode not in allowed:
         fail(f"live-run/{cmd[-1]!r}",
@@ -60,25 +155,85 @@ def sh(*cmd, timeout=180, allowed_rc=None):
     # merged output gives maximum context for diagnostics.
     return (r.stdout + r.stderr).strip()
 
+
+# ── Item 0: Context detection — refuse post-merge / no-branch-commits runs ────
+# Must run BEFORE any document reads or live subprocess calls so that a
+# meaningless context produces REFUSED (exit 2), not confusing figure
+# mismatches that could be dismissed as noise.
+# NIT-F fix: use git rev-list --count (single-integer stdout) instead of
+# git log --format=%h piped through len(splitlines()), which counted any
+# stderr lines in the commit count.
+if _TEST_N_AHEAD is not None:
+    _n_ahead_raw = _TEST_N_AHEAD.strip()
+else:
+    _n_ahead_raw = sh("git", "rev-list", "--count", "develop..HEAD", allowed_rc={0})
+
+try:
+    n_ahead = int(_n_ahead_raw)
+except ValueError:
+    print(f"\nFATAL — could not parse branch commit count: {_n_ahead_raw!r}", flush=True)
+    sys.exit(1)
+
+if n_ahead == 0:
+    _branch = ("(test-mode)" if _TEST_HEAD else
+               sh("git", "rev-parse", "--abbrev-ref", "HEAD", allowed_rc={0}))
+    print("\nREFUSED — cannot run in this context.", flush=True)
+    print(f"  Current branch : {_branch!r}", flush=True)
+    print(f"  Commits ahead of develop : {n_ahead}", flush=True)
+    print(flush=True)
+    print("This verifier requires a feature branch with commits ahead of 'develop'.", flush=True)
+    print("When HEAD is on develop (or all branch commits have been merged), the", flush=True)
+    print("branch-dependent checks (head-SHA, rollback count, live-PR-body) are", flush=True)
+    print("undefined and would produce misleading failures rather than meaningful", flush=True)
+    print("verification.", flush=True)
+    print(flush=True)
+    print("Re-run from an open feature branch: git checkout <your-branch>", flush=True)
+    sys.exit(2)
+
+n_branch_commits = n_ahead   # n_ahead is the branch commit count
+
 # ── Derive expected values from live runs (independent probes) ────────────────
-print("Running selftest suite (~65 s) …", flush=True)
-st_out  = sh("bash", "scripts/spec-lint/selftest/run-selftests.sh")
-print("Running check-adr-consistency …", flush=True)
-adr_out = sh("python3", "scripts/spec-lint/check-adr-consistency.py")
-print("Running check-ec-injectivity …", flush=True)
-ei_out  = sh("python3", "scripts/spec-lint/check-ec-injectivity.py")
-head             = sh("git", "rev-parse", "HEAD")
-n_branch_commits = len(sh("git", "log", "--format=%h", "develop..HEAD").splitlines())
+if _TEST_ST_FILE:
+    st_out = Path(_TEST_ST_FILE).read_text().strip()
+else:
+    print("Running selftest suite (~65 s) …", flush=True)
+    st_out = sh("bash", "scripts/spec-lint/selftest/run-selftests.sh")
+
+if _TEST_ADR_FILE:
+    adr_out = Path(_TEST_ADR_FILE).read_text().strip()
+else:
+    print("Running check-adr-consistency …", flush=True)
+    adr_out = sh("python3", "scripts/spec-lint/check-adr-consistency.py")
+
+if _TEST_EI_FILE:
+    ei_out = Path(_TEST_EI_FILE).read_text().strip()
+else:
+    print("Running check-ec-injectivity …", flush=True)
+    ei_out = sh("python3", "scripts/spec-lint/check-ec-injectivity.py")
+
+if _TEST_HEAD:
+    head = _TEST_HEAD.strip()
+else:
+    head = sh("git", "rev-parse", "HEAD", allowed_rc={0})
 
 pr  = PR_DESC.read_text()
 ev  = EV_RPT.read_text()
-# Combined corpus for multi-occurrence checks (S-5).
-# ev_no_prev strips the "Previous (post-gate34):" baseline line so historical
-# ec-injectivity figures (9/5/110) from that line do not cause false failures
-# when scanning for the current figures (42/22/174).
-ev_no_prev   = "\n".join(l for l in ev.splitlines() if "Previous" not in l)
-docs         = pr + "\n" + ev            # used for Check 2 (no historical rc/ec figures in ev)
-docs_no_prev = pr + "\n" + ev_no_prev   # used for Check 4 (has historical ec-injectivity figures)
+
+# ── SUGGESTION-9: ev_no_prev — anchor on the actual baseline label ────────────
+# Previous filter must use the EXACT baseline label, not the bare substring
+# "Previous" which would also filter "Previously", "Previously-skipped", etc.
+# An assertion on the expected count of baseline lines ensures the exclusion
+# set cannot silently widen (which would let wrong current-state figures pass).
+PREV_LABEL = "Previous (post-gate34)"
+prev_lines = [ln for ln in ev.splitlines() if PREV_LABEL in ln]
+if len(prev_lines) != 2:
+    fail("ev-baseline/prev-lines",
+         f"exactly 2 '{PREV_LABEL}' baseline lines in evidence-report.md",
+         f"{len(prev_lines)} found — exclusion set has drifted")
+ev_no_prev = "\n".join(ln for ln in ev.splitlines() if PREV_LABEL not in ln)
+
+docs         = pr + "\n" + ev            # used for Check 2 (no historical rc/ec in ev)
+docs_no_prev = pr + "\n" + ev_no_prev   # used for Check 4 (has historical ec-injectivity)
 
 # ── Check 1: Selftest count ───────────────────────────────────────────────────
 sm = re.search(r"Selftest passed: (\d+)/(\d+)", st_out)
@@ -142,8 +297,64 @@ else:
                  f"only {len(rc_matches)} found — a restatement site may have been removed")
     checks_ran.add("check2-adr-figures")
 
-# ── Check 3: E-class ledger triple + invariant ────────────────────────────────
+# ── SUGGESTION-10 (Check 2 side): novel-spelling scan for rc/ec figure pair ───
+# After all RC_EC_PAT matches are collected, scan for any LINE that states
+# BOTH the rc figure near "reason-code" AND the ec figure near "E-class" yet
+# is NOT covered by RC_EC_PAT.  This catches combined restatements in novel
+# prose (e.g. "78 reason-code findings and 6 E-class detections found").
+#
+# Combined-pair scan (not per-figure): avoids false positives for the ec
+# figure ("6") which appears in the enumerated-sites block and other contexts
+# where it is NOT a paired rc/ec restatement.
+#
+# D-039 disclosure: every declared entry is printed in the output.
+# An entry here is a DISCLOSURE, not a suppression — the site is auditable.
+ADR_NOVEL_DECLARED: list = [
+    # (identifying_fragment, justification)
+    # Empty: no uncovered sites in current documents.
+    # When a new novel-spelling site is added, declare it here with justification.
+    # Every declared entry is enumerated in the output per D-039.
+]
+if am:  # only run if live figures were parseable
+    _ADR_RC_CTX = re.compile(r'\breason-code\b', re.IGNORECASE)
+    _ADR_EC_CTX = re.compile(r'\bE-class\b', re.IGNORECASE)
+    _novel_rc_count = 0
+    for _line in docs.splitlines():
+        # Line must mention BOTH the rc figure near "reason-code" AND the
+        # ec figure near "E-class" — i.e., a combined rc+ec restatement.
+        if live_rc not in _line or live_ec not in _line:
+            continue
+        _rc_pos = _line.find(live_rc)
+        _ec_pos = _line.find(live_ec)
+        _has_rc_ctx = _ADR_RC_CTX.search(
+            _line[max(0, _rc_pos-80):_rc_pos+80+len(live_rc)])
+        _has_ec_ctx = _ADR_EC_CTX.search(
+            _line[max(0, _ec_pos-80):_ec_pos+80+len(live_ec)])
+        if not (_has_rc_ctx and _has_ec_ctx):
+            continue  # not a combined rc/ec claim
+        if RC_EC_PAT.search(_line):
+            continue  # covered by RC_EC_PAT
+        # Uncovered combined rc/ec mention on this line
+        _decl = next((d for d in ADR_NOVEL_DECLARED if d[0] in _line), None)
+        if _decl:
+            _novel_rc_count += 1
+            print(f"  DECLARED novel-spelling [adr]: {_decl[1]!r}", flush=True)
+            print(f"    context: ...{_line[:100]}...", flush=True)
+        else:
+            fail("adr-consistency/novel-spelling",
+                 "combined rc+ec mention matched by RC_EC_PAT or declared "
+                 "in ADR_NOVEL_DECLARED",
+                 f"uncovered combined mention on line: {_line[:100]!r}")
+    if _novel_rc_count:
+        print(f"  adr-consistency: {_novel_rc_count} declared novel-spelling site(s) "
+              "(enumerated above per D-039)", flush=True)
+
+# ── Check 3: E-class ledger triple + invariant (SUGGESTION-11) ────────────────
 # BLOCKING-D fix: else-branch required; unparseable ledger line is a failure.
+# SUGGESTION-11 fix: upgrade from re.search (first match only, pr-only) to
+# re.finditer over pr + ev, with a minimum count and per-match validation.
+# This brings Check 3 to parity with Checks 2 and 4 (both of which were fixed
+# for the same defect class in a prior cycle).
 pop_m = re.search(r"population=(\d+), examined=(\d+), skipped=(\d+)", adr_out)
 if not pop_m:
     fail("e-class-ledger/live",
@@ -154,31 +365,39 @@ else:
     if int(lpop) != int(lexam) + int(lskip):
         fail("e-class-ledger/invariant", f"{lpop}=={lexam}+{lskip}",
              str(int(lexam) + int(lskip)))
+    # SUGGESTION-11: all-occurrence validation across pr + ev (not pr-only, not first-only).
     # PR body may use abbreviated "pop=" or full "population="
-    dm = re.search(r"pop(?:ulation)?=(\d+), examined=(\d+), skipped=(\d+)", pr)
-    if not dm:
+    MIN_LEDGER_COUNT = 3
+    ledger_matches = list(re.finditer(
+        r"pop(?:ulation)?=(\d+), examined=(\d+), skipped=(\d+)",
+        pr + "\n" + ev
+    ))
+    if not ledger_matches:
         fail("e-class-ledger/pr-claim", f"pop={lpop} exam={lexam} skip={lskip}",
-             "not found in pr-description.md")
+             "not found in pr-description.md or evidence-report.md")
     else:
-        if dm.group(1) != lpop:  fail("e-class-ledger/population", lpop,  dm.group(1))
-        if dm.group(2) != lexam: fail("e-class-ledger/examined",   lexam, dm.group(2))
-        if dm.group(3) != lskip: fail("e-class-ledger/skipped",    lskip, dm.group(3))
+        print(f"    e-class-ledger triple: {len(ledger_matches)} occurrence(s) compared",
+              flush=True)
+        for idx, dm in enumerate(ledger_matches, 1):
+            if dm.group(1) != lpop:
+                fail(f"e-class-ledger/population[{idx}/{len(ledger_matches)}]",
+                     lpop, dm.group(1))
+            if dm.group(2) != lexam:
+                fail(f"e-class-ledger/examined[{idx}/{len(ledger_matches)}]",
+                     lexam, dm.group(2))
+            if dm.group(3) != lskip:
+                fail(f"e-class-ledger/skipped[{idx}/{len(ledger_matches)}]",
+                     lskip, dm.group(3))
+        if len(ledger_matches) < MIN_LEDGER_COUNT:
+            fail("e-class-ledger/min-count",
+                 f">= {MIN_LEDGER_COUNT} ledger-triple assertions",
+                 f"only {len(ledger_matches)} found — a restatement site may have been removed")
     checks_ran.add("check3-ledger-triple")
 
 # ── Check 4: check-ec-injectivity figures (ALL occurrences — S-5 complete) ────
 # BLOCKING-D fix: else-branch required; unparseable summary is a failure.
 # S-5 fix (complete): multiple patterns anchored on figure keywords ("citations
-# compared/with", "divergent", "adjudication") catch all restatement forms:
-#
-#   STANDARD_TRIPLE  — "N citations compared/with … M divergent … P adjudication"
-#                       in docs_no_prev (pr + ev minus "Previous" baseline line)
-#   BOLD_REV_TRIPLE  — "**M DIVERGENT + P ADJUDICATION; N of K TV rows compared**"
-#                       (pr:207 bold current-state column; excludes non-bold old column)
-#   TRANSITION_TRIPLE — "→N ec-injectivity comparisons; →M divergent; →P adjudication"
-#                        (pr:381 transition arrows — no spaces around →)
-#   SINGLE_CMP       — "compares N of K citations" narrative form (pr:24, cmp only)
-#   EV_CMP/DIV/ADJ   — individual figure patterns in evidence-report (ev_no_prev)
-#                       for mentions that lack a co-located triple
+# compared/with", "divergent", "adjudication") catch all restatement forms.
 #
 # Per-figure minimum counts assert that no restatement site is silently deleted.
 MIN_CMP_COUNT = 9   # citations-compared occurrences validated
@@ -211,7 +430,6 @@ else:
         adj_found.append((m.group(3), f"ec-injectivity/std-triple[{i}]"))
 
     # ── Pattern B: bold reversed triple (pr:207 — "**M DIVERGENT + P ADJUDICATION; N TV rows**")
-    # Bold marker excludes the adjacent non-bold old-value column (9 DIVERGENT + 5 ADJUDICATION).
     BOLD_REV_PAT = re.compile(
         r"\*\*(\d+)\s+(?:DIVERGENT|divergent)[^|]*?"
         r"(\d+)\s+(?:ADJUDICATION|adjudication)[^|]*?"
@@ -223,8 +441,6 @@ else:
         cmp_found.append((m.group(3), f"ec-injectivity/bold-rev-triple[{i}]"))
 
     # ── Pattern C: transition triple (pr:381 — "→N ec-injectivity; →M divergent; →P adjudication")
-    # Uses → without surrounding spaces to distinguish from " → " (space-arrow-space)
-    # used in table rows that are already caught by STANDARD_PAT.
     TRANSITION_PAT = re.compile(
         r"→(\d+)\s+ec-injectivity\s+comparisons?[^→\n]*?"
         r"→(\d+)\s+divergent[^→\n]*?"
@@ -241,9 +457,6 @@ else:
         cmp_found.append((m.group(1), f"ec-injectivity/cmp-only[{i}]"))
 
     # ── Pattern E: per-figure in evidence-report (ev_no_prev — catches partial triples)
-    # ev:17 has "174 citations compared; 42 divergent" (no adjudication on that line).
-    # ev:25 has "42 divergent, 22 adjudication" (no citations on that line).
-    # ev:37 has all three and is also caught by STANDARD_PAT (intentional double-check).
     EV_CMP_PAT = re.compile(r"(\d+)\s+(?:EC\s+)?citations?\s+compared\b")
     EV_DIV_PAT = re.compile(r"(\d+)\s+divergent\b")
     EV_ADJ_PAT = re.compile(r"(\d+)\s+(?:require\s+)?adjudication\b")
@@ -298,6 +511,59 @@ else:
 
     checks_ran.add("check4-ei-figures")
 
+    # ── SUGGESTION-10 (Check 4 side): novel-spelling scan for ei figures ──────
+    # After all five patterns have run, scan docs_no_prev for any occurrence of
+    # a live figure adjacent to an ec-injectivity context keyword that is NOT
+    # covered by an existing pattern match span.  Uncovered occurrences must be
+    # declared in EI_NOVEL_DECLARED or the check fails — inverting the default
+    # from "unmatched text is invisible" to "unmatched text must be declared".
+    #
+    # D-039 disclosure: every declared entry is printed in the output.
+    EI_NOVEL_DECLARED: list = [
+        # (identifying_fragment, justification)
+        # Empty: no uncovered sites in current documents.
+        # When a new novel-spelling site is added, declare it here with justification.
+        # Every declared entry is enumerated in the output per D-039.
+    ]
+    _EI_CTX = re.compile(
+        r'\b(?:citations?\s+(?:compared|with)|divergent|adjudication|'
+        r'injectivity|EC\s+citations?)\b',
+        re.IGNORECASE,
+    )
+    # Build covered-spans: character ranges in docs_no_prev covered by any pattern.
+    # ev-specific patterns (E) run on ev_no_prev; offset into docs_no_prev.
+    _ev_offset = len(pr) + 1  # +1 for the "\n" separator
+    _ei_covered: list = []
+    for _pat in [STANDARD_PAT, BOLD_REV_PAT, TRANSITION_PAT, SINGLE_CMP_PAT]:
+        for _pm in _pat.finditer(docs_no_prev):
+            _ei_covered.append((_pm.start(), _pm.end()))
+    for _pat in [EV_CMP_PAT, EV_DIV_PAT, EV_ADJ_PAT]:
+        for _pm in _pat.finditer(ev_no_prev):
+            _ei_covered.append((_pm.start() + _ev_offset, _pm.end() + _ev_offset))
+
+    _novel_ei_count = 0
+    for _fig, _fig_label in [(lcmp, "cmp"), (ldiv, "div"), (ladj, "adj")]:
+        for _fm in re.finditer(re.escape(_fig), docs_no_prev):
+            _window = docs_no_prev[max(0, _fm.start()-80):_fm.end()+80]
+            if not _EI_CTX.search(_window):
+                continue  # not figure-adjacent
+            if any(_s <= _fm.start() < _e for _s, _e in _ei_covered):
+                continue  # already covered by an existing pattern
+            _site_ctx = docs_no_prev[max(0, _fm.start()-40):_fm.end()+40].strip()
+            _decl = next((d for d in EI_NOVEL_DECLARED if d[0] in _site_ctx), None)
+            if _decl:
+                _novel_ei_count += 1
+                print(f"  DECLARED novel-spelling [ei/{_fig_label}]: {_decl[1]!r}", flush=True)
+                print(f"    context: ...{_site_ctx}...", flush=True)
+            else:
+                fail(f"ec-injectivity/novel-spelling/{_fig_label}",
+                     "figure-adjacent occurrence matched by an existing pattern or "
+                     "declared in EI_NOVEL_DECLARED",
+                     f"uncovered mention of '{_fig}' near: ...{_site_ctx!r}...")
+    if _novel_ei_count:
+        print(f"  ec-injectivity: {_novel_ei_count} declared novel-spelling site(s) "
+              "(enumerated above per D-039)", flush=True)
+
 # ── Check 5: Head SHA ─────────────────────────────────────────────────────────
 sha_m = re.search(r"\*\*Head SHA:\*\*\s+([0-9a-f]{40})", pr)
 if not sha_m:
@@ -306,7 +572,6 @@ elif sha_m.group(1) != head:
     fail("head-sha/pr-description", head, sha_m.group(1))
 
 # ── Check 6: Enumerated-site consistency (BLOCKING-B) ────────────────────────
-# Find block: "N E-class occurrences validated ... Detection confirmed at: <sites sentence>"
 det_m = re.search(
     r"(\d+) E-class (?:code )?occurrences validated\)\.?\s*Detection confirmed at:\n"
     r"(.*?)(?=New selftest|\n\n|\Z)",
@@ -317,27 +582,20 @@ if not det_m:
 else:
     claimed_n = int(det_m.group(1))
     block     = det_m.group(2)
-    # Isolate the validated-sites sentence: ends at the first period that is
-    # followed by a newline or space+capital (excludes periods inside filenames).
     sent_m = re.search(r"\.\s*(?:\n|(?=[A-Z]))", block)
     if sent_m:
-        val_text  = block[:sent_m.start() + 1]   # include the terminating period
+        val_text  = block[:sent_m.start() + 1]
         excl_text = block[sent_m.end():]
     else:
         val_text, excl_text = block, ""
-    # Expand comma-separated file:line refs in validated text
     val_sites = []
     for m in re.finditer(r"`([\w./-]+\.md):(\d+(?:,\d+)*)`", val_text):
         for ln in m.group(2).split(","):
             val_sites.append(f"{m.group(1)}:{ln.strip()}")
-    # Count check
     if len(val_sites) != claimed_n:
         fail("enumerated-sites/count",
              f"{claimed_n} sites for claimed {claimed_n} validated occurrences",
              f"{len(val_sites)} sites found: {val_sites}")
-    # Completeness: every live E-class detection site must appear in val_sites.
-    # BLOCKING-D fix: an empty live_e_sites set means the completeness loop never
-    # runs — that is a failure, not a vacuous pass.
     live_e_sites = re.findall(r"([\w./-]+\.md):(\d+): E-class code", adr_out)
     if not live_e_sites:
         fail("enumerated-sites/completeness",
@@ -353,7 +611,6 @@ else:
                      f"{bname} present in validated enumeration",
                      f"{bname} missing from 'Detection confirmed at:' list")
         checks_ran.add("check6-completeness")
-    # Bucket-overlap: no site should appear in both validated enumeration and excluded text
     for m in re.finditer(r"`([\w./-]+\.md):(\d+(?:,\d+)*)`", excl_text):
         for ln in m.group(2).split(","):
             site = f"{m.group(1)}:{ln.strip()}"
@@ -363,60 +620,65 @@ else:
                      f"{site} appears in both validated and excluded parts")
 
 # ── Check 7: Provenance stamps — content-obtainable-at-SHA (BLOCKING-E) ───────
-# BLOCKING-E fix: replaced git-log presence check with git-show content
-# comparison.  A stamp is valid only if the artifact's content at that commit,
-# normalised to remove the stamp line itself, matches the current normalised
-# content.  This rejects a stamp that names any commit where the figures differed
-# (e.g. 879efff, where AC-005 recorded "79 reason-code + 5 E-class" instead of
-# "78 + 6") while still accepting a stamp-correction commit (the commit that only
-# changed the stamp line compares equal after normalisation).
-
 def _normalise_stamp(text: str) -> str:
-    """Strip 'Captured at: <sha>' lines and outer blank lines for comparison.
-
-    The outer strip() reconciles the asymmetry between sh() (which always
-    strips the captured output) and read_text() (which preserves leading
-    newlines that some artifacts have).  Internal blank lines are preserved
-    so any middle-of-file divergence is still caught.
-    """
+    """Strip 'Captured at: <sha>' lines and outer blank lines for comparison."""
     filtered = "\n".join(
         line for line in text.splitlines()
         if not re.match(r"Captured at: [0-9a-f]{40}\s*$", line)
     )
     return filtered.strip()
 
-for ac_path in STAMPED:
-    content = ac_path.read_text()
-    stamp_m = re.search(r"Captured at: ([0-9a-f]{40})", content)
-    if not stamp_m:
-        fail(f"provenance-stamp/{ac_path.name}",
-             "Captured at: <sha> line present",
-             "stamp not found in artifact")
-    else:
-        stamp    = stamp_m.group(1)
-        rel_path = str(ac_path.relative_to(REPO))
-        # sh() calls fail() if git show exits unexpectedly (RC not in {0,1}).
-        # RC=128 means the SHA or path did not exist — that is itself a failure.
-        blob = sh("git", "show", f"{stamp}:{rel_path}")
-        if _normalise_stamp(blob) != _normalise_stamp(content):
+if _TEST_MODE:
+    # Provenance stamp verification requires the AC files to exist at their
+    # captured-at commit in the real git history.  In test mode, the temp
+    # directory may contain synthetic AC files whose stamps don't match the
+    # current worktree; skipping avoids false failures while preserving the
+    # check for all non-test runs (CI and manual invocations).
+    print("  [provenance-stamps] SKIPPED — test mode (_VEF_TEST_* vars active)",
+          flush=True)
+else:
+    for ac_path in STAMPED:
+        content = ac_path.read_text()
+        stamp_m = re.search(r"Captured at: ([0-9a-f]{40})", content)
+        if not stamp_m:
             fail(f"provenance-stamp/{ac_path.name}",
-                 f"stamp names a commit whose normalised content matches current artifact",
-                 f"content at {stamp[:7]} differs — artifact was not captured there")
+                 "Captured at: <sha> line present",
+                 "stamp not found in artifact")
+        else:
+            stamp    = stamp_m.group(1)
+            # rel_path is computed relative to REPO (test tmpdir or real repo).
+            # The path structure is identical in both, so git show with this
+            # relative path against _SCRIPT_REPO (via sh()) is correct.
+            rel_path = str(ac_path.relative_to(REPO))
+            blob = sh("git", "show", f"{stamp}:{rel_path}")
+            if _normalise_stamp(blob) != _normalise_stamp(content):
+                fail(f"provenance-stamp/{ac_path.name}",
+                     f"stamp names a commit whose normalised content matches current artifact",
+                     f"content at {stamp[:7]} differs — artifact was not captured there")
 
-# ── SUGGESTION-2: E-CLI-001 location in traceability must be file:line ────────
-if re.search(r"E-CLI-001.*?test-vectors|test-vectors.*?E-CLI-001", pr):
-    ecli_live = re.search(r"([\w./-]+\.md:\d+): E-class code 'E-CLI-001'", adr_out)
-    live_loc  = Path(ecli_live.group(1)).name if ecli_live else "BC-2.11.004.md:61 (from live run)"
-    fail("traceability/e-cli-001-location",
-         live_loc,
-         "pr-description.md attributes E-CLI-001 ×1 to 'test-vectors'")
+# ── SUGGESTION-2 / check2a-e-cli-001: E-CLI-001 location ─────────────────────
+# SUGGESTION-8 fix: register via anchor_check() + fail when anchor absent.
+_ecli_m = re.search(r"E-CLI-001", adr_out)
+if anchor_check("check2a-e-cli-001", _ecli_m,
+                "traceability/e-cli-001-in-live",
+                "E-CLI-001 detection in live adr-consistency output"):
+    if re.search(r"E-CLI-001.*?test-vectors|test-vectors.*?E-CLI-001", pr):
+        ecli_live = re.search(r"([\w./-]+\.md:\d+): E-class code 'E-CLI-001'", adr_out)
+        live_loc  = Path(ecli_live.group(1)).name if ecli_live \
+                    else "BC-2.11.004.md:61 (from live run)"
+        fail("traceability/e-cli-001-location",
+             live_loc,
+             "pr-description.md attributes E-CLI-001 ×1 to 'test-vectors'")
 
-# ── SUGGESTION-4: evidence-report AC-002 filename suffix must be current ───────
-ac002 = next(EV_DIR.glob("AC-002*.txt"), None)
-if ac002:
-    sfx_m = re.search(r"(\d+of\d+)", ac002.name)
+# ── SUGGESTION-4 / check4a-ac002-suffix: AC-002 filename suffix ───────────────
+# SUGGESTION-8 fix: register via anchor_check() + fail when AC-002 is absent.
+_ac002 = next(EV_DIR.glob("AC-002*.txt"), None)
+if anchor_check("check4a-ac002-suffix", _ac002,
+                "evidence-report/ac002-missing",
+                "AC-002*.txt artifact in evidence directory"):
+    sfx_m = re.search(r"(\d+of\d+)", _ac002.name)
     if sfx_m:
-        correct_sfx = sfx_m.group(1)          # e.g. "99of99"
+        correct_sfx = sfx_m.group(1)
         for m in re.finditer(r"\d+of\d+", ev):
             if m.group(0) != correct_sfx:
                 fail("evidence-report/ac002-suffix",
@@ -424,65 +686,74 @@ if ac002:
                      f"evidence-report.md references '{m.group(0)}'")
                 break
 
-# ── NIT-C / S-7: rollback command must be complete and internally consistent ───
-# S-7 fix: the claimed commit count and the listed SHA count are both checked
-# against the LIVE `git rev-list --count develop..HEAD` (n_branch_commits),
-# not against each other.  Internal consistency checking disguised the bug where
-# both numbers were wrong by the same amount.
-revert_m = re.search(r"git revert((?:\s+[0-9a-f]{7,40})+)", pr)
-if revert_m:
-    listed = revert_m.group(1).split()
-    # The evidence-rename commit omitted in the prior pass must be present
+# ── NIT-C / S-7 / check7-rollback: rollback command ──────────────────────────
+# SUGGESTION-8 fix: register via anchor_check() + fail when anchor absent.
+_revert_m = re.search(r"git revert((?:\s+[0-9a-f]{7,40})+)", pr)
+if anchor_check("check7-rollback", _revert_m,
+                "rollback/block",
+                "a `git revert <sha> …` command listing every branch commit — "
+                "no explicit SHA list found in pr-description.md"):
+    listed = _revert_m.group(1).split()
     if not any(s == "39efec2" or "39efec2".startswith(s) for s in listed):
         fail("rollback/missing-39efec2",
              "39efec2 in rollback list",
              "39efec2 missing from git revert command")
-    # Claimed prose count must equal live branch-commit count
     count_m = re.search(r"Rollback reverts all (\d+) commits", pr)
     if count_m:
         claimed = int(count_m.group(1))
         if claimed != n_branch_commits:
             fail("rollback/count-claim",
-                 f"body claims {claimed} commits; git rev-list --count develop..HEAD = {n_branch_commits}",
+                 f"body claims {claimed} commits; "
+                 f"git rev-list --count develop..HEAD = {n_branch_commits}",
                  "counts disagree")
-    # Listed SHA count must also equal live branch-commit count
     if len(listed) != n_branch_commits:
         fail("rollback/sha-count",
              f"rollback SHA list has {len(listed)} entries; "
              f"git rev-list --count develop..HEAD = {n_branch_commits}",
              "counts disagree")
 
-# ── NIT-D: "Head SHA:" in evidence-report must equal git HEAD or be relabeled ──
-head_sha_m = re.search(r"\*\*Head SHA:\*\*\s+([0-9a-f]{7,40})", ev)
-if head_sha_m and not head.startswith(head_sha_m.group(1)):
-    fail("evidence-report/head-sha-label",
-         f"field renamed to '**Captured at SHA:**' (value {head_sha_m.group(1)} ≠ HEAD {head[:7]})",
-         "field still labeled '**Head SHA:**' with non-HEAD value")
+# ── NIT-D / check9-head-sha-ev: "Head SHA:" in evidence-report ────────────────
+# SUGGESTION-8 fix: register via anchor_check() + fail when anchor absent.
+_head_sha_m = re.search(r"\*\*Head SHA:\*\*\s+([0-9a-f]{7,40})", ev)
+if anchor_check("check9-head-sha-ev", _head_sha_m,
+                "evidence-report/head-sha-missing",
+                "**Head SHA:** field in evidence-report.md"):
+    if not head.startswith(_head_sha_m.group(1)):
+        fail("evidence-report/head-sha-label",
+             f"field renamed to '**Captured at SHA:**' "
+             f"(value {_head_sha_m.group(1)} ≠ HEAD {head[:7]})",
+             "field still labeled '**Head SHA:**' with non-HEAD value")
 
 # ── Check 8: Live PR body must match pr-description.md (FINDING 2) ────────────
-# Fail closed (D-039): gh unavailable or non-zero exit is treated as a failure,
-# never as a skip.  allowed_rc={0} — only success is acceptable.
-# Normalisation: strip trailing whitespace from each line and overall so that
-# GitHub's trailing-newline handling doesn't produce a spurious mismatch.
+# NIT-G fix: wrap gh invocation to produce a diagnostic rather than a traceback
+# when the gh binary is not found.
 def _norm_body(t: str) -> str:
     return "\n".join(l.rstrip() for l in t.splitlines()).strip()
 
 print("Fetching live PR body via gh …", flush=True)
-live_pr_body = sh("gh", "pr", "view", "12", "--json", "body", "--jq", ".body",
-                  allowed_rc={0})
-if _norm_body(live_pr_body) != _norm_body(pr):
-    fail("live-pr-body/sync",
-         "live PR body matches pr-description.md (normalised)",
-         "live PR body has diverged from pr-description.md — "
-         "run: gh pr edit 12 --body-file .factory/code-delivery/"
-         "CHECKER-COMPLETENESS-GATE35/pr-description.md")
+if _TEST_GH_BODY:
+    _live_pr_body_raw: str | None = Path(_TEST_GH_BODY).read_text()
+else:
+    _live_pr_body_raw = None
+    try:
+        _live_pr_body_raw = sh("gh", "pr", "view", "12", "--json", "body", "--jq", ".body",
+                                allowed_rc={0})
+    except FileNotFoundError:
+        fail("live-pr-body/gh-unavailable",
+             "gh CLI available in PATH",
+             "gh not found — install gh (https://cli.github.com/) to enable "
+             "live PR body sync check")
+
+if _live_pr_body_raw is not None:
+    if _norm_body(_live_pr_body_raw) != _norm_body(pr):
+        fail("live-pr-body/sync",
+             "live PR body matches pr-description.md (normalised)",
+             "live PR body has diverged from pr-description.md — "
+             "run: gh pr edit 12 --body-file .factory/code-delivery/"
+             "CHECKER-COMPLETENESS-GATE35/pr-description.md")
 checks_ran.add("check8-live-pr-body")
 
 # ── BLOCKING-D: required-checks gate ─────────────────────────────────────────
-# Every check in REQUIRED_CHECKS must have registered itself.  If any is absent
-# the check either never ran (live output unparseable) or was added without a
-# proper else-branch.  This is the structural guarantee that PASS requires
-# evidence, not just silence.
 missing_checks = REQUIRED_CHECKS - checks_ran
 for key in sorted(missing_checks):
     fail(f"required-check/{key}",
