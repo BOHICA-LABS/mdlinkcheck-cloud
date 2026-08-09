@@ -249,4 +249,23 @@ Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies 
 
 ---
 
+## Session Resume Checkpoint D-161 (2026-08-09) — archived from STATE.md by Burst-36
+
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-161 [SUPERSEDED by D-172 — retained for audit]`
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-09 |
+| **Position** | phase-1d. PR #12 (`fix/checker-completeness-gate35`, head `6a5eb9f`) OPEN — cycle-7 APPROVE (0 blocking, 4 suggestions, 5 nits, PG-012 ranges); merge AUTHORIZED then WITHHELD — posted-verdict precondition UNMET; pickup: human posts verdict comment then merge. 0 of 3 clean passes UNCHANGED. |
+| **Frozen perimeter** | `specs/` tree `ace1745871122cd1fa2c46cf27c5493cc1083411`. VERIFIED UNCHANGED throughout PR #12 lifecycle. |
+| **Branch state** | `develop` = `da86271`. `fix/checker-completeness-gate35` head `6a5eb9f` (12 commits). `factory-artifacts` = Burst-35 commit. PR #12 OPEN. |
+| **PR #12 state** | Cycles 1-7 ALL RESOLVED. Cycle-7 APPROVE (0 blocking, 4 suggestions (SUGGESTION-8/9/10/11), 5 nits). Merge WITHHELD (posted-verdict precondition, D-157). |
+| **Convergence counter** | 0 of 3 required clean passes; trajectory-tail →39→37→259→273-275 |
+
+Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-161 (exhaustive). Open BIs: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057/058/060; CI-063.
+
+*Superseded by D-172 session wrap (Burst-36).*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-05T00:00:00Z
@@ -20,6 +20,8 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.5: (BI-053 follow-up) Undecodable-fragment boundary case specified: Invariant 3 extended to cover the fragment component — invalid percent sequences in the fragment (e.g., `%GG`) are passed through undecoded; raw fragment used for anchor lookup → anchor-not-found (symmetric with path-component pass-through rule; no new reason code: anchor-not-found is in the 13-code closed set). Test vector added. All five authoritative sources (DI-003, CAP-008, DEC-005, events.md, prd.md) are silent on this case; symmetry with existing path rule is the defensible default."
+  - "v1.4: (BI-053/P7-S3-001) Fragment percent-decode inversion corrected: Description sentence 3 stated 'NOT percent-decoded before slug comparison (DI-003)' and Postcondition 4 stated 'verbatim (not decoded)'. Both inverted DI-003/CAP-008/events.md/DEC-005 — all five authoritative sources require the fragment to be percent-decoded after the split. Corrected Description and PC4 to require 'percent-decoded before anchor lookup (DI-003, CAP-008)'. Added test vector for percent-encoded fragment (DEC-005 scenario). Resolves P7-S3-001."
   - "v1.3: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string was fabricated percent-encode description; corrected to verbatim section title 'Relative Path Resolution' per capabilities.md §CAP-007; gloss moved outside quotes. VP-004 proof method corrected from 'unit test' to 'kani' per VP-INDEX authority."
   - "v1.1: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
   - "v1.2: (EC-collision) EC-034→EC-189 (EC-034 canonical owner is BC-2.07.008 per test-vectors.md registry)."
@@ -36,8 +38,8 @@ removal_reason: null
 ## Description
 File path destinations may contain percent-encoded characters (e.g., `My%20File.md` meaning
 `My File.md`). The tool percent-decodes the path component (after fragment split per DI-003)
-before performing directory-entry comparison. The fragment component is NOT percent-decoded before
-slug comparison (DI-003).
+before performing directory-entry comparison. The fragment component is also percent-decoded
+before anchor lookup (DI-003, CAP-008).
 
 ## Preconditions
 1. A relative-file link destination has been classified.
@@ -47,12 +49,15 @@ slug comparison (DI-003).
 1. Fragment is split at first unescaped `#` BEFORE any decoding (DI-003).
 2. The path component is percent-decoded before directory-entry comparison.
 3. The decoded path is NFC-normalized (BC-2.07.003).
-4. The fragment component is used verbatim (not decoded) as the anchor lookup key.
+4. The fragment component is percent-decoded before anchor lookup (DI-003, CAP-008).
 
 ## Invariants
 1. Fragment split ALWAYS precedes percent-decode. This is DI-003.
 2. A `%23` in the path component is decoded to `#` before use; it does NOT become a fragment separator.
-3. Invalid percent sequences (e.g., `%GG`) cause the link to be treated as malformed-url only for external URLs; for file paths they are passed through (not decoded) and likely produce file-not-found.
+3. Invalid percent sequences (e.g., `%GG`) are handled as follows:
+   - **External URLs:** the link is treated as `malformed-url` (broken, exit 1) — WHATWG parse fails.
+   - **Path component:** passed through undecoded; used as-is in directory-entry lookup → likely produces `file-not-found`.
+   - **Fragment component:** passed through undecoded; raw (undecoded) fragment used as-is for anchor-table lookup → produces `anchor-not-found` when no anchor key matches the raw string. Symmetric with path-component rule. No new reason code: `anchor-not-found` is in the 13-code closed set.
 
 ## Edge Cases
 | EC | Description |
@@ -67,6 +72,8 @@ slug comparison (DI-003).
 | `My%20File.md` | path=`My File.md`, frag=none | existence check `My File.md` |
 | `a%20b.md#section` | path=`a b.md`, frag=`section` | existence + anchor check |
 | `path%23not-frag.md` | path=`path#not-frag.md`, frag=none | existence check literal `#` in filename |
+| `docs/guide.md#caf%C3%A9` | path=`docs/guide.md`, frag=`café` (decoded) | existence + anchor check; decoded fragment matches slug `café` (DEC-005) |
+| `file.md#caf%GG` | path=`file.md`, frag=`caf%GG` (raw — invalid sequence passed through) | anchor-not-found; raw fragment does not match any slug (Invariant 3 fragment rule) |
 
 ## Verification Properties
 | VP-NNN | Property | Proof Method |

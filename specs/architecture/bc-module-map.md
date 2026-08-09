@@ -2,10 +2,10 @@
 document_type: architecture-section
 level: L3
 section: bc-module-map
-version: "1.4"
+version: "1.6"
 status: draft
 producer: architect
-timestamp: 2026-08-06T00:00:00Z
+timestamp: 2026-08-09T00:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/architecture/ARCH-INDEX.md
@@ -13,9 +13,15 @@ inputs:
   - .factory/specs/architecture/purity-boundary-map.md
   - .factory/specs/module-criticality.md
   - .factory/specs/verification-properties/VP-INDEX.md
-input-hash: "c1efbb5"
+input-hash: "0cfd557"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.6"
+    date: 2026-08-09
+    change: "P7-S6-009: corrected Primary ownership count table — four cells had stale values (link_extractor 9→8, anchor_table 4→3, http_client 8→7, cli 4→3). Derived from BC mapping tables via awk; corrected column sums to 66, matching the declared total. http_client was a partial-fix regression: Module Ownership Summary already showed 7 but Primary table had not been updated. NOTE: check-counts.py has zero coverage of bc-module-map.md — this table is unguarded against future arithmetic drift; coverage gap routed to gate-#42 nine-checker sweep."
+  - version: "1.5"
+    date: 2026-08-09
+    change: "BI-054 (P7-S6-001): corrected stale POL-14 directive. `test-sufficient` is the conforming VP-NNN column value for BCs with no formal VP (D-039 JOIN against VP-INDEX; accepted by check-placeholders.py); `none` is explicitly non-conforming. Updated preamble, §POL-14 Reference section, column definition, and all 33 VP-NNN col value cells in mapping tables (none→test-sufficient). No BC files modified — all 33 already hold the correct `test-sufficient` value. Checker passes 0/134 before and after."
   - version: "1.4"
     date: 2026-08-06
     change: "INC-MAP-001 status updated to SPEC-RESOLVED / IMPL-PENDING per D-033 two-event discipline: VP-025 v1.1 discharges the spec-level API misalignment (AnchorTable(HashSet<String>), three-variant Verdict, corrected import path, property 4 replaced); Phase 3 implementation obligation remains open (BI-010). Heading updated from RE-OPENED. Anchor_resolver VP note label corrected from stale 'resolved' claim."
@@ -39,10 +45,12 @@ changelog:
 > (all 66). Fills all 47 BC module placeholder cells in the behavioral contract files and closes the
 > P3-027 adversary finding on BC-2.10.009 module ambiguity.
 >
-> **Product-owner action required (POL-14):** See §POL-14 Defect Report at end of this file.
-> 55 BC files currently place `test-sufficient` in the `VP-NNN` column, which violates POL-14.
-> That string belongs in the `Proof Method` column only. Use the "VP-NNN Column Value" column
-> in this table as the authoritative correction source.
+> **POL-14 Reference (BI-054 resolved):** For BCs with no formal VP, the correct `VP-NNN`
+> column value is `test-sufficient` — accepted by `check-placeholders.py` when VP-INDEX
+> classifies the BC as `test-sufficient` (D-039 runtime JOIN; Proof Method must be non-empty
+> per D-078). `none` (lowercase) is explicitly non-conforming and rejected by POL-14. All 33
+> BC files (53 VP table rows) currently hold the correct `test-sufficient` value; no
+> product-owner remediation is needed. See §POL-14 Reference for the accepted value format.
 
 ## Universal ADRs
 
@@ -61,7 +69,7 @@ beyond these two.
 | Tier | Criticality tier from module-criticality.md: CRITICAL / HIGH / MEDIUM / LOW |
 | Key ADRs | Subsystem-specific ADRs (ADR-001 + ADR-002 apply to all — omitted here) |
 | Formal VPs | Real VP IDs from VP-INDEX; `—` means no formal VP exists for this BC |
-| VP-NNN col value | What the product-owner should put in the `VP-NNN` cell of the BC's Verification Properties table (POL-14 correction) |
+| VP-NNN col value | Authoritative value for the `VP-NNN` cell of the BC's Verification Properties table per POL-14: a VP-NNN ID when a formal VP exists, or `test-sufficient` when VP-INDEX classifies the BC as test-sufficient (D-039 runtime JOIN) |
 
 ---
 
@@ -72,14 +80,14 @@ Key ADRs: ADR-005 (rayon traversal).
 
 | BC | Primary Module | Secondary Module | P/E | Tier | Key ADRs | Formal VPs | VP-NNN col value |
 |----|---------------|-----------------|-----|------|---------|-----------|-----------------|
-| BC-2.01.001 | `scanner` | — | Effectful | HIGH | ADR-005 | — | none |
-| BC-2.01.002 | `scanner` | — | Effectful | HIGH | ADR-005 | — | none |
+| BC-2.01.001 | `scanner` | — | Effectful | HIGH | ADR-005 | — | test-sufficient |
+| BC-2.01.002 | `scanner` | — | Effectful | HIGH | ADR-005 | — | test-sufficient |
 | BC-2.01.003 | `scanner` | — | Effectful | HIGH | ADR-005 | VP-016 | VP-016 |
 | BC-2.01.004 | `scanner` | — | Effectful | HIGH | ADR-005 | VP-017 | VP-017 |
-| BC-2.01.005 | `scanner` | — | Effectful | HIGH | ADR-005 | — | none |
-| BC-2.01.006 | `scanner` | — | Effectful | HIGH | ADR-005 | — | none |
-| BC-2.01.007 | `scanner` | — | Effectful | HIGH | ADR-005 | — | none |
-| BC-2.01.008 | `scanner` | — | Effectful | HIGH | ADR-005 | — | none |
+| BC-2.01.005 | `scanner` | — | Effectful | HIGH | ADR-005 | — | test-sufficient |
+| BC-2.01.006 | `scanner` | — | Effectful | HIGH | ADR-005 | — | test-sufficient |
+| BC-2.01.007 | `scanner` | — | Effectful | HIGH | ADR-005 | — | test-sufficient |
+| BC-2.01.008 | `scanner` | — | Effectful | HIGH | ADR-005 | — | test-sufficient |
 | BC-2.01.009 | `scanner` | `verdict` (exit code: I/O errors become exit 2 via verdict::exit_code) | Effectful / Pure | HIGH / CRITICAL | ADR-005, ADR-007 | VP-005 | VP-005 |
 
 **BC-2.01.003 VP note:** VP-016 belongs to `anchor_table` module. It verifies that anchor tables
@@ -95,10 +103,10 @@ Key ADRs: ADR-003 (pulldown-cmark choice).
 
 | BC | Primary Module | Secondary Module | P/E | Tier | Key ADRs | Formal VPs | VP-NNN col value |
 |----|---------------|-----------------|-----|------|---------|-----------|-----------------|
-| BC-2.02.001 | `scanner` | `link_extractor` (processes the event stream scanner produces) | Effectful / Pure | HIGH / CRITICAL | ADR-003 | — | none |
-| BC-2.02.002 | `scanner` | — | Effectful | HIGH | ADR-003 | — | none |
-| BC-2.02.003 | `scanner` | — | Effectful | HIGH | ADR-003 | — | none |
-| BC-2.02.004 | `scanner` | — | Effectful | HIGH | ADR-003 | — | none |
+| BC-2.02.001 | `scanner` | `link_extractor` (processes the event stream scanner produces) | Effectful / Pure | HIGH / CRITICAL | ADR-003 | — | test-sufficient |
+| BC-2.02.002 | `scanner` | — | Effectful | HIGH | ADR-003 | — | test-sufficient |
+| BC-2.02.003 | `scanner` | — | Effectful | HIGH | ADR-003 | — | test-sufficient |
+| BC-2.02.004 | `scanner` | — | Effectful | HIGH | ADR-003 | — | test-sufficient |
 
 **Note:** BC-2.02.002 already has Architecture Module filled as `scanner.rs (SS-02, effectful shell)`.
 This table is consistent with that entry.
@@ -114,10 +122,10 @@ Key ADRs: ADR-003 (pulldown-cmark event stream).
 |----|---------------|-----------------|-----|------|---------|-----------|-----------------|
 | BC-2.03.001 | `link_extractor` | — | Pure | CRITICAL | ADR-003 | VP-019, VP-014 | VP-019, VP-014 |
 | BC-2.03.002 | `link_extractor` | — | Pure | CRITICAL | ADR-003 | VP-019 | VP-019 |
-| BC-2.03.003 | `link_extractor` | — | Pure | CRITICAL | ADR-003 | — | none |
-| BC-2.03.004 | `link_extractor` | — | Pure | CRITICAL | ADR-003 | — | none |
-| BC-2.03.005 | `url_classifier` | `link_extractor` (extracts the link; url_classifier classification drives clean verdict) | Pure | HIGH | ADR-003, ADR-007 | — | none |
-| BC-2.03.006 | `link_extractor` | — | Pure | CRITICAL | ADR-003 | — | none |
+| BC-2.03.003 | `link_extractor` | — | Pure | CRITICAL | ADR-003 | — | test-sufficient |
+| BC-2.03.004 | `link_extractor` | — | Pure | CRITICAL | ADR-003 | — | test-sufficient |
+| BC-2.03.005 | `url_classifier` | `link_extractor` (extracts the link; url_classifier classification drives clean verdict) | Pure | HIGH | ADR-003, ADR-007 | — | test-sufficient |
+| BC-2.03.006 | `link_extractor` | — | Pure | CRITICAL | ADR-003 | — | test-sufficient |
 
 **BC-2.03.005 ownership note:** "Non-http schemes yield clean" is a verdict that follows
 from `url_classifier` returning a non-Http/Https UrlKind (ADR-007). `link_extractor`
@@ -177,11 +185,11 @@ Key ADRs: ADR-006 (NFC strict path model).
 | BC | Primary Module | Secondary Module | P/E | Tier | Key ADRs | Formal VPs | VP-NNN col value |
 |----|---------------|-----------------|-----|------|---------|-----------|-----------------|
 | BC-2.07.001 | `path_resolver` | — | Pure | CRITICAL | ADR-006 | VP-008 | VP-008 |
-| BC-2.07.002 | `path_resolver` | — | Pure | CRITICAL | ADR-006 | — | none |
+| BC-2.07.002 | `path_resolver` | — | Pure | CRITICAL | ADR-006 | — | test-sufficient |
 | BC-2.07.003 | `path_resolver` | `fragment` (percent-encoding decoded before NFC comparison — DI-002 requires this ordering) | Pure | CRITICAL | ADR-006 | VP-008, VP-009 | VP-008, VP-009 |
 | BC-2.07.004 | `fragment` | `path_resolver` (receives already-split, percent-preserved dest string) | Pure | CRITICAL | ADR-006 | VP-004 | VP-004 |
-| BC-2.07.005 | `path_resolver` | `anchor_resolver` (never called for directory targets — explicit exclusion) | Pure | CRITICAL | ADR-006, ADR-007 | — | none |
-| BC-2.07.006 | `path_resolver` | `anchor_resolver` (never called for non-Markdown targets) | Pure | CRITICAL | ADR-006, ADR-007 | — | none |
+| BC-2.07.005 | `path_resolver` | `anchor_resolver` (never called for directory targets — explicit exclusion) | Pure | CRITICAL | ADR-006, ADR-007 | — | test-sufficient |
+| BC-2.07.006 | `path_resolver` | `anchor_resolver` (never called for non-Markdown targets) | Pure | CRITICAL | ADR-006, ADR-007 | — | test-sufficient |
 | BC-2.07.007 | `url_classifier` | — | Pure | HIGH | ADR-006, ADR-007 | VP-023 | VP-023 |
 | BC-2.07.008 | `path_resolver` | — | Pure | CRITICAL | ADR-006 | VP-024 | VP-024 |
 
@@ -224,7 +232,7 @@ Key ADRs: ADR-007 (verdict model — classification drives routing).
 
 | BC | Primary Module | Secondary Module | P/E | Tier | Key ADRs | Formal VPs | VP-NNN col value |
 |----|---------------|-----------------|-----|------|---------|-----------|-----------------|
-| BC-2.09.001 | `url_classifier` | — | Pure | HIGH | ADR-007 | — | none |
+| BC-2.09.001 | `url_classifier` | — | Pure | HIGH | ADR-007 | — | test-sufficient |
 | BC-2.09.002 | `filter` | `url_classifier` (the external URL check that --allow suppresses) | Pure | HIGH | ADR-007 | VP-010 | VP-010 |
 
 ---
@@ -236,16 +244,16 @@ Key ADRs: ADR-004 (ureq sync HTTP), ADR-005 (rayon + 32-thread pool), ADR-007 (t
 
 | BC | Primary Module | Secondary Module | P/E | Tier | Key ADRs | Formal VPs | VP-NNN col value |
 |----|---------------|-----------------|-----|------|---------|-----------|-----------------|
-| BC-2.10.001 | `http_client` | `http_verdict` (classifies the response from the HEAD/GET protocol) | Effectful / Pure | MEDIUM / CRITICAL | ADR-004, ADR-005, ADR-007 | — | none |
+| BC-2.10.001 | `http_client` | `http_verdict` (classifies the response from the HEAD/GET protocol) | Effectful / Pure | MEDIUM / CRITICAL | ADR-004, ADR-005, ADR-007 | — | test-sufficient |
 | BC-2.10.002 | `http_verdict` | `http_client` (implements the protocol that produces responses for classification) | Pure / Effectful | CRITICAL / MEDIUM | ADR-004, ADR-007 | VP-007 | VP-007 |
-| BC-2.10.003 | `http_client` | — | Effectful | MEDIUM | ADR-004 | — | none |
-| BC-2.10.004 | `http_client` | `http_verdict` (429 classification drives pause decision) | Effectful / Pure | MEDIUM / CRITICAL | ADR-004, ADR-005, ADR-007 | — | none |
+| BC-2.10.003 | `http_client` | — | Effectful | MEDIUM | ADR-004 | — | test-sufficient |
+| BC-2.10.004 | `http_client` | `http_verdict` (429 classification drives pause decision) | Effectful / Pure | MEDIUM / CRITICAL | ADR-004, ADR-005, ADR-007 | — | test-sufficient |
 | BC-2.10.005 | `http_verdict` | `http_client` (detects DNS failure; encodes it into Attempt enum for http_verdict) | Pure / Effectful | CRITICAL / MEDIUM | ADR-004, ADR-007 | VP-007 | VP-007 |
 | BC-2.10.006 | `http_verdict` | `http_client` (detects TLS failure; encodes it into Attempt enum for http_verdict) | Pure / Effectful | CRITICAL / MEDIUM | ADR-004, ADR-007 | VP-007 | VP-007 |
-| BC-2.10.007 | `http_client` | — | Effectful | MEDIUM | ADR-004 | — | none |
-| BC-2.10.008 | `http_client` | — | Effectful | MEDIUM | ADR-004, ADR-005 | — | none |
-| BC-2.10.009 | `http_client` | — | Effectful | MEDIUM | ADR-004, ADR-005 | — | none |
-| BC-2.10.010 | `http_client` | `http_verdict` (indeterminate verdict returned for private-IP URLs) | Effectful / Pure | MEDIUM / CRITICAL | ADR-004, ADR-007 | — | none |
+| BC-2.10.007 | `http_client` | — | Effectful | MEDIUM | ADR-004 | — | test-sufficient |
+| BC-2.10.008 | `http_client` | — | Effectful | MEDIUM | ADR-004, ADR-005 | — | test-sufficient |
+| BC-2.10.009 | `http_client` | — | Effectful | MEDIUM | ADR-004, ADR-005 | — | test-sufficient |
+| BC-2.10.010 | `http_client` | `http_verdict` (indeterminate verdict returned for private-IP URLs) | Effectful / Pure | MEDIUM / CRITICAL | ADR-004, ADR-007 | — | test-sufficient |
 
 ### BC-2.10.009 Ownership Decision (P3-027 Resolution)
 
@@ -286,8 +294,8 @@ Key ADRs: ADR-007 (verdict model — filtering suppresses findings).
 |----|---------------|-----------------|-----|------|---------|-----------|-----------------|
 | BC-2.11.001 | `filter` | `scanner` (applies the glob patterns during traversal; still reads ignored files for anchor tables) | Pure / Effectful | HIGH | ADR-005, ADR-007 | VP-016 | VP-016 |
 | BC-2.11.002 | `filter` | — | Pure | HIGH | ADR-007 | VP-010 | VP-010 |
-| BC-2.11.003 | `filter` | `scanner` (applies filter to explicit PATH arguments during traversal) | Pure / Effectful | HIGH | ADR-007 | — | none |
-| BC-2.11.004 | `cli` | `verdict` (config_error=true → exit 2 via verdict::exit_code; see module-decomposition v1.2 changelog) | Effectful / Pure | LOW / CRITICAL | ADR-007 | — | none |
+| BC-2.11.003 | `filter` | `scanner` (applies filter to explicit PATH arguments during traversal) | Pure / Effectful | HIGH | ADR-007 | — | test-sufficient |
+| BC-2.11.004 | `cli` | `verdict` (config_error=true → exit 2 via verdict::exit_code; see module-decomposition v1.2 changelog) | Effectful / Pure | LOW / CRITICAL | ADR-007 | — | test-sufficient |
 
 **BC-2.11.001 VP note:** VP-016 belongs to `anchor_table` module. It verifies the side effect
 that anchor tables are built even for `--ignore`'d files. The primary implementing module for
@@ -303,10 +311,10 @@ Key ADRs: ADR-005 (sort-before-emit; deterministic output order), ADR-007 (verdi
 | BC | Primary Module | Secondary Module | P/E | Tier | Key ADRs | Formal VPs | VP-NNN col value |
 |----|---------------|-----------------|-----|------|---------|-----------|-----------------|
 | BC-2.12.001 | `reporter` | — | Pure | HIGH | ADR-005, ADR-007 | VP-011, VP-021 | VP-011, VP-021 |
-| BC-2.12.002 | `reporter` | `cli` (NO_COLOR / CLICOLOR env vars read by cli to produce CliArgs; reporter uses the flag) | Pure / Effectful | HIGH / LOW | ADR-005 | — | none |
-| BC-2.12.003 | `reporter` | `main` (routes summary string to stderr; reporter::format_text produces it) | Pure / Effectful | HIGH / LOW | ADR-005 | — | none |
-| BC-2.12.004 | `cli` | `reporter` (--format text flag selects format_text) | Effectful / Pure | LOW / HIGH | ADR-005 | — | none |
-| BC-2.12.005 | `reporter` | `main` (writes findings to stdout; writes summary to stderr; reporter produces both strings) | Pure / Effectful | HIGH / LOW | ADR-005 | — | none |
+| BC-2.12.002 | `reporter` | `cli` (NO_COLOR / CLICOLOR env vars read by cli to produce CliArgs; reporter uses the flag) | Pure / Effectful | HIGH / LOW | ADR-005 | — | test-sufficient |
+| BC-2.12.003 | `reporter` | `main` (routes summary string to stderr; reporter::format_text produces it) | Pure / Effectful | HIGH / LOW | ADR-005 | — | test-sufficient |
+| BC-2.12.004 | `cli` | `reporter` (--format text flag selects format_text) | Effectful / Pure | LOW / HIGH | ADR-005 | — | test-sufficient |
+| BC-2.12.005 | `reporter` | `main` (writes findings to stdout; writes summary to stderr; reporter produces both strings) | Pure / Effectful | HIGH / LOW | ADR-005 | — | test-sufficient |
 
 ---
 
@@ -318,7 +326,7 @@ Key ADRs: ADR-005 (sort-before-emit), ADR-007 (verdict model).
 | BC | Primary Module | Secondary Module | P/E | Tier | Key ADRs | Formal VPs | VP-NNN col value |
 |----|---------------|-----------------|-----|------|---------|-----------|-----------------|
 | BC-2.13.001 | `reporter` | — | Pure | HIGH | ADR-005, ADR-007 | VP-011, VP-021 | VP-011, VP-021 |
-| BC-2.13.002 | `reporter` | — | Pure | HIGH | ADR-005, ADR-007 | — | none |
+| BC-2.13.002 | `reporter` | — | Pure | HIGH | ADR-005, ADR-007 | — | test-sufficient |
 
 ---
 
@@ -332,7 +340,7 @@ Key ADRs: ADR-007 (two-layer verdict model — clean / broken / indeterminate fe
 | BC-2.14.001 | `verdict` | — | Pure | CRITICAL | ADR-007 | VP-006 | VP-006 |
 | BC-2.14.002 | `verdict` | — | Pure | CRITICAL | ADR-007 | VP-005 | VP-005 |
 | BC-2.14.003 | `verdict` | — | Pure | CRITICAL | ADR-007 | VP-005, VP-006 | VP-005, VP-006 |
-| BC-2.14.004 | `cli` | — | Effectful | LOW | ADR-007 | — | none |
+| BC-2.14.004 | `cli` | — | Effectful | LOW | ADR-007 | — | test-sufficient |
 
 ---
 
@@ -363,19 +371,19 @@ Key ADRs: ADR-007 (two-layer verdict model — clean / broken / indeterminate fe
 | Module | BCs (Primary) | Tier |
 |--------|--------------|------|
 | `scanner` | 13 | HIGH |
-| `link_extractor` | 9 | CRITICAL |
+| `link_extractor` | 8 | CRITICAL |
 | `path_resolver` | 6 | CRITICAL |
-| `anchor_table` | 4 | CRITICAL |
+| `anchor_table` | 3 | CRITICAL |
 | `filter` | 4 | HIGH |
 | `reporter` | 6 | HIGH |
-| `http_client` | 8 | MEDIUM |
+| `http_client` | 7 | MEDIUM |
 | `http_verdict` | 3 | CRITICAL |
 | `anchor_resolver` | 3 | CRITICAL |
 | `url_classifier` | 3 | HIGH |
 | `slug` | 2 | CRITICAL |
 | `fragment` | 2 | CRITICAL |
 | `verdict` | 3 | CRITICAL |
-| `cli` | 4 | LOW |
+| `cli` | 3 | LOW |
 | `app` | 0 | MEDIUM |
 | `main` | 0 | LOW |
 | **Total** | **66** | — |
@@ -459,35 +467,46 @@ This closes the gap at the integration test level.
 
 ---
 
-## POL-14 Defect Report
+## POL-14 Reference (BI-054 — stale directive corrected)
 
-**Policy:** POL-14 prohibits placing `test-sufficient` in a `VP-NNN` column of a BC file.
-The `VP-NNN` column must contain a real VP ID (e.g., `VP-007`) or `none`. The string
-`test-sufficient` belongs only in the `Proof Method` or verification method column.
+**Policy as implemented by `check-placeholders.py`:** In any Verification Properties table
+whose header row first cell is exactly `VP-NNN`, every data row's first cell MUST be one of:
 
-**Scope:** The VP-INDEX BC-to-VP coverage table already uses `test-sufficient` correctly in
-a `VP(s)` column. The defect is in the individual BC files' Verification Properties tables
-which have a `VP-NNN` column.
+- A VP-NNN ID (e.g., `VP-007`) or a comma/slash-separated list of VP-NNN IDs — when a formal
+  verification property exists for the BC.
+- `test-sufficient` — **only** when VP-INDEX classifies the BC as `test-sufficient` (D-039
+  runtime JOIN against VP-INDEX.md at check time) **and** the Proof Method cell is non-empty
+  (D-078 precondition). Quoted from `check-placeholders.py` docstring: *"`test-sufficient`
+  sentinel in VP-NNN column: Accepted ONLY when VP-INDEX classifies the file's BC ID as
+  'test-sufficient'. This is a JOIN against VP-INDEX (not an allowlist, D-039)"*.
+- `VP-NONE` — only when the Proof Method cell is non-empty (D-078).
 
-**Remediation:** For each BC where the "VP-NNN col value" column in this map shows `none`,
-the product-owner should update the BC file's Verification Properties table to:
+`none` (lowercase) is **explicitly non-conforming** and is rejected by POL-14. Quoted from
+`check-placeholders.py` docstring: *"Any other first-cell content (em-dash, en-dash, TBD,
+none, empty, etc.) is a POL-14 violation — R2-RULE (D-069)."*
+
+**History:** The original v1.0 directive in this document pre-dated commit `d4e76fa`
+(`feat(pol14): test-sufficient VP sentinel`) which made `test-sufficient` a legal sentinel
+in the VP-NNN column. The directive was not updated when the checker was, producing an inverted
+guidance document that would break the gate if acted upon (BI-054 / P7-S6-001).
+
+**Status:** Resolved at spec level (BI-054). `check-placeholders.py` currently reports
+0 violations across 134 spec files. The 33 BC files (53 VP table rows) with `test-sufficient`
+in the VP-NNN column are conforming. No product-owner remediation is needed.
+
+**Correct format for a BC with no formal VP** (verified against the current checker):
 
 ```markdown
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| none | [property description] | integration / acceptance test |
+| test-sufficient | [property description] | integration / acceptance test |
 ```
 
-For BCs where "VP-NNN col value" shows a real VP ID, the table should read:
+**Correct format for a BC with a formal VP:**
 ```markdown
 | VP-007 | [property description] | kani |
 ```
-
-The checker (`scripts/spec-lint/check-placeholders.py`) reported 55 BCs with `test-sufficient`
-in the VP-NNN column. All 33 "test-sufficient" BCs (per VP-INDEX) have `none` in this map's
-VP-NNN col value column. The product-owner should make a single pass through all 66 BC files
-using this map's "VP-NNN col value" column as the authoritative correction source.
 
 ## [Section Content]
 

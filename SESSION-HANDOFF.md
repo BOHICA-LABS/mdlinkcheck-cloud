@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-161
+  Latest: §RESUME SNAPSHOT D-172
 -->
 
 ---
@@ -2526,9 +2526,9 @@ Exactly TWO worktrees:
 
 ---
 
-## §RESUME SNAPSHOT D-161
+## §RESUME SNAPSHOT D-161 [SUPERSEDED by D-172 — retained for audit]
 
-*Written: 2026-08-09 — Burst-35 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-153.*
+*Written: 2026-08-09 — Burst-35 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-153. Superseded by D-172 (Burst-36).*
 
 ### RESUME IN ONE BREATH
 
@@ -2631,3 +2631,115 @@ Exactly TWO worktrees:
 - **7 holdout EC IDs not-yet-authored** (EC-079/093/094/141/147/148/151)
 - **BI-041 --write PROHIBITED**
 - **D-039 no suppression** in any spec-lint checker
+
+---
+
+## §RESUME SNAPSHOT D-172
+
+*Written: 2026-08-09 — Burst-36 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-161.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean passes, trajectory →0→32→34→39→37→259→273-275. **BI-053 CLOSED** (fragment percent-decode inversion; BC-2.07.004/BC-2.08.001 corrected, prd v1.14, boundary gap closed, no phantom code created). **BI-054 CLOSED** (stale POL-14 directive; bc-module-map v1.6; propagation gap tagged [process-gap]). **P7-S6-009 CLOSED** (Primary ownership arithmetic 70→66). Frozen perimeter **advances to `a79de7e841c705a499f7aec634c4894b3097764e`** — adversary pass 8 MUST use this hash, NOT `ace1745`. PR #12 (`fix/checker-completeness-gate35`) OPEN at head `6a5eb9f` — merge WITHHELD pending human-posted verdict comment. D-001..D-172 (exhaustive).
+
+**Pickup point: human posts verdict comment on PR #12 via `gh pr comment 12 --body-file .factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle7.md`, then operator-confirmed merge (D-120, gate-#28), then sweep step 0.**
+
+### HEADS
+
+| Branch | HEAD | Notes |
+|--------|------|-------|
+| `develop` | `da86271` | four oracle repairs live; selftests 91/91 |
+| `fix/checker-completeness-gate35` | `6a5eb9f` | 12 commits; local == remote; working tree clean |
+| `factory-artifacts` | Burst-36 commit | state artifacts; Burst-36 single-commit TD-VSDD-053 |
+
+### PR #12 STATUS
+
+- **Branch:** `fix/checker-completeness-gate35`
+- **Head:** `6a5eb9f` (12 commits; local == remote; working tree clean)
+- **CI:** 4/4 required checks green
+- **Selftests:** 99/99 mutation-verified
+- **Cycles 1-7:** ALL RESOLVED; cycle-7 APPROVE (0 blocking, 4 suggestions (SUGGESTION-8/9/10/11), 5 nits)
+- **Merge status:** AUTHORIZED (D-120) then WITHHELD — posted-verdict precondition UNMET (D-157)
+- **Verdict file:** `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle7.md`
+- **Resolution path:** human posts verdict comment via `gh pr comment 12 --body-file .factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle7.md`; then operator confirms merge; automation MUST NOT post (three self-approval denials; BI-060; agency-vs-identity D-172)
+
+### FROZEN PERIMETER
+
+`specs/` tree `a79de7e841c705a499f7aec634c4894b3097764e`. **ADVANCES past `ace1745871122cd1fa2c46cf27c5493cc1083411`** as of Burst-36. Four spec files changed: `BC-2.07.004.md` (v1.5), `BC-2.08.001.md` (v1.5), `prd.md` (v1.14), `bc-module-map.md` (v1.6). Authorized and expected — spec fixes are the work of phase-1d.
+
+### BLOCKING ISSUES RELEVANT TO PICKUP
+
+| ID | Summary | Status | Path to Close |
+|----|---------|--------|---------------|
+| BI-053 | Fragment percent-decode inversion | **CLOSED** (D-162/D-163, Burst-36) | Closed. VP propagation debt (D-165) queued with BI-052. |
+| BI-054 | Stale POL-14 directive in bc-module-map.md | **CLOSED** (D-166/D-167, Burst-36) | Closed. d4e76fa propagation-gap follow-up required (D-167). |
+| BI-058 | Guard INERT + 5 false-green checkers + bc-module-map coverage gap | OPEN | Gate-#42 nine-checker sweep (post-merge, sweep step 0 first). Scope extended per D-169. |
+| BI-060 | validate-pr-review-posted hook UNSATISFIABLE + instructs self-approval | OPEN | devops-engineer post-merge; do not modify mid-run. Agency-vs-identity D-172. |
+| BI-056 | E-IO-002 phantom-code detection regression | REPAIRED-PENDING-MERGE at `6a5eb9f` | Merge PR #12 |
+| BI-057 | Row-granularity skip evades file-level completeness | REPAIRED-PENDING-MERGE at `6a5eb9f` | Merge PR #12 |
+
+### QUEUE ORDER AFTER MERGE
+
+0. **Sweep step 0 (FIRST, BEFORE verifier is load-bearing):** SUGGESTION-8/9/10/11 + SUGGESTION-6 (operator-gated CI wiring) — harden `scripts/verify-evidence-figures.py`. Authorized (D-159).
+1. **Gate-#42 nine-checker ledger sweep (BI-058):** INDEPENDENT-PROBE canary populations + anti-tautology for all nine checkers + HS-INDEX `required_files` fix + `run_suppression_guard` Pass-1 fail-open fix + `check-counts` `bc-module-map.md` arithmetic coverage (D-169). D-141 amended ruling 2: independent-probe canary MANDATORY for all nine checkers. CI-063 mitigation: embed operator authorization verbatim in each implementer's INITIAL SPAWN PROMPT.
+2. EC-151 burn + fresh hidden replacement.
+3. **BI-052 PLUS BI-053 VP propagation debt** (VP-004 decode gap, VP-025, VP-INDEX consistency, TV-157/EC-157 — same defect class per D-165; handle together rather than twice).
+4. **Input-hash drift sweep:** `/vsdd-factory:check-input-drift` ONCE, MANDATORY before phase-1 gate (after BI-052/EC-151 land; pre-existing drift confirmed in this session per D-170).
+5. Adversary pass 8 — streak from ZERO, frozen perimeter **`a79de7e841c705a499f7aec634c4894b3097764e`** (NOT `ace1745`).
+
+### STANDING CONSTRAINTS
+
+- **spec-lint REQUIRED flip DEFERRED** (D-117/D-122/D-133): `Spec lint` is intentionally non-required in branch protection; do not flip without operator sign-off.
+- **Merges operator-gated** (D-120): every merge to `develop` requires operator confirmation.
+- **`gh pr review --approve` IMPOSSIBLE** (BI-039/D-021/D-105): all PRs are authored by `drbothen`; use `gh pr comment` for verdicts; never attempt `gh pr review --approve`.
+- **DEV-11 unchanged:** development cadence constraint in force.
+- **D-141 amended ruling 2:** independent-probe canary populations MANDATORY for all nine checkers in gate-#42 sweep.
+- **CI-063 mitigation:** embed operator authorization verbatim in each implementer's INITIAL SPAWN PROMPT; mid-session relay is refused.
+- **BI-060:** do not modify `validate-pr-review-posted` hook mid-run; route around by documented exception only (D-158). Agency-vs-identity distinction: gate-#28 satisfied on AGENCY axis only (D-172).
+- **BI-041 --write PROHIBITED:** no spec-lint checker may be run with `--write` flag.
+- **D-039 no suppression:** no suppression in any spec-lint checker.
+- **BI-053 VP propagation debt:** VP-004/VP-025/VP-INDEX/TV-157 queued with BI-052 (D-165).
+
+### SPEC SNAPSHOT
+
+PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151).
+
+D-001..D-172 (exhaustive). Open BI list: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/056/057/058/060; CI-063.
+
+### WORKTREE INVENTORY
+
+Exactly TWO worktrees:
+
+| Worktree | Branch | HEAD | Notes |
+|----------|--------|------|-------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | `develop` | `da86271` | main checkout; four oracle repairs live |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | Burst-36 commit | state artifacts |
+
+### DECISION DELTA (D-162..D-172)
+
+| ID | Summary |
+|----|---------|
+| D-162 | BI-053 CLOSED — five-source unanimity; BC-2.07.004/BC-2.08.001 inverted, now corrected |
+| D-163 | Boundary gap: undecodable fragment sequences → `anchor-not-found` via symmetry-with-path rule |
+| D-164 | Refusal to invent reason code — positive precedent; `malformed-fragment` would be phantom-code regression |
+| D-165 | Empty story-propagation target set; VP propagation debt (VP-004/VP-025/VP-INDEX/TV-157) queued with BI-052 |
+| D-166 | BI-054 CLOSED — directive was entire defect; "55 BC files" wrong (53 rows/33 files); join oracle confirmed |
+| D-167 | d4e76fa propagation-gap root cause tagged [process-gap]; S-7.02 follow-up required |
+| D-168 | P7-S6-009 CLOSED; two-tables-measure-different-quantities nuance; `http_client` only directly comparable row |
+| D-169 | `check-counts.py` zero coverage of bc-module-map.md; routed to gate-#42 sweep |
+| D-170 | Pre-existing input-hash drift in bc-module-map.md; resolved; drift predates session; drift sweep queued |
+| D-171 | Perimeter hash advances ace1745→a79de7e; pass 8 must use new hash |
+| D-172 | BI-060 agency-vs-identity distinction; Burst-36 wrap |
+
+### CAVEATS
+
+- **BI-060 OPEN:** `validate-pr-review-posted` hook demands `gh pr review` which is structurally impossible in this repo; also actively instructs agents toward self-approval; do not modify mid-run; route around by documented exception only. Agency-vs-identity: gate-#28 satisfied on AGENCY axis (human posted comment) but NOT IDENTITY axis (same GitHub account author and commenter — D-172).
+- **BI-058:** Guard INERT + five false-green checkers + bc-module-map coverage gap; gate-#42 sweep is the closure path (after merge + sweep step 0).
+- **BI-053 VP propagation debt (D-165):** VP-004 decode gap, VP-025, VP-INDEX consistency, TV-157/EC-157 — handle with BI-052.
+- **d4e76fa propagation-gap (D-167):** S-7.02 follow-up story or justified deferral entry REQUIRED before cycle closes.
+- **D-132:** Completeness assertions at EVERY skip granularity; guard only validates file level.
+- **D-126:** check-ec-injectivity divergence count is a LOWER BOUND.
+- **7 holdout EC IDs not-yet-authored** (EC-079/093/094/141/147/148/151).
+- **BI-041 --write PROHIBITED.**
+- **D-039 no suppression** in any spec-lint checker.
+- **Input-hash drift sweep MANDATORY** before phase-1 gate (D-170): queued after BI-052/EC-151 land.

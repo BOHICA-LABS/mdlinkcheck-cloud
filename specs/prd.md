@@ -1,7 +1,7 @@
 ---
 document_type: prd
 level: L3
-version: "1.12"
+version: "1.14"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-06T00:00:00Z
@@ -19,6 +19,8 @@ supplements:
   - prd-supplements/test-vectors.md
   - prd-supplements/nfr-catalog.md
 modified:
+  - "1.14 (2026-08-09): BI-053 follow-up — undecodable-fragment boundary case specified in BC-2.07.004 (v1.5) and BC-2.08.001 (v1.5). All five authoritative sources silent; symmetric pass-through rule adopted (invalid percent sequences used raw for anchor lookup → anchor-not-found; no new reason code required)."
+  - "1.13 (2026-08-09): BI-053 fix — fragment percent-decode inversion resolved in BC-2.07.004 (v1.4) and BC-2.08.001 (v1.4). Both BCs had inverted DI-003/CAP-008 by forbidding fragment decode; corrected to require percent-decode before anchor lookup. Resolves adversary pass-7 findings P7-S3-001 and P7-S4-002."
   - "1.12 (2026-08-07): EC-count reconciliation for EC-205..EC-213 — declared 203→212, range EC-001..EC-204→EC-001..EC-213; ID 102 retired per D-010 documented in §5b"
 ---
 

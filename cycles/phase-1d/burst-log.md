@@ -1959,3 +1959,76 @@ PRD v1.12 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001
 
 **Closes:** BI-059 (BLOCKING-D/E proven by execution at `6a5eb9f`). **Opens:** BI-060 (validate-pr-review-posted hook unsatisfiable + self-approval). **Records:** gate #43 cycle-7 APPROVE, merge WITHHELD, sweep step 0 APPROVED. **Adds:** D-154..D-161 (exhaustive).
 
+---
+
+## Burst-30 — Archived from Current Phase Steps by Burst-36 (2026-08-09)
+
+*Archived from STATE.md Current Phase Steps by Burst-36.*
+
+BI-055 RESOLVED (human-ordered PRIVATE→PUBLIC visibility change, D-127, 2026-08-08T22:55:24Z); branch protections verified intact post-flip (D-128); PR #11 now 4/4 required checks PASS; `Spec lint` fails as intended per D-124; AWAITING OPERATOR-CONFIRMED MERGE (D-120); D-127..D-128 (exhaustive) appended to Decisions Log; BI-055 moved to blocking-issues-resolved.md; burst narrative appended to cycles/phase-1d/burst-log.md; trajectory-tail →39→37→259→273-275 (unchanged). D-127..D-128 (exhaustive) added. BI-055 marked RESOLVED and moved to cycles/phase-1d/blocking-issues-resolved.md. Session Resume Checkpoint updated (Position + Next burst). STATE.md staged explicitly per D-088.
+
+---
+
+## Burst-36 — BI-053/BI-054 CLOSED; P7-S6-009 CLOSED; Perimeter Advances (2026-08-09)
+
+*Agent: state-manager. Phase: phase-1d. Single-commit burst TD-VSDD-053.*
+
+### Context
+
+Burst-36 records three independently-verified spec fixes authorized by the operator ahead of the gate-#42 sweep, while PR #12's merge is resolved separately. All facts verified by the orchestrator via executed commands before dispatch.
+
+### Work Performed
+
+**BI-053 CLOSED (fragment percent-decode inversion):**
+Two-pass fix. Pass 1 corrected the inversion: five authoritative sources unanimous (DI-003/invariants.md:109, CAP-008/capabilities.md:142, DEC-005/edge-cases.md:132, events.md:92, prd.md:380) that fragments MUST be decoded after split. BC-2.07.004 (Description s3 + PC4) and BC-2.08.001 (PC1 + Inv3) had both forbidden decode; now correct. Pass 2 closed a boundary gap the correction itself opened: undecodable percent-sequences (e.g., `file.md#caf%GG`) were unspecified once PC4 made decoding mandatory. All five sources SILENT. Symmetry-with-path-component rule adopted: invalid sequences pass through raw, used as-is for anchor lookup, yield `anchor-not-found` (code 4 of 13-code closed set). BC-2.07.004 Inv3 extended to three surfaces; BC-2.08.001 gained Inv4. No new reason code created — that refusal is a POSITIVE PRECEDENT (D-164; `malformed-fragment` would have tripped BI-056 gate per P7-S4-006 CRITICAL finding). Story propagation: empty target set — `.factory/stories/` contains only `.gitkeep`; no story files exist; no story-writer dispatch required. Propagation debt RECORDED: VP-004 decode gap, VP-025, VP-INDEX consistency, TV-157/EC-157 — queued with BI-052 (same class). Versions: BC-2.07.004 1.3→1.5, BC-2.08.001 1.3→1.5, prd.md 1.12→1.14 (changelog entries 1.13 and 1.14 both present; 1.12 entry untouched per D-034).
+
+**BI-054 CLOSED (stale POL-14 directive):**
+Directive was the ENTIRE defect. Verified: 53 VP rows across 33 BC files already held the correct `test-sufficient` value; `check-placeholders.py` passes 0 live placeholders across 134/134 spec files both before and after; zero residual `| none |` in bc-module-map.md. The directive had been instructing the product-owner to CONVERT conforming rows INTO violations across 33 files — harmful downstream guidance. Checker acceptance condition (oracle): `test-sufficient` accepted ONLY when VP-INDEX classifies the BC ID as `test-sufficient` (runtime JOIN, NOT allowlist per D-039) AND Proof Method cell non-empty; `none` explicitly REJECTED per R2-RULE. The document's own "55 BC files" figure was wrong (actual: 53 rows / 33 files) — surfaced because D-082 forced re-derivation. ROOT CAUSE: propagation gap — commit `d4e76fa` added `test-sufficient` as legal sentinel; `bc-module-map.md` never updated. Tagged `[process-gap]` per S-7.02. Version: bc-module-map.md 1.4→1.5.
+
+**P7-S6-009 CLOSED (sibling defect; bc-module-map.md Primary ownership arithmetic):**
+Primary ownership table declared `| **Total** | **66** |` while 16 data rows summed to 70. Four cells corrected by `awk` over BC mapping tables (not hand-carried): `link_extractor` 9→8, `anchor_table` 4→3, `http_client` 8→7, `cli` 4→3. Table now sums to exactly 66. IMPORTANT nuance (D-168): Module Ownership Summary (20 lines above) counts ALL BCs touched (primary+secondary); Primary ownership table counts primary only — different quantities, cannot agree cell-for-cell in general. Only `http_client` is directly comparable (all 7 BCs are primary with no secondary involvement); its mismatch was a genuine regression from v1.2. Higher Summary values for `link_extractor`, `anchor_table`, `cli` are EXPECTED and correct. `check-counts.py` has ZERO coverage of `bc-module-map.md` — routed into gate-#42 sweep scope (D-169). Version: bc-module-map.md 1.5→1.6.
+
+**Input-hash drift resolved (D-170):**
+`validate-input-hash` PostToolUse hook fired on `bc-module-map.md` with PRE-EXISTING drift (stored `c1efbb5` ≠ computed `0cfd557`) — stale BEFORE any edit this session. Resolved via `compute-input-hash --update`. Hook NOT disabled/bypassed/weakened. Full `/vsdd-factory:check-input-drift` sweep queued for after BI-052/EC-151 land (once, MANDATORY before phase-1 gate).
+
+**Perimeter advance (D-171):**
+`specs/` tree hash advances from `ace1745871122cd1fa2c46cf27c5493cc1083411` to `a79de7e841c705a499f7aec634c4894b3097764e`. Four spec files changed. Adversary pass 8 MUST run against new hash. Standing "frozen perimeter `ace1745`" descriptor SUPERSEDED as of this burst.
+
+**BI-060 agency-vs-identity distinction (D-172):**
+Gate-#28 requirement satisfied on AGENCY axis (human composed and posted verdict comment `5232703815` on PR #12) but NOT on IDENTITY axis (PR author `drbothen` == comment author `drbothen`, machine-unverifiable). This gap is the root of BI-039 and recurs on every PR this run. Three self-approval denials + one transient stage-2 denial recorded. No control weakened.
+
+### Decision Delta
+
+- D-162: BI-053 CLOSED — five-source unanimity on fragment must be percent-decoded after split
+- D-163: Boundary gap from correction; symmetry-with-path closure; `anchor-not-found` for undecodable sequences
+- D-164: Refusal to invent reason code — positive precedent; `malformed-fragment` would have been phantom-code regression
+- D-165: Empty story-propagation target set; VP propagation debt recorded (VP-004/VP-025/VP-INDEX/TV-157) queued with BI-052
+- D-166: BI-054 CLOSED — directive was entire defect; "55 BC files" figure wrong (53 rows/33 files); `test-sufficient` join oracle confirmed
+- D-167: d4e76fa propagation-gap root cause tagged [process-gap]; S-7.02 follow-up required
+- D-168: P7-S6-009 closed; two-tables-measure-different-quantities nuance; `http_client` only directly comparable row
+- D-169: `check-counts.py` zero coverage of `bc-module-map.md`; routed to gate-#42 sweep
+- D-170: Pre-existing input-hash drift in bc-module-map.md; resolved via `--update`; drift predates session
+- D-171: Perimeter hash advances ace1745→a79de7e; pass 8 must use new hash
+- D-172: BI-060 agency-vs-identity distinction; Burst-36 wrap
+
+### Artifact State at Burst Close
+
+PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-172 (exhaustive). Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/056/057/058/060; CI-063. specs/ tree `a79de7e841c705a499f7aec634c4894b3097764e` (advances past `ace1745`).
+
+### Files Touched (factory-artifacts branch — one atomic commit per TD-VSDD-053)
+
+- `.factory/STATE.md` — frontmatter; Project Metadata; Phase Progress (Burst-36 row added); Current Phase Steps (Burst-36 added, Burst-30 archived); Decisions Log D-162..D-172 appended; Blocking Issues (BI-053/BI-054 removed → resolved; BI-052/BI-058/BI-060 updated); Session Resume Checkpoint replaced D-161→D-172; Concurrent Cycles updated; Spec Snapshot updated to v1.14
+- `.factory/SESSION-HANDOFF.md` — Latest: pointer updated D-161→D-172; D-161 snapshot header marked SUPERSEDED; §RESUME SNAPSHOT D-172 appended
+- `.factory/specs/behavioral-contracts/ss-07/BC-2.07.004.md` — v1.3→v1.5 (BI-053 two-pass fix)
+- `.factory/specs/behavioral-contracts/ss-08/BC-2.08.001.md` — v1.3→v1.5 (BI-053 two-pass fix)
+- `.factory/specs/prd.md` — v1.12→v1.14 (changelog entries 1.13+1.14; 1.12 untouched per D-034)
+- `.factory/specs/architecture/bc-module-map.md` — v1.4→v1.6 (BI-054 directive removed; P7-S6-009 arithmetic corrected)
+- `.factory/cycles/phase-1d/blocking-issues-resolved.md` — BI-053/BI-054/P7-S6-009 closure records appended
+- `.factory/cycles/phase-1d/burst-log.md` — Burst-30 archive note + Burst-36 narrative appended
+- `.factory/cycles/phase-1d/session-checkpoints.md` — D-161 checkpoint archived
+- `.factory/cycles/phase-1d/lessons.md` — lessons 60+61 appended
+- `.factory/logs/` — modified + untracked .jsonl files staged
+- `.factory/sidecar-learning.md` — modified
+
+**Closes:** BI-053 (fragment percent-decode inversion), BI-054 (stale POL-14 directive), P7-S6-009 (Primary ownership arithmetic). **Updates:** BI-052 (VP propagation debt added), BI-058 (bc-module-map coverage gap added to sweep scope), BI-060 (agency-vs-identity distinction). **Adds:** D-162..D-172 (exhaustive).
+
