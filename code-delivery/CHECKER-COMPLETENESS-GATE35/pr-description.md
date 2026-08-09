@@ -3,14 +3,14 @@
 **Epic:** Spec-Lint Integrity — Gate #35 Checker Completeness
 **Mode:** maintenance
 **Branch:** fix/checker-completeness-gate35
-**Head SHA:** 39efec2607dd954cf2ef7cfe4ec390b33973d912
+**Head SHA:** f6dfa582b3911ddce155921043efec0c429578d3
 **Base:** develop
 
-> **SHA note:** `39efec2` is a documentation-only commit (evidence artifact rename +
-> `evidence-report.md` update under `docs/demo-evidence/`); it contains no change under
-> `scripts/`. The source tree under test is byte-identical to `72db558`. Evidence artifacts
-> and the selftest run recorded in AC-002 were captured at `72db558`; they remain valid at
-> `39efec2` precisely because the source is identical.
+> **SHA note:** `f6dfa58` is a documentation-only commit (BLOCKING-B/C + lower-severity
+> figure fixes + `scripts/verify-evidence-figures.py`); it contains no change under
+> `scripts/spec-lint/`. The source tree under test is byte-identical to `72db558`. Evidence
+> artifacts and the selftest run recorded in AC-002 were captured at `72db558`; they remain
+> valid at `f6dfa58` precisely because the spec-lint source is identical.
 
 ![Tests](https://img.shields.io/badge/selftests-99%2F99-brightgreen)
 ![Primitives](https://img.shields.io/badge/primitives-10%2F10-brightgreen)
@@ -72,9 +72,9 @@ prose-shape-independent detector for `E-[A-Z]{2,4}-\d{3}` tokens. A companion fu
 `extract_valid_e_class_codes()` reads the closed set from `error-taxonomy.md §1`
 (currently empty → all corpus `E-*` occurrences are violations). Result: 4 → 9 violations
 (78 reason-code + 6 E-class occurrences validated). Detection confirmed at:
-`BC-2.01.009.md:44,52,71,73` and `interface-definitions.md:237`. The sixth occurrence
-(`BC-2.01.009.md:23`) is inside YAML frontmatter and correctly excluded by the
-position-based D-081 predicate. New selftest 5k pins ALL THREE mandated calibration codes
+`BC-2.01.009.md:44,52,71,73`, `BC-2.11.004.md:61`, and `interface-definitions.md:237`.
+`BC-2.01.009.md:23` carries two further occurrences inside YAML frontmatter, excluded by
+the D-081 predicate and disclosed as `skipped=2`, bringing the corpus population to 8. New selftest 5k pins ALL THREE mandated calibration codes
 as a set: `E-IO-002` (Pattern 4), `E-CLI-001` (Pattern 3), `malformed-fragment`
 (Pattern 2). Structural proof that Pattern 4 cannot reintroduce the 22 false positives
 removed in PR #11: it requires a 2-4 uppercase-letter namespace component between
@@ -316,10 +316,10 @@ access introduced.
 
 ### Rollback
 ```bash
-git revert 72db558 ca8c1c0 b4bbbc3 fd74bd7 1dd7721 879efff d3085d9 2349184
+git revert 39efec2 72db558 ca8c1c0 b4bbbc3 fd74bd7 1dd7721 879efff d3085d9 2349184
 git push origin fix/checker-completeness-gate35
 ```
-Rollback reverts all 8 commits in reverse order (newest-first). Restores the Pattern 3-only
+Rollback reverts all 9 commits in reverse order (newest-first). Restores the Pattern 3-only
 E-code detection, single-column TV extraction, and the tautology reconciliation; the
 80 previously-excluded TV rows would silently disappear again.
 
@@ -329,7 +329,7 @@ E-code detection, single-column TV extraction, and the tautology reconciliation;
 
 | Issue | Checker | Selftest | Corpus Impact | Status |
 |-------|---------|---------|----------------|--------|
-| BI-056 | check-adr-consistency.py | 5k | 6 new E-class detections (E-IO-002 ×4 in BC-2.01.009.md; E-CLI-001 ×1 in test-vectors; E-IO-002 ×1 in interface-definitions.md) | CLOSED |
+| BI-056 | check-adr-consistency.py | 5k | 6 new E-class detections (E-IO-002 ×4 in BC-2.01.009.md; E-CLI-001 ×1 in BC-2.11.004.md:61; E-IO-002 ×1 in interface-definitions.md) | CLOSED |
 | BI-056 folded gaps (AC-1/2/3/7) | check-adr-consistency.py | 5l, 5m, 5n, 5o | ADR table cell, frontmatter named skip, taxonomy-ref routing, E-class population gate | CLOSED |
 | BI-057 | check-ec-injectivity.py | EI-7 | 110 → 174 citations compared; 9 → 42 divergent; 5 → 22 adjudication | CLOSED |
 | D-132 (partial) | check-ec-injectivity.py | — | TV-extraction granularity + per-EC pairing + verdict-comparison + collision counts all emitted | PARTIAL — 8 remaining checkers out of scope |

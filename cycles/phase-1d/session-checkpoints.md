@@ -211,4 +211,23 @@ Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies 
 
 ---
 
+## Session Resume Checkpoint D-143 (2026-08-09) — archived from STATE.md by Burst-34
+
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-143`
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-09 |
+| **Position** | phase-1d. PR #12 (`fix/checker-completeness-gate35`, head `ca8c1c0`) OPEN — 0 BLOCKING findings (cycle-3 review), security APPROVE, 91→98 selftests all mutation-verified. BI-056/BI-057 REPAIRED-PENDING-MERGE. BI-058 OPEN (D-132 audit: guard INERT + 5 false-green checkers). Clean-pass streak 0 of 3 UNCHANGED. |
+| **Frozen perimeter** | `specs/` tree `ace1745871122cd1fa2c46cf27c5493cc1083411`. VERIFIED UNCHANGED throughout PR #12 lifecycle — structurally guaranteed because `.factory/` is a separate orphan-branch worktree; develop-targeting PRs cannot touch the spec corpus. |
+| **Branch state** | `develop` = `da86271` (four oracle repairs live; selftests 91/91). `fix/checker-completeness-gate35` head `ca8c1c0` local == remote, working tree clean. `factory-artifacts` = Burst-33 commit (c8b37bc). PR #12 OPEN (awaiting operator-confirmed merge). |
+| **PR #12 state** | Branch `fix/checker-completeness-gate35`, head `ca8c1c0`. Seven commits: `2349184`, `d3085d9`, `879efff`, `1dd7721`, `fd74bd7`, `b4bbbc3`, `ca8c1c0`. Cycle-3 review: 0 BLOCKING, 2 NITs. Security review: 0 new findings, APPROVE. Awaiting operator-confirmed merge (D-120, gate-#28/#31 mechanism). |
+| **Convergence counter** | 0 of 3 required clean passes; trajectory →0→32→34→39→37→259→273-275; trajectory-tail →39→37→259→273-275 |
+
+Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-143 (exhaustive). Open BI: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057/058. CI-063 recorded.
+
+*Superseded by D-153 session wrap (Burst-34).*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

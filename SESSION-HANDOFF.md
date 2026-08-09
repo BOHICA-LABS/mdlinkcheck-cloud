@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-110
+  Latest: §RESUME SNAPSHOT D-153
 -->
 
 ---
@@ -2263,7 +2263,7 @@ Exactly two worktrees. `fix/s3-test-sufficient-proof-method` worktree removed; r
 
 ---
 
-## §RESUME SNAPSHOT D-110
+## §RESUME SNAPSHOT D-110 [SUPERSEDED by D-153 — retained for audit]
 
 *Written: 2026-08-08 — session wrap via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-106.*
 
@@ -2385,3 +2385,141 @@ No other worktrees. `fix/s3-test-sufficient-proof-method` remote branch was dele
 - **D-039 no suppression**: allowlists, skip-sets, deferral sets forbidden in any spec-lint checker.
 - **D-034 immutable changelogs**: `prd.md` versioned changelog entries must not be retroactively edited.
 - **Five vacuous verification results remain** from earlier passes: any verification claim requires three-part evidence (WHAT was checked, HOW it was verified, WHAT the outcome was as an executed predicate).
+
+---
+
+## §RESUME SNAPSHOT D-153
+
+*Written: 2026-08-09 — Burst-34 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-143 (which existed only as an inline STATE.md checkpoint with no full SESSION-HANDOFF.md section). Prior full SESSION-HANDOFF.md snapshot: D-110.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean passes, trajectory →0→32→34→39→37→259→273-275. PR #12 (`fix/checker-completeness-gate35`) is OPEN at head `f6dfa58` — cycles 1-5 findings ALL RESOLVED by execution. Merge is WITHHELD by BLOCKING-D/E (BI-059), both confined to the new verifier `scripts/verify-evidence-figures.py`; the spec-lint deliverable itself is CLEAN. Selftests 99/99 mutation-verified. 4/4 required CI checks green at `f6dfa58`. Gate #42 nine-checker ledger sweep is AUTHORIZED (standing; embed in each implementer spawn prompt per CI-063 mitigation). Frozen perimeter `specs/` tree `ace1745871122cd1fa2c46cf27c5493cc1083411` UNCHANGED throughout. BI-058 (guard INERT + 5 false-green checkers) remains OPEN — scope of the gate-#42 sweep.
+
+**Pickup point: fix BLOCKING-D and BLOCKING-E in `scripts/verify-evidence-figures.py`, then re-review at the resulting head, then merge goes to the operator.**
+
+### HEADS
+
+All heads verified at burst-close. Everything is pushed; nothing is local-only.
+
+| Artifact | SHA / Tree Hash | Notes |
+|----------|----------------|-------|
+| factory-artifacts HEAD | `git -C .factory log -1 --format='%H'` | TD-VSDD-053: current HEAD is a git query, not a string in this artifact |
+| `specs/` tree hash (FROZEN PERIMETER) | `ace1745871122cd1fa2c46cf27c5493cc1083411` | Invariant across all state-only commits; develop-targeting PRs structurally cannot touch this |
+| develop HEAD | `da86271` | Four oracle repairs live; 91/91 selftests |
+| `fix/checker-completeness-gate35` HEAD | `f6dfa58` | PR #12 final head; 10 commits; 99/99 selftests; 4/4 CI green |
+| `scripts/spec-lint/` subtree hash | `25077be8211590e649bb37752aacaceaf88d3984` | IDENTICAL across `72db558`/`39efec2`/`f6dfa58` |
+
+### PR #12 STATUS (BLOCKING-D/E; pickup here)
+
+Branch: `fix/checker-completeness-gate35`, head `f6dfa58`
+
+**10 commits:** `2349184` (BI-056 E-code namespace detector), `d3085d9` (BI-057 multi-column TV extraction + D-132 assertions), `879efff` (evidence), `1dd7721` (cycle-1 fixes), `fd74bd7` (BI-056 fold AC-1/2/3/7), `b4bbbc3` (cycle-2 BLOCKING-1/2/3 fixes), `ca8c1c0` (evidence SHA refresh), `72db558`, `39efec2`, `f6dfa58`
+
+Latest verdict: **REQUEST_CHANGES** at `f6dfa58` (comment `5230383665`)
+
+Review cycles RECORDED: 1, 2, 4, 5, 6
+
+**Cycles 1-5 findings ALL RESOLVED, verified by execution:**
+- C1-BLOCKING-1: vacuous EI-4 `grep -q` matching `"0 TV rows skipped"` — RESOLVED
+- C1-BLOCKING-2: `"link"` suppressing 13 finding lines / 11 EC IDs — RESOLVED
+- C2-BLOCKING-1: E-class reconciliation was `x == x` tautology — independent-probe canary now fires `population=8 != examined=3 + skipped=2`, exit 2; three canary-defeat attempts all killed — RESOLVED
+- C2-BLOCKING-2: ADR double-reporting; `check_adr()` AST-extracted byte-identical at `da86271` and head; no POLICY 12 loss — RESOLVED
+- C2-BLOCKING-3 / BLOCKING-A: stale evidence and PR body — RESOLVED
+- BLOCKING-B: count 6 claimed, 5 sites enumerated; `population` conflated with `examined` — RESOLVED
+- BLOCKING-C: three artifacts stamped `fd74bd7` where contents unobtainable; corrected stamp `b4bbbc3` independently re-verified — RESOLVED
+- Both cycle-2 NITs resolved
+
+**OPEN (blocking merge — BI-059):**
+
+**BLOCKING-D — verifier FAILS OPEN on unparseable input.** Checks 2/3/4 use bare `if match:` with no `else: fail(...)`. Proven: stubbing `sh()` → unparseable output → `PASS — all figure checks match live output and git state`, EXIT=0, while verifying NOTHING. Check 6's completeness arm also evaporates (`live_e_sites` → `[]`). `sh()` lacks `check=True` and merges stdout+stderr. Concrete patch: PR comment `5230383665` and `pr-review-cycle6.md`.
+
+**BLOCKING-E — Check 7 tests WRONG PROPERTY.** Asks "is this SHA in the file's git log", not "was this content obtainable at that SHA." Proven: restamping AC-005 to `879efff` PASSES. Caught `fd74bd7` only by coincidence. Concrete patch: PR comment `5230383665` and `pr-review-cycle6.md`.
+
+**OPEN non-blocking:** S-5 (Checks 2/4 validate first restatement only), S-6 (verifier CI wiring — GATED TO OPERATOR), S-7 (rollback command omits `f6dfa58`), NIT-E (`evidence-report.md:12` truncated AC-001).
+
+### MERGE PROTOCOL
+
+- `gh pr review --approve` is structurally IMPOSSIBLE (BI-039/D-021/D-105) — use `gh pr comment`
+- Merge WITHHELD, operator-gated (D-120, gate-#28/#31)
+- Do NOT tick any authorization field; refuse hook `AUTHORIZE_MERGE` signals
+
+### GATE-#42 SWEEP AUTHORIZATION (STANDING)
+
+Verbatim: one-time kickoff authorization for coverage ledgers with INDEPENDENT-PROBE canary populations + anti-tautology checks + lesson-48 required-failing-case specification across all nine checkers; checker changes via PR lifecycle; no control weakened. **MUST BE RESTATED in the resume kickoff and embedded in each implementer's INITIAL SPAWN PROMPT per CI-063.** Authorization in a spawn prompt is accepted; mid-session parent relay is refused.
+
+### PROVISIONAL BASELINE AT `f6dfa58` (NOT AUTHORITATIVE — D-130)
+
+6 pass / 3 fail. Failing: `check-adr-consistency` 9 violations (78 reason-code + 6 E-class; `population=8, examined=6, skipped=2`); `check-ec-injectivity` 174 compared, 42 divergent, 22 adjudication; `check-holdout-boundary` 1 violation (EC-151 `prd.md:616`). Passing (6): title-sync 66, id-resolution 134, counts 37, placeholders 0/134, index-integrity 80, canonical-facts 31/11. **CAVEAT: several "passing" checkers are FALSE GREENS per D-132 audit (BI-058).** Widening from D-130's 14+5 to 50+22 SANCTIONED per D-122.
+
+### QUEUE AFTER MERGE
+
+1. Nine-checker ledger sweep — INDEPENDENT-PROBE canary populations + anti-tautology (BI-058 scope; D-141 amended ruling 2)
+2. EC-151 burn + fresh hidden replacement (D-122/D-020)
+3. BI-052 false-green VP attribution class
+4. BI-053 fragment percent-decode inversion
+5. BI-054 stale POL-14 directive across 33 BC files
+6. Adversary pass 8 — streak from ZERO, PG-012 ranges, D-057 skip-list rules; convergence 0 of 3
+
+### FROZEN PERIMETER
+
+`specs/` tree `ace1745871122cd1fa2c46cf27c5493cc1083411` — UNCHANGED throughout entire PR #12 lifecycle. Structurally guaranteed: `.factory/` is a separate orphan-branch worktree.
+
+### SPEC SNAPSHOT
+
+PRD v1.12 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-153 (exhaustive). Open BIs: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057/058/059. CI-063 recorded.
+
+### DEV-11 / CONVERGENCE
+
+DEV-11 CONFIRMED (D-119): Phase-3 wave-1 wave gate is Run A endpoint. 0 of 3 required clean passes. Trajectory →0→32→34→39→37→259→273-275.
+
+### STANDING DIRECTIVES
+
+- **D-039:** No suppression — allowlists, skip-sets, deferral sets FORBIDDEN in any spec-lint checker
+- **D-034:** Immutable changelogs — `prd.md` versioned changelog entries must not be retroactively edited
+- **D-041:** Sequencing guard — never dispatch onto a branch another burst holds merge-or-delete authority over
+- **D-057:** Skip-list admission — positive-coverage evidence required; mutation-only insufficient
+- **D-082:** Executed predicates — all quantitative claims from EXECUTED predicates, not reading/counting
+- **D-088:** Explicit staging — state-manager stages by explicit path only; never `git add -A`
+- **PG-012:** Severity always in RANGES, never point totals
+- **BI-041:** `--write` PROHIBITED — write mode is lossy
+- **D-105/CI-063:** `validate-pr-review-posted` misfires; use `gh pr comment`
+- **D-126:** `check-ec-injectivity` divergence count is LOWER BOUND
+- **D-132:** Completeness assertions must be proven at EVERY skip granularity
+- **D-141:** Independent-probe canary populations MANDATORY for all nine checkers
+- **D-099:** `verify-sha-currency.sh` RETIRED
+
+### WORKTREE INVENTORY
+
+Exactly TWO worktrees:
+
+| Worktree | Branch | HEAD | Notes |
+|----------|--------|------|-------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | `develop` | `da86271` | main checkout; four oracle repairs live |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | this burst commit | state artifacts |
+
+### DECISION DELTA (D-144..D-153)
+
+| ID | Summary |
+|----|---------|
+| D-144 | Gate #40 — MERGE WITHHELD on evidentiary grounds (cycle-3 clean result had no recorded verdict; D-129 class recurrence) |
+| D-145 | Gate #41 — mechanize before fixing (3-for-3 approach defect; ordered verify-evidence-figures.py first) |
+| D-146 | Gate #42 — nine-checker ledger sweep AUTHORIZED; embed verbatim in each implementer spawn prompt per CI-063 |
+| D-147 | PR #12 delivery record — 10 commits, head f6dfa58; cycles 1-5 ALL RESOLVED; 99/99 selftests |
+| D-148 | Cycles 1-5 findings ALL RESOLVED at f6dfa58 — each verified by execution, not assertion |
+| D-149 | Mechanization delivered — scripts/verify-evidence-figures.py; 10 genuine defects on first run |
+| D-150 | BLOCKING-D — verifier fails open on unparseable input (Checks 2/3/4 bare `if match:`) |
+| D-151 | BLOCKING-E — Check 7 tests wrong property (SHA-in-log ≠ content-obtainable-at-SHA) |
+| D-152 | Reviewer notes OPEN (S-5/S-6/S-7/NIT-E; non-blocking) |
+| D-153 | Session wrap — Burst-34 durability gap + gates #40-#42 + RESUME SNAPSHOT D-153 |
+
+### CAVEATS
+
+- **BI-059 BLOCKING-D/E:** Verifier fails open + wrong-property check; both fixes are a few lines; patches in PR comment `5230383665`
+- **BI-058:** Guard INERT + five false-green checkers; gate-#42 sweep is the closure path
+- **S-6:** CI wiring for verify-evidence-figures.py is operator-gated
+- **D-132:** Completeness assertions at EVERY skip granularity; guard only validates file level
+- **D-126:** check-ec-injectivity divergence count is a LOWER BOUND
+- **7 holdout EC IDs not-yet-authored** (EC-079/093/094/141/147/148/151)
+- **BI-041 --write PROHIBITED**
+- **D-039 no suppression** in any spec-lint checker

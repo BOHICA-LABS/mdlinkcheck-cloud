@@ -1750,3 +1750,139 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 **Closes:** N/A — BI-056/BI-057 repairs pending merge. **Opens:** BI-058 (D-132 audit scope; prerequisite to pass 8). **Records:** CI-063. **Adds:** D-135..D-143 (exhaustive).
 
+---
+
+<!-- Archived from STATE.md Current Phase Steps — removed per keep-last-5 rule when Burst-34 was added -->
+## Archived: Burst-28 (displaced from STATE.md Current Phase Steps by Burst-34)
+
+Full Burst-28 narrative already present at the earlier entry in this file (Burst-28 heading above). This note records its displacement from the STATE.md Current Phase Steps table by the keep-last-5 rotation triggered by Burst-34.
+
+---
+
+## Burst-34 — CHECKER-COMPLETENESS-GATE35 Durability Gap + Gates #40-#42 (2026-08-09)
+
+**Parent-commit:** factory-artifacts HEAD `c8b37bc` (Burst-33: gates #36-#39 + PR #12 lifecycle)
+
+### Summary
+
+Path-scoped single-commit state burst (TD-VSDD-053). Commits the CHECKER-COMPLETENESS-GATE35 audit evidence trail (previously uncommitted, durability gap), records gates #40-#42 rulings, records PR #12 final state at head `f6dfa58`, opens BI-059 (BLOCKING-D/E in `scripts/verify-evidence-figures.py`), records the gate-#42 nine-checker ledger sweep authorization, and writes RESUME SNAPSHOT D-153.
+
+---
+
+### Gate #40 — MERGE WITHHELD on Evidentiary Grounds (D-144)
+
+Operator refused merge on PR #12 because the claimed "cycle-3 clean" result had NO RECORDED EVIDENCE: the reviews API showed one `COMMENTED` review (cycle 1), the latest posted verdict was `REQUEST_CHANGES` (cycle 2, 03:07Z), head `ca8c1c0` postdated it with no subsequent verdict, and `pr-review-verdict.md` still carried cycle-1 content. Root cause: orchestrator relayed an implementing agent's self-report as fact without verifying it was recorded — the D-129 class, committed in the same session in which the orchestrator had itself flagged that class. Orchestrator widened: FIVE blocking findings lacked recorded resolution (cycle-1's 2 plus cycle-2's 3). Required remediation: land NIT-1, run and RECORD a fresh review at the resulting head, post the formal verdict per gate-#28, update the audit file, merge only with 4/4 CI at that exact head.
+
+---
+
+### Gate #41 — Mechanize Before Fixing (D-145)
+
+After three consecutive documentation-fix passes each corrected what it was told and introduced or left a new record defect (3-for-3), the operator accepted the orchestrator's reading that this was an APPROACH DEFECT, not agent error, and ordered a mechanical figure-verification check built FIRST, then used as the oracle to fix BLOCKING-B/C. Option "merge with documentation defects as follow-ups" was REJECTED: a measurement-integrity PR does not ship with false provenance stamps.
+
+---
+
+### Gate #42 — Nine-Checker Ledger Sweep AUTHORIZED (D-146)
+
+Verbatim authorization for: one-time kickoff authorization for coverage ledgers with INDEPENDENT-PROBE canary populations + anti-tautology checks + lesson-48 required-failing-case specification across all nine checkers; checker changes via PR lifecycle; no control weakened. To be restated in the resume kickoff and embedded in each implementer's INITIAL SPAWN PROMPT per CI-063.
+
+---
+
+### PR #12 Final State at `f6dfa58` (D-147/D-148)
+
+- Branch: `fix/checker-completeness-gate35`, final head **`f6dfa58`**
+- **10 commits:** `2349184`, `d3085d9`, `879efff`, `1dd7721`, `fd74bd7`, `b4bbbc3`, `ca8c1c0`, `72db558`, `39efec2`, `f6dfa58`
+- Review cycles 1, 2, 4, 5, 6 all RECORDED; latest verdict **REQUEST_CHANGES** at `f6dfa58` (comment `5230383665`)
+- Selftests: **99/99**, all mutation-verified
+- `scripts/spec-lint/` subtree hash `25077be8211590e649bb37752aacaceaf88d3984` — IDENTICAL across `72db558`/`39efec2`/`f6dfa58`
+- 4/4 required CI checks SUCCESS at exactly `f6dfa58`; `Spec lint` FAILURE correct per D-128
+- `[ ] Operator merge authorization — pending` verified untouched and unticked throughout (D-105/D-129)
+- NOT MERGED; blocked by BLOCKING-D/E (BI-059)
+
+**Cycles 1-5 findings ALL RESOLVED at `f6dfa58`, each verified by execution, not assertion:**
+- C1-BLOCKING-1: vacuous EI-4 `grep -q` matching `"0 TV rows skipped"` — RESOLVED
+- C1-BLOCKING-2: `"link"` suppressing 13 finding lines / 11 EC IDs — RESOLVED
+- C2-BLOCKING-1: E-class reconciliation was `x == x` tautology — independent-probe canary now fires `population=8 != examined=3 + skipped=2`, exit 2; three canary-defeat attempts all killed — RESOLVED
+- C2-BLOCKING-2: ADR double-reporting; `check_adr()` AST-extracted byte-identical at `da86271` and head, so no POLICY 12 loss — RESOLVED
+- C2-BLOCKING-3 / BLOCKING-A: stale evidence and PR body — RESOLVED
+- BLOCKING-B: count 6 claimed, 5 sites enumerated; `population` conflated with `examined` — RESOLVED
+- BLOCKING-C: three artifacts stamped `fd74bd7` where contents were unobtainable; corrected stamp `b4bbbc3` independently re-verified by checking out that tree — RESOLVED
+- Both cycle-2 NITs resolved
+
+---
+
+### Mechanization Delivered (D-149)
+
+New artifact `scripts/verify-evidence-figures.py` on `develop` branch, commit `f6dfa58`. Derives all expected values from live tool runs and git state, never from the document under check. On FIRST RUN: **FAILED with 10 genuine defects**, catching BLOCKING-B, BLOCKING-C, SUGGESTION-2/3/4, NIT-C and NIT-D — empirically confirming the gate-#41 rationale. The `pop=` regex relaxation was independently confirmed NOT to create a hole.
+
+---
+
+### BLOCKING-D and BLOCKING-E — OPEN (BI-059; D-150/D-151)
+
+The spec-lint deliverable is verified CLEAN. The defects are confined entirely to `scripts/verify-evidence-figures.py`.
+
+**BLOCKING-D — verifier FAILS OPEN on unparseable input:** Checks 2/3/4 use bare `if match:` with no `else: fail(...)`, unlike Checks 1 and 6. Proven: stubbing `sh()` so the two checker summaries were unparseable produced `PASS — all figure checks match live output and git state`, EXIT=0, while verifying NOTHING about the ADR figures, EC figures, or the ledger invariant. Check 6's completeness arm also evaporates (`live_e_sites` → `[]`), so the BLOCKING-B guarantee vanishes. Compounding: `sh()` lacks `check=True` and merges stdout+stderr, so a crashed checker reads as normal output.
+
+**BLOCKING-E — Check 7 tests WRONG PROPERTY:** It asks "is this SHA in the file's git log," not "was this content obtainable at that SHA." Proven: restamping AC-005 to `879efff` (where the file read `79 reason-code + 5 E-class`) PASSES. It caught `fd74bd7` only because that SHA happens not to appear in those files' history — coincidence, not an established property.
+
+Concrete patches: PR comment `5230383665` and `pr-review-cycle6.md`.
+
+---
+
+### Reviewer Notes OPEN Non-Blocking (D-152)
+
+- **S-5:** Checks 2/4 validate only the FIRST restatement of each figure; proven by corrupting the third occurrence (line 223) and passing. Every defect in this PR's history was a contradiction between multiple statements of one figure.
+- **S-6:** Verifier is invoked NOWHERE; `ci.yml` iterates `scripts/spec-lint/${check}.py` and this script sits at `scripts/`. CI wiring is a CONTROL CHANGE — GATED TO OPERATOR.
+- **S-7:** Rollback command lists 9 commits and claims "all 9"; the branch has 10. `f6dfa58` is omitted, and because it ADDS a source file the documented revert would orphan it.
+- **NIT-E:** `evidence-report.md:12` credits AC-001 with 99/99, but AC-001 is truncated and contains no selftest total.
+
+---
+
+### Orchestrator Self-Correction (D-153)
+
+The orchestrator asserted an implementer's premise "`.factory/` is gitignored" was wrong. The reviewer disproved that: `git check-ignore -v .factory` → `.gitignore:1:.factory/`. `.factory/` is BOTH a gitignore entry AND a worktree on `factory-artifacts`; the premise was sound. The orchestrator's separate FINDING — that the audit files were uncommitted — was independently verified via `git status` inside the worktree and STANDS; this burst closes it. Lesson: an over-correction is also an unverified claim.
+
+---
+
+### Decisions Codified
+
+D-144..D-153 (exhaustive):
+- D-144: Gate #40 — MERGE WITHHELD (unrecorded result = does not exist; D-129 class recurrence)
+- D-145: Gate #41 — mechanize before fixing (3-for-3 approach defect, not agent error)
+- D-146: Gate #42 — nine-checker sweep AUTHORIZED verbatim; embed in each implementer spawn prompt
+- D-147: PR #12 delivery record (10 commits; head `f6dfa58`; cycles 1-5 ALL RESOLVED)
+- D-148: Cycles 1-5 findings ALL RESOLVED — each verified by execution, not assertion
+- D-149: Mechanization delivered — `scripts/verify-evidence-figures.py`; 10 genuine defects on first run
+- D-150: BLOCKING-D — verifier fails open on unparseable input (Checks 2/3/4 bare `if match:`)
+- D-151: BLOCKING-E — Check 7 tests wrong property (SHA-in-log ≠ content-obtainable-at-SHA)
+- D-152: Reviewer notes OPEN (S-5/S-6/S-7/NIT-E; non-blocking)
+- D-153: Session wrap — Burst-34 durability gap + gates #40-#42 + RESUME SNAPSHOT D-153
+
+---
+
+### Artifact State at Burst Close
+
+PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-153 (exhaustive). Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057/058/059. CI-063 recorded. BI-056/BI-057 REPAIRED-PENDING-MERGE (f6dfa58). BI-059 OPENED (BLOCKING-D/E). specs/ tree `ace1745871122cd1fa2c46cf27c5493cc1083411` VERIFIED UNCHANGED.
+
+---
+
+### Files Touched (factory-artifacts branch — one atomic commit per TD-VSDD-053)
+
+- `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-description.md` — updated (modified)
+- `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/cycle1-triage.md` — added (new)
+- `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle1.md` — added (new)
+- `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle2.md` — added (new)
+- `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle4.md` — added (new)
+- `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle5.md` — added (new)
+- `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle6.md` — added (new)
+- `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-verdict.md` — added (new)
+- `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review.md` — added (new)
+- `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/review-findings.md` — added (new)
+- `.factory/sidecar-learning.md` — updated
+- `.factory/STATE.md` — frontmatter, Project Metadata, Phase Progress (Burst-34 row), Current Phase Steps (Burst-28 archived, Burst-34 added), Decisions Log D-144..D-153, BI-056/BI-057 updated to f6dfa58, BI-059 added, Session Resume Checkpoint replaced (D-143→D-153), Concurrent Cycles, Historical Content, Last Updated
+- `.factory/cycles/phase-1d/burst-log.md` — Burst-28 archive note + Burst-34 narrative
+- `.factory/cycles/phase-1d/session-checkpoints.md` — D-143 checkpoint archived
+- `.factory/cycles/phase-1d/lessons.md` — lessons 53–59 appended
+- `.factory/SESSION-HANDOFF.md` — D-110 marked superseded, §RESUME SNAPSHOT D-153 added
+
+**Closes:** audit files durability gap (10 audit files committed). **Opens:** BI-059 (BLOCKING-D/E in verify-evidence-figures.py). **Records:** gates #40-#42 rulings; gate-#42 nine-checker sweep AUTHORIZED. **Adds:** D-144..D-153 (exhaustive).
+
