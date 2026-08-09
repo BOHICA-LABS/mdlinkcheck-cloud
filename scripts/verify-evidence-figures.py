@@ -35,6 +35,7 @@ REQUIRED_CHECKS = {
     "check3-ledger-triple",
     "check4-ei-figures",
     "check6-completeness",
+    "check8-live-pr-body",
 }
 checks_ran: set = set()
 
@@ -48,9 +49,9 @@ def fail(label, expected, got):
 # Anything else signals a crash — surface it as a failure.
 ALLOWED_RC: dict = {}
 
-def sh(*cmd, timeout=180):
+def sh(*cmd, timeout=180, allowed_rc=None):
     r = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO, timeout=timeout)
-    allowed = ALLOWED_RC.get(cmd[-1], {0, 1})
+    allowed = allowed_rc if allowed_rc is not None else ALLOWED_RC.get(cmd[-1], {0, 1})
     if r.returncode not in allowed:
         fail(f"live-run/{cmd[-1]!r}",
              f"exit code in {allowed}",
@@ -71,8 +72,13 @@ n_branch_commits = len(sh("git", "log", "--format=%h", "develop..HEAD").splitlin
 
 pr  = PR_DESC.read_text()
 ev  = EV_RPT.read_text()
-# Combined corpus for multi-occurrence checks (S-5)
-docs = pr + "\n" + ev
+# Combined corpus for multi-occurrence checks (S-5).
+# ev_no_prev strips the "Previous (post-gate34):" baseline line so historical
+# ec-injectivity figures (9/5/110) from that line do not cause false failures
+# when scanning for the current figures (42/22/174).
+ev_no_prev   = "\n".join(l for l in ev.splitlines() if "Previous" not in l)
+docs         = pr + "\n" + ev            # used for Check 2 (no historical rc/ec figures in ev)
+docs_no_prev = pr + "\n" + ev_no_prev   # used for Check 4 (has historical ec-injectivity figures)
 
 # ── Check 1: Selftest count ───────────────────────────────────────────────────
 sm = re.search(r"Selftest passed: (\d+)/(\d+)", st_out)
@@ -92,7 +98,12 @@ else:
 # ── Check 2: check-adr-consistency figures (ALL occurrences — S-5) ────────────
 # BLOCKING-D fix: else-branch ensures unparseable live output is a failure, not
 # a silent skip.
-# S-5 fix: re.finditer checks EVERY restatement of the figure across pr + ev.
+# S-5 fix (complete): widened pattern anchored on figure keywords catches all
+# five restatement forms (abbreviated "occ", full "occurrences", different word
+# order in evidence-report) across both pr-description.md and evidence-report.md.
+# MIN_RC_EC_COUNT: assert at least this many restatements exist; fails if any
+# site is silently removed from the documents.
+MIN_RC_EC_COUNT = 5
 am = re.search(r"(\d+) violations found \((\d+) reason-code occurrences \+ (\d+) E-class code",
                adr_out)
 if not am:
@@ -101,8 +112,16 @@ if not am:
          "not parseable from live output")
 else:
     live_rc, live_ec = am.group(2), am.group(3)
-    rc_matches = list(re.finditer(
-        r"(\d+) reason-code \+ (\d+) E-class (?:code )?occurrences", docs))
+    # Widened pattern: anchor on "reason-code" + "E-class", tolerating:
+    #   "78 reason-code + 6 E-class occurrences"          (pr:74, pr:223)
+    #   "78 reason-code + 6 E-class occ"                  (pr:206, ev:16)
+    #   "78 reason-code occurrences + 6 E-class code occurrences" (ev:32)
+    RC_EC_PAT = re.compile(
+        r"(\d+)\s+reason-code(?:\s+occurrences?)?\s*\+\s*(\d+)\s+E-class"
+        r"(?:\s+code)?\s+occ(?:urrences?)?",
+        re.IGNORECASE,
+    )
+    rc_matches = list(RC_EC_PAT.finditer(docs))
     if not rc_matches:
         fail("adr-consistency/pr-claim",
              f"rc={live_rc} ec={live_ec}",
@@ -117,6 +136,10 @@ else:
             if m.group(2) != live_ec:
                 fail(f"adr-consistency/e-class[{idx}/{len(rc_matches)}]",
                      live_ec, m.group(2))
+        if len(rc_matches) < MIN_RC_EC_COUNT:
+            fail("adr-consistency/min-restatements",
+                 f">= {MIN_RC_EC_COUNT} restatements of the rc/ec figure pair",
+                 f"only {len(rc_matches)} found — a restatement site may have been removed")
     checks_ran.add("check2-adr-figures")
 
 # ── Check 3: E-class ledger triple + invariant ────────────────────────────────
@@ -142,12 +165,26 @@ else:
         if dm.group(3) != lskip: fail("e-class-ledger/skipped",    lskip, dm.group(3))
     checks_ran.add("check3-ledger-triple")
 
-# ── Check 4: check-ec-injectivity figures (ALL occurrences — S-5) ─────────────
+# ── Check 4: check-ec-injectivity figures (ALL occurrences — S-5 complete) ────
 # BLOCKING-D fix: else-branch required; unparseable summary is a failure.
-# S-5 fix: re.finditer checks EVERY restatement of the figure across pr.
-# Note: we scan `pr` only (not `docs`/ev) because the evidence-report contains
-# an intentional "Previous (post-gate34): 110 citations compared ... 9 divergent
-# ... 5 adjudication" line whose old figures must not trigger a false failure.
+# S-5 fix (complete): multiple patterns anchored on figure keywords ("citations
+# compared/with", "divergent", "adjudication") catch all restatement forms:
+#
+#   STANDARD_TRIPLE  — "N citations compared/with … M divergent … P adjudication"
+#                       in docs_no_prev (pr + ev minus "Previous" baseline line)
+#   BOLD_REV_TRIPLE  — "**M DIVERGENT + P ADJUDICATION; N of K TV rows compared**"
+#                       (pr:207 bold current-state column; excludes non-bold old column)
+#   TRANSITION_TRIPLE — "→N ec-injectivity comparisons; →M divergent; →P adjudication"
+#                        (pr:381 transition arrows — no spaces around →)
+#   SINGLE_CMP       — "compares N of K citations" narrative form (pr:24, cmp only)
+#   EV_CMP/DIV/ADJ   — individual figure patterns in evidence-report (ev_no_prev)
+#                       for mentions that lack a co-located triple
+#
+# Per-figure minimum counts assert that no restatement site is silently deleted.
+MIN_CMP_COUNT = 9   # citations-compared occurrences validated
+MIN_DIV_COUNT = 9   # divergent occurrences validated
+MIN_ADJ_COUNT = 8   # adjudication occurrences validated
+
 eim = re.search(r"(\d+) EC citations compared.*?(\d+) divergent, (\d+) require adjudication",
                 ei_out)
 if not eim:
@@ -156,22 +193,109 @@ if not eim:
          "not parseable from live output")
 else:
     lcmp, ldiv, ladj = eim.group(1), eim.group(2), eim.group(3)
-    ei_matches = list(re.finditer(
-        r"(\d+) citations compared.*?(\d+) divergent.*?(\d+) adjudication", pr))
-    if not ei_matches:
-        fail("ec-injectivity/pr-claim",
-             f"{lcmp}/{ldiv}/{ladj}",
-             "not found in pr-description.md or evidence-report.md")
-    else:
-        print(f"    ec-injectivity figures: {len(ei_matches)} occurrence(s) compared",
-              flush=True)
-        for idx, m in enumerate(ei_matches, 1):
-            if m.group(1) != lcmp:
-                fail(f"ec-injectivity/citations[{idx}/{len(ei_matches)}]",    lcmp, m.group(1))
-            if m.group(2) != ldiv:
-                fail(f"ec-injectivity/divergent[{idx}/{len(ei_matches)}]",    ldiv, m.group(2))
-            if m.group(3) != ladj:
-                fail(f"ec-injectivity/adjudication[{idx}/{len(ei_matches)}]", ladj, m.group(3))
+
+    # Collect all per-figure assertions as (value, label) pairs.
+    cmp_found: list = []
+    div_found: list = []
+    adj_found: list = []
+
+    # ── Pattern A: standard triple (citations compared/with + divergent + adjudication)
+    STANDARD_PAT = re.compile(
+        r"(\d+)\s+(?:EC\s+)?citations?\s+(?:compared|with)\b.*?"
+        r"(\d+)\s+(?:DIVERGENT|divergent)\b.*?"
+        r"(\d+)\s+(?:ADJUDICATION|adjudication|require\s+adjudication)\b"
+    )
+    for i, m in enumerate(STANDARD_PAT.finditer(docs_no_prev), 1):
+        cmp_found.append((m.group(1), f"ec-injectivity/std-triple[{i}]"))
+        div_found.append((m.group(2), f"ec-injectivity/std-triple[{i}]"))
+        adj_found.append((m.group(3), f"ec-injectivity/std-triple[{i}]"))
+
+    # ── Pattern B: bold reversed triple (pr:207 — "**M DIVERGENT + P ADJUDICATION; N TV rows**")
+    # Bold marker excludes the adjacent non-bold old-value column (9 DIVERGENT + 5 ADJUDICATION).
+    BOLD_REV_PAT = re.compile(
+        r"\*\*(\d+)\s+(?:DIVERGENT|divergent)[^|]*?"
+        r"(\d+)\s+(?:ADJUDICATION|adjudication)[^|]*?"
+        r"(\d+)\s+of\s+\d+\s+TV\s+rows\s+compared\*\*"
+    )
+    for i, m in enumerate(BOLD_REV_PAT.finditer(pr), 1):
+        div_found.append((m.group(1), f"ec-injectivity/bold-rev-triple[{i}]"))
+        adj_found.append((m.group(2), f"ec-injectivity/bold-rev-triple[{i}]"))
+        cmp_found.append((m.group(3), f"ec-injectivity/bold-rev-triple[{i}]"))
+
+    # ── Pattern C: transition triple (pr:381 — "→N ec-injectivity; →M divergent; →P adjudication")
+    # Uses → without surrounding spaces to distinguish from " → " (space-arrow-space)
+    # used in table rows that are already caught by STANDARD_PAT.
+    TRANSITION_PAT = re.compile(
+        r"→(\d+)\s+ec-injectivity\s+comparisons?[^→\n]*?"
+        r"→(\d+)\s+divergent[^→\n]*?"
+        r"→(\d+)\s+adjudication"
+    )
+    for i, m in enumerate(TRANSITION_PAT.finditer(pr), 1):
+        cmp_found.append((m.group(1), f"ec-injectivity/transition-triple[{i}]"))
+        div_found.append((m.group(2), f"ec-injectivity/transition-triple[{i}]"))
+        adj_found.append((m.group(3), f"ec-injectivity/transition-triple[{i}]"))
+
+    # ── Pattern D: single citations figure (pr:24 — "compares N of K citations", cmp only)
+    SINGLE_CMP_PAT = re.compile(r"compares?\s+(\d+)\s+of\s+\d+\s+citations?")
+    for i, m in enumerate(SINGLE_CMP_PAT.finditer(pr), 1):
+        cmp_found.append((m.group(1), f"ec-injectivity/cmp-only[{i}]"))
+
+    # ── Pattern E: per-figure in evidence-report (ev_no_prev — catches partial triples)
+    # ev:17 has "174 citations compared; 42 divergent" (no adjudication on that line).
+    # ev:25 has "42 divergent, 22 adjudication" (no citations on that line).
+    # ev:37 has all three and is also caught by STANDARD_PAT (intentional double-check).
+    EV_CMP_PAT = re.compile(r"(\d+)\s+(?:EC\s+)?citations?\s+compared\b")
+    EV_DIV_PAT = re.compile(r"(\d+)\s+divergent\b")
+    EV_ADJ_PAT = re.compile(r"(\d+)\s+(?:require\s+)?adjudication\b")
+    for i, m in enumerate(EV_CMP_PAT.finditer(ev_no_prev), 1):
+        cmp_found.append((m.group(1), f"ec-injectivity/ev-cmp[{i}]"))
+    for i, m in enumerate(EV_DIV_PAT.finditer(ev_no_prev), 1):
+        div_found.append((m.group(1), f"ec-injectivity/ev-div[{i}]"))
+    for i, m in enumerate(EV_ADJ_PAT.finditer(ev_no_prev), 1):
+        adj_found.append((m.group(1), f"ec-injectivity/ev-adj[{i}]"))
+
+    # ── Validate all collected assertions against live output
+    if not cmp_found:
+        fail("ec-injectivity/citations-found", ">= 1 citation assertion in docs",
+             "0 found — pattern broken?")
+    if not div_found:
+        fail("ec-injectivity/divergent-found", ">= 1 divergent assertion in docs",
+             "0 found — pattern broken?")
+    if not adj_found:
+        fail("ec-injectivity/adjudication-found", ">= 1 adjudication assertion in docs",
+             "0 found — pattern broken?")
+
+    for val, label in cmp_found:
+        if val != lcmp:
+            fail(label, lcmp, val)
+    for val, label in div_found:
+        if val != ldiv:
+            fail(label, ldiv, val)
+    for val, label in adj_found:
+        if val != ladj:
+            fail(label, ladj, val)
+
+    # ── Per-figure count reporting + minimum assertions
+    print(f"    ec-injectivity citations-compared: {len(cmp_found)} occurrence(s) validated",
+          flush=True)
+    print(f"    ec-injectivity divergent:          {len(div_found)} occurrence(s) validated",
+          flush=True)
+    print(f"    ec-injectivity adjudication:       {len(adj_found)} occurrence(s) validated",
+          flush=True)
+
+    if len(cmp_found) < MIN_CMP_COUNT:
+        fail("ec-injectivity/min-cmp",
+             f">= {MIN_CMP_COUNT} citations-compared assertions",
+             f"only {len(cmp_found)} found — a restatement site may have been removed")
+    if len(div_found) < MIN_DIV_COUNT:
+        fail("ec-injectivity/min-div",
+             f">= {MIN_DIV_COUNT} divergent assertions",
+             f"only {len(div_found)} found — a restatement site may have been removed")
+    if len(adj_found) < MIN_ADJ_COUNT:
+        fail("ec-injectivity/min-adj",
+             f">= {MIN_ADJ_COUNT} adjudication assertions",
+             f"only {len(adj_found)} found — a restatement site may have been removed")
+
     checks_ran.add("check4-ei-figures")
 
 # ── Check 5: Head SHA ─────────────────────────────────────────────────────────
@@ -334,6 +458,25 @@ if head_sha_m and not head.startswith(head_sha_m.group(1)):
     fail("evidence-report/head-sha-label",
          f"field renamed to '**Captured at SHA:**' (value {head_sha_m.group(1)} ≠ HEAD {head[:7]})",
          "field still labeled '**Head SHA:**' with non-HEAD value")
+
+# ── Check 8: Live PR body must match pr-description.md (FINDING 2) ────────────
+# Fail closed (D-039): gh unavailable or non-zero exit is treated as a failure,
+# never as a skip.  allowed_rc={0} — only success is acceptable.
+# Normalisation: strip trailing whitespace from each line and overall so that
+# GitHub's trailing-newline handling doesn't produce a spurious mismatch.
+def _norm_body(t: str) -> str:
+    return "\n".join(l.rstrip() for l in t.splitlines()).strip()
+
+print("Fetching live PR body via gh …", flush=True)
+live_pr_body = sh("gh", "pr", "view", "12", "--json", "body", "--jq", ".body",
+                  allowed_rc={0})
+if _norm_body(live_pr_body) != _norm_body(pr):
+    fail("live-pr-body/sync",
+         "live PR body matches pr-description.md (normalised)",
+         "live PR body has diverged from pr-description.md — "
+         "run: gh pr edit 12 --body-file .factory/code-delivery/"
+         "CHECKER-COMPLETENESS-GATE35/pr-description.md")
+checks_ran.add("check8-live-pr-body")
 
 # ── BLOCKING-D: required-checks gate ─────────────────────────────────────────
 # Every check in REQUIRED_CHECKS must have registered itself.  If any is absent
