@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=98
+EXPECTED_TEST_COUNT=99
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -6066,10 +6066,16 @@ rm -rf "$T"
 # Defect: add E-VERBOSE-001 (too-long namespace) → canary sees it, detector misses it
 #         → population(1) != 0+0 → gate fires → exit 2 with "accounting gap" message.
 #
-# Mutation-verify: removing the E-class population gate entirely (the `if e_population !=` block)
-#   makes the checker exit 0 (no violations from E_CLASS_CODE_RE) → test fails (expected 2).
-#   The gate check is the ONLY thing that fires for this fixture, so the test is tightly coupled
-#   to the gate — the mutation dies immediately.
+# Mutation-verify:
+#   Path 1 — removing the E-class population gate entirely (the `if e_population !=` block)
+#     makes the checker exit 0 (no violations from E_CLASS_CODE_RE) → test fails (expected 2).
+#     The gate check is the ONLY thing that fires for this fixture, so the test is tightly
+#     coupled to the gate — the mutation dies immediately.
+#   Path 2 — narrowing E_CLASS_CANARY_RE back to E_CLASS_CODE_RE (reverting the canary to the
+#     narrow detector) makes E-VERBOSE-001 invisible to BOTH the canary AND the bucket.
+#     population=0, examined=0, skipped=0 → 0==0 → gate passes → checker exits 0 → test fails
+#     (expected 2).  This proves the WIDE canary regex is load-bearing: an attacker who reverts
+#     only the canary (not the gate) cannot suppress the test.
 TESTS_RUN=$((TESTS_RUN + 1))
 echo "── selftest 5o (BLOCKING-1): check-adr-consistency: E-class population gate fires on undeclared routing ──"
 T=$(make_temp)
@@ -6133,6 +6139,104 @@ BC5OBAD
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; E-VERBOSE-001 correctly triggers population gate → exit 2)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5o-b (NIT-1): check-adr-consistency — wide-only E-class code in frontmatter must NOT trigger accounting gap ──
+# Proves the NIT-1 alignment fix: when a wide-only E-class code (namespace exceeding 4 letters,
+# invisible to E_CLASS_CODE_RE's {2,4} cap) appears ONLY in YAML frontmatter, the checker exits
+# 0 with no accounting gap.  Before the fix, the frontmatter bucket used E_CLASS_CODE_RE (narrow)
+# with no per-line dedup — causing two latent false-alarm paths:
+#   (a) A wide-only code (e.g. E-VERBOSE-001, 7-letter namespace) → canary counted 1, bucket
+#       counted 0 → gate fired "population=1 != examined=0 + skipped=0" → FALSE alarm exit 2.
+#   (b) The same narrow code twice on one frontmatter line → bucket counted 2 (no dedup), canary
+#       counted 1 (set() dedup) → gate fired in the other direction.
+# After fix: frontmatter bucket uses E_CLASS_CANARY_RE (wide) + set() dedup, matching the canary
+# probe in main() exactly.  E-VERBOSE-001 in frontmatter → skipped=1, population=1, examined=0
+# → 1==0+1 → gate passes → exit 0.
+#
+# Clean tree: no E-class codes at all → exit 0, "skipped=0".
+# Defect: E-VERBOSE-001 ONLY in YAML frontmatter → exit 0, "skipped=1" (not a false alarm).
+#
+# The "defect" here is the wide-only frontmatter code that the pre-fix bucket mishandled; the
+# CORRECT behavior post-fix is exit 0 (no false alarm).  The clean-pass guard checks this.
+#
+# Mutation-verify: reverting the frontmatter bucket to E_CLASS_CODE_RE (narrow, no dedup) →
+#   E-VERBOSE-001 invisible to bucket → skipped=0, canary sees it → population=1 !=
+#   examined=0 + skipped=0 → gate fires → exit 2.  The clean-pass assertion (expects exit 0 +
+#   "skipped=1") fails: exit 2 kills the first check, and "skipped=0" would kill the second
+#   → STRUCTURAL FAIL fires → mutation dies.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5o-b (NIT-1): check-adr-consistency: wide-only E-class code in frontmatter — no false accounting gap ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5OB'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5OB
+
+# Clean tree: no E-class codes anywhere → exit 0, skipped=0
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-5OB-TEST.md" <<'BC5OBCLEAN'
+---
+document_type: behavioral-contract
+---
+
+# BC-5OB-TEST: Behavioral Contract
+
+No E-class codes here.
+BC5OBCLEAN
+
+CLEAN_PASS=0
+ST5OB_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+ST5OB_CLEAN_RC=$?
+if [ "$ST5OB_CLEAN_RC" -ne 0 ]; then
+    echo "  STRUCTURAL FAIL: checker failed on clean fixture (no E-class codes)"
+    echo "  Output: $ST5OB_CLEAN"
+    FAILURES=$((FAILURES + 1))
+else
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: add E-VERBOSE-001 (7-letter namespace, invisible to narrow E_CLASS_CODE_RE)
+    # ONLY in YAML frontmatter.  With NIT-1 fix, frontmatter bucket uses wide canary regex
+    # → skipped=1, population=1, examined=0 → 1==0+1 → gate passes → exit 0.
+    # Without fix: narrow bucket misses it → skipped=0 → gate fires 1!=0+0 → exit 2.
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-5OB-TEST.md" <<'BC5OBBAD'
+---
+document_type: behavioral-contract
+modified:
+  - "v1.1: Error class changed to E-VERBOSE-001 for configuration failures."
+---
+
+# BC-5OB-TEST: Behavioral Contract
+
+No E-class codes in body.
+BC5OBBAD
+    ST5OB_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    ST5OB_RC=$?
+    FAIL=0
+    if [ "$ST5OB_RC" -ne 0 ]; then
+        echo "  FAIL (expected exit 0 — wide-only code in frontmatter triggered false accounting gap, got exit $ST5OB_RC)"
+        echo "  Output: $ST5OB_OUT"
+        FAIL=1
+    fi
+    if ! echo "$ST5OB_OUT" | grep -q "skipped=1"; then
+        echo "  FAIL ('skipped=1' not in output — E-VERBOSE-001 in frontmatter not counted by wide bucket)"
+        echo "  Output: $ST5OB_OUT"
+        FAIL=1
+    fi
+    if [ "$FAIL" -eq 1 ]; then
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; E-VERBOSE-001 in frontmatter counted as skipped=1, no false gap)"
     fi
 fi
 rm -rf "$T"

@@ -75,6 +75,16 @@ TAXONOMY_CODE_RE = re.compile(
 #   (6× E-IO-002, 2× E-CLI-001 across 3 files).
 E_CLASS_CODE_RE = re.compile(r"(?<![A-Za-z0-9])(E-[A-Z]{2,4}-\d{3})(?!\d)")
 
+# Independent canary regex for E-class population accounting (NIT-1 alignment fix).
+# Deliberately WIDER than E_CLASS_CODE_RE — no {2,4} cap on namespace width, no {3}
+# cap on digit suffix — so narrowing the detector also surfaces as a gap rather than
+# shrinking both sides together.  Defined at module level so BOTH the frontmatter
+# bucket in check_broad_corpus() AND the canary probe in main() use the SAME regex
+# and the SAME per-line dedup (set()), keeping both sides of the invariant in lock-step.
+# Previously defined only inside main(); the frontmatter bucket used the narrower
+# E_CLASS_CODE_RE with no dedup, creating two latent false-alarm paths (NIT-1).
+E_CLASS_CANARY_RE = re.compile(r"(?<![A-Za-z0-9])E-[A-Z]+-\d+")
+
 
 def extract_closed_reason_codes(taxonomy_path: Path) -> set[str]:
     """
@@ -355,8 +365,15 @@ def check_broad_corpus(
         # than silently dropping them.  The exclusion itself is LEGITIMATE (these are
         # historical changelog entries, not live assertions); the defect was that they
         # vanished without being counted, hiding 2 of the 8 corpus E-code occurrences.
+        # NIT-1 alignment fix: use E_CLASS_CANARY_RE (wide) + set() dedup, matching
+        # the canary probe in main() exactly.  The previous E_CLASS_CODE_RE (narrow)
+        # + no-dedup logic had two latent false-alarm paths: (a) a wide-only code like
+        # E-VERBOSE-001 (7-letter namespace) was counted 1 by the canary but 0 by the
+        # bucket → gate fired a spurious accounting gap; (b) the same narrow code
+        # appearing twice on one frontmatter line was counted 2 by the bucket but 1
+        # by the canary (set() dedup) → gate fired in the other direction.
         if in_frontmatter:
-            for _m in E_CLASS_CODE_RE.finditer(line):
+            for _code in set(E_CLASS_CANARY_RE.findall(line)):
                 frontmatter_e_skipped += 1
             continue
 
@@ -664,12 +681,12 @@ def main() -> int:
     )
 
     # ── E-class population reconciliation (AC-1 acceptance test) ──────────────
-    # INDEPENDENT GROUND-TRUTH PROBE: scans the corpus with a deliberately WIDER
-    # canary regex that does NOT reuse check_broad_corpus()'s routing, continue
-    # logic, or E_CLASS_CODE_RE.  Canary: (?<![A-Za-z0-9])E-[A-Z]+-\d+  (no
-    # {2,4} cap on namespace width, no {3} cap on digit suffix — wider than the
-    # E-[A-Z]{2,4}-\d{3} detector) so narrowing the detector also surfaces as a
-    # gap rather than shrinking both sides together.
+    # INDEPENDENT GROUND-TRUTH PROBE: scans the corpus with E_CLASS_CANARY_RE,
+    # the module-level wide regex (no {2,4} cap on namespace width, no {3} cap
+    # on digit suffix — wider than E_CLASS_CODE_RE) that does NOT reuse
+    # check_broad_corpus()'s routing or continue logic.  This probe is the same
+    # regex used by the frontmatter bucket (NIT-1 alignment fix); both sides of
+    # the invariant now share the same regex and per-line dedup (set()).
     #
     # Invariant: every E-class occurrence found by the canary must be accounted
     # for in one of the two named buckets (examined | frontmatter-skipped).
@@ -678,7 +695,6 @@ def main() -> int:
     #
     # Uses print+return 2, NOT assert.  assert is stripped entirely under
     # python -O; the three sibling completeness gates above use the same pattern.
-    E_CLASS_CANARY_RE = re.compile(r"(?<![A-Za-z0-9])E-[A-Z]+-\d+")
     e_population = 0
     for f in sorted(SPECS.rglob("*.md")):
         if not _in_spec_corpus(f):
