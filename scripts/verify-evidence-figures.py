@@ -34,21 +34,20 @@ Exit codes:
        incoherent state — resolved PR head ≠ local HEAD, or no matching
        pr-description.md found for current HEAD).
 
-Structural guarantee (BLOCKING-D):
+Structural guarantee (BLOCKING-D, B-3):
   Every check that performs a live-vs-document comparison MUST call
-  anchor_check() or checks_ran.add(key) after performing the comparison.
-  The PASS gate asserts REQUIRED_CHECKS == checks_ran, so a check added
-  without anchor_check() AND without checks_ran.add() cannot produce a
-  false PASS.
+  record_comparison(key) on the code path where the comparison runs.
+  The PASS gate asserts REQUIRED_CHECKS == checks_ran; a key in
+  REQUIRED_CHECKS that never calls record_comparison() produces a failure.
 
-  The anchor_check() helper enforces this structurally: calling it IS the
-  registration.  No separate checks_ran.add() needed — making omission
-  mechanically detectable by the REQUIRED_CHECKS gate.
+  anchor_check() guards ENTRY only: it asserts the anchor was found and
+  returns True/False.  It does NOT register the key.  Callers MUST call
+  record_comparison(key) at the actual comparison point.
 
-  Note: checks_ran.add() placed unconditionally (at module scope, not inside
-  a comparison body) still tricks the registry.  anchor_check() catches this
-  by only registering when the anchor is present, so the comparison IS
-  guaranteed to have run.
+  Structural guarantee: "anchor found but comparison skipped" is
+  unrepresentable for every key in REQUIRED_CHECKS — anchor_check() truthy
+  without a subsequent record_comparison() call causes the gate to fire.
+  This holds for every future check added, not just the ones audited today.
 
 Test-mode overrides (_VEF_TEST_* environment variables):
   EXCLUSIVELY for scripts/tests/test-vef.py.  Never set in CI or production.
@@ -121,23 +120,28 @@ _ap.add_argument(
 args = _ap.parse_args()
 
 # ── Required-checks registry (BLOCKING-D structural guarantee) ────────────────
-# Every check listed here MUST register itself via anchor_check() (or
-# checks_ran.add(key) for legacy checks that predate anchor_check()).
-# The PASS gate at the bottom asserts this set is fully populated.
+# B-3 structural fix: anchor_check() no longer registers to checks_ran.
+# Registration is EXCLUSIVELY via record_comparison(key), called only on the
+# code path where the comparison executes.  This makes "anchor found but
+# comparison skipped" structurally unrepresentable for every key listed here.
 #
-# anchor_check() is the canonical registration mechanism — see its docstring.
-# Legacy checks (check2, check3, check4, check6, check8) call checks_ran.add()
-# directly inside their else-fail branches; both patterns are equivalent.
+# S-1 coverage: check1 and check5 added (previously unregistered but
+# fail-closed).  Sites deliberately left unregistered this pass:
+#   - check7-provenance-stamps: fully skipped in test mode; no test coverage
+#   - ADR/EI novel-spelling sub-scans: sub-scans of check2/check4 respectively;
+#     parent registration covers them
 REQUIRED_CHECKS = {
+    "check1-selftest-count",    # B-3/S-1: was unregistered
     "check2-adr-figures",
+    "check2a-e-cli-001",        # SUGGESTION-8: was unregistered
     "check3-ledger-triple",
     "check4-ei-figures",
+    "check4a-ac002-suffix",     # SUGGESTION-8/B-3: comparison now required
+    "check5-head-sha-pr",       # B-3/S-1: was unregistered
     "check6-completeness",
     "check7-rollback",          # SUGGESTION-8: was unregistered
     "check8-live-pr-body",
     "check9-head-sha-ev",       # SUGGESTION-8: was unregistered
-    "check2a-e-cli-001",        # SUGGESTION-8: was unregistered
-    "check4a-ac002-suffix",     # SUGGESTION-8: was unregistered
 }
 checks_ran: set = set()
 
@@ -149,25 +153,39 @@ def fail(label: str, expected: str, got: str) -> None:
 
 
 def anchor_check(key: str, m, fail_label: str, fail_expected: str) -> bool:
-    """Assert anchor was found; register check key if so.
+    """Guard entry: assert anchor was found.  Does NOT register the key.
 
-    Called immediately after re.search / re.findall / next(glob(), None).
+    Called immediately before the comparison body to gate execution.
     If anchor is falsy:  records a failure and returns False.
-                         key is NOT added to checks_ran — REQUIRED_CHECKS
-                         gate independently catches the omission.
-    If anchor is truthy: adds key to checks_ran and returns True.
+                         key is NOT added to checks_ran.
+    If anchor is truthy: returns True.
+                         Caller MUST call record_comparison(key) at the
+                         actual comparison point — NOT here.
 
-    This is the CANONICAL way to add a check key to REQUIRED_CHECKS.
-    Calling anchor_check() IS the registration — no separate
-    checks_ran.add(key) needed.  Adding a key to REQUIRED_CHECKS without
-    pairing it with anchor_check() will be caught by the gate: mechanically
-    impossible to have a false PASS from a forgotten registration.
+    Separating entry-guard from comparison-registration makes "anchor found
+    but comparison skipped" structurally unrepresentable: if the comparison
+    body is never reached or its inner guard prevents it from running,
+    record_comparison() is never called and the REQUIRED_CHECKS gate fires.
     """
     if not m:
         fail(fail_label, fail_expected, "anchor not found — check cannot run")
         return False
-    checks_ran.add(key)
     return True
+
+
+def record_comparison(key: str) -> None:
+    """Register that a live-vs-document comparison was performed for `key`.
+
+    MUST be called on the code path where the actual comparison executes.
+    The canonical pattern is:
+        if anchor_check(key, anchor, ...):   # guards whether comparison can run
+            ...comparison logic...
+            record_comparison(key)           # records that comparison ran
+
+    A key in REQUIRED_CHECKS that never calls record_comparison() causes the
+    PASS gate to fire — "anchor present but comparison skipped" is detectable.
+    """
+    checks_ran.add(key)
 
 
 # Allowed return codes per command (keyed on cmd[-1]).
@@ -397,6 +415,7 @@ else:
     if not hm or f"{hm.group(1)}/{hm.group(2)}" != live_st:
         fail("selftest-count/evidence-heading", live_st,
              f"{hm.group(1)}/{hm.group(2)}" if hm else "heading not found")
+    record_comparison("check1-selftest-count")
 
 # ── Check 2: check-adr-consistency figures (ALL occurrences — S-5) ────────────
 # BLOCKING-D fix: else-branch ensures unparseable live output is a failure, not
@@ -443,7 +462,7 @@ else:
             fail("adr-consistency/min-restatements",
                  f">= {MIN_RC_EC_COUNT} restatements of the rc/ec figure pair",
                  f"only {len(rc_matches)} found — a restatement site may have been removed")
-    checks_ran.add("check2-adr-figures")
+    record_comparison("check2-adr-figures")
 
 # ── SUGGESTION-10 (Check 2 side): novel-spelling scan for rc/ec figure pair ───
 # After all RC_EC_PAT matches are collected, scan for any LINE that states
@@ -560,7 +579,7 @@ else:
             fail("e-class-ledger/min-count",
                  f">= {MIN_LEDGER_COUNT} ledger-triple assertions",
                  f"only {len(ledger_matches)} found — a restatement site may have been removed")
-    checks_ran.add("check3-ledger-triple")
+    record_comparison("check3-ledger-triple")
 
 # ── Check 4: check-ec-injectivity figures (ALL occurrences — S-5 complete) ────
 # BLOCKING-D fix: else-branch required; unparseable summary is a failure.
@@ -677,7 +696,7 @@ else:
              f">= {MIN_ADJ_COUNT} adjudication assertions",
              f"only {len(adj_found)} found — a restatement site may have been removed")
 
-    checks_ran.add("check4-ei-figures")
+    record_comparison("check4-ei-figures")
 
     # ── SUGGESTION-10 (Check 4 side): novel-spelling scan for ei figures ──────
     # After all five patterns have run, scan docs_no_prev for any occurrence of
@@ -689,9 +708,22 @@ else:
     # D-039 disclosure: every declared entry is printed in the output.
     EI_NOVEL_DECLARED: list = [
         # (identifying_fragment, justification)
-        # Empty: no uncovered sites in current documents.
-        # When a new novel-spelling site is added, declare it here with justification.
         # Every declared entry is enumerated in the output per D-039.
+        # S-7 stale-detection: if a declared fragment no longer matches any
+        # uncovered EI-context site, ec-injectivity/stale-novel-declaration fires.
+        #
+        # B-1 residual fix: the pr-description.md comparison table has a
+        # "Previous (post-gate34)" column whose historical figures (9 divergent,
+        # 5 adjudication) are not covered by any structured EI pattern.  They
+        # are positionally identified by the unique column cell text that only
+        # appears in that historical row.  Declared rather than filtered so the
+        # exemption is explicit, auditable, and stale-detectable — not a prose
+        # keyword exemption (lesson-60 anti-pattern).
+        ("110 of 190 TV rows",
+         "Historical baseline table row in pr-description.md: gate34 figures "
+         "(9 divergent, 5 adjudication) from the 'Previous (post-gate34)' "
+         "column — not current live values; positionally identified by unique "
+         "cell text '110 of 190 TV rows'"),
     ]
     _EI_CTX = re.compile(
         r'\b(?:citations?\s+(?:compared|with)|divergent|adjudication|'
@@ -800,8 +832,10 @@ else:
 sha_m = re.search(r"\*\*Head SHA:\*\*\s+([0-9a-f]{40})", pr)
 if not sha_m:
     fail("head-sha/pr-description", head[:7], "**Head SHA:** not found in pr-description.md")
-elif sha_m.group(1) != head:
-    fail("head-sha/pr-description", head, sha_m.group(1))
+else:
+    if sha_m.group(1) != head:
+        fail("head-sha/pr-description", head, sha_m.group(1))
+    record_comparison("check5-head-sha-pr")
 
 # ── Check 6: Enumerated-site consistency (BLOCKING-B) ────────────────────────
 det_m = re.search(
@@ -842,7 +876,7 @@ else:
                 fail("enumerated-sites/completeness",
                      f"{bname} present in validated enumeration",
                      f"{bname} missing from 'Detection confirmed at:' list")
-        checks_ran.add("check6-completeness")
+        record_comparison("check6-completeness")
     for m in re.finditer(r"`([\w./-]+\.md):(\d+(?:,\d+)*)`", excl_text):
         for ln in m.group(2).split(","):
             site = f"{m.group(1)}:{ln.strip()}"
@@ -890,6 +924,7 @@ else:
 
 # ── SUGGESTION-2 / check2a-e-cli-001: E-CLI-001 location ─────────────────────
 # SUGGESTION-8 fix: register via anchor_check() + fail when anchor absent.
+# B-3 fix: add record_comparison() at comparison point.
 _ecli_m = re.search(r"E-CLI-001", adr_out)
 if anchor_check("check2a-e-cli-001", _ecli_m,
                 "traceability/e-cli-001-in-live",
@@ -901,22 +936,37 @@ if anchor_check("check2a-e-cli-001", _ecli_m,
         fail("traceability/e-cli-001-location",
              live_loc,
              "pr-description.md attributes E-CLI-001 ×1 to 'test-vectors'")
+    record_comparison("check2a-e-cli-001")
 
 # ── SUGGESTION-4 / check4a-ac002-suffix: AC-002 filename suffix ───────────────
 # SUGGESTION-8 fix: register via anchor_check() + fail when AC-002 is absent.
+# B-3 fix: absent NofM token in filename is a failure (not a silent pass);
+#          record_comparison() called only in the comparison branch, so
+#          "file present but no comparison ran" is structurally caught by gate.
 _ac002 = next(EV_DIR.glob("AC-002*.txt"), None)
 if anchor_check("check4a-ac002-suffix", _ac002,
                 "evidence-report/ac002-missing",
                 "AC-002*.txt artifact in evidence directory"):
     sfx_m = re.search(r"(\d+of\d+)", _ac002.name)
-    if sfx_m:
+    if not sfx_m:
+        fail("evidence-report/ac002-suffix-unparseable",
+             "AC-002 artifact filename carrying an NofM suffix",
+             f"{_ac002.name!r} has no NofM token — suffix cross-check cannot run")
+        # record_comparison NOT called: REQUIRED_CHECKS gate fires as a
+        # structural second signal that the comparison was not completed.
+    else:
         correct_sfx = sfx_m.group(1)
-        for m in re.finditer(r"\d+of\d+", ev):
+        _ev_sfx = list(re.finditer(r"\d+of\d+", ev))
+        if not _ev_sfx:
+            fail("evidence-report/ac002-suffix-uncited",
+                 f"evidence-report.md cites the artifact suffix {correct_sfx}",
+                 "no NofM token found in evidence-report.md — nothing compared")
+        for m in _ev_sfx:
             if m.group(0) != correct_sfx:
-                fail("evidence-report/ac002-suffix",
-                     correct_sfx,
+                fail("evidence-report/ac002-suffix", correct_sfx,
                      f"evidence-report.md references '{m.group(0)}'")
                 break
+        record_comparison("check4a-ac002-suffix")
 
 # ── B-4 / check7+check9: derive branch SHA set from git (not a literal) ──────
 # Used by both check7 (rollback completeness) and check9 (captured-SHA on-branch).
@@ -968,6 +1018,7 @@ if anchor_check("check7-rollback", _revert_m,
         fail("rollback/count-claim-missing",
              "Rollback reverts all N commits",
              "count-claim anchor absent — check cannot verify commit count")
+    record_comparison("check7-rollback")
 
 # ── B-4 / check9: captured-SHA on-branch (replaces circular head-SHA check) ───
 # SUGGESTION-8 fix: register via anchor_check() + fail when anchor absent.
@@ -997,6 +1048,7 @@ if anchor_check("check9-head-sha-ev", _cap_sha_m,
              f"({len(_branch_sha_set)} commits: {sorted(_branch_sha_set)})",
              f"SHA {_ev_sha7} not found on this branch — evidence may be "
              f"from a different PR or borrowed from another branch")
+    record_comparison("check9-head-sha-ev")
 
 # ── Check 8: Live PR body must match pr-description.md (FINDING 2) ────────────
 # NIT-G fix: wrap gh invocation to produce a diagnostic rather than a traceback
@@ -1031,14 +1083,21 @@ if _live_pr_body_raw is not None:
              "live PR body matches pr-description.md (normalised)",
              f"live PR body has diverged from pr-description.md — "
              f"run: gh pr edit {pr_number} --body-file {PR_DESC}")
-checks_ran.add("check8-live-pr-body")
+    record_comparison("check8-live-pr-body")
+# When _live_pr_body_raw is None (gh unavailable), record_comparison is NOT
+# called: fail("live-pr-body/gh-unavailable") was already recorded above, and
+# the REQUIRED_CHECKS gate fires as a structural second signal.
 
 # ── BLOCKING-D: required-checks gate ─────────────────────────────────────────
+# B-3: checks_ran is populated exclusively by record_comparison(key) calls.
+# A missing key means record_comparison() was never called on the comparison
+# path — either anchor absent (per-site fail already recorded above) or
+# comparison body bypassed (structural gap caught here).
 missing_checks = REQUIRED_CHECKS - checks_ran
 for key in sorted(missing_checks):
     fail(f"required-check/{key}",
-         "check registered a live comparison",
-         "check never ran (live output unparseable or empty)")
+         "record_comparison(key) called on the comparison code path",
+         "comparison never registered — check body may have been bypassed")
 
 # ── Final report ──────────────────────────────────────────────────────────────
 if fails:

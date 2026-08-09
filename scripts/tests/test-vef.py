@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-24 test cases (T01-T24).  Each proves:
+26 test cases (T01-T26).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
 
@@ -75,13 +75,16 @@ MOCK_ST_OUT = "Selftest passed: 99/99\n"
 # Coverage accounting (for clean-pass guarantee):
 #   RC_EC_PAT matches in docs (PR+EV):  3 (PR) + 3 (EV) = 6  >= MIN 5
 #   Ledger triples in pr+ev:            1 (PR) + 2 (EV) = 3  == MIN 3
-#   EI cmp_found:  STANDARD(3)+BOLD_REV(1)+TRANSITION(1)+SINGLE_CMP(1)+EV_CMP(4) = 10 >= MIN 9
-#   EI div_found:  STANDARD(3)+BOLD_REV(1)+TRANSITION(1)+EV_DIV(4)               =  9 >= MIN 9
-#   EI adj_found:  STANDARD(3)+BOLD_REV(1)+TRANSITION(1)+EV_ADJ(3)               =  8 >= MIN 8
+#   EI cmp_found:  STANDARD(3)+BOLD_REV(2)+TRANSITION(1)+SINGLE_CMP(1)+EV_CMP(4) = 11 >= MIN 9
+#   EI div_found:  STANDARD(3)+BOLD_REV(2)+TRANSITION(1)+EV_DIV(4)               = 10 >= MIN 9
+#   EI adj_found:  STANDARD(3)+BOLD_REV(2)+TRANSITION(1)+EV_ADJ(3)               =  9 >= MIN 8
 #   PREV_LABEL lines in EV: exactly 2
 #   Novel-spelling (ADR): all combined 78+reason-code+6+E-class on same line
 #                          are covered by RC_EC_PAT -- no novel-spelling fires
-#   Novel-spelling (EI):  all 174/42/22 near EI-CTX are within a pattern span
+#   Novel-spelling (EI):  all 174/42/22 near EI-CTX are within a pattern span;
+#     9 divergent and 5 adjudication in baseline table row are declared via
+#     EI_NOVEL_DECLARED (B-1 residual fix) -- S-7 stale-detection satisfied
+#     because the fragment '110 of 190 TV rows' is present in that row.
 PR_FIXTURE = f"""\
 # PR: CHECKER-COMPLETENESS-GATE35
 
@@ -99,6 +102,12 @@ E-class population: pop=8, examined=6, skipped=2
 |-------|--------|-------|
 | ec-injectivity | 110 cmp, 9 div, 5 adj | **42 DIVERGENT + 22 ADJUDICATION; 174 of 174 TV rows compared** |
 | adr-consistency | 4 violations | 9 violations (78 reason-code + 6 E-class occ) |
+
+## Baseline comparison
+
+| Checker | Previous (post-gate34) | After This PR | Notes |
+|---------|------------------------|---------------|-------|
+| check-ec-injectivity | 9 divergent, 5 adjudication; 110 of 190 TV rows (80 skipped) | **42 DIVERGENT + 22 ADJUDICATION; 174 of 174 TV rows compared** | Unchanged |
 
 ## check-ec-injectivity
 
@@ -722,6 +731,44 @@ def t21_captured_sha_not_on_branch():
     return run_test("T21 captured-sha-not-on-branch [check9/B-4]", defect)
 
 
+def t25_ac002_no_nofm_token():
+    """T25 (B-3 ATTACK-A): AC-002 file present but filename has no NofM token -> caught.
+
+    ATTACK-A scenario from B-3 review: if the artifact filename carries no NofM
+    token (e.g. AC-002-selftest.txt), the OLD code silently passed (sfx_m is None,
+    check body skips comparison, but anchor_check() already registered the key).
+
+    B-3 fix: absent NofM is a fail("evidence-report/ac002-suffix-unparseable"),
+    AND record_comparison() is never called, so the REQUIRED_CHECKS gate also fires.
+
+    Defect: rename AC-002-selftest-99of99.txt -> AC-002-selftest.txt (no NofM).
+    Clean:  default fixture keeps 99of99 in the name -> comparison runs, passes.
+    """
+    def defect(env):
+        old = env.ev_dir / "AC-002-selftest-99of99.txt"
+        new = env.ev_dir / "AC-002-selftest.txt"
+        old.rename(new)
+    return run_test("T25 ac002-no-nofm-token [B-3/ATTACK-A]", defect)
+
+
+def t26_ac002_nofm_mismatch():
+    """T26 (B-3 CONTROL): AC-002 has NofM in filename; ev cites different NofM -> caught.
+
+    CONTROL scenario from B-3 review: AC-002-selftest-99of99.txt exists (NofM present),
+    but evidence-report.md references a DIFFERENT NofM value (77of77).  This should
+    be caught as evidence-report/ac002-suffix.
+
+    Defect: ev explicitly references 77of77 where the filename has 99of99.
+    Clean:  default fixture: filename=99of99, ev references 99of99 -> PASS.
+    """
+    def defect(env):
+        # Inject a wrong NofM reference into ev (77of77 != 99of99 in filename).
+        ev_text = env.ev_path.read_text()
+        ev_text += "\nSee AC-002-selftest-77of77.txt for confirmation.\n"
+        env.ev_path.write_text(ev_text)
+    return run_test("T26 ac002-nofm-mismatch [B-3/CONTROL]", defect)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 TESTS = [
     t01_post_merge_context,
@@ -748,6 +795,8 @@ TESTS = [
     t19_rollback_missing_branch_commit,
     t20_rollback_count_claim_missing,
     t21_captured_sha_not_on_branch,
+    t25_ac002_no_nofm_token,     # B-3 ATTACK-A
+    t26_ac002_nofm_mismatch,     # B-3 CONTROL
 ]
 
 
