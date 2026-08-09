@@ -264,4 +264,4 @@ D-132: 161 EC IDs tested for collision (58 single-occurrence not tested)
 D-132: BC rows: 193 parsed, 1038 skipped-no-ec, 0 skipped-empty (= 1231 scanned)
 RC=1
 
-Captured at: fd74bd73aa640f17102139345bb8b2aed29d3f58
+Captured at: b4bbbc39cef22dbc25d150eec1a6e621a211847a

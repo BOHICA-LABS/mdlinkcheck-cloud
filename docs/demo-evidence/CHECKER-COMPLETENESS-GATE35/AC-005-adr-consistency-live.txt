@@ -23,4 +23,4 @@ E-class population: population=8, examined=6, skipped=2 (frontmatter, D-081)
 Check FAILED: 9 violations found (78 reason-code occurrences + 6 E-class code occurrences validated across 126 non-ADR + 8 ADRs (POLICY 12 + POLICY 19) = 134 of 134 spec files (complete), 9 non-conforming)
 RC=1
 
-Captured at: fd74bd73aa640f17102139345bb8b2aed29d3f58
+Captured at: b4bbbc39cef22dbc25d150eec1a6e621a211847a

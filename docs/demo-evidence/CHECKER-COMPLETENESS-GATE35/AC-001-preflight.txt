@@ -29,4 +29,4 @@ Pre-flight guard passed: 15 files checked, 0 raw .splitlines() uses
   PASS (clean-pass confirmed; unregistered R-99 correctly detected)
 ── selftest 2: check-counts: BC frontmatter count mismatch ──
 
-Captured at: fd74bd73aa640f17102139345bb8b2aed29d3f58
+Captured at: b4bbbc39cef22dbc25d150eec1a6e621a211847a

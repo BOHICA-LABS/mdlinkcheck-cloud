@@ -1,7 +1,7 @@
 # Demo Evidence Report — CHECKER-COMPLETENESS-GATE35
 
 **Branch:** fix/checker-completeness-gate35
-**Head SHA:** 72db558
+**Captured at SHA:** 72db558
 **Captured:** 2026-08-08
 **Type:** CLI tool evidence (terminal output)
 
@@ -39,7 +39,7 @@
 - After this PR: **174 citations compared** (17 legitimately-EC-less skipped), **42 divergent**, **22 adjudication**
 - D-132 skip counts emitted at every granularity
 
-## Selftest Run (98/98 confirmed)
+## Selftest Run (99/99 confirmed)
 
 See `AC-002-selftest-99of99.txt`. New and modified tests in this PR:
 - `selftest 5k (BI-056)`: PASS — all three phantom codes detected: E-IO-002, E-CLI-001, malformed-fragment
@@ -62,4 +62,4 @@ Previously: check_adr() + check_broad_corpus() both fired → count = 2.
 
 ### BLOCKING-3: Evidence refresh
 Stale: evidence-report.md referenced d3085d9, AC-002 said 93/93, AC-005 had no population line.
-Fixed: all AC files recaptured at b4bbbc3; AC-002 renamed to 98of98; AC-007 added with gate proof.
+Fixed: all AC files recaptured at b4bbbc3; AC-002 renamed to 99of99; AC-007 added with gate proof.
