@@ -4,14 +4,14 @@ level: ops
 version: "3.2"
 status: draft
 producer: state-manager
-timestamp: 2026-08-09T00:10:00Z
+timestamp: 2026-08-09T02:00:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "phase-1d; PR #11 MERGED (da86271; develop f8ee4eb→da86271; 2026-08-08T23:49:52Z); four oracle repairs LIVE on develop; selftests 91/91; frozen perimeter ace1745 INTACT (structurally); D-130 SUPERSEDES D-124 baseline: corrected post-merge 6 pass/3 fail, 14 findings+5 adjudication; BI-056 OPEN (E-IO-002 regression); BI-057 OPEN (row-granularity skip); D-129..D-132 (exhaustive); trajectory-tail →39→37→259→273-275"
+current_step: "SESSION WRAPPED at clean boundary. phase-1d; pass 7 COMPLETE (273–275 findings / 45 CRITICAL; 0 of 3 clean passes); gate #34 oracle repairs MERGED (da86271); authoritative baseline D-130; next burst is BI-056 + BI-057 then D-132 across all nine checkers per operator gate #35; D-133..D-134 recorded"
 current_cycle: phase-1d
 dtu_required: false
 ---
@@ -19,7 +19,7 @@ dtu_required: false
 <!--
   STATE.md SIZE BUDGET:
   Soft target: ≤200 lines; hard cap: 500 lines.
-  ~314 lines (wc-l after Burst-30); margin from soft-target: ~114 lines over 200; margin from actual: ~186 lines to hard cap (500).
+  ~323 lines (wc-l after Burst-32); margin from soft-target: ~123 lines over 200; margin from actual: ~177 lines to hard cap (500).
   Still over the 200-line soft target because the Decisions Log (128 rows) dominates; no further extraction performed since the remaining decisions are standing directives.
   Historical content belongs in cycle files, NOT here.
   Run /vsdd-factory:compact-state if this file grows past 200 lines.
@@ -230,6 +230,8 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | D-130 | **D-124's TRUE MECHANICAL BASELINE IS SUPERSEDED.** D-124 recorded the baseline as measured in the feature worktree BEFORE the 5 PR review cycles resolved 6 blocking findings; that tightening removed substantial FALSE POSITIVES, so the post-merge actuals on `develop` @ `da86271` are materially smaller. Corrected baseline, re-derived by orchestrator on develop post-merge: `check-adr-consistency`: **4 violations / 79 reason-code occurrences** (was 26/292); `check-ec-injectivity`: **110 EC citations compared, 9 divergent, 5 require adjudication** (was 149/17/43); `check-holdout-boundary`: **1 violation** — EC-151 prose leak at `prd.md:616` (unchanged); Passing (6): canonical-facts, placeholders (0 across 134 of 134 complete), counts (37), id-resolution (134 files), index-integrity (80 checks), title-sync (66 titles). Corrected post-merge posture: **6 pass / 3 fail, 14 mechanical findings + 5 adjudication items** — versus D-124's recorded 44+43. D-124 is SUPERSEDED, not retracted (it accurately recorded the pre-review-tightening state). **Consequence: content-remediation workstream MUST be scoped from THIS baseline, not D-124.** Standing lesson: a baseline captured on a feature branch before review convergence is provisional; the authoritative baseline is on the integration branch after merge. | D-124 was pre-review-tightening; post-merge actuals on integration branch are the authoritative baseline. | phase-1d | 2026-08-08 | orchestrator |
 | D-131 | Confirmation that detection of the pass-7 calibration cases SURVIVED the merge, with one exception: `malformed-fragment` (`test-vectors.md:432`) still detected; `E-CLI-001` (`BC-2.11.004.md:61`) still detected; `EC-142` still surfaced by `check-ec-injectivity`; and a NEW true-positive surfaced — `syntax-valid` at `test-vectors.md:221` (TV-116), a reason code absent from the closed taxonomy. The exception: **E-IO-002 is NO LONGER DETECTED** — see BI-056. | Post-merge verification; E-IO-002 regression introduced by false-positive tightening during review cycles. | phase-1d | 2026-08-08 | orchestrator |
 | D-132 | Standing lesson generalising D-113 and D-125: **a completeness assertion must be proven at EVERY granularity at which the checker can skip, not merely at file granularity.** `check-ec-injectivity` asserts "134 of 134 spec files (complete)" — true — while silently skipping 80 of 190 comparison rows. The D-125 guard criterion ("no UNPROVEN scope reduction") is necessary but NOT sufficient as implemented, because it validates only the file-level assertion. Extend the guard to require a completeness assertion for each skip granularity a checker employs. | Generalises D-113 and D-125; proves checker-scope-completeness claims at every skip granularity, not just file level. | phase-1d | 2026-08-08 | orchestrator |
+| D-133 | **Operator gate #35 rulings.** (1) Resequencing APPROVED: close BI-056 + BI-057 BEFORE EC-151 burn — D-072 principle (known false negative + 42% unproven row exclusion disqualifies oracle from scoping content work). Authoritative queue: **(0) BI-056 + BI-057 → (1) EC-151 burn + fresh hidden replacement → (2) BI-052 → (3) BI-053 → (4) BI-054 → (5) adversary pass 8** (streak counts from ZERO). (2) D-130 SUPERSEDES D-124 as authoritative mechanical baseline; content workstream scoped from D-130, NOT D-124. (3) D-132 ENDORSED as standing requirement and EXTENDED to ALL NINE checkers before pass 8 may rely on them. (4) Delivery split confirmed: checker code changes through full PR lifecycle; artifact/spec repairs commit directly to factory-artifacts. | D-072 principle: false negative + 42% unproven row exclusion disqualifies oracle from scoping content work. | phase-1d | 2026-08-09 | human/operator |
+| D-134 | Session wrap; durable RESUME SNAPSHOT D-134 committed to factory-artifacts, superseding D-121. Wrap taken at a clean boundary on context grounds (D-112 discipline): PR #11 merged and cleaned, zero open PRs, exactly two worktrees, both branches synced with origin, all findings and rulings durably recorded. No work started that could not be completed. | Clean-boundary wrap prevents partial-work loss class (D-037). Same discipline as D-112 and D-030. | phase-1d | 2026-08-09 | orchestrator/state-manager |
 
 ## Skip Log
 
@@ -270,16 +272,22 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | BI-057 | **ROW-GRANULARITY SKIP EVADES THE FILE-GRANULARITY COMPLETENESS ASSERTION — a new instance of the BI-047 class occurring INSIDE the fix for BI-047.** `check-ec-injectivity` reports "110 EC citations compared (80 non-comparable TV rows skipped (sections: Link ×17, Source MD ×42, Source MD File ×21)) across 134 of 134 spec files (complete)". File-level assertion is TRUE and skip is at least DISCLOSED — genuine improvement over BI-047's silent exclusion — but **80 of 190 rows (42% of the comparison population) are excluded from comparison with no proof that exclusion is sound**. The D-125 guard passes it because it validates only the file-granularity assertion. Interaction with D-126: the mechanical divergence count (9) is a lower bound for TWO independent reasons — Jaccard insensitivity (D-126) AND this 42% row exclusion. | HIGH | phase-1 gate | devops-engineer | OPEN. Required: adjudicate whether the three TV section shapes are genuinely non-comparable or merely unparsed; if unparsed, extend the extractor; extend D-125 guard per D-132. |
 ## Session Resume Checkpoint
 
-Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-121`
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-134`
 
 | Field | Value |
 |-------|-------|
-| **Date** | 2026-08-08 |
-| **Position** | phase-1d; adversary pass 7 COMPLETE (273–275 findings / 45 CRITICAL; **0 of 3 clean passes**); gate #34 oracle repairs MERGED to develop (`da86271`); corrected post-merge baseline per D-130 (6 pass / 3 fail; 14 findings + 5 adjudication). |
-| **Convergence counter** | 0 of 3 clean passes; trajectory →0→32→34→39→37→259→273-275 |
-| **Next burst** | **(0) NEW PREREQUISITE — close BI-056 and BI-057 first** (oracle foundation not yet sound; D-072 principle — same reasoning that produced the oracles-first ruling); then (1) EC-151 burn + fresh hidden replacement (D-122 ruling 2), (2) BI-052 false-green VP attribution class, (3) BI-053 fragment percent-decode inversion, (4) BI-054 stale POL-14 directive across 33 BC files, (5) adversary pass 8 against the frozen perimeter with streak rules unchanged (streak counts from ZERO). spec-lint REQUIRED flip DEFERRED (D-117), now additionally blocked by BI-056/BI-057. Standing flags: D-126 calibration limitation; 7 of 12 reserved holdout EC IDs `not-yet-authored` (holdout pool ~58% notional — operator-ACKNOWLEDGED Phase-4 readiness item, no action this phase). |
+| **Date** | 2026-08-09 |
+| **Position** | phase-1d. Adversary pass 7 COMPLETE — 273–275 findings / 45 CRITICAL / 20 process-gap tags across 9 shards; the first genuine full-perimeter pass (all 66 of 66 BC bodies, all 26 of 26 VP bodies, 8 ADRs, 11 architecture docs, 12 domain-spec shards, prd.md + 4 supplements). **Clean-pass streak 0 of 3.** Trajectory `→0→32→34→39→37→259→273-275`. |
+| **Frozen perimeter** | `specs/` tree `ace1745871122cd1fa2c46cf27c5493cc1083411`. Protected structurally — `.factory/` is a separate orphan-branch worktree; develop-targeting PRs cannot touch the spec corpus. |
+| **Branch state** | `develop` = `da86271` (four oracle repairs live; selftests 91/91); `factory-artifacts` = this wrap commit. Zero open PRs. Exactly two worktrees. Repo is PUBLIC since 2026-08-08T22:55:24Z (D-127); CI on free runners, all 4 required checks green, `Spec lint` advisory-red by design. |
+| **Authoritative baseline (D-130)** | 6 pass / 3 fail. Failing: `check-holdout-boundary` 1 violation (EC-151 prose leak `prd.md:616`); `check-adr-consistency` 4 violations / 79 occurrences; `check-ec-injectivity` 110 compared / 9 divergent / 5 adjudication. Passing: canonical-facts, placeholders (0 live, 134 of 134), counts (37), id-resolution (134), index-integrity (80), title-sync (66). |
+| **Next burst (step 0)** | BI-056 + BI-057 — both checker code, both through full PR lifecycle. **BI-056:** restore `E-IO-002` phantom-code detection without reinstating 22 false positives; add mutation-verified selftest pinning ALL THREE codes (`malformed-fragment` @ `test-vectors.md:432`, `E-CLI-001` @ `BC-2.11.004.md:61`, `E-IO-002`) as a SET. **BI-057:** adjudicate 80 skipped TV rows; extend extractor if unparsed; extend D-125 guard per D-132/D-133 to ALL nine checkers before pass 8. |
+| **Then in order** | (1) EC-151 burn + fresh hidden replacement (artifact repair, commits directly per D-122/D-020); (2) BI-052 false-green VP attribution class (17+ CRITICALs); (3) BI-053 fragment percent-decode inversion; (4) BI-054 stale POL-14 directive across 33 BC files; (5) adversary pass 8 (streak from ZERO). |
+| **Standing constraints** | spec-lint REQUIRED flip DEFERRED (D-117/D-122/D-133), blocked by BI-056/BI-057. Merges operator-gated (D-120). `gh pr review --approve` impossible (BI-039/D-105) — use PR comments. DEV-11 unchanged — Phase-3 wave-1 gate is Run A endpoint. |
+| **Standing flags** | D-126: `check-ec-injectivity` divergence count is LOWER BOUND (Jaccard insensitivity + 42% row exclusion). 7 of 12 holdout EC IDs `not-yet-authored` (`HS-INDEX.md:61-67`); ~58% notional — operator-ACKNOWLEDGED Phase-4 readiness item. |
+| **Convergence counter** | 0 of 3 required clean passes; trajectory →0→32→34→39→37→259→273-275 |
 
-Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151 — operator attention warranted; ~58% notional, Phase-4 readiness concern). D-001..D-132 (exhaustive). Open BI: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057. BI-047/049/050/051 CLOSED (BI-050 qualified by BI-056; BI-051 qualified by BI-057). Corrected post-merge baseline per D-130: 6 pass / 3 fail, 14 findings + 5 adjudication. spec-lint REQUIRED flip DEFERRED (D-117/D-122), additionally blocked by BI-056/BI-057.
+Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-134 exhaustive; open BI list = BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057.
 
 ## Concurrent Cycles
 
@@ -312,4 +320,4 @@ Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies 
 | PR review findings summary (PR #11, all review cycles) | `code-delivery/ORACLE-REPAIRS-GATE34/review-findings.md` |
 | PR review evidence (PR #11, head b2f55ac, APPROVE) | `code-delivery/ORACLE-REPAIRS-GATE34/pr-review-b2f55ac63ee9de011339d7a37c9d6545c88fc455.md` |
 
-Last Updated: 2026-08-08 — Burst-31: PR #11 MERGED (da86271; 2026-08-08T23:49:52Z); D-130 SUPERSEDES D-124 baseline; BI-056/BI-057 OPENED; D-129..D-132 (exhaustive); BI-047/049/050/051 CLOSED
+Last Updated: 2026-08-09 — Burst-32: gate #35 ruling (D-133) + RESUME SNAPSHOT D-134 (session wrap); D-133..D-134 (exhaustive); zero open PRs; clean boundary

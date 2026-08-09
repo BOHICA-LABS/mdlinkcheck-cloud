@@ -1557,3 +1557,45 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 **Next burst prerequisite:** Close BI-056 and BI-057 first (oracle foundation not sound); then content remediation per D-130 baseline.
 
+---
+
+## Burst: Burst-32 — Gate #35 Ruling + RESUME SNAPSHOT D-134 (2026-08-09)
+
+**Parent-commit:** 8c10ada (factory-artifacts: factory(phase-1d): PR #11 MERGED (da86271) + baseline correction + BI-056/BI-057)
+
+**Adversary verdict:** N/A — session-wrap burst; no adversary pass dispatched this burst. Pass 7 COMPLETE (273–275 findings / 45 CRITICAL); streak 0 of 3 unchanged.
+
+**Codifications:** D-133 (operator gate #35 rulings — resequencing, baseline, D-132 extension, delivery split). D-134 (RESUME SNAPSHOT — session wrap, supersedes D-121).
+
+*2026-08-09 — state-manager. Single-commit burst TD-VSDD-053. Supersedes D-121 with D-134.*
+
+**Trigger:** Operator gate #35 rulings received; session wrap at clean boundary on context grounds (D-112 discipline).
+
+**Agent dispatches this burst:** state-manager only. No spec agents dispatched. No adversary pass dispatched. No develop-side changes.
+
+**Key events:**
+
+1. Operator gate #35 rulings recorded as D-133: (1) resequencing APPROVED — BI-056 + BI-057 close before EC-151 burn (D-072 principle: known false negative + 42% unproven row exclusion disqualifies oracle from scoping content work); authoritative queue: (0) BI-056+BI-057 → (1) EC-151 burn + fresh hidden replacement → (2) BI-052 → (3) BI-053 → (4) BI-054 → (5) pass 8 (streak from ZERO). (2) D-130 SUPERSEDES D-124 as authoritative mechanical baseline; content workstream scoped from D-130, NOT D-124. (3) D-132 ENDORSED as standing requirement and EXTENDED to ALL NINE checkers before pass 8 may rely on them. (4) Delivery split confirmed: checker code through full PR lifecycle; artifact/spec repairs commit directly to factory-artifacts.
+2. Session wrap taken at a clean boundary (D-112 discipline): PR #11 merged and cleaned, zero open PRs, exactly two worktrees, both branches synced with origin. No work started that could not be completed — avoids the partial-work failure class that cost 29 of 39 pass-3 findings (D-037) and forced the D-112 deferral.
+3. D-134 committed as RESUME SNAPSHOT, superseding D-121.
+4. D-121 Session Resume Checkpoint archived to `cycles/phase-1d/session-checkpoints.md`.
+5. STATE.md updated: frontmatter `current_step` + `timestamp`; Decisions Log D-133..D-134 appended; Session Resume Checkpoint rewritten for zero-context resume (D-134).
+
+**Artifact state at burst close:**
+PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (7 of 12 EC IDs not-yet-authored). D-001..D-134 (exhaustive). Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057.
+
+**Dim-2 Attestation:** No `canonical-facts.toml` mutation this burst. Canonical facts corpus unchanged.
+
+**Dim-5 Attestation:** STATE.md — timestamp 2026-08-09T01:30:00Z, version 3.2, status: draft, producer: state-manager. burst-log.md — 32 bursts. SESSION-HANDOFF.md — not updated this burst (D-134 snapshot is in STATE.md Session Resume Checkpoint).
+
+**Dim-6 Attestation:** IN_PROGRESS. 0 of 3 clean passes. Trajectory →0→32→34→39→37→259→273-275 UNCHANGED. No adversary pass dispatched; no clean pass recorded. Next convergence step: BI-056 + BI-057 through PR lifecycle → EC-151 burn → BI-052 → BI-053 → BI-054 → adversary pass 8 (streak from ZERO).
+
+**Dim-7 Attestation:** Agents dispatched this burst: state-manager only (gate #35 ruling + session wrap + factory-artifacts commit). No spec agents dispatched. No adversary dispatched.
+
+**Files touched (Dim-1): 3 unique files (factory-artifacts only — no develop-side changes this burst)**
+- `.factory/STATE.md`
+- `.factory/cycles/phase-1d/session-checkpoints.md`
+- `.factory/cycles/phase-1d/burst-log.md`
+
+**Closes:** N/A — no blockers closed this burst. **Updates:** BI-002 (gate #35 ruling recorded; BI-056+BI-057 prerequisite confirmed; D-133 queue established). BI-056 (D-133 confirms BI-056 closes BEFORE EC-151 burn). BI-057 (D-133 confirms BI-057 closes BEFORE EC-151 burn, D-132 EXTENDED to all nine checkers). **Adds:** D-133, D-134.
+

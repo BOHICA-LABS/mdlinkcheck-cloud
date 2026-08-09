@@ -175,4 +175,21 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 ---
 
+## Session Resume Checkpoint D-121 (2026-08-08) — archived from STATE.md by Burst-32
+
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-121`
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-08 |
+| **Position** | phase-1d; adversary pass 7 COMPLETE (273–275 findings / 45 CRITICAL; **0 of 3 clean passes**); gate #34 oracle repairs MERGED to develop (`da86271`); corrected post-merge baseline per D-130 (6 pass / 3 fail; 14 findings + 5 adjudication). |
+| **Convergence counter** | 0 of 3 clean passes; trajectory →0→32→34→39→37→259→273-275 |
+| **Next burst** | **(0) NEW PREREQUISITE — close BI-056 and BI-057 first** (oracle foundation not yet sound; D-072 principle — same reasoning that produced the oracles-first ruling); then (1) EC-151 burn + fresh hidden replacement (D-122 ruling 2), (2) BI-052 false-green VP attribution class, (3) BI-053 fragment percent-decode inversion, (4) BI-054 stale POL-14 directive across 33 BC files, (5) adversary pass 8 against the frozen perimeter with streak rules unchanged (streak counts from ZERO). spec-lint REQUIRED flip DEFERRED (D-117), now additionally blocked by BI-056/BI-057. Standing flags: D-126 calibration limitation; 7 of 12 reserved holdout EC IDs `not-yet-authored` (holdout pool ~58% notional — operator-ACKNOWLEDGED Phase-4 readiness item, no action this phase). |
+
+Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151 — operator attention warranted; ~58% notional, Phase-4 readiness concern). D-001..D-132 (exhaustive). Open BI: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057. BI-047/049/050/051 CLOSED (BI-050 qualified by BI-056; BI-051 qualified by BI-057). Corrected post-merge baseline per D-130: 6 pass / 3 fail, 14 findings + 5 adjudication. spec-lint REQUIRED flip DEFERRED (D-117/D-122), additionally blocked by BI-056/BI-057.
+
+*Superseded by D-134 session wrap (Burst-32).*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
