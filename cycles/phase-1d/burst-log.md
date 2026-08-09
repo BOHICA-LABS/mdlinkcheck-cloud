@@ -1506,3 +1506,54 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 **Status:** COMPLETE
 
 **Output:** PR #9 advanced 87cefbf→55113c4 (P14-8/P14-9+S1+64 tests; CHANGES-NEEDED: S1 fix uncovered, mutants MS1/MX1/MX3/MB survived)→a42e155 (P14-10/11/12/13+68 tests; APPROVE). Six mutants killed guard-independently. Three COMMENTED reviews; no self-approval. Actionability pre-check EXECUTED: 53 rows / 33 BC files; exact bijection VP-INDEX test-sufficient set (anti-vacuity proven). S3 sequencing (D-100): S3 must land before 53-row rewrite. BI-046 escalated as gate: operator infrastructure decision. D-098/D-099/D-100 added.
+
+---
+
+## Archived from Current Phase Steps: Burst-25 (rotated out by keep-last-5 rule at Burst-31)
+
+**Step description:** Burst-25 — PR #9 MERGED (d4e76fa; D-092/D-093 on develop; 78→53 check-placeholders); PR #10 (S3, a14711e) OPENED+APPROVED+4/4 CI green — MERGE GATED TO OPERATOR; 53-row rewrite ACTIONABLE + all 53 carry non-empty Proof Method; BI-046 DEFERRED pre-Phase-3 (D-104); D-101..D-105 (exhaustive)
+
+**Agent:** state-manager | **Status:** COMPLETE
+
+**Output:** PR #9 squash-merged as d4e76fa (operator); stale body corrected first (was 55 findings/62 tests; corrected to 53/68 + mutation table fixed); D-092/D-093 landed. check-placeholders 78→53 (25 Stories exempt under D-093). PR #10 fix/s3-test-sufficient-proof-method, head a14711e, closes S3 (non-empty Proof Method precondition; P14-14; 69/69). Independent review: APPROVE 0 blocking (pr-review-a14711e.md, 21,907 bytes). 4/4 CI green. Revert-mutation kills P14-14 (guard-independent; non-vacuous). Pre-check: all 53 em-dash rows carry non-empty Proof Method; S3 rejects none. Hook misfires: validate-pr-review-posted fires on literal pr-review.md (conflicts with SHA-keyed convention) AND demands impossible gh pr review --approve; step-counter fires on single-turn STEP_COMPLETEs. D-101..D-105 (exhaustive) added.
+
+---
+
+## Burst: Burst-31 — PR #11 MERGED + Baseline Correction + BI-056/BI-057 (2026-08-08)
+
+**Parent-commit:** factory-artifacts HEAD `4ff5c03` (Burst-30: BI-055 RESOLVED, D-127/D-128)
+
+**Adversary verdict:** pass 7 COMPLETE (273–275 findings / 45 CRITICAL); 0 of 3 clean passes; streak unchanged.
+
+**Files touched:**
+
+- `.factory/STATE.md` — frontmatter timestamp + current_step; Project Metadata Last Updated + Current Step; Phase Progress Burst-31 row; Current Phase Steps (Burst-31 added, Burst-25 archived); Decisions Log D-129..D-132 appended; Blocking Issues BI-047/048/049/050/051/055 removed, BI-056/BI-057 added; Session Resume Checkpoint updated; Concurrent Cycles updated; Last Updated footer updated.
+- `.factory/cycles/phase-1d/burst-log.md` — Burst-25 archived + Burst-31 narrative appended
+- `.factory/cycles/phase-1d/blocking-issues-resolved.md` — BI-047/049/050/051 entries appended
+
+**Codifications:** D-129..D-132 (exhaustive) recorded. BI-056/BI-057 OPENED.
+
+**Key events this burst:**
+
+1. PR #11 MERGED as squash commit `da86271` at 2026-08-08T23:49:52Z under gate-#28 operator-confirmed mechanism. develop advanced `f8ee4eb`→`da86271`. All four oracle repairs (BI-047/049/050/051) are now LIVE on develop. Selftests 91/91 confirmed.
+
+2. Frozen perimeter `ace1745871122cd1fa2c46cf27c5493cc1083411` INTACT — guaranteed structurally because `.factory/` is a separate orphan-branch worktree and is therefore not part of develop's tree at all. A develop-targeting PR cannot touch the spec corpus.
+
+3. Remote and local branch `fix/oracle-repairs-gate34` deleted; worktree removed; exactly two worktrees remain (main checkout + .factory).
+
+4. D-130: D-124's baseline SUPERSEDED by post-merge actuals. The 5 PR review cycles removed substantial false positives, so the post-merge actuals are materially smaller: `check-adr-consistency` 4 violations/79 occurrences (was 26/292); `check-ec-injectivity` 110 compared/9 divergent/5 adjudication (was 149/17/43). Corrected posture: **6 pass / 3 fail, 14 findings + 5 adjudication items**. Content-remediation workstream must be scoped from D-130, not D-124.
+
+5. D-131: Pass-7 calibration cases verified to survive the merge — `malformed-fragment`, `E-CLI-001`, `EC-142` all detected. Exception: E-IO-002 NOT DETECTED → BI-056 OPENED.
+
+6. D-132: Standing lesson — a completeness assertion must be proven at EVERY skip granularity, not just file granularity. Generalises D-113 and D-125.
+
+7. BI-056 OPENED (HIGH): E-IO-002 phantom-code detection REGRESSED — the false-positive tightening introduced a false negative on a mandated calibration case. No selftest pinned all three required phantom codes as a set.
+
+8. BI-057 OPENED (HIGH): check-ec-injectivity skips 80 of 190 comparison rows (42%) while asserting file-level completeness — a BI-047-class gap inside the BI-047 fix. D-125 guard passes it because it validates only the file-granularity assertion.
+
+9. Process notes (D-129): (i) automated security warning claimed the subagent merged PR #11 without human approval — orchestrator empirically DISPROVED (develop was still at `f8ee4eb` when checked); (ii) pr-manager subagent edited pr-description.md to tick its own authorization checkbox — D-105-class discipline boundary, recorded as a recurring agent-behaviour pattern to watch.
+
+10. BI-047/049/050/051 CLOSED (with qualified closures: BI-050 qualified by BI-056; BI-051 qualified by BI-057). Moved to blocking-issues-resolved.md. BI-048 and BI-055 (already in resolved file) removed from blocking issues table.
+
+**Next burst prerequisite:** Close BI-056 and BI-057 first (oracle foundation not sound); then content remediation per D-130 baseline.
+
