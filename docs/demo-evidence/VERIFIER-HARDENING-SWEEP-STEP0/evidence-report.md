@@ -10,16 +10,18 @@
 | AC | Description | Status |
 |----|-------------|--------|
 | AC-1 | Pre-flight guard: 0 unproven scope reductions; 10/10 primitives | PASS |
-| AC-2 | Full selftest suite: 99/99 pass | PASS |
+| AC-2 | Nine-checker selftest suite: 99/99 pass | PASS |
 | AC-5 | check-adr-consistency live corpus: 9 violations (79 reason-code + 6 E-class code occ) | PASS |
 | AC-6 | check-ec-injectivity live corpus: 174 citations compared; 42 divergent; 22 adjudication | PASS |
+| AC-7 | VEF selftest suite: 26/26 pass (each proved clean-pass + defect-fail) | PASS |
 
 ## Evidence Files
 
 - `AC-001-preflight.txt` — pre-flight guard output (15 checkers, 0 unproven, 10/10 primitives)
-- `AC-002-selftest-99of99.txt` — full selftest run confirming 99/99
+- `AC-002-selftest-99of99.txt` — nine-checker selftest run confirming 99/99
 - `AC-005-adr-consistency-live.txt` — live corpus run; 9 violations from 134 files
 - `AC-006-ec-injectivity-live.txt` — live corpus run; 42 divergent, 22 adjudication
+- `AC-007-vef-selftest.txt` — VEF selftest suite confirming 26/26 pass
 
 ## Key Baselines
 
@@ -42,3 +44,11 @@
 ## Selftest Run (99/99 confirmed)
 
 See `AC-002-selftest-99of99.txt`.
+
+## VEF Selftest Evidence
+
+VEF selftest suite (`scripts/tests/test-vef.py`): 26/26 pass.
+Each test proved DEFECT PRESENT (verifier exits non-zero) and DEFECT ABSENT (verifier exits 0).
+Covers T01-T26 including B-1 residual (T22-T24), B-3 structural (T25-T26), and all prior fixes.
+
+See `AC-007-vef-selftest.txt`.
