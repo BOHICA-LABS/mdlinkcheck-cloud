@@ -269,11 +269,27 @@ jobs:
       # ensures spec-lint job result is unaffected.
       # Item 0: script exits 2 (REFUSED) on post-merge / develop context — that
       # is not a CI failure; only exit 1 (FAIL) is a genuine check failure.
+      #
+      # B-5 fix: if: !cancelled() makes this step run even when the prior
+      # "Run spec validators" step exits 1 (tracked develop failures that this
+      # PR must not fix).  Without this the step is always skipped at head.
+      #
+      # Develop-ref guard: actions/checkout default depth=1 may not include the
+      # develop ref.  The verifier uses 'git rev-list develop..HEAD' which FATALs
+      # if develop is absent.  We fetch it and create a local branch; if the
+      # fetch fails (develop doesn't exist on remote) we skip gracefully.
       - name: Verify evidence figures (advisory)
+        if: ${{ !cancelled() }}
         continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
+          git fetch --no-tags --depth=50 origin develop:refs/remotes/origin/develop 2>/dev/null || true
+          git branch develop refs/remotes/origin/develop 2>/dev/null || true
+          if ! git rev-parse --verify --quiet develop >/dev/null 2>&1; then
+            echo "verify-evidence-figures: SKIPPED (develop ref unavailable in this checkout)"
+            exit 0
+          fi
           ret=0
           python3 scripts/verify-evidence-figures.py || ret=$?
           case $ret in
