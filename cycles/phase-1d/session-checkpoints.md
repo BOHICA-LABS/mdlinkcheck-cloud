@@ -192,4 +192,23 @@ Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies 
 
 ---
 
+## Session Resume Checkpoint D-134 (2026-08-09) — archived from STATE.md by Burst-33
+
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-134`
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-09 |
+| **Position** | phase-1d; gate #35 operator rulings recorded (D-133); D-130 authoritative baseline confirmed; D-132 ENDORSED and EXTENDED to all nine checkers; delivery split confirmed (checker code through PR lifecycle; artifact repairs direct to factory-artifacts). Zero open PRs. Exactly two worktrees (main checkout + .factory). Both branches synced with origin. |
+| **Convergence counter** | 0 of 3 clean passes; trajectory →0→32→34→39→37→259→273-275; trajectory-tail →39→37→259→273-275 |
+| **Next burst** | **(0) BI-056 + BI-057 through PR lifecycle** (D-072 principle: known false negative + 42% unproven row exclusion disqualifies oracle from scoping content work). Then in order: (1) EC-151 burn + fresh hidden replacement (D-122 ruling 2; D-020 precedent); (2) BI-052 false-green VP attribution class; (3) BI-053 fragment percent-decode inversion; (4) BI-054 stale POL-14 directive across 33 BC files; (5) adversary pass 8 (streak from ZERO; PG-012 ranges; D-057 skip-list rules). spec-lint REQUIRED flip DEFERRED (D-117/D-122/D-133). Merges operator-gated (D-120). |
+| **Branch state** | `develop` = `da86271` (four oracle repairs live; selftests 91/91). Zero open PRs. `factory-artifacts` = Burst-32 commit SHA. |
+| **Frozen perimeter** | `specs/` tree `ace1745871122cd1fa2c46cf27c5493cc1083411`. Guaranteed STRUCTURALLY because `.factory/` is a separate orphan-branch worktree; develop-targeting PRs cannot touch the spec corpus. |
+
+Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-134 (exhaustive). Open BI: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057. Corrected post-merge baseline D-130: 6 pass / 3 fail, 14 mechanical findings + 5 adjudication items. spec-lint REQUIRED flip DEFERRED (D-117/D-122/D-133), additionally blocked by BI-056/BI-057.
+
+*Superseded by D-143 session wrap (Burst-33).*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

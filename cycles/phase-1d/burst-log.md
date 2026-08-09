@@ -1599,3 +1599,154 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 **Closes:** N/A — no blockers closed this burst. **Updates:** BI-002 (gate #35 ruling recorded; BI-056+BI-057 prerequisite confirmed; D-133 queue established). BI-056 (D-133 confirms BI-056 closes BEFORE EC-151 burn). BI-057 (D-133 confirms BI-057 closes BEFORE EC-151 burn, D-132 EXTENDED to all nine checkers). **Adds:** D-133, D-134.
 
+---
+
+<!-- Archived from STATE.md Current Phase Steps — removed per keep-last-5 rule when Burst-33 was added -->
+
+## Archived: Burst-26 (displaced from STATE.md Current Phase Steps by Burst-33)
+
+**Step:** D-077 burn-down CLEAR; Full spec-lint GREEN (9/9) first time in the entire run; PR #10 MERGED (f8ee4eb; S3/D-100 non-empty Proof Method precondition live); 53-row VP-column sentinel rewrite COMPLETE (671109d; 33 BC files; diff purity verified; em-dash delta −53); check-placeholders=0; spec-lint REQUIRED flip mechanically satisfiable (D-109, scheduled Phase-1 gate); SESSION WRAP D-106.
+
+**Agent:** state-manager | **Status:** COMPLETE
+
+**Output:** D-106..D-109 (exhaustive) recorded. D-106 RESUME SNAPSHOT committed, superseding D-101. See full narrative at `cycles/phase-1d/burst-log.md §Burst-26 — D-077 BURN-DOWN CLEAR`.
+
+---
+
+## Burst-33 — Gates #36-#39 + PR #12 lifecycle (2026-08-09)
+
+**Parent-commit:** factory-artifacts HEAD at Burst-32 session wrap (Burst-32 commit: gate #35 ruling + D-134 RESUME SNAPSHOT)
+
+**Adversary verdict:** Pass 7 COMPLETE (273–275 findings / 45 CRITICAL); 0 of 3 clean passes; streak UNCHANGED. No new adversary pass dispatched this burst.
+
+**Summary:** PR #12 (`fix/checker-completeness-gate35`) progressed through three complete review cycles. Cycle-1 and cycle-2 each produced BLOCKING findings; all three cycle-2 blockers were fixed at `ca8c1c0`. Cycle-3 review: 0 BLOCKING findings, 2 NITs; security APPROVE. BI-056/BI-057 are REPAIRED-PENDING-MERGE. D-132 audit record created (`d132-checker-audit.md`). BI-058 OPENED (D-132 audit: guard INERT + 5 false-green checkers). CI-063 RECORDED (recurring auto-mode classifier friction). D-135..D-143 (exhaustive) allocated. Session wrap D-143 committed.
+
+---
+
+### Gate #36 — PR #12 Scope + Guard Rebuild Depth (D-135/D-136)
+
+**D-135 (operator gate #36 ruling 1 — PR #12 scope):** Fold E-code gaps (AC-1/AC-2/AC-3/AC-7) into PR #12; route ADRs through the broad-corpus path so Pattern 4 + occurrence counting apply uniformly. Count and disclose the frontmatter skip and the dedup skip so the total reconciles to 8. "BI-056 closes honestly or not at all."
+
+**D-136 (operator gate #36 ruling 2 — guard rebuild depth):** Coverage ledger + anti-tautology check across all nine checkers, PLUS the HS-INDEX `required_files` fix and the `run_suppression_guard` Pass-1 fail-open fix are REQUIRED. AST walk and narrow-literal detector EXPLICITLY SKIPPED by operator decision — narrow-literal class stays on reviewer vigilance; accepted because checker layer is a replacement candidate and pass 8 is the schedule priority. D-132's proof obligation satisfied by the independent-probe ledger (D-141 amended ruling 2), not the AST layer.
+
+---
+
+### BI-056 Fold — Four ADR Audit Defects Closed (D-137)
+
+**Commit `fd74bd7` — BI-056 fold delivering AC-1/AC-2/AC-3/AC-7:**
+
+- **AC-3 (CRITICAL):** ADR code path never ran Pattern 4 — the original BI-056 fix had shipped without reaching the ADR branch at all. E-class detection was absent from all ADR files despite POLICY 12 textually surviving.
+- **AC-2:** ADRs contributed 0 occurrences while counting toward "134 of 134 complete" — the BI-057 signature (file-level assertion TRUE, row-level population zero) reproduced in a sibling checker.
+- **AC-1:** YAML-frontmatter exclusion was silent, hiding 2 of the 8 corpus E-class occurrences; the exclusion itself is legitimate but the invisibility was the defect.
+- **AC-7:** Pattern-4 dedup let Pattern 3 claim `E-CLI-001` first, then validated it against the wrong registry (ADR-specific rather than the corpus-wide closed set).
+
+E-class detections on the live corpus: **5→6**. POLICY 12 coverage preserved — `check_adr()` textually unchanged.
+
+---
+
+### PR #12 Cycle-2 Review — Three BLOCKING Findings (D-138/D-139/D-140)
+
+**BLOCKING-1 (D-138) — E-class reconciliation was a TAUTOLOGY:**
+
+The E-class population variable `e_population` was DEFINED as `total_e_occurrences + total_frontmatter_e_skipped` — then the reconciliation asserted `e_population == total_e_occurrences + total_frontmatter_e_skipped`. Literally `x == x`. Unfalsifiable for all inputs.
+
+Proven empirically by the reviewer and independently re-verified by the orchestrator: injecting an undeclared table-line skip before the Pattern 4 loop dropped E-code detections 6→3 and violations 9→6 on the live corpus while the reconciliation still closed (`5 = 3 + 2`), the summary still printed `134 of 134 spec files (complete)`, and all four new selftests still passed.
+
+**Standing lesson:** A population derived from the same matching machinery and routing path it is meant to audit proves nothing. Closure of a ledger is NOT evidence of coverage. Acceptance criteria for completeness gates must require a demonstrated FAILING case — a population that cannot be defeated is not a population.
+
+**BLOCKING-2 (D-139) — ADR reason-code violations double-reported:**
+
+Calling `check_broad_corpus()` on ADRs in addition to `check_adr()` ran two independent POLICY 19 reason-code detectors over the same tokens. One ADR defect produced two violation entries. Zero live impact today (0 ADR reason-code violations on the current corpus) but `len(violations)` — the baseline metric shipped downstream — was no longer injective.
+
+Fixed by restricting the ADR path to E-class detection only (`e_class_only` mode); measured-zero loss. Disclosed residual: ADRs do not receive Pattern 2/verdict-parenthetical or Pattern 3/taxonomy-reference detection (they never did pre-fold either). The "do not lose POLICY 12" instruction produced additive routing — the inverse defect class: guarding against coverage loss created double-counting.
+
+**BLOCKING-3 (D-140) — Evidence bundle stale by two commits:**
+
+The headline deliverable (E-class population reconciliation) appeared in NO committed evidence artifact at the time of cycle-2 review. The evidence had not been refreshed since two commits prior. Evidence refreshed at new head `ca8c1c0` with an exercise of the reconciliation and its fail case. Evidence must reflect the actual head being reviewed, not a prior state.
+
+---
+
+### Gate #39 — Operator Rulings + D-136 Amendment (D-141/D-142)
+
+**D-141 (gate #39 operator ruling + D-136 AMENDED):**
+
+All three cycle-2 BLOCKING fixes APPROVED: print+return-2 over assert; the mutation-verified selftest injecting an undeclared skip; and the NIT-1 table-cell fixture (a nit that causally explains a surviving mutant is not a nit — it is BLOCKING).
+
+**Ruling 2 AS AMENDED now reads:** Coverage ledgers with INDEPENDENT-PROBE (canary) populations, deliberately WIDER than the detector, are MANDATORY for all nine checkers. Without the independent-probe constraint, the nine-checker sweep could manufacture nine tautologies — the exact class the sweep exists to eliminate.
+
+**D-142 — BLOCKING-1 fix VERIFIED by orchestrator directly (not agent self-report):**
+
+With the independent canary in place, the same table-line mutant now yields:
+`ERROR: E-class accounting gap — population=8 != examined=3 + skipped=2; an E-class occurrence is being dropped by an undeclared routing path`, **exit 2**.
+
+Unmutated: `population=8, examined=6, skipped=2 (frontmatter, D-081)`, gate passes.
+
+Pattern for the nine-checker sweep: each checker's canary must be verified by an independent probe that FAILS on the target defect class. Direct orchestrator verification, not agent self-report, closes the D-138 class.
+
+---
+
+### D-132 Audit Record Created
+
+**`cycles/phase-1d/d132-checker-audit.md` CREATED (215 lines):**
+
+- Documents the D-125 suppression guard as INERT on all 15 production files (zero trip either SUPPRESSION_PATTERN or PATH_SHAPE_PATTERN; Pass 2 never executes)
+- Five false-green checkers documented with skip-site inventories
+- Accepted residual risk (narrow-literal class under reviewer vigilance, D-136/D-141 operator decision) recorded verbatim
+- Priority-ranked silent sites table (7 rows)
+- Scope of required sweep per D-141 amended ruling 2 defined
+
+**BI-058 OPENED (HIGH):** D-132 audit — suppression guard INERT + five false-green checkers. Prerequisite to pass 8. Full details in `cycles/phase-1d/d132-checker-audit.md`.
+
+---
+
+### CI-063 Recorded
+
+**CI-063 — Recurring auto-mode classifier friction on `scripts/spec-lint/**`:**
+
+~1,027s direct wall time across 4 blocked runs (~9.7% of session wall time). Root causes: (1) authorization relayed mid-session by a parent agent is refused; (2) `validate-pr-review-posted` hook demands `gh pr review` which is structurally impossible in this repo. Narrowest viable mitigation: embed operator authorization verbatim in each implementer's INITIAL SPAWN PROMPT at nine-checker sweep kickoff. No structural change without operator authorization.
+
+---
+
+### PR #12 Final State (Session Close)
+
+- Branch: `fix/checker-completeness-gate35`, head `ca8c1c0`
+- Seven commits: `2349184`, `d3085d9`, `879efff`, `1dd7721`, `fd74bd7`, `b4bbbc3`, `ca8c1c0`
+- Cycle-3 review: 0 BLOCKING findings, 2 NITs (NIT-1 resolved at `ca8c1c0`)
+- Security review: 0 new findings, APPROVE
+- Selftests: **91→98**, all mutation-verified
+- Awaiting operator-confirmed merge (D-120, gate-#28 mechanism)
+- Provisional baseline at `ca8c1c0`: 6 pass / 3 fail — **CAVEAT per D-132 audit: several "passing" checkers are FALSE GREENS (BI-058)**
+
+---
+
+### Decisions Codified
+
+D-135..D-143 (exhaustive):
+- D-135: Gate #36 ruling 1 — PR #12 scope (E-code fold; disclose all skip counts)
+- D-136: Gate #36 ruling 2 — guard rebuild depth (ledger + anti-tautology mandatory; AST/narrow-literal SKIPPED by operator)
+- D-137: BI-056 fold DELIVERED at fd74bd7 (AC-1/2/3/7 closed; E-class 5→6)
+- D-138: BLOCKING-1 tautological E-class reconciliation — population derived from audited machinery proves nothing
+- D-139: BLOCKING-2 ADR double-reporting via e_class_only mode; inverted defect class from over-guarding
+- D-140: BLOCKING-3 evidence staleness — evidence must reflect actual reviewed head
+- D-141: Gate #39 + D-136 AMENDED — independent-probe canary populations MANDATORY for all nine checkers
+- D-142: BLOCKING-1 fix verified by orchestrator (exit 2 on mutant; exit 0 clean)
+- D-143: Session wrap RESUME SNAPSHOT D-143, superseding D-134
+
+---
+
+### Artifact State at Burst Close
+
+PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (7 of 12 EC IDs not-yet-authored). D-001..D-143 (exhaustive). Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057/058. CI-063 recorded. BI-056/BI-057 REPAIRED-PENDING-MERGE (ca8c1c0). specs/ tree `ace1745871122cd1fa2c46cf27c5493cc1083411` VERIFIED UNCHANGED throughout PR #12 lifecycle.
+
+---
+
+### Files Touched (factory-artifacts only — no develop-side changes this burst)
+
+- `.factory/STATE.md` — D-135..D-143 appended; BI-056/BI-057 updated REPAIRED-PENDING-MERGE; BI-058 added; CI-063 added; Session Resume Checkpoint updated to D-143; Historical Content row for d132-checker-audit.md added; banner corrected (338 lines, dual-margin form); trajectory tails at current_step and Last Updated cell
+- `.factory/cycles/phase-1d/d132-checker-audit.md` — CREATED (215 lines)
+- `.factory/cycles/phase-1d/burst-log.md` — Burst-26 archived section + this entry
+- `.factory/cycles/phase-1d/session-checkpoints.md` — D-134 checkpoint archived
+- `.factory/cycles/phase-1d/lessons.md` — lessons 47–52 appended
+
+**Closes:** N/A — BI-056/BI-057 repairs pending merge. **Opens:** BI-058 (D-132 audit scope; prerequisite to pass 8). **Records:** CI-063. **Adds:** D-135..D-143 (exhaustive).
+
