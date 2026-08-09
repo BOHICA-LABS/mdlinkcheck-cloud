@@ -275,6 +275,7 @@ def check_broad_corpus(
     path: Path,
     valid_reason_codes: set[str],
     valid_e_codes: set[str],
+    e_class_only: bool = False,
 ) -> tuple[list[str], int, int, int]:
     """
     POLICY 19: check any spec file for reason code and E-class code violations.
@@ -306,6 +307,12 @@ def check_broad_corpus(
     them as current.  No file-path-keyed exclusion list is used.  E-class codes found
     in frontmatter are counted in frontmatter_e_skipped (not as violations) so the
     population reconciliation is complete and every occurrence is disclosed.
+
+    e_class_only: if True, run Pattern 4 (E-class detection) only; skip
+        Patterns 1-3 (reason-code detection).  Used for the ADR path to avoid
+        double-counting with check_adr(), which already performs POLICY 19
+        reason-code scanning.  When True, reason_code_occurrences in the return
+        value is always 0.  Table-structure parsing state is also skipped.
     """
     violations: list[str] = []
     occurrences = 0
@@ -353,104 +360,122 @@ def check_broad_corpus(
                 frontmatter_e_skipped += 1
             continue
 
-        # Parse table structure for Pattern 1 positional predicate
-        cells = slp.split_table_cells(line)
-        is_table_line = bool(cells)
+        # ── Patterns 1-3: reason-code detection (BLOCKING-2 fix: skip in e_class_only mode) ──
+        # When e_class_only=True (ADR path), check_adr() already handles POLICY 19
+        # reason-code scanning; running these patterns too would double-count violations.
+        if not e_class_only:
+            # Parse table structure for Pattern 1 positional predicate
+            cells = slp.split_table_cells(line)
+            is_table_line = bool(cells)
 
-        # Section-boundary reset: when we leave a table (any non-table line — blank,
-        # prose, heading, HR `---`), clear the Reason column tracking. The next table
-        # section's header will set it fresh. Prevents a §2 "Reason" column index from
-        # bleeding into an adjacent §3 "Notes" column (different schema). (BLOCKING-3)
-        if not is_table_line:
-            current_reason_col_p1 = None
-            prev_row_cells = None
-
-        if is_table_line:
-            if slp.is_table_separator_row(cells):
-                # Separator confirms the previous row was a table header.
-                # (BLOCKING-5c) Only update current_reason_col_p1 from a confirmed header
-                # row — never from a data row, which prevents a data cell whose value is
-                # exactly "reason" from hijacking the column index and masking phantoms.
-                if prev_row_cells is not None:
-                    for i, cell in enumerate(prev_row_cells):
-                        if cell.lower() in ("reason", "reason code"):
-                            current_reason_col_p1 = i
-                            break
+            # Section-boundary reset: when we leave a table (any non-table line — blank,
+            # prose, heading, HR `---`), clear the Reason column tracking. The next table
+            # section's header will set it fresh. Prevents a §2 "Reason" column index from
+            # bleeding into an adjacent §3 "Notes" column (different schema). (BLOCKING-3)
+            if not is_table_line:
+                current_reason_col_p1 = None
                 prev_row_cells = None
-            else:
-                # Non-separator row: remember it as a candidate header row.
-                # It is confirmed as a header only if the NEXT line is a separator.
-                prev_row_cells = cells
 
-        # Per-line deduplication: avoid double-counting same code on same line.
-        # seen_codes_this_line: dedup for Patterns 1-3 (reason-code namespace).
-        # seen_e_codes_this_line: separate dedup for Pattern 4 (E-class namespace).
-        # AC-7 (Defect 4): keeping these sets SEPARATE ensures E-class codes are never
-        # shadowed by Pattern 3 adding them to seen_codes_this_line first.
-        seen_codes_this_line: set[str] = set()
-        seen_e_codes_this_line: set[str] = set()
-
-        # ── Pattern 1: positional predicate (BLOCKING-3) ─────────────────────────
-        # Replaces the broad keyword-in-line context guard with position-based detection.
-        # Only tokens in syntactic reason-code positions are candidates.
-        if is_table_line:
-            # Table row: only scan the Reason column cell (if known and this is a data row).
-            # Separator-confirmed header detection (BLOCKING-5c) means current_reason_col_p1
-            # is only set AFTER the separator row — true header rows are never processed here.
-            # The `current_reason_col_p1 is not None` guard below prevents any confusion.
-            # The old `is_header_row` variable (any cell == "reason") was redundant and caused
-            # BLOCKING-6: data rows whose first cell was literally "reason" were silently
-            # skipped, hiding phantom codes in the Reason column of those rows.
-            if (not slp.is_table_separator_row(cells)
-                    and current_reason_col_p1 is not None
-                    and current_reason_col_p1 < len(cells)):
-                reason_cell = cells[current_reason_col_p1]
-                reason_stripped = reason_cell.strip()
-                # Two-branch token guard (BLOCKING-3 repair, BLOCKING-5a/5b, WARNING-8):
-                #
-                # Branch A — backtick-quoted cell: extract the leading backtick-quoted token,
-                #   allowing optional trailing annotation that starts with '(' or '[' only
-                #   (e.g., `phantom-gamma` (per D-018)).  WARNING-8: the trailing annotation
-                #   anchor `(?:\s*[([].*)?$` excludes prose cells like
-                #   `` `pulldown-cmark` handles this correctly per CommonMark `` whose trailing
-                #   text starts with a letter, not '(' or '['.
-                #   (BLOCKING-5a) [A-Za-z] catches uppercase-leading codes like `E-IO-002`.
-                #   (BLOCKING-5b) re.match (not fullmatch) allows trailing annotation text.
-                #
-                # Branch B — bare token: the entire cell must be a single lowercase hyphenated
-                #   token (re.fullmatch, [a-z]).  This preserves the BLOCKING-3 guard against
-                #   CapCase prose cells like "Dot-dir skipped by default" or "Non-UTF-8
-                #   reported as I/O error" — they fail [a-z] (uppercase first letter) and are
-                #   silently excluded, exactly as before.  Bare lowercase annotated cells like
-                #   "file-not-found (default)" are also handled here via re.match + [a-z].
-                if reason_stripped.startswith("`"):
-                    # Branch A: backtick-quoted leading token — allows trailing annotation
-                    # that begins with '(' or '[' (e.g., `phantom-gamma` (per D-018)).
-                    # WARNING-8: the `(?:\s*[([].*)?$` anchor prevents prose cells whose
-                    # trailing text starts with a letter from matching as reason codes.
-                    m_simple = re.match(r"`?([A-Za-z][a-zA-Z0-9-]{2,})`?(?:\s*[([].*)?$", reason_stripped)
+            if is_table_line:
+                if slp.is_table_separator_row(cells):
+                    # Separator confirms the previous row was a table header.
+                    # (BLOCKING-5c) Only update current_reason_col_p1 from a confirmed header
+                    # row — never from a data row, which prevents a data cell whose value is
+                    # exactly "reason" from hijacking the column index and masking phantoms.
+                    if prev_row_cells is not None:
+                        for i, cell in enumerate(prev_row_cells):
+                            if cell.lower() in ("reason", "reason code"):
+                                current_reason_col_p1 = i
+                                break
+                    prev_row_cells = None
                 else:
-                    # Branch B: bare token — the entire cell must be a single lowercase
-                    # hyphenated token (re.fullmatch + [a-z]).  This preserves the
-                    # BLOCKING-3 guard: prose cells like "Dot-dir skipped by default" or
-                    # "edge-case match" fail fullmatch (trailing words) or fail [a-z]
-                    # (CapCase), so they are silently excluded exactly as before.
-                    m_simple = re.fullmatch(r"([a-z][a-z0-9-]{2,})", reason_stripped)
-                if m_simple:
-                    code = m_simple.group(1)
-                    if code not in seen_codes_this_line and _is_reason_code_candidate(code):
-                        seen_codes_this_line.add(code)
-                        occurrences += 1
-                        if code not in valid_reason_codes:
-                            violations.append(
-                                f"{path}:{lineno}: reason code '{code}' not in closed taxonomy "
-                                f"(POLICY 19)\n"
-                                f"  {line.strip()[:100]}"
-                            )
-        else:
-            # Prose line: use positional patterns (BLOCKING-3 positions 2 and 3)
-            # Matches: "reason code `X`", "reason: `X`", "sub_reason `X`"
-            for m in _PROSE_REASON_CODE_RE.finditer(line):
+                    # Non-separator row: remember it as a candidate header row.
+                    # It is confirmed as a header only if the NEXT line is a separator.
+                    prev_row_cells = cells
+
+            # Per-line dedup for Patterns 1-3 (reason-code namespace).
+            # AC-7 (Defect 4): kept SEPARATE from seen_e_codes_this_line (Pattern 4)
+            # so E-class codes are never shadowed by Pattern 3 claiming them first.
+            seen_codes_this_line: set[str] = set()
+
+            # ── Pattern 1: positional predicate (BLOCKING-3) ─────────────────────
+            # Replaces the broad keyword-in-line context guard with position-based detection.
+            # Only tokens in syntactic reason-code positions are candidates.
+            if is_table_line:
+                # Table row: only scan the Reason column cell (if known and this is a data row).
+                # Separator-confirmed header detection (BLOCKING-5c) means current_reason_col_p1
+                # is only set AFTER the separator row — true header rows are never processed here.
+                # The `current_reason_col_p1 is not None` guard below prevents any confusion.
+                # The old `is_header_row` variable (any cell == "reason") was redundant and caused
+                # BLOCKING-6: data rows whose first cell was literally "reason" were silently
+                # skipped, hiding phantom codes in the Reason column of those rows.
+                if (not slp.is_table_separator_row(cells)
+                        and current_reason_col_p1 is not None
+                        and current_reason_col_p1 < len(cells)):
+                    reason_cell = cells[current_reason_col_p1]
+                    reason_stripped = reason_cell.strip()
+                    # Two-branch token guard (BLOCKING-3 repair, BLOCKING-5a/5b, WARNING-8):
+                    #
+                    # Branch A — backtick-quoted cell: extract the leading backtick-quoted token,
+                    #   allowing optional trailing annotation that starts with '(' or '[' only
+                    #   (e.g., `phantom-gamma` (per D-018)).  WARNING-8: the trailing annotation
+                    #   anchor `(?:\s*[([].*)?$` excludes prose cells like
+                    #   `` `pulldown-cmark` handles this correctly per CommonMark `` whose trailing
+                    #   text starts with a letter, not '(' or '['.
+                    #   (BLOCKING-5a) [A-Za-z] catches uppercase-leading codes like `E-IO-002`.
+                    #   (BLOCKING-5b) re.match (not fullmatch) allows trailing annotation text.
+                    #
+                    # Branch B — bare token: the entire cell must be a single lowercase hyphenated
+                    #   token (re.fullmatch, [a-z]).  This preserves the BLOCKING-3 guard against
+                    #   CapCase prose cells like "Dot-dir skipped by default" or "Non-UTF-8
+                    #   reported as I/O error" — they fail [a-z] (uppercase first letter) and are
+                    #   silently excluded, exactly as before.  Bare lowercase annotated cells like
+                    #   "file-not-found (default)" are also handled here via re.match + [a-z].
+                    if reason_stripped.startswith("`"):
+                        # Branch A: backtick-quoted leading token — allows trailing annotation
+                        # that begins with '(' or '[' (e.g., `phantom-gamma` (per D-018)).
+                        # WARNING-8: the `(?:\s*[([].*)?$` anchor prevents prose cells whose
+                        # trailing text starts with a letter from matching as reason codes.
+                        m_simple = re.match(r"`?([A-Za-z][a-zA-Z0-9-]{2,})`?(?:\s*[([].*)?$", reason_stripped)
+                    else:
+                        # Branch B: bare token — the entire cell must be a single lowercase
+                        # hyphenated token (re.fullmatch + [a-z]).  This preserves the
+                        # BLOCKING-3 guard: prose cells like "Dot-dir skipped by default" or
+                        # "edge-case match" fail fullmatch (trailing words) or fail [a-z]
+                        # (CapCase), so they are silently excluded exactly as before.
+                        m_simple = re.fullmatch(r"([a-z][a-z0-9-]{2,})", reason_stripped)
+                    if m_simple:
+                        code = m_simple.group(1)
+                        if code not in seen_codes_this_line and _is_reason_code_candidate(code):
+                            seen_codes_this_line.add(code)
+                            occurrences += 1
+                            if code not in valid_reason_codes:
+                                violations.append(
+                                    f"{path}:{lineno}: reason code '{code}' not in closed taxonomy "
+                                    f"(POLICY 19)\n"
+                                    f"  {line.strip()[:100]}"
+                                )
+            else:
+                # Prose line: use positional patterns (BLOCKING-3 positions 2 and 3)
+                # Matches: "reason code `X`", "reason: `X`", "sub_reason `X`"
+                for m in _PROSE_REASON_CODE_RE.finditer(line):
+                    code = m.group(1)
+                    if code in seen_codes_this_line:
+                        continue
+                    if not _is_reason_code_candidate(code):
+                        continue
+                    seen_codes_this_line.add(code)
+                    occurrences += 1
+                    if code not in valid_reason_codes:
+                        violations.append(
+                            f"{path}:{lineno}: reason code '{code}' not in closed taxonomy "
+                            f"(POLICY 19)\n"
+                            f"  {line.strip()[:100]}"
+                        )
+
+            # ── Pattern 2: verdict + parenthetical reason code ────────────────────
+            # BLOCKING-2: apply _is_reason_code_candidate() to exclude spec ref IDs (D-018, DI-010)
+            for m in VERDICT_PAREN_CODE_RE.finditer(line):
                 code = m.group(1)
                 if code in seen_codes_this_line:
                     continue
@@ -460,52 +485,35 @@ def check_broad_corpus(
                 occurrences += 1
                 if code not in valid_reason_codes:
                     violations.append(
-                        f"{path}:{lineno}: reason code '{code}' not in closed taxonomy "
+                        f"{path}:{lineno}: verdict reason code '{code}' not in closed taxonomy "
                         f"(POLICY 19)\n"
                         f"  {line.strip()[:100]}"
                     )
 
-        # ── Pattern 2: verdict + parenthetical reason code ────────────────────────
-        # BLOCKING-2: apply _is_reason_code_candidate() to exclude spec ref IDs (D-018, DI-010)
-        for m in VERDICT_PAREN_CODE_RE.finditer(line):
-            code = m.group(1)
-            if code in seen_codes_this_line:
-                continue
-            if not _is_reason_code_candidate(code):
-                continue
-            seen_codes_this_line.add(code)
-            occurrences += 1
-            if code not in valid_reason_codes:
-                violations.append(
-                    f"{path}:{lineno}: verdict reason code '{code}' not in closed taxonomy "
-                    f"(POLICY 19)\n"
-                    f"  {line.strip()[:100]}"
-                )
-
-        # ── Pattern 3: taxonomy-reference parenthetical ───────────────────────────
-        # BLOCKING-2: apply _is_reason_code_candidate() to exclude spec ref IDs.
-        # AC-7 (Defect 4): E-class codes (E-[A-Z]{2,4}-NNN) are explicitly excluded
-        # here and routed to Pattern 4 instead.  TAXONOMY_CODE_RE can match
-        # "(consistent with E-CLI-001 taxonomy)" but E-CLI-001 is an E-class code,
-        # not a reason code; validating it against valid_reason_codes (the reason-code
-        # registry) is the wrong registry and suppresses the Pattern 4 E-class finding.
-        for m in TAXONOMY_CODE_RE.finditer(line):
-            code = m.group(1)
-            if code in seen_codes_this_line:
-                continue
-            if not _is_reason_code_candidate(code):
-                continue
-            # AC-7: route E-class codes to Pattern 4, not the reason-code path
-            if re.fullmatch(r"E-[A-Z]{2,4}-\d{3}", code):
-                continue
-            seen_codes_this_line.add(code)
-            occurrences += 1
-            if code not in valid_reason_codes:
-                violations.append(
-                    f"{path}:{lineno}: taxonomy reference '{code}' not in closed taxonomy "
-                    f"(POLICY 19)\n"
-                    f"  {line.strip()[:100]}"
-                )
+            # ── Pattern 3: taxonomy-reference parenthetical ──────────────────────
+            # BLOCKING-2: apply _is_reason_code_candidate() to exclude spec ref IDs.
+            # AC-7 (Defect 4): E-class codes (E-[A-Z]{2,4}-NNN) are explicitly excluded
+            # here and routed to Pattern 4 instead.  TAXONOMY_CODE_RE can match
+            # "(consistent with E-CLI-001 taxonomy)" but E-CLI-001 is an E-class code,
+            # not a reason code; validating it against valid_reason_codes (the reason-code
+            # registry) is the wrong registry and suppresses the Pattern 4 E-class finding.
+            for m in TAXONOMY_CODE_RE.finditer(line):
+                code = m.group(1)
+                if code in seen_codes_this_line:
+                    continue
+                if not _is_reason_code_candidate(code):
+                    continue
+                # AC-7: route E-class codes to Pattern 4, not the reason-code path
+                if re.fullmatch(r"E-[A-Z]{2,4}-\d{3}", code):
+                    continue
+                seen_codes_this_line.add(code)
+                occurrences += 1
+                if code not in valid_reason_codes:
+                    violations.append(
+                        f"{path}:{lineno}: taxonomy reference '{code}' not in closed taxonomy "
+                        f"(POLICY 19)\n"
+                        f"  {line.strip()[:100]}"
+                    )
 
         # ── Pattern 4: E-class code namespace detector (BI-056) ──────────────────
         # Detects error-class codes (E-[A-Z]{2,4}-NNN) INDEPENDENTLY of prose shape.
@@ -518,6 +526,9 @@ def check_broad_corpus(
         # claim E-CLI-001 from "(consistent with E-CLI-001 taxonomy)", add it to
         # seen_codes_this_line, count it as a reason-code occurrence (wrong registry),
         # and Pattern 4 would silently skip it via `if code in seen_codes_this_line`.
+        # Declared here (outside the e_class_only guard) so Pattern 4 always has its
+        # dedup set regardless of mode.
+        seen_e_codes_this_line: set[str] = set()
         for m in E_CLASS_CODE_RE.finditer(line):
             code = m.group(1)
             if code in seen_e_codes_this_line:
@@ -603,12 +614,17 @@ def main() -> int:
         # POLICY 12: ADR-specific checks (unchanged)
         file_violations = check_adr(adr_file, valid_codes)
         violations.extend(file_violations)
-        # POLICY 19: broad-corpus Pattern 4 + occurrence counting for ADRs
+        # POLICY 19 Pattern 4: E-class detection only for ADRs (BLOCKING-2 fix).
+        # Patterns 1/2/3 (reason-code detection) are NOT applied to the ADR path;
+        # check_adr() above already covers POLICY 19 reason-code violations for ADRs,
+        # and running check_broad_corpus() with all patterns would double-count them.
+        # ADR reason-code occurrences are therefore NOT counted in total_occurrences;
+        # disclosed explicitly below (named gap, not silent omission — anti-BI-047).
         new_v, new_occ, new_e_occ, new_fm_e_skipped = check_broad_corpus(
-            adr_file, valid_codes, valid_e_codes
+            adr_file, valid_codes, valid_e_codes, e_class_only=True
         )
         violations.extend(new_v)
-        total_occurrences += new_occ
+        total_occurrences += new_occ  # always 0 with e_class_only=True
         total_e_occurrences += new_e_occ
         total_frontmatter_e_skipped += new_fm_e_skipped
 
@@ -636,20 +652,48 @@ def main() -> int:
         )
         return 2
 
-    # ── E-class population reconciliation (AC-1 acceptance test) ──────────────
-    # population is DERIVED by scanning (examined + skipped) — NOT hardcoded.
-    # examined: E-class codes found in non-frontmatter content by Pattern 4.
-    # skipped:  E-class codes found in frontmatter (legitimate exclusion, D-081).
-    # HARD RUNTIME ASSERTION: examined + skipped = population.
-    # Invariant: every E-class occurrence in the corpus is accounted for in one of
-    # the two named buckets.  A future change that adds a third routing category
-    # (e.g., a new named exclusion) must update this assertion explicitly —
-    # that is precisely how BI-056 stayed hidden: the frontmatter bucket was missing.
-    e_population = total_e_occurrences + total_frontmatter_e_skipped
-    assert e_population == total_e_occurrences + total_frontmatter_e_skipped, (
-        f"BUG: E-class accounting error: population={e_population} "
-        f"!= examined={total_e_occurrences} + skipped={total_frontmatter_e_skipped}"
+    # Named gap disclosure (BLOCKING-2 fix): ADR reason-code occurrences are NOT
+    # counted in total_occurrences.  Pattern 2/3 (reason-code detection) was not
+    # applied to the {adrs_checked} ADR files; POLICY 19 reason-code violations
+    # for ADRs are detected by check_adr() above.  Named explicitly to prevent
+    # BI-047-class silent omissions.
+    print(
+        f"ADR reason-code occurrences: 0 counted toward reason-code total "
+        f"({adrs_checked} ADR files; Patterns 1-3 not applied — "
+        f"deliberate named gap, avoids check_adr() overlap)"
     )
+
+    # ── E-class population reconciliation (AC-1 acceptance test) ──────────────
+    # INDEPENDENT GROUND-TRUTH PROBE: scans the corpus with a deliberately WIDER
+    # canary regex that does NOT reuse check_broad_corpus()'s routing, continue
+    # logic, or E_CLASS_CODE_RE.  Canary: (?<![A-Za-z0-9])E-[A-Z]+-\d+  (no
+    # {2,4} cap on namespace width, no {3} cap on digit suffix — wider than the
+    # E-[A-Z]{2,4}-\d{3} detector) so narrowing the detector also surfaces as a
+    # gap rather than shrinking both sides together.
+    #
+    # Invariant: every E-class occurrence found by the canary must be accounted
+    # for in one of the two named buckets (examined | frontmatter-skipped).
+    # A mismatch means an occurrence is dropped by an undeclared routing path
+    # (e.g., a future `if is_table_line: continue` before Pattern 4).
+    #
+    # Uses print+return 2, NOT assert.  assert is stripped entirely under
+    # python -O; the three sibling completeness gates above use the same pattern.
+    E_CLASS_CANARY_RE = re.compile(r"(?<![A-Za-z0-9])E-[A-Z]+-\d+")
+    e_population = 0
+    for f in sorted(SPECS.rglob("*.md")):
+        if not _in_spec_corpus(f):
+            continue
+        for line in slp.cm_splitlines(f.read_text(encoding="utf-8")):
+            e_population += len(set(E_CLASS_CANARY_RE.findall(line)))
+
+    if e_population != total_e_occurrences + total_frontmatter_e_skipped:
+        print(
+            f"ERROR: E-class accounting gap — population={e_population} != "
+            f"examined={total_e_occurrences} + skipped={total_frontmatter_e_skipped}; "
+            f"an E-class occurrence is being dropped by an undeclared routing path"
+        )
+        return 2
+
     e_recon_line = (
         f"E-class population: population={e_population}, "
         f"examined={total_e_occurrences}, "

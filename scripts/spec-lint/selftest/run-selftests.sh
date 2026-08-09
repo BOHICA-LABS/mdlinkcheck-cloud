@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=96
+EXPECTED_TEST_COUNT=98
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -5795,20 +5795,26 @@ IFACE5KBAD
 fi
 rm -rf "$T"
 
-# ── Test 5l (AC-3+AC-2): check-adr-consistency — E-class code in ADR body detected ──
+# ── Test 5l (AC-3+AC-2): check-adr-consistency — E-class code in ADR TABLE CELL detected ──
 # Proves Defects 1 and 2 fixed: ADR files now receive Pattern 4 E-class detection and
 # occurrence counting via check_broad_corpus() in addition to POLICY 12 via check_adr().
 # ADDITIVE: check_adr() is called unchanged; check_broad_corpus() is the new addition.
 #
-# Clean tree: ADR with only valid content and no E-class codes → exit 0.
-# Defect: add E-class code to ADR body prose → Pattern 4 detects it → exit 1.
+# IMPORTANT: the defect fixture places E-ZZZ-001 in a MARKDOWN TABLE CELL (not prose).
+# Three of the six live examined occurrences are in table cells (BC-2.01.009.md:71, :73,
+# interface-definitions.md:237).  Using a table-cell fixture here kills TWO mutations
+# independently:
+#   (1) AC-2/AC-3 mutation: removing check_broad_corpus() from the ADR loop → E-ZZZ-001
+#       in table cell invisible to check_adr() (no E_CLASS_CODE_RE) → exit 0 → FAILS
+#   (2) Table-line mutant: adding `if is_table_line: continue` before Pattern 4 → E-ZZZ-001
+#       in table cell silently dropped → exit 0 → FAILS
+# Mutation (2) is also caught at the gate level by the BLOCKING-1 independent canary
+# probe, but this fixture kills it independently at the fixture level.
 #
-# Mutation-verify: removing the check_broad_corpus() call from the ADR loop (reverting
-#   AC-2/AC-3) leaves E-class detection for ADRs to check_adr() alone.  check_adr()
-#   does NOT run E_CLASS_CODE_RE (Pattern 4), so "E-ZZZ-001" in ADR prose is invisible
-#   → exit 0 → defect-fail assertion fires → mutation dies.
+# Clean tree: ADR with only valid content and no E-class codes → exit 0.
+# Defect: add E-class code to ADR body TABLE CELL → Pattern 4 detects it → exit 1.
 TESTS_RUN=$((TESTS_RUN + 1))
-echo "── selftest 5l (AC-3+AC-2): check-adr-consistency: E-class code in ADR body detected ──"
+echo "── selftest 5l (AC-3+AC-2): check-adr-consistency: E-class code in ADR table cell detected ──"
 T=$(make_temp)
 mkdir -p "$T/.factory/specs/architecture/decisions"
 mkdir -p "$T/.factory/specs/prd-supplements"
@@ -5827,6 +5833,12 @@ cat > "$T/.factory/specs/architecture/decisions/ADR-001-test.md" <<'ADR5LCLEAN'
 ## Decision
 
 Use file-not-found for missing path arguments.
+
+## Error Registry
+
+| Code | Meaning |
+|------|---------|
+| plain-text-only | No E-class codes here |
 ADR5LCLEAN
 
 CLEAN_PASS=0
@@ -5842,25 +5854,32 @@ else
 fi
 
 if [ "$CLEAN_PASS" = "1" ]; then
-    # Defect: E-class code in ADR body prose (Pattern 4 form: bare occurrence)
+    # Defect: E-class code in ADR body TABLE CELL (not prose).
+    # Kills table-line mutant independently of the BLOCKING-1 canary gate.
     cat > "$T/.factory/specs/architecture/decisions/ADR-001-test.md" <<'ADR5LBAD'
 # ADR-001: Test Decision
 
 ## Decision
 
-Use file-not-found for missing path arguments. On I/O error the tool emits an E-ZZZ-001 error.
+Use file-not-found for missing path arguments.
+
+## Known Error Classes
+
+| Code | Description |
+|------|-------------|
+| E-ZZZ-001 | I/O error class requiring escalation |
 ADR5LBAD
     ST5L_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
     ST5L_RC=$?
     if [ "$ST5L_RC" -eq 0 ]; then
-        echo "  FAIL (checker returned 0 — E-class code in ADR body not detected; AC-2/AC-3 routing missing)"
+        echo "  FAIL (checker returned 0 — E-class code in ADR table cell not detected; AC-2/AC-3 routing missing or table-line bypass active)"
         FAILURES=$((FAILURES + 1))
     elif ! echo "$ST5L_OUT" | grep -q "E-class code 'E-ZZZ-001'"; then
-        echo "  FAIL (E-class code 'E-ZZZ-001' not in output — Pattern 4 did not run on ADR file)"
+        echo "  FAIL (E-class code 'E-ZZZ-001' not in output — Pattern 4 did not run on ADR file or table cell skipped)"
         echo "  Output: $ST5L_OUT"
         FAILURES=$((FAILURES + 1))
     else
-        echo "  PASS (clean-pass confirmed; E-class code in ADR body correctly detected via Pattern 4)"
+        echo "  PASS (clean-pass confirmed; E-class code in ADR table cell correctly detected via Pattern 4)"
     fi
 fi
 rm -rf "$T"
@@ -6029,6 +6048,183 @@ BC5NBAD
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; E-ZZZ-001 in taxonomy-ref context correctly routed to Pattern 4)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5o (BLOCKING-1): check-adr-consistency — E-class population gate fires on undeclared routing ──
+# Proves the independent canary probe (BLOCKING-1 fix) is an actual gate, not a tautology.
+#
+# The gate uses a WIDER canary regex (E-[A-Z]+-\d+, no {2,4} cap) so that narrowing the
+# detector (E-[A-Z]{2,4}-\d{3}) surfaces as a gap.  This test simulates that gap by using
+# a code whose namespace component is TOO LONG for the detector but matches the canary:
+#   E-VERBOSE-001: VERBOSE = 7 uppercase letters → exceeds {2,4} → invisible to E_CLASS_CODE_RE
+#                  E-[A-Z]+-\d+ matches VERBOSE → canary count = 1
+# Result: canary_population(1) != examined(0) + skipped(0) → gate fires → exit 2.
+#
+# Clean tree: no E-class codes → canary_population=0, examined=0, skipped=0 → 0==0 → exit 0.
+# Defect: add E-VERBOSE-001 (too-long namespace) → canary sees it, detector misses it
+#         → population(1) != 0+0 → gate fires → exit 2 with "accounting gap" message.
+#
+# Mutation-verify: removing the E-class population gate entirely (the `if e_population !=` block)
+#   makes the checker exit 0 (no violations from E_CLASS_CODE_RE) → test fails (expected 2).
+#   The gate check is the ONLY thing that fires for this fixture, so the test is tightly coupled
+#   to the gate — the mutation dies immediately.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5o (BLOCKING-1): check-adr-consistency: E-class population gate fires on undeclared routing ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5O'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5O
+
+# Clean tree: no E-class codes → canary population=0, examined=0, skipped=0 → gate passes
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-5O-TEST.md" <<'BC5OCLEAN'
+# BC-5O-TEST: Behavioral Contract
+
+No E-class codes here.
+BC5OCLEAN
+
+CLEAN_PASS=0
+ST5O_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+ST5O_CLEAN_RC=$?
+if [ "$ST5O_CLEAN_RC" -ne 0 ]; then
+    echo "  STRUCTURAL FAIL: checker failed on clean fixture (no E-class codes)"
+    echo "  Output: $ST5O_CLEAN"
+    FAILURES=$((FAILURES + 1))
+else
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: add E-VERBOSE-001 (namespace "VERBOSE" = 7 letters, exceeds {2,4} in
+    # E_CLASS_CODE_RE → invisible to detector, but visible to canary E-[A-Z]+-\d+).
+    # canary_population=1, examined=0, skipped=0 → 1 != 0+0 → gate fires → exit 2.
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-5O-TEST.md" <<'BC5OBAD'
+# BC-5O-TEST: Behavioral Contract
+
+Configuration errors emit E-VERBOSE-001 for diagnostics.
+BC5OBAD
+    ST5O_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    ST5O_RC=$?
+    FAIL=0
+    if [ "$ST5O_RC" -ne 2 ]; then
+        echo "  FAIL (expected exit 2 from population gate, got $ST5O_RC — gate not firing or removed)"
+        FAIL=1
+    fi
+    if ! echo "$ST5O_OUT" | grep -q "E-class accounting gap"; then
+        echo "  FAIL ('E-class accounting gap' not in output — gate message missing)"
+        echo "  Output: $ST5O_OUT"
+        FAIL=1
+    fi
+    if ! echo "$ST5O_OUT" | grep -q "undeclared routing path"; then
+        echo "  FAIL ('undeclared routing path' not in output — gate message missing)"
+        echo "  Output: $ST5O_OUT"
+        FAIL=1
+    fi
+    if [ "$FAIL" -eq 1 ]; then
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; E-VERBOSE-001 correctly triggers population gate → exit 2)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5p (BLOCKING-2): check-adr-consistency — one ADR reason-code defect → exactly one violation ──
+# Proves the BLOCKING-2 fix: when an ADR contains a phantom reason code, the combined
+# check_adr() + check_broad_corpus(e_class_only=True) pipeline produces EXACTLY ONE
+# violation entry — not two (the pre-fix double-count).
+#
+# Before fix: check_adr() detected phantom-zeta via backtick+keyword scan (1 violation);
+#   check_broad_corpus() ALSO detected it via Pattern 1 Reason-column detection (2nd
+#   violation).  Output contained "phantom-zeta" twice.
+# After fix: check_broad_corpus() runs with e_class_only=True for ADRs → Patterns 1-3
+#   skipped → only check_adr() reports the violation → output contains "phantom-zeta" once.
+#
+# Clean tree: ADR with valid code in Reason column → no violations → exit 0.
+# Defect: ADR with phantom reason code in Reason column → exactly 1 violation → exit 1.
+#
+# Assertion: grep -c "not in closed taxonomy" in output equals 1.
+#   With double-count: check_adr() produces 1 line + check_broad_corpus() Pattern 1 produces
+#   1 line → grep -c returns 2 → test fails.
+#
+# Mutation-verify: reverting ADR loop to e_class_only=False (or removing the kwarg) restores
+#   check_broad_corpus() Patterns 1-3 for ADRs → phantom-zeta reported twice → grep -c = 2
+#   → test fails (expected 1) → mutation dies.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5p (BLOCKING-2): check-adr-consistency: one ADR reason-code defect → exactly one violation ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5P'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5P
+
+# Clean ADR: valid code in Reason column → no violations → exit 0
+cat > "$T/.factory/specs/architecture/decisions/ADR-001-test.md" <<'ADR5PCLEAN'
+# ADR-001: Test Decision
+
+## Test Vectors
+
+| TV-ID | Verdict | Reason |
+|-------|---------|--------|
+| TV-001 | broken | `file-not-found` |
+ADR5PCLEAN
+
+CLEAN_PASS=0
+ST5P_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+ST5P_CLEAN_RC=$?
+if [ "$ST5P_CLEAN_RC" -ne 0 ]; then
+    echo "  STRUCTURAL FAIL: checker failed on clean ADR (valid reason code)"
+    echo "  Output: $ST5P_CLEAN"
+    FAILURES=$((FAILURES + 1))
+else
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: replace valid code with phantom-zeta (not in taxonomy)
+    # check_adr() finds "phantom-zeta" (backtick + "broken" context) → 1 violation.
+    # check_broad_corpus(e_class_only=True) → Patterns 1-3 skipped → 0 additional violations.
+    # Total: exactly 1 "not in closed taxonomy" line in output.
+    cat > "$T/.factory/specs/architecture/decisions/ADR-001-test.md" <<'ADR5PBAD'
+# ADR-001: Test Decision
+
+## Test Vectors
+
+| TV-ID | Verdict | Reason |
+|-------|---------|--------|
+| TV-001 | broken | `phantom-zeta` |
+ADR5PBAD
+    ST5P_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    ST5P_RC=$?
+    FAIL=0
+    if [ "$ST5P_RC" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — phantom-zeta not detected at all)"
+        FAIL=1
+    fi
+    COUNT=$(echo "$ST5P_OUT" | grep -c "not in closed taxonomy" || true)
+    if [ "$COUNT" -ne 1 ]; then
+        echo "  FAIL (expected exactly 1 'not in closed taxonomy' line, got $COUNT — double-count if 2, missing if 0)"
+        echo "  Output: $ST5P_OUT"
+        FAIL=1
+    fi
+    if [ "$FAIL" -eq 1 ]; then
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; phantom-zeta produces exactly 1 violation — no double-count)"
     fi
 fi
 rm -rf "$T"

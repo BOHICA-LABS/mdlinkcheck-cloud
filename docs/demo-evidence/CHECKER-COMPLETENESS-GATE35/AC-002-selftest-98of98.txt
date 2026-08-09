@@ -203,6 +203,16 @@ Property test passed: 300/300 cases verified (total_candidates == sum(buckets) f
   PASS (clean-pass + ≥1 occurrence confirmed; phantom-5j on 'reason' data row detected)
 ── selftest 5k (BI-056): check-adr-consistency: three-code phantom calibration set detected ──
   PASS (clean-pass confirmed; all three phantom codes detected: E-IO-002, E-CLI-001, malformed-fragment)
+── selftest 5l (AC-3+AC-2): check-adr-consistency: E-class code in ADR table cell detected ──
+  PASS (clean-pass confirmed; E-class code in ADR table cell correctly detected via Pattern 4)
+── selftest 5m (AC-1): check-adr-consistency: frontmatter E-class code disclosed as named skip ──
+  PASS (clean-pass + skipped=1 confirmed; E-class code in body detected as violation)
+── selftest 5n (AC-7): check-adr-consistency: E-class code in taxonomy-ref context routed to Pattern 4 ──
+  PASS (clean-pass confirmed; E-ZZZ-001 in taxonomy-ref context correctly routed to Pattern 4)
+── selftest 5o (BLOCKING-1): check-adr-consistency: E-class population gate fires on undeclared routing ──
+  PASS (clean-pass confirmed; E-VERBOSE-001 correctly triggers population gate → exit 2)
+── selftest 5p (BLOCKING-2): check-adr-consistency: one ADR reason-code defect → exactly one violation ──
+  PASS (clean-pass confirmed; phantom-zeta produces exactly 1 violation — no double-count)
 ── selftest EI-5: check-ec-injectivity: Input column IS treated as comparable (BLOCKING-4) ──
   PASS (clean-pass confirmed; Input column rows ARE compared; divergent correctly detected)
 ── selftest EI-6: check-ec-injectivity: Source MD File column correctly skipped (BLOCKING-4) ──
@@ -210,4 +220,7 @@ Property test passed: 300/300 cases verified (total_candidates == sum(buckets) f
 ── selftest EI-7: check-ec-injectivity: §2 Filesystem column parseable (BI-057 a) ──
   PASS (clean-pass with §2-shape comparison confirmed; EC-007 divergence correctly detected)
 
-Selftest passed: 93/93 negative tests verified (each proved clean-pass + defect-fail)
+Selftest passed: 98/98 negative tests verified (each proved clean-pass + defect-fail)
+RC=0
+
+Captured at: fd74bd73aa640f17102139345bb8b2aed29d3f58
