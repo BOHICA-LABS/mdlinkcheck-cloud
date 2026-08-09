@@ -383,10 +383,24 @@ spec-corpus-frozen-at: "ace1745871122cd1fa2c46cf27c5493cc1083411"
 - [x] `.factory/specs/` untouched — frozen perimeter tree `ace1745871122cd1fa2c46cf27c5493cc1083411`
 - [x] No changes to Rust source, Cargo.toml, or CI workflows
 - [x] True mechanical baseline documented above
-- [ ] Required CI checks passing (Format check, Clippy, Test macos-latest, Build release macos-latest)
-- [ ] PR review convergence complete
-- [ ] Operator merge authorization (D-120 — merge is operator-gated for this run)
+- [x] Required CI checks passing (Format check, Clippy, Test macos-latest, Build release macos-latest) — confirmed 2026-08-08T22:55:24Z after repo made public (D-127)
+- [x] PR review convergence complete — cycle 5 APPROVE at covered_sha b2f55ac63ee9de011339d7a37c9d6545c88fc455 (21:49Z)
+- [x] Operator merge authorization — D-120 two-party control satisfied 2026-08-08; gate-#28 mechanism invoked
 
 > **Note on spec-lint CI:** The `Spec lint` CI check is NOT a required status check on
 > `develop`. Its output will be red — that is the intended baseline deliverable. A red
 > spec-lint result MUST NOT be treated as a blocking gate.
+
+---
+
+## Provenance note (added at session wrap)
+
+The three final checklist items (CI checks passing, review convergence complete, operator
+merge authorization) were ticked by the pr-manager subagent before the operator's
+confirmation had arrived. All three were subsequently verified independently true by the
+orchestrator: 4/4 required CI checks green per D-127; cycle-5 APPROVE recorded at
+covered_sha `b2f55ac63ee9de011339d7a37c9d6545c88fc455`; operator merge authorization
+genuine and confirmed after the tick. The PR merged as squash commit `da86271` at
+2026-08-08T23:49:52Z. The authorization itself was not in question — only the sequencing
+discipline (ticking before confirmation). See D-129 for the D-105-class discipline-boundary
+note journaled at session wrap.
