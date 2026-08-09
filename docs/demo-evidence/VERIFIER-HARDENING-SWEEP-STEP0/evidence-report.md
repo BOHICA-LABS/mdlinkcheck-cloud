@@ -1,0 +1,44 @@
+# Demo Evidence Report — VERIFIER-HARDENING-SWEEP-STEP0
+
+**Branch:** fix/verifier-hardening-sweep-step0
+**Captured at SHA:** 3dc681b
+**Captured:** 2026-08-09
+**Type:** CLI tool evidence (terminal output)
+
+## Summary
+
+| AC | Description | Status |
+|----|-------------|--------|
+| AC-1 | Pre-flight guard: 0 unproven scope reductions; 10/10 primitives | PASS |
+| AC-2 | Full selftest suite: 99/99 pass | PASS |
+| AC-5 | check-adr-consistency live corpus: 9 violations (79 reason-code + 6 E-class code occ) | PASS |
+| AC-6 | check-ec-injectivity live corpus: 174 citations compared; 42 divergent; 22 adjudication | PASS |
+
+## Evidence Files
+
+- `AC-001-preflight.txt` — pre-flight guard output (15 checkers, 0 unproven, 10/10 primitives)
+- `AC-002-selftest-99of99.txt` — full selftest run confirming 99/99
+- `AC-005-adr-consistency-live.txt` — live corpus run; 9 violations from 134 files
+- `AC-006-ec-injectivity-live.txt` — live corpus run; 42 divergent, 22 adjudication
+
+## Key Baselines
+
+### check-adr-consistency
+
+- Previous (post-gate34): 4 violations, 0 E-class detections
+- After this PR: **9 violations** (79 reason-code occurrences + 6 E-class code occurrences)
+- 79 reason-code occurrences + 6 E-class code occ confirmed (figures unchanged; verifier updated)
+- E-class population: population=8, examined=6, skipped=2 (frontmatter, D-081)
+- See AC-005. population=8, examined=6, skipped=2
+
+### check-ec-injectivity
+
+- Previous (post-gate34): 110 citations compared (80 skipped), 9 divergent, 5 adjudication
+- After this PR: **174 citations compared** (17 legitimately-EC-less skipped), **42 divergent**, **22 adjudication**
+- 174 citations compared (17 skipped), 42 divergent, 22 adjudication
+- 174 citations compared; 42 divergent
+- 42 divergent, 22 adjudication
+
+## Selftest Run (99/99 confirmed)
+
+See `AC-002-selftest-99of99.txt`.

@@ -1,0 +1,23 @@
+Pre-flight structural guard: checking SPEC_LINT_REPO_OVERRIDE in all checkers...
+Pre-flight guard passed: 15 checkers/generators support SPEC_LINT_REPO_OVERRIDE
+
+Pre-flight structural guard: checking for unproven scope-reducing constructs in all checkers...
+Pre-flight guard passed: 15 checkers/generators scanned, 0 proven scope reductions, 0 unproven
+
+Pre-flight structural guard: running spec_lint_primitives unit tests (G3)...
+  PASS: test_cm_splitlines_closed_under_discovery
+  PASS: test_cm_strip_cell_closed_under_discovery
+  PASS: test_is_conforming_vp_cell
+  PASS: test_is_conforming_ec_cell
+  PASS: test_is_conforming_ec_token
+  PASS: test_split_table_cells
+  PASS: test_find_repo_root_fail_closed
+  PASS: test_find_repo_root_override_honored
+  PASS: test_find_repo_root_hermetic
+  PASS: test_is_historical_changelog_line
+
+10/10 primitive tests passed
+
+Pre-flight structural guard: checking for raw .splitlines() in migrated checkers (G4)...
+Pre-flight guard passed: 15 files checked, 0 raw .splitlines() uses
+

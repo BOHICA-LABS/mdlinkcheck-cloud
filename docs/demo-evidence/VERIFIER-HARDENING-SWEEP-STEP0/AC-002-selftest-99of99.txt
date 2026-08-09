@@ -1,0 +1,3 @@
+  PASS (clean-pass with §2-shape comparison confirmed; EC-007 divergence correctly detected)
+
+Selftest passed: 99/99 negative tests verified (each proved clean-pass + defect-fail)
