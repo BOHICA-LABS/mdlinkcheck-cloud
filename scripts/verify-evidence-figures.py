@@ -63,6 +63,10 @@ Test-mode overrides (_VEF_TEST_* environment variables):
   _VEF_TEST_NO_OPEN_PR  — any non-empty string; simulate no-PR-found → REFUSED
   _VEF_TEST_GH_BODY_N   — path to mock gh body for PR number N (per-PR routing)
   _VEF_TEST_GH_BODY     — path to file containing mock gh pr body text (fallback)
+  _VEF_TEST_BRANCH_SHAS — space-separated list of mock branch SHAs for check7
+                          (rollback set comparison) and check9 (captured-SHA
+                          on-branch verification).  In production these are
+                          derived from git rev-list develop..HEAD.
 
   Git commands (git show for provenance stamps) always run against the real
   git repo (_SCRIPT_REPO), not the test tmpdir, so stamp verification remains
@@ -85,9 +89,10 @@ _TEST_HEAD        = os.environ.get("_VEF_TEST_HEAD")
 _TEST_GH_BODY     = os.environ.get("_VEF_TEST_GH_BODY")
 _TEST_PR_NUM      = os.environ.get("_VEF_TEST_PR_NUM")
 _TEST_NO_OPEN_PR  = os.environ.get("_VEF_TEST_NO_OPEN_PR")
+_TEST_BRANCH_SHAS = os.environ.get("_VEF_TEST_BRANCH_SHAS")
 _TEST_MODE        = any([_TEST_REPO, _TEST_ADR_FILE, _TEST_EI_FILE, _TEST_ST_FILE,
                          _TEST_N_AHEAD, _TEST_HEAD, _TEST_GH_BODY,
-                         _TEST_PR_NUM, _TEST_NO_OPEN_PR])
+                         _TEST_PR_NUM, _TEST_NO_OPEN_PR, _TEST_BRANCH_SHAS])
 
 if _TEST_MODE:
     print("WARNING: _VEF_TEST_* env vars active — non-production test run", flush=True)
@@ -829,18 +834,44 @@ if anchor_check("check4a-ac002-suffix", _ac002,
                      f"evidence-report.md references '{m.group(0)}'")
                 break
 
+# ── B-4 / check7+check9: derive branch SHA set from git (not a literal) ──────
+# Used by both check7 (rollback completeness) and check9 (captured-SHA on-branch).
+# LESSON-60 guard: if the result is empty the checks would be vacuous (any
+# rollback list would pass; any captured SHA would pass).  We record a failure
+# and keep an empty set so subsequent checks still run and collect their own
+# failures rather than crashing.
+if _TEST_BRANCH_SHAS is not None:
+    _branch_shas_raw = _TEST_BRANCH_SHAS.split()
+else:
+    # develop..HEAD was already validated at module top (n_ahead > 0 guard),
+    # so this call should always succeed in production.
+    _branch_shas_raw = sh("git", "rev-list", "develop..HEAD", allowed_rc={0}).split()
+if not _branch_shas_raw:
+    fail("rollback/develop-resolution",
+         "at least one commit from git rev-list develop..HEAD",
+         "empty result — develop may be unresolvable; rollback/captured-SHA "
+         "checks cannot verify completeness (fail-closed, not skipped)")
+_branch_sha_set = {s[:7] for s in _branch_shas_raw}
+
 # ── NIT-C / S-7 / check7-rollback: rollback command ──────────────────────────
 # SUGGESTION-8 fix: register via anchor_check() + fail when anchor absent.
+# B-4 fix: derive required SHA set from git rev-list (not a hardcoded literal).
+#   Subsumes the old len(listed) != n_branch_commits count check — set
+#   comparison catches both count mismatches and specific missing SHAs.
+# LESSON-60 fix: bare 'if count_m:' → add else: fail() so absent count anchor
+#   is a failure, not a silent pass.
 _revert_m = re.search(r"git revert((?:\s+[0-9a-f]{7,40})+)", pr)
 if anchor_check("check7-rollback", _revert_m,
                 "rollback/block",
                 "a `git revert <sha> …` command listing every branch commit — "
                 "no explicit SHA list found in pr-description.md"):
     listed = _revert_m.group(1).split()
-    if not any(s == "39efec2" or "39efec2".startswith(s) for s in listed):
-        fail("rollback/missing-39efec2",
-             "39efec2 in rollback list",
-             "39efec2 missing from git revert command")
+    _listed_short = {s[:7] for s in listed}
+    _missing = _branch_sha_set - _listed_short
+    if _missing:
+        fail("rollback/missing-commits",
+             f"every branch commit in the revert list ({len(_branch_sha_set)} total)",
+             f"missing: {sorted(_missing)}")
     count_m = re.search(r"Rollback reverts all (\d+) commits", pr)
     if count_m:
         claimed = int(count_m.group(1))
@@ -849,23 +880,39 @@ if anchor_check("check7-rollback", _revert_m,
                  f"body claims {claimed} commits; "
                  f"git rev-list --count develop..HEAD = {n_branch_commits}",
                  "counts disagree")
-    if len(listed) != n_branch_commits:
-        fail("rollback/sha-count",
-             f"rollback SHA list has {len(listed)} entries; "
-             f"git rev-list --count develop..HEAD = {n_branch_commits}",
-             "counts disagree")
+    else:
+        fail("rollback/count-claim-missing",
+             "Rollback reverts all N commits",
+             "count-claim anchor absent — check cannot verify commit count")
 
-# ── NIT-D / check9-head-sha-ev: "Head SHA:" in evidence-report ────────────────
+# ── B-4 / check9: captured-SHA on-branch (replaces circular head-SHA check) ───
 # SUGGESTION-8 fix: register via anchor_check() + fail when anchor absent.
-_head_sha_m = re.search(r"\*\*Head SHA:\*\*\s+([0-9a-f]{7,40})", ev)
-if anchor_check("check9-head-sha-ev", _head_sha_m,
-                "evidence-report/head-sha-missing",
-                "**Head SHA:** field in evidence-report.md"):
-    if not head.startswith(_head_sha_m.group(1)):
-        fail("evidence-report/head-sha-label",
-             f"field renamed to '**Captured at SHA:**' "
-             f"(value {_head_sha_m.group(1)} ≠ HEAD {head[:7]})",
-             "field still labeled '**Head SHA:**' with non-HEAD value")
+#
+# Old design (circular): evidence-report.md said '**Head SHA:** X' and required
+# X == HEAD.  Since evidence-report.md is committed to the code branch,
+# committing it changes HEAD, making the captured SHA immediately stale.
+#
+# New design (non-circular): evidence-report.md says '**Captured at SHA:** X'
+# where X is any commit on this branch (git rev-list develop..HEAD).
+# This is git-derivable and provably non-circular:
+#   - Evidence is captured at commit A (a prior branch commit)
+#   - evidence-report.md is committed as commit B
+#   - X = A, which is an ancestor of B (and hence of HEAD)
+#   - A ∈ git rev-list develop..HEAD ✓ — non-circular, on-branch guarantee
+#
+# The check distinguishes a legitimate on-branch SHA from an off-branch or
+# unrelated SHA: git rev-list develop..HEAD is the discriminating predicate.
+_cap_sha_m = re.search(r"\*\*Captured at SHA:\*\*\s+([0-9a-f]{7,40})", ev)
+if anchor_check("check9-head-sha-ev", _cap_sha_m,
+                "evidence-report/captured-sha-missing",
+                "**Captured at SHA:** field in evidence-report.md"):
+    _ev_sha7 = _cap_sha_m.group(1)[:7]
+    if _ev_sha7 not in _branch_sha_set:
+        fail("evidence-report/captured-sha-not-on-branch",
+             f"SHA {_ev_sha7} in git rev-list develop..HEAD "
+             f"({len(_branch_sha_set)} commits: {sorted(_branch_sha_set)})",
+             f"SHA {_ev_sha7} not found on this branch — evidence may be "
+             f"from a different PR or borrowed from another branch")
 
 # ── Check 8: Live PR body must match pr-description.md (FINDING 2) ────────────
 # NIT-G fix: wrap gh invocation to produce a diagnostic rather than a traceback

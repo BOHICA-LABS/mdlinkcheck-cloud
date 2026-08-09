@@ -22,9 +22,11 @@ Reports: N/N tests verified (each proved clean-pass + defect-fail)
 import os, re, shutil, subprocess, sys, tempfile
 from pathlib import Path
 
-REPO     = Path(__file__).resolve().parent.parent.parent
-VERIFIER = REPO / "scripts" / "verify-evidence-figures.py"
-EV_DIR_REL = "docs/demo-evidence/CHECKER-COMPLETENESS-GATE35"
+REPO       = Path(__file__).resolve().parent.parent.parent
+VERIFIER   = REPO / "scripts" / "verify-evidence-figures.py"
+# B-4 fix: decouple from GATE35 slug; use a generic test slug.
+TEST_SLUG  = "VEF-TEST-FIXTURE"
+EV_DIR_REL = f"docs/demo-evidence/{TEST_SLUG}"
 
 # Single source of truth: extract the exact JSON fields the verifier requests.
 # Reading from the verifier source makes a divergent copy structurally impossible.
@@ -112,7 +114,7 @@ ec-injectivity now compares 174 of 174 citations (17 EC-less skipped).
 ## Rollback
 
 ```
-git revert 39efec2 72db558 b4bbbc3 ca8c1c0 f6dfa58 aaaa111 bbbb222 cccc333 dddd444 eeee555 ffff666 fedcba1
+git revert {MOCK_HEAD_7} 72db558 b4bbbc3 ca8c1c0 f6dfa58 aaaa111 bbbb222 cccc333 dddd444 eeee555 ffff666 fedcba1
 ```
 
 Rollback reverts all 12 commits.
@@ -124,7 +126,7 @@ Rollback reverts all 12 commits.
 EV_FIXTURE = f"""\
 # Evidence Report -- CHECKER-COMPLETENESS-GATE35
 
-**Head SHA:** {MOCK_HEAD_7}
+**Captured at SHA:** {MOCK_HEAD_7}
 
 ## Summary
 
@@ -177,7 +179,7 @@ class TestEnv:
         # Directory skeleton expected by verifier
         ev_dir = root / EV_DIR_REL
         ev_dir.mkdir(parents=True)
-        pr_dir = root / ".factory/code-delivery/CHECKER-COMPLETENESS-GATE35"
+        pr_dir = root / f".factory/code-delivery/{TEST_SLUG}"
         pr_dir.mkdir(parents=True)
 
         # Fixture documents
@@ -202,6 +204,10 @@ class TestEnv:
         self.root    = root
         self.ev_dir  = ev_dir
         self.n_ahead = "12"   # default: feature branch with 12 commits
+        # B-4 fix: mock branch SHAs for check7 (rollback set) and check9
+        # (captured-SHA on-branch).  MOCK_HEAD plus four others; all appear in
+        # PR_FIXTURE's rollback list so the clean case passes without mutation.
+        self.branch_shas = f"{MOCK_HEAD} aaaa111 bbbb222 cccc333 dddd444"
         # PR-resolution mocks
         self.pr_num          = "13"   # mock PR number (any value works in test mode)
         self.no_open_pr      = False  # simulate no-PR-found → REFUSED
@@ -211,14 +217,15 @@ class TestEnv:
         """Run the verifier under _VEF_TEST_* overrides; return (rc, combined output)."""
         env = {
             **os.environ,
-            "_VEF_TEST_REPO"    : str(self.root),
-            "_VEF_TEST_ADR_FILE": str(self.adr_file),
-            "_VEF_TEST_EI_FILE" : str(self.ei_file),
-            "_VEF_TEST_ST_FILE" : str(self.st_file),
-            "_VEF_TEST_N_AHEAD" : self.n_ahead,
-            "_VEF_TEST_HEAD"    : MOCK_HEAD,
-            "_VEF_TEST_GH_BODY" : str(self.gh_file),
-            "_VEF_TEST_PR_NUM"  : self.pr_num,
+            "_VEF_TEST_REPO"        : str(self.root),
+            "_VEF_TEST_ADR_FILE"    : str(self.adr_file),
+            "_VEF_TEST_EI_FILE"     : str(self.ei_file),
+            "_VEF_TEST_ST_FILE"     : str(self.st_file),
+            "_VEF_TEST_N_AHEAD"     : self.n_ahead,
+            "_VEF_TEST_HEAD"        : MOCK_HEAD,
+            "_VEF_TEST_GH_BODY"     : str(self.gh_file),
+            "_VEF_TEST_PR_NUM"      : self.pr_num,
+            "_VEF_TEST_BRANCH_SHAS" : self.branch_shas,
         }
         if self.no_open_pr:
             env["_VEF_TEST_NO_OPEN_PR"] = "1"
@@ -299,11 +306,11 @@ def t02_rollback_removed():
 
 
 def t03_head_sha_ev_absent():
-    """SUGGESTION-8 check9-head-sha-ev: **Head SHA:** absent from ev -> anchor_check fail."""
+    """B-4/check9: **Captured at SHA:** absent from ev -> anchor_check fail."""
     def defect(env):
-        text = re.sub(r"\*\*Head SHA:\*\*.*\n", "", env.ev_path.read_text())
+        text = re.sub(r"\*\*Captured at SHA:\*\*.*\n", "", env.ev_path.read_text())
         env.ev_path.write_text(text)
-    return run_test("T03 head-sha-ev-absent [check9]", defect)
+    return run_test("T03 captured-sha-ev-absent [check9]", defect)
 
 
 def t04_ecli001_absent():
@@ -607,6 +614,65 @@ def t18_gh_real_path_field_contract():
     return passed
 
 
+def t19_rollback_missing_branch_commit():
+    """T19 (B-4): branch commit absent from rollback list -> rollback/missing-commits.
+
+    Tests the git-derived SHA set check that replaces the hardcoded '39efec2'.
+
+    Defect: one mock branch SHA (cccc333) is removed from the rollback list; the
+            verifier should detect it as missing.
+    Clean:  default fixture retains all mock branch SHAs (MOCK_HEAD, aaaa111,
+            bbbb222, cccc333, dddd444) — none missing → PASS.
+
+    Per lesson 61: the defect case proves the check would catch a genuinely missing
+    commit, not just verify that a self-consistent fixture passes vacuously.
+    """
+    def defect(env):
+        # Remove cccc333 from rollback list; branch_shas still requires it.
+        new_pr = env.pr_path.read_text().replace(" cccc333", "")
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T19 rollback-missing-branch-commit [check7/B-4]", defect)
+
+
+def t20_rollback_count_claim_missing():
+    """T20 (B-4 / lesson-60): count-claim anchor absent -> rollback/count-claim-missing.
+
+    Previously the bare 'if count_m:' meant a missing count-claim silently passed.
+    The 'else: fail()' addition makes absence a detected failure.
+
+    Defect: 'Rollback reverts all N commits' line removed from pr-description.md.
+    Clean:  default fixture has the count-claim present → PASS.
+    """
+    def defect(env):
+        new_pr = re.sub(r"Rollback reverts all \d+ commits.*\n", "",
+                        env.pr_path.read_text())
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T20 rollback-count-claim-missing [check7/else-fail]", defect)
+
+
+def t21_captured_sha_not_on_branch():
+    """T21 (B-4 / check9 redesign): captured SHA not in branch commits -> fails.
+
+    The redesigned check9 verifies that the SHA in '**Captured at SHA:**' is a
+    commit on this branch (git rev-list develop..HEAD).  This distinguishes a
+    legitimate on-branch capture from a SHA borrowed from a different PR or branch.
+
+    Defect: '**Captured at SHA:**' contains 'deadaa1' — a 7-char SHA NOT in
+            _VEF_TEST_BRANCH_SHAS (which provides MOCK_HEAD, aaaa111, ...).
+    Clean:  default fixture uses MOCK_HEAD_7 = 'deadbee' which IS in branch_shas.
+    """
+    def defect(env):
+        # Replace the captured SHA with one that is NOT in branch_shas.
+        text = env.ev_path.read_text().replace(
+            f"**Captured at SHA:** {MOCK_HEAD_7}",
+            "**Captured at SHA:** deadaa1",
+        )
+        env.ev_path.write_text(text)
+    return run_test("T21 captured-sha-not-on-branch [check9/B-4]", defect)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 TESTS = [
     t01_post_merge_context,
@@ -627,6 +693,9 @@ TESTS = [
     t16_correct_pr_number_routing,
     t17_gh_field_contract,
     t18_gh_real_path_field_contract,
+    t19_rollback_missing_branch_commit,
+    t20_rollback_count_claim_missing,
+    t21_captured_sha_not_on_branch,
 ]
 
 
