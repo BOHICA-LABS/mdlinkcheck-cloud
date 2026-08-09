@@ -1,10 +1,21 @@
 #!/usr/bin/env python3
-"""Verify documentation figures in CHECKER-COMPLETENESS-GATE35 artifacts.
+"""Verify evidence-figure consistency for any open-PR delivery artifact set.
 
 Derives expected values from live tool runs and git state — never from the
 documents being checked. Exit non-zero with per-mismatch report on failure.
 
-Usage:  python3 scripts/verify-evidence-figures.py
+Usage:
+  python3 scripts/verify-evidence-figures.py
+  python3 scripts/verify-evidence-figures.py --pr N
+  python3 scripts/verify-evidence-figures.py --pr-desc PATH
+  python3 scripts/verify-evidence-figures.py --pr N --pr-desc PATH \\
+          --evidence-dir PATH
+
+By default the PR number is derived from the current branch via:
+  gh pr view --json number,headSha
+and artifact paths are discovered by scanning
+  .factory/code-delivery/*/pr-description.md
+for the file containing '**Head SHA:** <current-HEAD>'.
 
 Context requirement (Item 0):
   Must be run on a feature branch with commits ahead of 'develop'.
@@ -19,7 +30,9 @@ Context requirement (Item 0):
 Exit codes:
   0  — PASS: all figure checks match live output and git state.
   1  — FAIL: one or more figure mismatches detected.
-  2  — REFUSED: context not applicable (post-merge / no branch commits).
+  2  — REFUSED: context not applicable (post-merge, no open PR, or
+       incoherent state — resolved PR head ≠ local HEAD, or no matching
+       pr-description.md found for current HEAD).
 
 Structural guarantee (BLOCKING-D):
   Every check that performs a live-vs-document comparison MUST call
@@ -40,19 +53,22 @@ Structural guarantee (BLOCKING-D):
 Test-mode overrides (_VEF_TEST_* environment variables):
   EXCLUSIVELY for scripts/tests/test-vef.py.  Never set in CI or production.
   When active, a WARNING is printed and the run is identified as non-production.
-  _VEF_TEST_REPO      — override repo root for file reads (temp dir for fixtures)
-  _VEF_TEST_ADR_FILE  — path to file containing mock adr-consistency output
-  _VEF_TEST_EI_FILE   — path to file containing mock ec-injectivity output
-  _VEF_TEST_ST_FILE   — path to file containing mock selftest output
-  _VEF_TEST_N_AHEAD   — integer string, override git rev-list --count result
-  _VEF_TEST_HEAD      — mock git HEAD sha (40 hex chars)
-  _VEF_TEST_GH_BODY   — path to file containing mock gh pr body text
+  _VEF_TEST_REPO        — override repo root for file reads (temp dir for fixtures)
+  _VEF_TEST_ADR_FILE    — path to file containing mock adr-consistency output
+  _VEF_TEST_EI_FILE     — path to file containing mock ec-injectivity output
+  _VEF_TEST_ST_FILE     — path to file containing mock selftest output
+  _VEF_TEST_N_AHEAD     — integer string, override git rev-list --count result
+  _VEF_TEST_HEAD        — mock git HEAD sha (40 hex chars)
+  _VEF_TEST_PR_NUM      — integer string; mock PR number (bypasses gh pr view)
+  _VEF_TEST_NO_OPEN_PR  — any non-empty string; simulate no-PR-found → REFUSED
+  _VEF_TEST_GH_BODY_N   — path to mock gh body for PR number N (per-PR routing)
+  _VEF_TEST_GH_BODY     — path to file containing mock gh pr body text (fallback)
 
   Git commands (git show for provenance stamps) always run against the real
   git repo (_SCRIPT_REPO), not the test tmpdir, so stamp verification remains
   live even in test mode.
 """
-import os, re, subprocess, sys
+import argparse, json as _json, os, re, subprocess, sys
 from pathlib import Path
 
 # Real script location — used for git operations so they always run in a valid
@@ -67,23 +83,37 @@ _TEST_ST_FILE     = os.environ.get("_VEF_TEST_ST_FILE")
 _TEST_N_AHEAD     = os.environ.get("_VEF_TEST_N_AHEAD")
 _TEST_HEAD        = os.environ.get("_VEF_TEST_HEAD")
 _TEST_GH_BODY     = os.environ.get("_VEF_TEST_GH_BODY")
+_TEST_PR_NUM      = os.environ.get("_VEF_TEST_PR_NUM")
+_TEST_NO_OPEN_PR  = os.environ.get("_VEF_TEST_NO_OPEN_PR")
 _TEST_MODE        = any([_TEST_REPO, _TEST_ADR_FILE, _TEST_EI_FILE, _TEST_ST_FILE,
-                         _TEST_N_AHEAD, _TEST_HEAD, _TEST_GH_BODY])
+                         _TEST_N_AHEAD, _TEST_HEAD, _TEST_GH_BODY,
+                         _TEST_PR_NUM, _TEST_NO_OPEN_PR])
 
 if _TEST_MODE:
     print("WARNING: _VEF_TEST_* env vars active — non-production test run", flush=True)
 
 # REPO: used for file reads (PR_DESC, EV_RPT, AC files).
 # In test mode this is the temp fixture directory.
-REPO    = Path(_TEST_REPO) if _TEST_REPO else _SCRIPT_REPO
-PR_DESC = REPO / ".factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-description.md"
-EV_RPT  = REPO / "docs/demo-evidence/CHECKER-COMPLETENESS-GATE35/evidence-report.md"
-EV_DIR  = REPO / "docs/demo-evidence/CHECKER-COMPLETENESS-GATE35"
-STAMPED = [
-    EV_DIR / "AC-001-preflight.txt",
-    EV_DIR / "AC-005-adr-consistency-live.txt",
-    EV_DIR / "AC-006-ec-injectivity-live.txt",
-]
+# PR_DESC / EV_RPT / EV_DIR / STAMPED are resolved later (after PR/artifact discovery).
+REPO = Path(_TEST_REPO) if _TEST_REPO else _SCRIPT_REPO
+
+# ── CLI arguments ──────────────────────────────────────────────────────────────
+_ap = argparse.ArgumentParser(
+    description="Verify evidence figures for an open-PR delivery artifact set.",
+)
+_ap.add_argument(
+    "--pr", type=int, default=None, metavar="N",
+    help="PR number override (default: derive from current branch via gh)",
+)
+_ap.add_argument(
+    "--pr-desc", type=Path, default=None, dest="pr_desc", metavar="PATH",
+    help="Path to pr-description.md (default: auto-discover by HEAD SHA)",
+)
+_ap.add_argument(
+    "--evidence-dir", type=Path, default=None, dest="evidence_dir", metavar="PATH",
+    help="Path to evidence directory (default: derived from --pr-desc slug)",
+)
+args = _ap.parse_args()
 
 # ── Required-checks registry (BLOCKING-D structural guarantee) ────────────────
 # Every check listed here MUST register itself via anchor_check() (or
@@ -192,6 +222,109 @@ if n_ahead == 0:
 
 n_branch_commits = n_ahead   # n_ahead is the branch commit count
 
+# ── HEAD SHA ───────────────────────────────────────────────────────────────────
+# Resolved before PR resolution and artifact discovery so both can use it.
+if _TEST_HEAD:
+    head = _TEST_HEAD.strip()
+else:
+    head = sh("git", "rev-parse", "HEAD", allowed_rc={0})
+
+# ── PR resolution ──────────────────────────────────────────────────────────────
+# Derive the target PR number from the current branch.
+# Priority: (1) --pr CLI arg, (2) _VEF_TEST_PR_NUM, (3) gh pr view auto-detect.
+# No-open-PR and head-SHA coherence failures are REFUSED (exit 2), not FAIL.
+if args.pr is not None:
+    pr_number = args.pr
+elif _TEST_NO_OPEN_PR:
+    print("\nREFUSED — no open pull request found for current branch "
+          "(simulated by _VEF_TEST_NO_OPEN_PR).", flush=True)
+    sys.exit(2)
+elif _TEST_PR_NUM is not None:
+    pr_number = int(_TEST_PR_NUM.strip())
+else:
+    # Auto-resolve PR from current branch via gh.
+    try:
+        _gh_r = subprocess.run(
+            ["gh", "pr", "view", "--json", "number,headSha"],
+            capture_output=True, text=True,
+            cwd=str(_SCRIPT_REPO), timeout=30,
+        )
+    except FileNotFoundError:
+        print("\nREFUSED — 'gh' CLI not found in PATH.", flush=True)
+        print("  Install from https://cli.github.com/ or pass --pr N explicitly.",
+              flush=True)
+        sys.exit(2)
+    if _gh_r.returncode != 0 or not _gh_r.stdout.strip():
+        print("\nREFUSED — no open pull request found for current branch.", flush=True)
+        print("  Create a PR first, or pass --pr N explicitly.", flush=True)
+        if _gh_r.stderr.strip():
+            print(f"  (gh said: {_gh_r.stderr.strip()[:120]})", flush=True)
+        sys.exit(2)
+    try:
+        _gh_meta  = _json.loads(_gh_r.stdout.strip())
+        pr_number = _gh_meta["number"]
+        _gh_head  = _gh_meta.get("headSha", "")
+    except (_json.JSONDecodeError, KeyError) as _e:
+        print(f"\nREFUSED — could not parse PR metadata from gh: {_e}", flush=True)
+        sys.exit(2)
+    # Coherence: PR head SHA on GitHub must match local HEAD.
+    if _gh_head and _gh_head != head:
+        print(f"\nREFUSED — PR #{pr_number} head SHA from GitHub ({_gh_head[:7]})"
+              f" ≠ local HEAD ({head[:7]}).", flush=True)
+        print("  The local branch is ahead of (or behind) the pushed PR.", flush=True)
+        print("  Have you run 'git push'?", flush=True)
+        sys.exit(2)
+
+# ── Artifact discovery ─────────────────────────────────────────────────────────
+# Locate pr-description.md and derive evidence paths.
+# Auto-discovery uses HEAD SHA so the wrong artifact set is structurally
+# rejected (fail-closed) rather than silently producing misleading failures.
+if args.pr_desc is not None:
+    PR_DESC = args.pr_desc.resolve()
+    SLUG    = PR_DESC.parent.name
+else:
+    _factory_delivery = REPO / ".factory/code-delivery"
+    _candidates = (list(_factory_delivery.glob("*/pr-description.md"))
+                   if _factory_delivery.exists() else [])
+    _matching = [p for p in _candidates
+                 if f"**Head SHA:** {head}" in p.read_text()]
+    if len(_matching) == 0:
+        print(f"\nREFUSED — no pr-description.md found containing", flush=True)
+        print(f"  '**Head SHA:** {head}'", flush=True)
+        print(f"  Scanned {len(_candidates)} file(s) in {_factory_delivery}",
+              flush=True)
+        print(f"  Ensure pr-description.md is written for the current commit,",
+              flush=True)
+        print(f"  or pass --pr-desc PATH to specify it explicitly.", flush=True)
+        sys.exit(2)
+    if len(_matching) > 1:
+        print(f"\nREFUSED — ambiguous: {len(_matching)} pr-description.md files match"
+              f" HEAD {head[:7]}:", flush=True)
+        for _p in _matching:
+            print(f"  {_p}", flush=True)
+        print(f"  Use --pr-desc PATH to specify which one.", flush=True)
+        sys.exit(2)
+    PR_DESC = _matching[0]
+    SLUG    = PR_DESC.parent.name
+
+if args.evidence_dir is not None:
+    EV_DIR = args.evidence_dir.resolve()
+else:
+    EV_DIR = REPO / f"docs/demo-evidence/{SLUG}"
+    if not EV_DIR.exists():
+        print(f"\nREFUSED — evidence directory not found: {EV_DIR}", flush=True)
+        print(f"  Expected at docs/demo-evidence/{SLUG}/", flush=True)
+        print(f"  Use --evidence-dir PATH to specify an alternate location.",
+              flush=True)
+        sys.exit(2)
+
+EV_RPT  = EV_DIR / "evidence-report.md"
+STAMPED = [
+    EV_DIR / "AC-001-preflight.txt",
+    EV_DIR / "AC-005-adr-consistency-live.txt",
+    EV_DIR / "AC-006-ec-injectivity-live.txt",
+]
+
 # ── Derive expected values from live runs (independent probes) ────────────────
 if _TEST_ST_FILE:
     st_out = Path(_TEST_ST_FILE).read_text().strip()
@@ -210,11 +343,6 @@ if _TEST_EI_FILE:
 else:
     print("Running check-ec-injectivity …", flush=True)
     ei_out = sh("python3", "scripts/spec-lint/check-ec-injectivity.py")
-
-if _TEST_HEAD:
-    head = _TEST_HEAD.strip()
-else:
-    head = sh("git", "rev-parse", "HEAD", allowed_rc={0})
 
 pr  = PR_DESC.read_text()
 ev  = EV_RPT.read_text()
@@ -731,12 +859,19 @@ def _norm_body(t: str) -> str:
     return "\n".join(l.rstrip() for l in t.splitlines()).strip()
 
 print("Fetching live PR body via gh …", flush=True)
-if _TEST_GH_BODY:
-    _live_pr_body_raw: str | None = Path(_TEST_GH_BODY).read_text()
+# Per-PR-number routing: _VEF_TEST_GH_BODY_<pr_number> takes precedence over
+# the generic _VEF_TEST_GH_BODY fallback.  This lets tests prove the correct PR
+# number is used (not a hardcoded default).
+_gh_body_per_pr = os.environ.get(f"_VEF_TEST_GH_BODY_{pr_number}")
+if _gh_body_per_pr:
+    _live_pr_body_raw: str | None = Path(_gh_body_per_pr).read_text()
+elif _TEST_GH_BODY:
+    _live_pr_body_raw = Path(_TEST_GH_BODY).read_text()
 else:
     _live_pr_body_raw = None
     try:
-        _live_pr_body_raw = sh("gh", "pr", "view", "12", "--json", "body", "--jq", ".body",
+        _live_pr_body_raw = sh("gh", "pr", "view", str(pr_number),
+                                "--json", "body", "--jq", ".body",
                                 allowed_rc={0})
     except FileNotFoundError:
         fail("live-pr-body/gh-unavailable",
@@ -748,9 +883,8 @@ if _live_pr_body_raw is not None:
     if _norm_body(_live_pr_body_raw) != _norm_body(pr):
         fail("live-pr-body/sync",
              "live PR body matches pr-description.md (normalised)",
-             "live PR body has diverged from pr-description.md — "
-             "run: gh pr edit 12 --body-file .factory/code-delivery/"
-             "CHECKER-COMPLETENESS-GATE35/pr-description.md")
+             f"live PR body has diverged from pr-description.md — "
+             f"run: gh pr edit {pr_number} --body-file {PR_DESC}")
 checks_ran.add("check8-live-pr-body")
 
 # ── BLOCKING-D: required-checks gate ─────────────────────────────────────────

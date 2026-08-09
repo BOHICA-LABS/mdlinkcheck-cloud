@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-13 test cases (T01-T13).  Each proves:
+16 test cases (T01-T16).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
 
@@ -183,6 +183,10 @@ class TestEnv:
         self.root    = root
         self.ev_dir  = ev_dir
         self.n_ahead = "12"   # default: feature branch with 12 commits
+        # PR-resolution mocks
+        self.pr_num          = "13"   # mock PR number (any value works in test mode)
+        self.no_open_pr      = False  # simulate no-PR-found → REFUSED
+        self.gh_body_overrides: dict = {}  # {pr_num_str: Path} per-PR body routing
 
     def run(self):
         """Run the verifier under _VEF_TEST_* overrides; return (rc, combined output)."""
@@ -195,7 +199,13 @@ class TestEnv:
             "_VEF_TEST_N_AHEAD" : self.n_ahead,
             "_VEF_TEST_HEAD"    : MOCK_HEAD,
             "_VEF_TEST_GH_BODY" : str(self.gh_file),
+            "_VEF_TEST_PR_NUM"  : self.pr_num,
         }
+        if self.no_open_pr:
+            env["_VEF_TEST_NO_OPEN_PR"] = "1"
+        # Per-PR-number body routing: _VEF_TEST_GH_BODY_<N>
+        for num, path in self.gh_body_overrides.items():
+            env[f"_VEF_TEST_GH_BODY_{num}"] = str(path)
         r = subprocess.run(
             [sys.executable, str(VERIFIER)],
             capture_output=True, text=True, env=env,
@@ -373,6 +383,69 @@ def t13_enumerated_site_missing():
     return run_test("T13 enumerated-site-missing [check6]", defect)
 
 
+def t14_no_open_pr():
+    """T14 (c): no open PR for branch -> REFUSED (exit 2).
+
+    Defect: _VEF_TEST_NO_OPEN_PR=1 simulates gh returning no PR for branch.
+    Clean:  default pr_num='13' — verifier proceeds normally.
+    """
+    def defect(env):
+        env.no_open_pr = True
+    return run_test("T14 no-open-pr [exit-2]", defect, expect_rc=2)
+
+
+def t15_artifact_head_mismatch():
+    """T15 (b): pr-description.md HEAD SHA != current HEAD -> REFUSED (exit 2).
+
+    Artifact auto-discovery scans for '**Head SHA:** {HEAD}' in pr-description.md.
+    When the file was written for a different commit, the scan finds 0 candidates
+    and the verifier exits 2 (REFUSED) before running any figure checks.
+
+    Defect: pr-description.md contains wrong HEAD SHA -> 0 scan candidates.
+    Clean:  default fixture has **Head SHA:** {MOCK_HEAD} -> 1 candidate found.
+    """
+    WRONG_HEAD = "a" * 40  # all-'a' SHA -- guaranteed != MOCK_HEAD
+    def defect(env):
+        text = env.pr_path.read_text().replace(
+            f"**Head SHA:** {MOCK_HEAD}",
+            f"**Head SHA:** {WRONG_HEAD}",
+        )
+        env.pr_path.write_text(text)
+    return run_test("T15 artifact-head-mismatch [exit-2]", defect, expect_rc=2)
+
+
+def t16_correct_pr_number_routing():
+    """T16 (a): gh body fetched for the resolved PR number, not a hardcoded default.
+
+    Per-PR routing: _VEF_TEST_GH_BODY_<N> takes precedence over _VEF_TEST_GH_BODY.
+    PR 77 is used (not 12).  The fallback (_VEF_TEST_GH_BODY) is set to diverged
+    content in the clean case -- old code relying on the fallback would fail check 8;
+    new code reads _VEF_TEST_GH_BODY_77 (correct) and passes.
+
+    Defect: _VEF_TEST_GH_BODY_77 = diverged body -> check8/live-pr-body/sync fails.
+    Clean:  _VEF_TEST_GH_BODY_77 = correct body, fallback = diverged -> passes
+            (proves verifier uses the per-PR override, not the fallback).
+    """
+    _DIVERGED = "# diverged body — must not match pr-description.md\n"
+
+    def defect(env):
+        env.pr_num = "77"
+        div_file = env.root / "mock-gh-77-div.txt"
+        div_file.write_text(_DIVERGED)
+        env.gh_body_overrides["77"] = div_file
+
+    def clean(env):
+        env.pr_num = "77"
+        ok_file = env.root / "mock-gh-77-ok.txt"
+        ok_file.write_text(env.pr_path.read_text())  # correct body = pr_path
+        env.gh_body_overrides["77"] = ok_file
+        # Set fallback to diverged: proves verifier uses gh_77, not the fallback.
+        # Old code that ignored _VEF_TEST_PR_NUM and used fallback would fail here.
+        env.gh_file.write_text(_DIVERGED)
+
+    return run_test("T16 correct-pr-number-routing [check8]", defect, clean)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 TESTS = [
     t01_post_merge_context,
@@ -388,6 +461,9 @@ TESTS = [
     t11_ledger_min_count,
     t12_prev_label_drift,
     t13_enumerated_site_missing,
+    t14_no_open_pr,
+    t15_artifact_head_mismatch,
+    t16_correct_pr_number_routing,
 ]
 
 

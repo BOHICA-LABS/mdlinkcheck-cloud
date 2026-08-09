@@ -278,6 +278,6 @@ jobs:
           python3 scripts/verify-evidence-figures.py || ret=$?
           case $ret in
             0) echo "verify-evidence-figures: PASS" ;;
-            2) echo "verify-evidence-figures: REFUSED (post-merge context — not a failure)" ;;
+            2) echo "verify-evidence-figures: REFUSED (context not applicable — not a failure)" ;;
             *) echo "verify-evidence-figures: FAIL (exit $ret)"; exit $ret ;;
           esac
