@@ -3,14 +3,14 @@
 **Epic:** Spec-Lint Integrity — Gate #35 Checker Completeness
 **Mode:** maintenance
 **Branch:** fix/checker-completeness-gate35
-**Head SHA:** f6dfa582b3911ddce155921043efec0c429578d3
+**Head SHA:** 6a5eb9f6ff8bbf7911f5eb612215e353cb54239f
 **Base:** develop
 
-> **SHA note:** `f6dfa58` is a documentation-only commit (BLOCKING-B/C + lower-severity
-> figure fixes + `scripts/verify-evidence-figures.py`); it contains no change under
-> `scripts/spec-lint/`. The source tree under test is byte-identical to `72db558`. Evidence
-> artifacts and the selftest run recorded in AC-002 were captured at `72db558`; they remain
-> valid at `f6dfa58` precisely because the spec-lint source is identical.
+> **SHA note:** `6a5eb9f` is a documentation-only commit (cycle-7 verifier hardening —
+> S-5 complete + Check 8 live-PR-body in `scripts/verify-evidence-figures.py`); it contains
+> no change under `scripts/spec-lint/`. The source tree under test is byte-identical to
+> `72db558`. Evidence artifacts and the selftest run recorded in AC-002 were captured at
+> `72db558`; they remain valid at `6a5eb9f` precisely because the spec-lint source is identical.
 
 ![Tests](https://img.shields.io/badge/selftests-99%2F99-brightgreen)
 ![Primitives](https://img.shields.io/badge/primitives-10%2F10-brightgreen)
@@ -316,10 +316,10 @@ access introduced.
 
 ### Rollback
 ```bash
-git revert 39efec2 72db558 ca8c1c0 b4bbbc3 fd74bd7 1dd7721 879efff d3085d9 2349184
+git revert 6a5eb9f 0ff789f f6dfa58 39efec2 72db558 ca8c1c0 b4bbbc3 fd74bd7 1dd7721 879efff d3085d9 2349184
 git push origin fix/checker-completeness-gate35
 ```
-Rollback reverts all 9 commits in reverse order (newest-first). Restores the Pattern 3-only
+Rollback reverts all 12 commits in reverse order (newest-first). Restores the Pattern 3-only
 E-code detection, single-column TV extraction, and the tautology reconciliation; the
 80 previously-excluded TV rows would silently disappear again.
 

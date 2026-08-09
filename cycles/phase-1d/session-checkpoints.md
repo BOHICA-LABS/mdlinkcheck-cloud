@@ -230,4 +230,23 @@ Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies 
 
 ---
 
+## Session Resume Checkpoint D-153 (2026-08-09) — archived from STATE.md by Burst-35
+
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-153 [SUPERSEDED by D-161 — retained for audit]`
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-09 |
+| **Position** | phase-1d. PR #12 (`fix/checker-completeness-gate35`, head `f6dfa58`) OPEN — cycles 1-5 ALL RESOLVED. Merge WITHHELD by BLOCKING-D/E (BI-059) in `scripts/verify-evidence-figures.py`. 99/99 selftests. 4/4 CI green. Clean-pass streak 0 of 3 UNCHANGED. |
+| **Frozen perimeter** | `specs/` tree `ace1745871122cd1fa2c46cf27c5493cc1083411`. Structurally guaranteed: `.factory/` is a separate orphan-branch worktree. |
+| **Branch state** | `develop` = `da86271` (four oracle repairs live; selftests 91/91). `fix/checker-completeness-gate35` head `f6dfa58` (10 commits). `factory-artifacts` = Burst-34 commit. PR #12 OPEN — BLOCKING-D/E pending. |
+| **PR #12 state** | Cycles 1-5 ALL RESOLVED. BLOCKING-D: verifier fails open (Checks 2/3/4 bare `if match:`). BLOCKING-E: Check 7 wrong property (SHA-in-log ≠ content-obtainable-at-SHA). Gate #42 nine-checker sweep AUTHORIZED (standing; embed verbatim in each implementer spawn prompt per CI-063). |
+| **Convergence counter** | 0 of 3 required clean passes; trajectory →0→32→34→39→37→259→273-275; trajectory-tail →39→37→259→273-275 |
+
+Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-153 (exhaustive). Open BIs: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057/058/059. CI-063 recorded.
+
+*Superseded by D-161 session wrap (Burst-35).*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

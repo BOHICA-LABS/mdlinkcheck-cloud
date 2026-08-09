@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-153
+  Latest: §RESUME SNAPSHOT D-161
 -->
 
 ---
@@ -2388,7 +2388,7 @@ No other worktrees. `fix/s3-test-sufficient-proof-method` remote branch was dele
 
 ---
 
-## §RESUME SNAPSHOT D-153
+## §RESUME SNAPSHOT D-153 [SUPERSEDED by D-161 — retained for audit]
 
 *Written: 2026-08-09 — Burst-34 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-143 (which existed only as an inline STATE.md checkpoint with no full SESSION-HANDOFF.md section). Prior full SESSION-HANDOFF.md snapshot: D-110.*
 
@@ -2518,6 +2518,114 @@ Exactly TWO worktrees:
 - **BI-059 BLOCKING-D/E:** Verifier fails open + wrong-property check; both fixes are a few lines; patches in PR comment `5230383665`
 - **BI-058:** Guard INERT + five false-green checkers; gate-#42 sweep is the closure path
 - **S-6:** CI wiring for verify-evidence-figures.py is operator-gated
+- **D-132:** Completeness assertions at EVERY skip granularity; guard only validates file level
+- **D-126:** check-ec-injectivity divergence count is a LOWER BOUND
+- **7 holdout EC IDs not-yet-authored** (EC-079/093/094/141/147/148/151)
+- **BI-041 --write PROHIBITED**
+- **D-039 no suppression** in any spec-lint checker
+
+---
+
+## §RESUME SNAPSHOT D-161
+
+*Written: 2026-08-09 — Burst-35 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-153.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean passes, trajectory →0→32→34→39→37→259→273-275. PR #12 (`fix/checker-completeness-gate35`) is OPEN at head `6a5eb9f` — cycles 1-7 ALL RESOLVED; cycle-7 APPROVE (0 blocking, 4 suggestions (SUGGESTION-8/9/10/11), 5 nits, PG-012 ranges). BI-059 CLOSED: BLOCKING-D closed STRUCTURALLY via `REQUIRED_CHECKS`/`checks_ran` registry; BLOCKING-E closed STRONGER (`git show <stamp>:<path>` + tampering detection). Merge is AUTHORIZED but WITHHELD — posted-verdict precondition UNMET (three self-approval denials; operator retracted fallback clause; D-157). BI-060 OPENED: `validate-pr-review-posted` hook UNSATISFIABLE + actively instructs toward self-approval (correct behaviour: reviewer refused). Selftests 99/99 mutation-verified. 4/4 required CI checks green at `6a5eb9f`. Frozen perimeter `specs/` tree `ace1745871122cd1fa2c46cf27c5493cc1083411` UNCHANGED.
+
+**Pickup point: human posts verdict comment on PR #12 via `gh pr comment 12 --body-file .factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle7.md`, then operator-confirmed merge (D-120, gate-#28), then sweep step 0.**
+
+### HEADS
+
+| Branch | HEAD | Notes |
+|--------|------|-------|
+| `develop` | `da86271` | four oracle repairs live; selftests 91/91 |
+| `fix/checker-completeness-gate35` | `6a5eb9f` | 12 commits; local == remote; working tree clean |
+| `factory-artifacts` | this burst commit | state artifacts; Burst-35 single-commit TD-VSDD-053 |
+
+### PR #12 STATUS
+
+- **Branch:** `fix/checker-completeness-gate35`
+- **Head:** `6a5eb9f` (12 commits; local == remote; working tree clean)
+- **CI:** 4/4 required checks green
+- **Selftests:** 99/99 mutation-verified
+- **Cycles 1-7:** ALL RESOLVED
+  - Cycles 1-6: resolutions carried forward (scripts/spec-lint/ subtree hash `25077be8211590e649bb37752aacaceaf88d3984` IDENTICAL at `f6dfa58` and `6a5eb9f`)
+  - Cycle-7: APPROVE (0 blocking, 4 suggestions (SUGGESTION-8/9/10/11), 5 nits); BI-059 CLOSED
+- **Sole diff `f6dfa58`→`6a5eb9f`:** `scripts/verify-evidence-figures.py` (328 ins/54 del)
+- **Merge status:** AUTHORIZED (D-120) then WITHHELD — posted-verdict precondition UNMET (D-157)
+- **Verdict file:** `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle7.md`
+- **Resolution path:** human posts verdict comment via `gh pr comment 12 --body-file .factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle7.md`; then operator confirms merge; automation MUST NOT post (three self-approval denials; BI-060)
+
+### FROZEN PERIMETER
+
+`specs/` tree `ace1745871122cd1fa2c46cf27c5493cc1083411`. Structurally guaranteed: `.factory/` is a separate orphan-branch worktree; changes to factory artifacts cannot modify `specs/`.
+
+### BLOCKING ISSUES RELEVANT TO PICKUP
+
+| ID | Summary | Status | Path to Close |
+|----|---------|--------|---------------|
+| BI-059 | BLOCKING-D/E in verify-evidence-figures.py | **CLOSED** (D-155) — proven by execution at `6a5eb9f` | Closed |
+| BI-058 | Guard INERT + 5 false-green checkers | OPEN | Gate-#42 nine-checker sweep (post-merge, sweep step 0 first) |
+| BI-060 | validate-pr-review-posted hook UNSATISFIABLE + instructs self-approval | OPEN | devops-engineer post-merge; do not modify mid-run |
+| BI-056 | E-IO-002 phantom-code detection regression | REPAIRED-PENDING-MERGE at `6a5eb9f` | Merge PR #12 |
+| BI-057 | Row-granularity skip evades file-level completeness | REPAIRED-PENDING-MERGE at `6a5eb9f` | Merge PR #12 |
+
+### QUEUE ORDER AFTER MERGE
+
+0. **Sweep step 0 (FIRST, BEFORE verifier is load-bearing):** SUGGESTION-8/9/10/11 + SUGGESTION-6 (operator-gated CI wiring) — harden `scripts/verify-evidence-figures.py`. Authorized (D-159).
+1. **Gate-#42 nine-checker ledger sweep (BI-058):** INDEPENDENT-PROBE canary populations + anti-tautology for all nine checkers + HS-INDEX `required_files` fix + `run_suppression_guard` Pass-1 fail-open fix. D-141 amended ruling 2: independent-probe canary MANDATORY for all nine checkers. CI-063 mitigation: embed operator authorization verbatim in each implementer's INITIAL SPAWN PROMPT.
+2. EC-151 burn + fresh hidden replacement.
+3. BI-052 (false-green VP attribution class).
+4. BI-053 (fragment percent-decode inversion).
+5. BI-054 (stale POL-14 directive across 33 BC files).
+6. Adversary pass 8 — streak from ZERO, frozen perimeter `ace1745...`.
+
+### STANDING CONSTRAINTS
+
+- **spec-lint REQUIRED flip DEFERRED** (D-117/D-122/D-133): `Spec lint` is intentionally non-required in branch protection; do not flip without operator sign-off.
+- **Merges operator-gated** (D-120): every merge to `develop` requires operator confirmation.
+- **`gh pr review --approve` IMPOSSIBLE** (BI-039/D-021/D-105): all PRs are authored by `drbothen`; use `gh pr comment` for verdicts; never attempt `gh pr review --approve`.
+- **DEV-11 unchanged:** development cadence constraint in force.
+- **D-141 amended ruling 2:** independent-probe canary populations MANDATORY for all nine checkers in gate-#42 sweep.
+- **CI-063 mitigation:** embed operator authorization verbatim in each implementer's INITIAL SPAWN PROMPT; mid-session relay is refused.
+- **BI-060:** do not modify `validate-pr-review-posted` hook mid-run; route around by documented exception only (D-158).
+- **BI-041 --write PROHIBITED:** no spec-lint checker may be run with `--write` flag.
+- **D-039 no suppression:** no suppression in any spec-lint checker.
+
+### SPEC SNAPSHOT
+
+PRD v1.12 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151).
+
+D-001..D-161 (exhaustive). Open BI list: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057/058/060; CI-063.
+
+### WORKTREE INVENTORY
+
+Exactly TWO worktrees:
+
+| Worktree | Branch | HEAD | Notes |
+|----------|--------|------|-------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | `develop` | `da86271` | main checkout; four oracle repairs live |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | this burst commit | state artifacts |
+
+### DECISION DELTA (D-154..D-161)
+
+| ID | Summary |
+|----|---------|
+| D-154 | Gate #43 — cycle-7 review APPROVE at `6a5eb9f`; `scripts/spec-lint/` subtree IDENTICAL; sole diff `verify-evidence-figures.py` |
+| D-155 | BI-059 CLOSED — BLOCKING-D structural via REQUIRED_CHECKS/checks_ran; BLOCKING-E stronger via `git show <stamp>:<path>` |
+| D-156 | S-5 residuals NON-BLOCKING — novel-spelling non-coverage requires mechanism change; double-count errs safe (false-FAIL only) |
+| D-157 | Merge WITHHELD — posted-verdict precondition UNMET; operator retracted fallback clause; STOP and report if automation cannot post |
+| D-158 | BI-060 OPENED — validate-pr-review-posted hook UNSATISFIABLE + actively instructs toward self-approval; reviewer REFUSED (correct) |
+| D-159 | Sweep step 0 APPROVED — SUGGESTION-8/9/10/11 + SUGGESTION-6 BEFORE verify-evidence-figures.py is load-bearing |
+| D-160 | CI-063 EXTENDED — three additional self-approval denials: reviewer spawn, operator harness ×2, pr-manager spawn |
+| D-161 | Burst-35 session wrap — RESUME SNAPSHOT D-161 supersedes D-153 |
+
+### CAVEATS
+
+- **BI-060 OPEN:** `validate-pr-review-posted` hook demands `gh pr review` which is structurally impossible in this repo; also actively instructs agents toward self-approval; do not modify mid-run; route around by documented exception only
+- **BI-058:** Guard INERT + five false-green checkers; gate-#42 sweep is the closure path (after merge + sweep step 0)
 - **D-132:** Completeness assertions at EVERY skip granularity; guard only validates file level
 - **D-126:** check-ec-injectivity divergence count is a LOWER BOUND
 - **7 holdout EC IDs not-yet-authored** (EC-079/093/094/141/147/148/151)

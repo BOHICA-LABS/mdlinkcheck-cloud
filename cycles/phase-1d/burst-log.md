@@ -1886,3 +1886,76 @@ PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry 
 
 **Closes:** audit files durability gap (10 audit files committed). **Opens:** BI-059 (BLOCKING-D/E in verify-evidence-figures.py). **Records:** gates #40-#42 rulings; gate-#42 nine-checker sweep AUTHORIZED. **Adds:** D-144..D-153 (exhaustive).
 
+<!-- Archived from STATE.md Current Phase Steps — removed per keep-last-5 rule when Burst-35 was added -->
+## Archived: Burst-29 (displaced from STATE.md Current Phase Steps by Burst-35)
+
+Full Burst-29 narrative already present at the earlier entry in this file (Burst-29 heading above at line ~1412). This note records its displacement from the STATE.md Current Phase Steps table by the keep-last-5 rotation triggered by Burst-35.
+
+---
+
+## Burst-35 — Gate #43: Cycle-7 APPROVE + BI-059 CLOSED + Merge WITHHELD (2026-08-09)
+
+**Parent-commit:** factory-artifacts HEAD at Burst-34 (Burst-34 commit: audit-durability gap + gates #40-#42 + RESUME SNAPSHOT D-153)
+
+### What Happened
+
+Gate #43: pr-reviewer produced cycle-7 review of PR #12 at head `6a5eb9f` (12 commits; 4/4 CI green; selftests 99/99).
+
+**Result: APPROVE.** 0 blocking findings. 4 suggestions (2 upper / 2 lower: SUGGESTION-8/9/10/11). 5 nits. PG-012 severity ranges used throughout.
+
+**Key structural verifications:**
+- `scripts/spec-lint/` subtree hash `25077be8211590e649bb37752aacaceaf88d3984` IDENTICAL at `f6dfa58` and `6a5eb9f` — cycles 1-5 adjudications mechanically preserved
+- Sole tracked diff `f6dfa58`→`6a5eb9f`: `scripts/verify-evidence-figures.py` (328 ins/54 del)
+- S-7 closed: rollback block lists 12 SHAs, claims "all 12 commits", matched against live count — correct for the first time in four cycles
+- S-5 closed for shrink class: per-figure MINIMUM restatement counts verified by execution
+
+**BI-059 CLOSED (D-155):**
+- BLOCKING-D: closed STRUCTURALLY via `REQUIRED_CHECKS`/`checks_ran` registry — PASS gate asserts every registered check ran a live-vs-document comparison; `sh()` separates stderr and gates return codes via `ALLOWED_RC`; reviewer reproduced cycle-6 stub: PASS/EXIT=0 → 8 failures/EXIT=1
+- BLOCKING-E: closed STRONGER than prescribed patch — `git show <stamp>:<path>` with stamp line normalised away; tampering detection added: `879efff` restamp falsification now FAILS
+
+**S-5 residuals adjudicated NON-BLOCKING (D-156):**
+- Novel-spelling non-coverage: requires mechanism change not pattern-chasing
+- Double-count errs safe: only false-FAIL, never false-PASS
+
+**Merge WITHHELD (D-157):**
+- Merge AUTHORIZED by operator (D-120, gate-#28)
+- Operator RETRACTED fallback clause: no .factory-only record; no automation merge; STOP and report
+- Three self-approval denials: (1) reviewer spawn [Self Approval]; (2) operator's own harness ×2 [Self Approval]; (3) pr-manager spawn [Self-Approval with "authorization confirms rather than negates the self-approval pattern"]
+- Posted-verdict precondition UNMET; resolution path: `gh pr comment 12 --body-file .factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle7.md`
+
+**BI-060 OPENED (D-158):**
+- `validate-pr-review-posted` hook (a) UNSATISFIABLE — demands `gh pr review`, structurally impossible on self-authored PRs; (b) ACTIVELY INSTRUCTS AGENTS TOWARD SELF-APPROVAL — demanded reviewer spawn `github-ops` to run `gh pr review --approve`; reviewer REFUSED (correct behaviour)
+- Operator ruling: do not modify mid-run; record and route around by documented exception only
+
+**Sweep step 0 APPROVED (D-159):** harden `scripts/verify-evidence-figures.py` with SUGGESTION-8/9/10/11 + operator-gated SUGGESTION-6 CI wiring BEFORE the verifier is load-bearing.
+
+**CI-063 EXTENDED (D-160):** three additional self-approval denials appended (see above).
+
+### Decisions Recorded
+
+- D-154: Gate #43 — cycle-7 APPROVE at `6a5eb9f`; subtree IDENTICAL; sole diff verifier
+- D-155: BI-059 CLOSED — structural fix proven by execution
+- D-156: S-5 residuals NON-BLOCKING
+- D-157: Merge WITHHELD — posted-verdict precondition UNMET; fallback retracted
+- D-158: BI-060 OPENED — hook UNSATISFIABLE + instructs self-approval
+- D-159: Sweep step 0 APPROVED — verifier hardening before load-bearing
+- D-160: CI-063 EXTENDED — three self-approval denials
+- D-161: Burst-35 session wrap — RESUME SNAPSHOT D-161
+
+### Artifact State at Burst Close
+
+PRD v1.12 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-161 (exhaustive). Open: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/053/054/056/057/058/060; CI-063. specs/ tree `ace1745871122cd1fa2c46cf27c5493cc1083411` VERIFIED UNCHANGED.
+
+### Files Touched (factory-artifacts branch — one atomic commit per TD-VSDD-053)
+
+- `.factory/STATE.md` — frontmatter timestamp + current_step; Project Metadata (Last Updated + Current Step); Phase Progress (Burst-35 row added); Current Phase Steps (Burst-35 added, Burst-29 archived); Decisions Log D-154..D-161 appended; Blocking Issues (BI-059 removed → blocking-issues-resolved.md; BI-056/BI-057 advanced to 6a5eb9f/12 commits; BI-060 ADDED; CI-063 extended); Session Resume Checkpoint replaced D-153→D-161; Concurrent Cycles updated; Historical Content (pr-review-cycle7.md row added)
+- `.factory/SESSION-HANDOFF.md` — Latest: pointer updated D-153→D-161; D-153 snapshot header marked SUPERSEDED; §RESUME SNAPSHOT D-161 appended
+- `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-review-cycle7.md` — added (new; cycle-7 review; 697 lines; APPROVE; durability-critical)
+- `.factory/code-delivery/CHECKER-COMPLETENESS-GATE35/pr-description.md` — updated (head SHA 6a5eb9f; rollback block 12 SHAs)
+- `.factory/cycles/phase-1d/blocking-issues-resolved.md` — BI-059 closure record appended
+- `.factory/cycles/phase-1d/burst-log.md` — Burst-29 archive note + Burst-35 narrative appended
+- `.factory/cycles/phase-1d/session-checkpoints.md` — D-153 checkpoint archived
+- `.factory/logs/` — modified + untracked .jsonl files staged
+
+**Closes:** BI-059 (BLOCKING-D/E proven by execution at `6a5eb9f`). **Opens:** BI-060 (validate-pr-review-posted hook unsatisfiable + self-approval). **Records:** gate #43 cycle-7 APPROVE, merge WITHHELD, sweep step 0 APPROVED. **Adds:** D-154..D-161 (exhaustive).
+

@@ -1,0 +1,2 @@
+{"type":"hook.block","hook":"destructive-command-guard","reason":"protected_path_delete","ts":"2026-08-09T01:07:23-0500","ts_epoch":1786255643,"schema_version":1}
+{"type":"hook.block","hook":"destructive-command-guard","reason":"protected_path_delete","ts":"2026-08-09T05:03:53-0500","ts_epoch":1786269833,"schema_version":1}
