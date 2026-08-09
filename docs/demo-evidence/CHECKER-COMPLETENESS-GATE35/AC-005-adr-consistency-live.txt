@@ -1,0 +1,21 @@
+Closed reason code set (15 codes): ['anchor-not-found', 'broken-symlink', 'dns-failure', 'file-not-found', 'http-error', 'http-indeterminate', 'http-timeout', 'https-downgrade', 'malformed-url', 'private-ip', 'target-is-directory', 'target-unreadable', 'tls-error', 'too-many-redirects', 'undefined-reference-definition']
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.009.md:44: E-class code 'E-IO-002' not defined in error-taxonomy.md (POLICY 19 — E-code namespace)
+  nonexistent_dir/` fully scans `good_dir/`, emits its broken-link findings, emits an E-IO-002 error
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.009.md:52: E-class code 'E-IO-002' not defined in error-taxonomy.md (POLICY 19 — E-code namespace)
+  1. For a nonexistent PATH argument: an `E-IO-002` error is recorded; an error message is emitted on 
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.009.md:71: E-class code 'E-IO-002' not defined in error-taxonomy.md (POLICY 19 — E-code namespace)
+  | `mdlinkcheck /nonexistent` | Exit 2; E-IO-002 on stderr; no findings on stdout | happy-path |
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-01/BC-2.01.009.md:73: E-class code 'E-IO-002' not defined in error-taxonomy.md (POLICY 19 — E-code namespace)
+  | `mdlinkcheck good_dir/ nonexistent_dir/` (good_dir has 1 broken link; nonexistent_dir absent) | Ex
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-03/BC-2.03.002.md:82: verdict reason code 'case-insensitive' not in closed taxonomy (POLICY 19)
+  | `[x][REF]\n\n[ref]: a.md` (a.md exists) | clean (case-insensitive) | edge-case |
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-11/BC-2.11.004.md:61: taxonomy reference 'E-CLI-001' not in closed taxonomy (POLICY 19)
+  3. Exit code 2 is used for all configuration errors (consistent with E-CLI-001 taxonomy).
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/prd-supplements/interface-definitions.md:237: E-class code 'E-IO-002' not defined in error-taxonomy.md (POLICY 19 — E-code namespace)
+  | Nonexistent PATH argument | Error recorded (E-IO-002); scanning continues for remaining valid PATH
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/prd-supplements/test-vectors.md:221: verdict reason code 'syntax-valid' not in closed taxonomy (POLICY 19)
+  | TV-116 | EC-116 | `<https://example.com>` CommonMark autolink | 0 (offline) | clean (syntax-valid)
+/Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/prd-supplements/test-vectors.md:432: verdict reason code 'malformed-fragment' not in closed taxonomy (POLICY 19)
+  | TV-197 | EC-197 | `[x](a.md##double-hash)` — malformed fragment with double `#` | BC-2.08.003 | (n
+
+Check FAILED: 9 violations found (79 reason-code occurrences + 5 E-class code occurrences validated across 126 files scanned + 8 ADRs routed to POLICY 12 = 134 of 134 spec files (complete), 9 non-conforming)
