@@ -130,7 +130,7 @@ flowchart LR
 | Checker | Previous (post-gate34) | After This PR | Notes |
 |---------|----------------------|---------------|-------|
 | check-adr-consistency | 4 violations, 0 E-class detections | **9 violations** (79 reason-code + 6 E-class code occ) | Unchanged from gate35; verifier update only |
-| check-ec-injectivity | 9 divergent, 5 adjudication; 110 citations with 80 skipped | **42 DIVERGENT + 22 ADJUDICATION; 174 of 191 TV rows compared** | Unchanged from gate35; verifier update only |
+| check-ec-injectivity | 9 divergent, 5 adjudication; 110 of 190 TV rows (80 skipped) | **42 DIVERGENT + 22 ADJUDICATION; 174 of 191 TV rows compared** | Unchanged from gate35; verifier update only |
 | (all others) | unchanged | unchanged | |
 
 ### ADR Consistency Figures
