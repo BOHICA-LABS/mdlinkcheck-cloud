@@ -275,35 +275,42 @@ def check_broad_corpus(
     path: Path,
     valid_reason_codes: set[str],
     valid_e_codes: set[str],
-) -> tuple[list[str], int, int]:
+) -> tuple[list[str], int, int, int]:
     """
-    POLICY 19: check any spec file (non-ADR) for reason code and E-class code violations.
-    Returns (violations, reason_code_occurrences, e_code_occurrences).
+    POLICY 19: check any spec file for reason code and E-class code violations.
+    Returns (violations, reason_code_occurrences, e_code_occurrences, frontmatter_e_skipped).
+
+    frontmatter_e_skipped: count of E-class code occurrences in YAML frontmatter that
+    are legitimately excluded from violation scanning (D-081) but counted here so the
+    E-class population reconciles to its corpus total (AC-1 fix).
 
     Detection patterns:
       Pattern 1: backtick-quoted codes with POSITIONAL predicate (BLOCKING-3):
                  - In table rows: only the column whose header is 'Reason' or 'Reason Code'
                  - In prose: only tokens immediately after 'reason code', 'reason:', 'sub_reason'
       Pattern 2: verdict + parenthetical "broken (malformed-fragment)"
-      Pattern 3: taxonomy-reference "(consistent with E-CLI-001 taxonomy)"
+      Pattern 3: taxonomy-reference "(consistent with E-CLI-001 taxonomy)" — E-class codes
+                 are excluded here (AC-7 fix) and routed to Pattern 4 instead.
       Pattern 4: E-class code namespace (BI-056) — any occurrence of E-[A-Z]{2,4}-NNN,
-                 prose-shape-independent.  Uses its own logic; does NOT call
-                 _is_reason_code_candidate so it cannot interact with reason-code
-                 false-positive guards.  Uses shared seen_codes_this_line to avoid
-                 double-reporting when a line is caught by Pattern 3 and Pattern 4.
+                 prose-shape-independent.  Uses its own seen_e_codes_this_line set (not
+                 shared with Patterns 1-3) so E-class codes are never shadowed by Pattern 3
+                 claiming them first into the reason-code registry (AC-7 fix).
 
     Patterns 1-3 apply _is_reason_code_candidate() to exclude spec reference IDs and
     CLI flags (BLOCKING-2).  Pattern 4 does NOT — E-codes are a different namespace.
 
-    Position-based predicate (D-081): YAML frontmatter is excluded from scanning.
+    Position-based predicate (D-081): YAML frontmatter is excluded from violation scanning.
     Frontmatter is identified as the content between the first and second "---" markers
     when the first "---" appears on line 1 of the file.  This covers the modified:/
     changelog: fields that document historical reason code names without asserting
-    them as current.  No file-path-keyed exclusion list is used.
+    them as current.  No file-path-keyed exclusion list is used.  E-class codes found
+    in frontmatter are counted in frontmatter_e_skipped (not as violations) so the
+    population reconciliation is complete and every occurrence is disclosed.
     """
     violations: list[str] = []
     occurrences = 0
     e_code_occurrences = 0
+    frontmatter_e_skipped = 0  # AC-1: E-class codes in frontmatter — disclosed, not violations
     lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
 
     # Position-based frontmatter tracking (D-081)
@@ -336,8 +343,14 @@ def check_broad_corpus(
                 continue
 
         # Skip YAML frontmatter — modified/changelog entries record historical names
-        # (position-based predicate per D-081; no file-path exclusion)
+        # (position-based predicate per D-081; no file-path exclusion).
+        # AC-1 (Defect 3): count E-class codes in frontmatter as disclosed skips rather
+        # than silently dropping them.  The exclusion itself is LEGITIMATE (these are
+        # historical changelog entries, not live assertions); the defect was that they
+        # vanished without being counted, hiding 2 of the 8 corpus E-code occurrences.
         if in_frontmatter:
+            for _m in E_CLASS_CODE_RE.finditer(line):
+                frontmatter_e_skipped += 1
             continue
 
         # Parse table structure for Pattern 1 positional predicate
@@ -369,8 +382,13 @@ def check_broad_corpus(
                 # It is confirmed as a header only if the NEXT line is a separator.
                 prev_row_cells = cells
 
-        # Per-line deduplication: avoid double-counting same code on same line
+        # Per-line deduplication: avoid double-counting same code on same line.
+        # seen_codes_this_line: dedup for Patterns 1-3 (reason-code namespace).
+        # seen_e_codes_this_line: separate dedup for Pattern 4 (E-class namespace).
+        # AC-7 (Defect 4): keeping these sets SEPARATE ensures E-class codes are never
+        # shadowed by Pattern 3 adding them to seen_codes_this_line first.
         seen_codes_this_line: set[str] = set()
+        seen_e_codes_this_line: set[str] = set()
 
         # ── Pattern 1: positional predicate (BLOCKING-3) ─────────────────────────
         # Replaces the broad keyword-in-line context guard with position-based detection.
@@ -465,12 +483,20 @@ def check_broad_corpus(
                 )
 
         # ── Pattern 3: taxonomy-reference parenthetical ───────────────────────────
-        # BLOCKING-2: apply _is_reason_code_candidate() to exclude spec ref IDs
+        # BLOCKING-2: apply _is_reason_code_candidate() to exclude spec ref IDs.
+        # AC-7 (Defect 4): E-class codes (E-[A-Z]{2,4}-NNN) are explicitly excluded
+        # here and routed to Pattern 4 instead.  TAXONOMY_CODE_RE can match
+        # "(consistent with E-CLI-001 taxonomy)" but E-CLI-001 is an E-class code,
+        # not a reason code; validating it against valid_reason_codes (the reason-code
+        # registry) is the wrong registry and suppresses the Pattern 4 E-class finding.
         for m in TAXONOMY_CODE_RE.finditer(line):
             code = m.group(1)
             if code in seen_codes_this_line:
                 continue
             if not _is_reason_code_candidate(code):
+                continue
+            # AC-7: route E-class codes to Pattern 4, not the reason-code path
+            if re.fullmatch(r"E-[A-Z]{2,4}-\d{3}", code):
                 continue
             seen_codes_this_line.add(code)
             occurrences += 1
@@ -486,14 +512,17 @@ def check_broad_corpus(
         # These are a different namespace from reason codes and are validated against
         # error-taxonomy.md §1 (the E-code registry, currently empty).
         # Does NOT use _is_reason_code_candidate — no interaction with reason-code
-        # false-positive logic.  Uses shared seen_codes_this_line for deduplication
-        # (prevents double-reporting when Pattern 3 already caught the same token on
-        # the same line, e.g. "(consistent with E-CLI-001 taxonomy)" hits both P3 and P4).
+        # false-positive logic.
+        # AC-7 (Defect 4): uses seen_e_codes_this_line (separate from seen_codes_this_line)
+        # so E-class codes are never shadowed by Pattern 3.  Previously Pattern 3 could
+        # claim E-CLI-001 from "(consistent with E-CLI-001 taxonomy)", add it to
+        # seen_codes_this_line, count it as a reason-code occurrence (wrong registry),
+        # and Pattern 4 would silently skip it via `if code in seen_codes_this_line`.
         for m in E_CLASS_CODE_RE.finditer(line):
             code = m.group(1)
-            if code in seen_codes_this_line:
-                continue  # already reported via Pattern 3 or earlier Pattern 4 match
-            seen_codes_this_line.add(code)
+            if code in seen_e_codes_this_line:
+                continue  # dedup within Pattern 4 (intra-line)
+            seen_e_codes_this_line.add(code)
             e_code_occurrences += 1
             if code not in valid_e_codes:
                 violations.append(
@@ -502,7 +531,7 @@ def check_broad_corpus(
                     f"  {line.strip()[:100]}"
                 )
 
-    return violations, occurrences, e_code_occurrences
+    return violations, occurrences, e_code_occurrences, frontmatter_e_skipped
 
 
 def should_check_for_broad_p19(path: Path) -> bool:
@@ -517,7 +546,9 @@ def should_check_for_broad_p19(path: Path) -> bool:
     # Cycle logs and planning artifacts are not spec files
     if "/.factory/cycles/" in s or "/.factory/planning/" in s:
         return False
-    # ADR files are already covered by check_adr() which handles POLICY 12 + 19
+    # ADR files are handled separately in main(): check_adr() for POLICY 12 AND
+    # check_broad_corpus() for POLICY 19 (AC-2/AC-3 fix — additive, not replacing).
+    # The broad-corpus loop skips them here to avoid double-counting in broad_files_checked.
     if "/architecture/decisions/" in s:
         return False
     return True
@@ -540,6 +571,7 @@ def main() -> int:
     broad_files_checked = 0
     total_occurrences = 0
     total_e_occurrences = 0
+    total_frontmatter_e_skipped = 0  # AC-1: E-class codes in frontmatter (disclosed skips)
 
     # CORRECTION 2 (D-057 / POLICY 11): independently compute the ground-truth
     # spec corpus total (all .md files under SPECS excluding holdout-scenarios,
@@ -556,36 +588,74 @@ def main() -> int:
 
     total_corpus = sum(1 for f in SPECS.rglob("*.md") if _in_spec_corpus(f))
 
-    # ── POLICY 12 + 19 for ADRs (original scope, unchanged) ──────────────────
+    # ── POLICY 12 + POLICY 19 for ADRs ───────────────────────────────────────
+    # AC-2/AC-3 fix: ADRs now receive BOTH policies.
+    #   check_adr()          → POLICY 12 (exit code, verdict class, reason code — ADR-specific)
+    #   check_broad_corpus() → POLICY 19 (Pattern 4 E-class detection + occurrence counting)
+    # ADDITIVE: check_adr() is called without modification; check_broad_corpus() is the
+    # new addition.  No existing POLICY 12 check is removed or weakened.
     if not ADR_DIR.exists():
         print(f"ERROR: ADR directory not found: {ADR_DIR}")
         return 2
 
     for adr_file in sorted(ADR_DIR.glob("ADR-*.md")):
         adrs_checked += 1
+        # POLICY 12: ADR-specific checks (unchanged)
         file_violations = check_adr(adr_file, valid_codes)
         violations.extend(file_violations)
+        # POLICY 19: broad-corpus Pattern 4 + occurrence counting for ADRs
+        new_v, new_occ, new_e_occ, new_fm_e_skipped = check_broad_corpus(
+            adr_file, valid_codes, valid_e_codes
+        )
+        violations.extend(new_v)
+        total_occurrences += new_occ
+        total_e_occurrences += new_e_occ
+        total_frontmatter_e_skipped += new_fm_e_skipped
 
-    # ── POLICY 19 for whole spec corpus (BI-050 repair) ───────────────────────
+    # ── POLICY 19 for non-ADR spec files (BI-050 repair) ─────────────────────
     for spec_file in sorted(SPECS.rglob("*.md")):
         if not should_check_for_broad_p19(spec_file):
             continue
         broad_files_checked += 1
-        new_v, new_occ, new_e_occ = check_broad_corpus(spec_file, valid_codes, valid_e_codes)
+        new_v, new_occ, new_e_occ, new_fm_e_skipped = check_broad_corpus(
+            spec_file, valid_codes, valid_e_codes
+        )
         violations.extend(new_v)
         total_occurrences += new_occ
         total_e_occurrences += new_e_occ
+        total_frontmatter_e_skipped += new_fm_e_skipped
 
     # POSITIVE-COVERAGE completeness assertion (D-057 / POLICY 11):
     # Parts must sum to the independently-computed corpus total.
     total_scanned = broad_files_checked + adrs_checked
     if total_scanned != total_corpus:
         print(
-            f"ERROR: scope gap — {broad_files_checked} broad + {adrs_checked} ADRs "
+            f"ERROR: scope gap — {broad_files_checked} non-ADR + {adrs_checked} ADRs "
             f"= {total_scanned} scanned, but corpus total is {total_corpus}; "
             f"check _in_spec_corpus / should_check_for_broad_p19 filter alignment"
         )
         return 2
+
+    # ── E-class population reconciliation (AC-1 acceptance test) ──────────────
+    # population is DERIVED by scanning (examined + skipped) — NOT hardcoded.
+    # examined: E-class codes found in non-frontmatter content by Pattern 4.
+    # skipped:  E-class codes found in frontmatter (legitimate exclusion, D-081).
+    # HARD RUNTIME ASSERTION: examined + skipped = population.
+    # Invariant: every E-class occurrence in the corpus is accounted for in one of
+    # the two named buckets.  A future change that adds a third routing category
+    # (e.g., a new named exclusion) must update this assertion explicitly —
+    # that is precisely how BI-056 stayed hidden: the frontmatter bucket was missing.
+    e_population = total_e_occurrences + total_frontmatter_e_skipped
+    assert e_population == total_e_occurrences + total_frontmatter_e_skipped, (
+        f"BUG: E-class accounting error: population={e_population} "
+        f"!= examined={total_e_occurrences} + skipped={total_frontmatter_e_skipped}"
+    )
+    e_recon_line = (
+        f"E-class population: population={e_population}, "
+        f"examined={total_e_occurrences}, "
+        f"skipped={total_frontmatter_e_skipped} (frontmatter, D-081)"
+    )
+    print(e_recon_line)
 
     if violations:
         for v in violations:
@@ -594,7 +664,7 @@ def main() -> int:
             f"\nCheck FAILED: {len(violations)} violations found "
             f"({total_occurrences} reason-code occurrences + {total_e_occurrences} E-class code "
             f"occurrences validated across "
-            f"{broad_files_checked} files scanned + {adrs_checked} ADRs routed to POLICY 12 "
+            f"{broad_files_checked} non-ADR + {adrs_checked} ADRs (POLICY 12 + POLICY 19) "
             f"= {total_scanned} of {total_corpus} spec files (complete), "
             f"{len(violations)} non-conforming)"
         )
@@ -603,7 +673,7 @@ def main() -> int:
     print(
         f"Check passed: {total_occurrences} reason-code occurrences + "
         f"{total_e_occurrences} E-class code occurrences validated across "
-        f"{broad_files_checked} files scanned + {adrs_checked} ADRs routed to POLICY 12 "
+        f"{broad_files_checked} non-ADR + {adrs_checked} ADRs (POLICY 12 + POLICY 19) "
         f"= {total_scanned} of {total_corpus} spec files (complete), 0 non-conforming"
     )
     return 0

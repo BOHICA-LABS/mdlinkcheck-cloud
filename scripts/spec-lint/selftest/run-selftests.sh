@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=93
+EXPECTED_TEST_COUNT=96
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -5696,8 +5696,11 @@ rm -rf "$T"
 # ── Test 5k (BI-056): check-adr-consistency — three phantom calibration codes detected as a set ──
 # Pins ALL THREE mandated phantom calibration codes AS A SET (BI-056 root-cause):
 #   (1) malformed-fragment — Pattern 2 (verdict-paren): "broken (malformed-fragment)"
-#   (2) E-CLI-001         — Pattern 3 (taxonomy-ref):  "(consistent with E-CLI-001 taxonomy)"
-#   (3) E-IO-002          — Pattern 4 (E-class detector, NEW in this repair): "emits an E-IO-002 error"
+#   (2) E-CLI-001         — Pattern 4 (E-class detector): "(consistent with E-CLI-001 taxonomy)"
+#                           NOTE (AC-7 fix, gate #35): E-CLI-001 is now routed to Pattern 4,
+#                           NOT Pattern 3.  Pattern 3's E-class guard skips it; Pattern 4's
+#                           separate seen_e_codes_this_line set ensures it is processed.
+#   (3) E-IO-002          — Pattern 4 (E-class detector): "emits an E-IO-002 error"
 #
 # Root cause of BI-056: TAXONOMY_CODE_RE matched ONLY the "(consistent with X taxonomy)" prose
 # shape, leaving E-IO-002 invisible in all other shapes (prose "emits an E-IO-002 error",
@@ -5788,6 +5791,244 @@ IFACE5KBAD
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass confirmed; all three phantom codes detected: E-IO-002, E-CLI-001, malformed-fragment)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5l (AC-3+AC-2): check-adr-consistency — E-class code in ADR body detected ──
+# Proves Defects 1 and 2 fixed: ADR files now receive Pattern 4 E-class detection and
+# occurrence counting via check_broad_corpus() in addition to POLICY 12 via check_adr().
+# ADDITIVE: check_adr() is called unchanged; check_broad_corpus() is the new addition.
+#
+# Clean tree: ADR with only valid content and no E-class codes → exit 0.
+# Defect: add E-class code to ADR body prose → Pattern 4 detects it → exit 1.
+#
+# Mutation-verify: removing the check_broad_corpus() call from the ADR loop (reverting
+#   AC-2/AC-3) leaves E-class detection for ADRs to check_adr() alone.  check_adr()
+#   does NOT run E_CLASS_CODE_RE (Pattern 4), so "E-ZZZ-001" in ADR prose is invisible
+#   → exit 0 → defect-fail assertion fires → mutation dies.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5l (AC-3+AC-2): check-adr-consistency: E-class code in ADR body detected ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5L'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5L
+
+# Clean ADR: POLICY 12-safe content, no E-class codes
+cat > "$T/.factory/specs/architecture/decisions/ADR-001-test.md" <<'ADR5LCLEAN'
+# ADR-001: Test Decision
+
+## Decision
+
+Use file-not-found for missing path arguments.
+ADR5LCLEAN
+
+CLEAN_PASS=0
+ST5L_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+ST5L_CLEAN_RC=$?
+if [ "$ST5L_CLEAN_RC" -ne 0 ]; then
+    echo "  STRUCTURAL FAIL: checker failed on clean ADR (no E-class codes)"
+    echo "  Output: $ST5L_CLEAN"
+    FAILURES=$((FAILURES + 1))
+else
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: E-class code in ADR body prose (Pattern 4 form: bare occurrence)
+    cat > "$T/.factory/specs/architecture/decisions/ADR-001-test.md" <<'ADR5LBAD'
+# ADR-001: Test Decision
+
+## Decision
+
+Use file-not-found for missing path arguments. On I/O error the tool emits an E-ZZZ-001 error.
+ADR5LBAD
+    ST5L_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    ST5L_RC=$?
+    if [ "$ST5L_RC" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — E-class code in ADR body not detected; AC-2/AC-3 routing missing)"
+        FAILURES=$((FAILURES + 1))
+    elif ! echo "$ST5L_OUT" | grep -q "E-class code 'E-ZZZ-001'"; then
+        echo "  FAIL (E-class code 'E-ZZZ-001' not in output — Pattern 4 did not run on ADR file)"
+        echo "  Output: $ST5L_OUT"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; E-class code in ADR body correctly detected via Pattern 4)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5m (AC-1): check-adr-consistency — frontmatter E-class code disclosed as named skip ──
+# Proves Defect 3 fixed: E-class codes in YAML frontmatter are counted in the E-class
+# population reconciliation as disclosed skips ("skipped=N, frontmatter, D-081") rather
+# than vanishing silently.  The EXCLUSION itself is legitimate — changelog/modified:
+# entries reference historical E-class names; they are not live assertions.
+#
+# Clean tree: BC with E-class code ONLY in frontmatter → exit 0 (frontmatter excluded
+#   from violation scanning) AND output shows "skipped=1" (E-code counted as disclosed skip).
+#   Structural assertion: grep for "skipped=1".
+# Defect: add same E-class code to body → exit 1 (body occurrence is a violation).
+#
+# Mutation-verify: removing the frontmatter E-code scan (for _m in E_CLASS_CODE_RE ... )
+#   makes the frontmatter occurrence vanish → output shows "skipped=0" instead of "skipped=1"
+#   → grep for "skipped=1" FAILS → STRUCTURAL FAIL fires → mutation dies.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5m (AC-1): check-adr-consistency: frontmatter E-class code disclosed as named skip ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5M'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5M
+
+# Clean tree: E-class code ONLY in YAML frontmatter (modified: changelog entry).
+# checker exits 0 (frontmatter excluded) AND output shows "skipped=1".
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-5M-TEST.md" <<'BC5MCLEAN'
+---
+document_type: behavioral-contract
+modified:
+  - "v1.1: Error class changed to E-ZZZ-001 for I/O failures."
+---
+
+# BC-5M-TEST: Behavioral Contract
+
+No E-class codes in body.
+BC5MCLEAN
+
+CLEAN_PASS=0
+ST5M_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+ST5M_CLEAN_RC=$?
+if [ "$ST5M_CLEAN_RC" -ne 0 ]; then
+    echo "  STRUCTURAL FAIL: checker failed on file with E-class code only in frontmatter"
+    echo "  Output: $ST5M_CLEAN"
+    FAILURES=$((FAILURES + 1))
+elif ! echo "$ST5M_CLEAN" | grep -q "skipped=1"; then
+    echo "  STRUCTURAL FAIL: output does not show 'skipped=1' — frontmatter E-code not counted (AC-1 fix missing)"
+    echo "  Output: $ST5M_CLEAN"
+    FAILURES=$((FAILURES + 1))
+else
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: same E-class code added to body prose → now also a violation → exit 1
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-5M-TEST.md" <<'BC5MBAD'
+---
+document_type: behavioral-contract
+modified:
+  - "v1.1: Error class changed to E-ZZZ-001 for I/O failures."
+---
+
+# BC-5M-TEST: Behavioral Contract
+
+On I/O error the tool emits an E-ZZZ-001 error and continues scanning.
+BC5MBAD
+    if SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" > /dev/null 2>&1; then
+        echo "  FAIL (checker returned 0 — E-class code in body not detected)"
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass + skipped=1 confirmed; E-class code in body detected as violation)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5n (AC-7): check-adr-consistency — E-class code in taxonomy-ref context routed to Pattern 4 ──
+# Proves Defect 4 fixed: when an E-class code appears in a "(consistent with E-XXX-NNN taxonomy)"
+# context (which TAXONOMY_CODE_RE matches), it is routed to Pattern 4 for E-class validation —
+# NOT validated as a reason code via Pattern 3.
+#
+# Before fix: Pattern 3 claimed E-ZZZ-001, added to seen_codes_this_line, validated against
+#   valid_reason_codes (wrong registry), output "taxonomy reference 'E-ZZZ-001' not in closed
+#   taxonomy (POLICY 19)".  Pattern 4 skipped E-ZZZ-001 via seen_codes_this_line (shared set).
+#   E-class occurrence COUNT = 0; violation message type = WRONG.
+# After fix: Pattern 3 E-class guard skips E-ZZZ-001; Pattern 4 uses separate
+#   seen_e_codes_this_line, counts it, outputs "E-class code 'E-ZZZ-001' not defined in
+#   error-taxonomy.md (POLICY 19 — E-code namespace)".  E-class COUNT = 1; type = CORRECT.
+#
+# Clean tree: BC with no E-class codes → exit 0.
+# Defect: "(consistent with E-ZZZ-001 taxonomy)" in body → exit 1 with E-class message.
+#
+# Mutation-verify: removing the AC-7 guard from Pattern 3 AND restoring Pattern 4 shared
+#   dedup (seen_codes_this_line) reverts to original behavior.  Pattern 3 claims E-ZZZ-001
+#   into seen_codes_this_line; Pattern 4 skips via `if code in seen_codes_this_line`.
+#   Output: "taxonomy reference 'E-ZZZ-001'" (NOT "E-class code 'E-ZZZ-001'").
+#   The grep for "E-class code 'E-ZZZ-001'" FAILS → STRUCTURAL FAIL fires → mutation dies.
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5n (AC-7): check-adr-consistency: E-class code in taxonomy-ref context routed to Pattern 4 ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+mkdir -p "$T/.factory/specs/behavioral-contracts/ss-01"
+
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5N'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5N
+
+# Clean tree: no E-class codes → exit 0
+cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-5N-TEST.md" <<'BC5NCLEAN'
+# BC-5N-TEST: Behavioral Contract
+
+Exit code 2 when file not found.
+BC5NCLEAN
+
+CLEAN_PASS=0
+ST5N_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+ST5N_CLEAN_RC=$?
+if [ "$ST5N_CLEAN_RC" -ne 0 ]; then
+    echo "  STRUCTURAL FAIL: checker failed on clean fixture"
+    echo "  Output: $ST5N_CLEAN"
+    FAILURES=$((FAILURES + 1))
+else
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: E-class code in "(consistent with E-ZZZ-001 taxonomy)" taxonomy-reference context.
+    # After fix: Pattern 3 E-class guard fires → skip; Pattern 4 detects via separate dedup set.
+    # Message must be "E-class code 'E-ZZZ-001' not defined..." (NOT "taxonomy reference...").
+    cat > "$T/.factory/specs/behavioral-contracts/ss-01/BC-5N-TEST.md" <<'BC5NBAD'
+# BC-5N-TEST: Behavioral Contract
+
+Exit code 2 is used for all configuration errors (consistent with E-ZZZ-001 taxonomy).
+BC5NBAD
+    ST5N_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    ST5N_RC=$?
+    FAIL=0
+    if [ "$ST5N_RC" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — E-class code in taxonomy-ref context not detected)"
+        FAIL=1
+    fi
+    if ! echo "$ST5N_OUT" | grep -q "E-class code 'E-ZZZ-001'"; then
+        echo "  FAIL (E-ZZZ-001 not reported as E-class code — Pattern 3 E-class guard missing or Pattern 4 dedup broken)"
+        echo "  Output: $ST5N_OUT"
+        FAIL=1
+    fi
+    if echo "$ST5N_OUT" | grep -q "taxonomy reference 'E-ZZZ-001'"; then
+        echo "  FAIL (E-ZZZ-001 reported as taxonomy reference — Pattern 3 E-class guard not active)"
+        echo "  Output: $ST5N_OUT"
+        FAIL=1
+    fi
+    if [ "$FAIL" -eq 1 ]; then
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; E-ZZZ-001 in taxonomy-ref context correctly routed to Pattern 4)"
     fi
 fi
 rm -rf "$T"
