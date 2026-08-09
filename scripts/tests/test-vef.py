@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-17 test cases (T01-T17).  Each proves:
+18 test cases (T01-T18).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
 
@@ -26,10 +26,19 @@ REPO     = Path(__file__).resolve().parent.parent.parent
 VERIFIER = REPO / "scripts" / "verify-evidence-figures.py"
 EV_DIR_REL = "docs/demo-evidence/CHECKER-COMPLETENESS-GATE35"
 
-# Exact JSON fields requested by the verifier's gh pr view call.
-# This constant is the single source of truth for T17's contract check.
-# If the verifier changes its fields, update both here AND in the script.
-GH_PR_FIELDS = "number,headRefOid"
+# Single source of truth: extract the exact JSON fields the verifier requests.
+# Reading from the verifier source makes a divergent copy structurally impossible.
+# Uses re.findall to assert exactly one match — refuses ambiguously if multiple
+# call sites exist, rather than silently picking the first.
+_GH_FIELD_CANDIDATES = re.findall(
+    r'"gh",\s*"pr",\s*"view",\s*"--json",\s*"([^"]+)"',
+    VERIFIER.read_text(),
+)
+assert len(_GH_FIELD_CANDIDATES) == 1, (
+    f"T17/T18: expected exactly 1 gh --json field site in verifier, "
+    f"found {len(_GH_FIELD_CANDIDATES)}: {_GH_FIELD_CANDIDATES!r}"
+)
+GH_PR_FIELDS = _GH_FIELD_CANDIDATES[0]
 
 # ── Mock tool outputs ─────────────────────────────────────────────────────────
 # MOCK_HEAD chosen to contain no live EI figures (174/42/22) or combined
@@ -508,6 +517,96 @@ def t17_gh_field_contract():
     return passed
 
 
+def t18_gh_real_path_field_contract():
+    """T18: verifier's REAL gh resolution path uses the correct field name.
+
+    Runs the verifier with _VEF_TEST_N_AHEAD set (to ensure the n_ahead guard
+    does not fire before reaching gh) but WITHOUT _VEF_TEST_PR_NUM or
+    _VEF_TEST_NO_OPEN_PR, so PR resolution goes through the actual gh binary
+    at verify-evidence-figures.py:247.
+
+    Defect case: a temporary copy of the verifier with 'headSha' (invalid field)
+      produces 'possible bad JSON field name in verifier' (exit 2 via line ~261).
+    Clean case: the real verifier with 'headRefOid' does NOT produce that message.
+
+    Both mutations are distinguishable regardless of whether a PR exists for the
+    current branch: gh validates field names before the API call, so an invalid
+    field always yields 'Unknown JSON field' even with no open PR.
+
+    If gh is unavailable: LOUD SKIP (counted, not a silent pass).
+    T18 is vacuous when gh is absent — the skip is reported and cannot be
+    mistaken for a pass because run() counts None results separately from True.
+    """
+    import shutil as _shutil
+    if not _shutil.which("gh"):
+        print("  SKIP  T18 gh-real-path-field-contract [gh unavailable]"
+              "  **** LOUD SKIP — not a pass ****")
+        return None  # distinct from True (pass) and False (fail)
+
+    # Base env: all non-_VEF_TEST_ vars, plus _VEF_TEST_N_AHEAD so the pre-flight
+    # guard does not fire before we reach the gh call.
+    # _VEF_TEST_PR_NUM and _VEF_TEST_NO_OPEN_PR are deliberately excluded.
+    base_env = {
+        k: v for k, v in os.environ.items()
+        if not k.startswith("_VEF_TEST_")
+    }
+    base_env["_VEF_TEST_N_AHEAD"] = "12"
+
+    # ── Defect present: temp copy of verifier with headSha ────────────────────
+    # Soft FAIL (not hard assert) when injection cannot land: the verifier may
+    # already be broken (headSha in place), in which case the clean case below
+    # independently catches the regression too.
+    original_src = VERIFIER.read_text()
+    defect_src = original_src.replace('"number,headRefOid"', '"number,headSha"', 1)
+
+    defect_ok = False
+    if defect_src == original_src:
+        print("    FAIL T18 [defect-inject]: could not inject headSha defect — "
+              "'\"number,headRefOid\"' not found in verifier source "
+              "(verifier may already use an incorrect field name)")
+    else:
+        fd, defect_path = tempfile.mkstemp(suffix='.py', dir='/tmp')
+        defect_verifier = Path(defect_path)
+        try:
+            defect_verifier.write_text(defect_src)
+            os.close(fd)
+            r_bad = subprocess.run(
+                [sys.executable, str(defect_verifier)],
+                capture_output=True, text=True, env=base_env,
+                cwd=str(REPO), timeout=30,
+            )
+            combined_bad = r_bad.stdout + r_bad.stderr
+            defect_ok = (
+                r_bad.returncode == 2
+                and "possible bad JSON field name in verifier" in combined_bad
+            )
+            if not defect_ok:
+                print(f"    FAIL T18 [defect-present]: expected rc=2 + bad-field msg, "
+                      f"got rc={r_bad.returncode}")
+                print(f"      output: {combined_bad[:400]!r}")
+        finally:
+            defect_verifier.unlink(missing_ok=True)
+
+    # ── Defect absent: real verifier with headRefOid ───────────────────────────
+    # May exit non-zero for unrelated reasons (no matching artifacts, coherence
+    # check fails, etc.) — we only assert the specific message is absent.
+    r_ok = subprocess.run(
+        [sys.executable, str(VERIFIER)],
+        capture_output=True, text=True, env=base_env,
+        cwd=str(REPO), timeout=30,
+    )
+    combined_ok = r_ok.stdout + r_ok.stderr
+    clean_ok = "possible bad JSON field name in verifier" not in combined_ok
+    if not clean_ok:
+        print(f"    FAIL T18 [clean]: bad-field-name msg appeared unexpectedly")
+        print(f"      rc={r_ok.returncode}  output: {combined_ok[:400]!r}")
+
+    passed = defect_ok and clean_ok
+    print(f"  {'PASS' if passed else 'FAIL'}  T18 gh-real-path-field-contract "
+          f"[real-gh-path]")
+    return passed
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 TESTS = [
     t01_post_merge_context,
@@ -527,6 +626,7 @@ TESTS = [
     t15_artifact_head_mismatch,
     t16_correct_pr_number_routing,
     t17_gh_field_contract,
+    t18_gh_real_path_field_contract,
 ]
 
 

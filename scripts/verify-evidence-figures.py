@@ -12,7 +12,7 @@ Usage:
           --evidence-dir PATH
 
 By default the PR number is derived from the current branch via:
-  gh pr view --json number,headSha
+  gh pr view --json number,headRefOid
 and artifact paths are discovered by scanning
   .factory/code-delivery/*/pr-description.md
 for the file containing '**Head SHA:** <current-HEAD>'.
