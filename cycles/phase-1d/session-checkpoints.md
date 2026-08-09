@@ -268,4 +268,22 @@ Spec snapshot: PRD v1.12 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies 
 
 ---
 
+## §ARCHIVED CHECKPOINT D-172 [Superseded by D-184 — Burst-37]
+
+*Archived: 2026-08-09 — Burst-37. Was the active SESSION RESUME CHECKPOINT from Burst-36.*
+
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-08-09 |
+| **Position** | phase-1d. PR #12 (`fix/checker-completeness-gate35`, head `6a5eb9f`) — merge WITHHELD pending human-posted verdict comment. 0 of 3 clean passes UNCHANGED. |
+| **Frozen perimeter** | `specs/` tree `a79de7e841c705a499f7aec634c4894b3097764e` (advances from `ace1745` at Burst-36). |
+| **Branch state** | `develop` = `da86271`. `fix/checker-completeness-gate35` head `6a5eb9f` (12 commits). `factory-artifacts` = Burst-36 commit. PR #12 OPEN. |
+| **Convergence counter** | 0 of 3 required clean passes; trajectory-tail →39→37→259→273-275 |
+
+Spec snapshot: PRD v1.14 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies \| EC registry EC-001..EC-213 (214 ids, 1 retired) \| holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-172 (exhaustive). Open BIs: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/056/057/058/060; CI-063.
+
+*Superseded by D-184 session wrap (Burst-37).*
+
+---
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

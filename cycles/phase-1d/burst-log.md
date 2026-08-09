@@ -2032,3 +2032,52 @@ PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001
 
 **Closes:** BI-053 (fragment percent-decode inversion), BI-054 (stale POL-14 directive), P7-S6-009 (Primary ownership arithmetic). **Updates:** BI-052 (VP propagation debt added), BI-058 (bc-module-map coverage gap added to sweep scope), BI-060 (agency-vs-identity distinction). **Adds:** D-162..D-172 (exhaustive).
 
+---
+
+## Burst-31 [ARCHIVED — was oldest row in Current Phase Steps window; moved here by Burst-37]
+
+*Originally recorded in STATE.md Current Phase Steps. Archived per keep-last-5 policy.*
+
+PR #11 MERGED (`da86271`). develop `f8ee4eb`→`da86271`. Worktree and branch `fix/oracle-repairs-gate34` cleaned. D-130 supersedes D-124 (6 pass/3 fail, 14+5 actuals). BI-056/057 opened.
+
+---
+
+## Burst-37 — SESSION WRAP
+
+*Written: 2026-08-09 — state-manager. Single-commit burst TD-VSDD-053. Supersedes D-172.*
+
+**PR #12 MERGED by human at 18:42:19Z.** Squash commit `2ac2c3e` ("[CHECKER-COMPLETENESS-GATE35] Spec-lint oracle repairs — BI-056 E-code detector + BI-057 multi-column TV extraction (#12)"). `develop` advances `da86271`→`2ac2c3e`. Branch `fix/checker-completeness-gate35` DELETED. Zero open PRs at merge. BI-056 CLOSED. BI-057 CLOSED. BI-059 was CLOSED at `6a5eb9f` (Burst-35), confirmed unchanged.
+
+**First authoritative 9-checker baseline on develop = `2ac2c3e` (D-174):** 6 pass / 3 fail. Selftests 99/99. Failing: `adr-consistency` (9 violations; 79 reason-code occurrences + 6 E-class; 134/134 files); `ec-injectivity` (174 EC citations compared; 17 legitimately-EC-less rows skipped and named; 42 divergent; 22 require adjudication); `holdout-boundary` (1 violation; EC-151 at `prd.md:618`). Passing: canonical-facts (31 bindings/11 facts), counts (37), id-resolution (134), index-integrity (80), placeholders (0/134), title-sync (66).
+
+**BI-057 repair confirmed working (D-175):** 17 named skips (TV-BV013 + TV-S001..TV-S016) vs prior 80 unnamed. Row-granularity completeness hole genuinely closed.
+
+**`malformed-fragment` phantom code DETECTED (D-176):** adversary finding P7-S4-006 confirmed live at `test-vectors.md:432`. Refusal to invent the code during BI-053 (D-164) VINDICATED. 1 of the 9 `adr-consistency` violations.
+
+**Reason-code population 78→79 (D-177):** BI-053's spec fix (conforming `anchor-not-found` occurrence for `%GG` boundary gap) advanced the population. Violations REMAINED at 9 — conforming occurrence. GATE35 evidence artifacts now STALE (record 78; live=79). Item-5 end-to-end demonstration using GATE35 artifacts PROVEN IMPOSSIBLE (D-181).
+
+**PR #13 delivered (D-178):** branch `fix/verifier-hardening-sweep-step0`, head `27688e3`. 4 files: `scripts/verify-evidence-figures.py` (~900 lines, substantially rewritten), `scripts/tests/test-vef.py` (NEW), `.github/workflows/ci.yml` (advisory step), `docs/demo-evidence/CHECKER-COMPLETENESS-GATE35/evidence-report.md` (NIT-E fix). 17/17 verifier selftests; 99/99 nine-checker selftests; item-0 context refusal; argparse CLI; auto-discovery. 4/4 required CI green. `MERGEABLE`.
+
+**PR #13 cycle-1 REQUEST_CHANGES (D-179):** Five blocking findings with prescribed fix order: B-2 FIRST (`headSha` regression — `headSha` not a `gh` field, correct name is `headRefOid`; suite green whether dependency broken or absent); B-4 (hardcoded `39efec2`; makes PASS structurally impossible on any other PR); B-1 (predicate polarity inverted in novel-spelling scan); B-3 (`anchor_check()` proves ENTRY not COMPARISON); B-5 (CI advisory step reports `"conclusion":"skipped"`). Item-4 ACCEPTABLE; item-5 PROVEN IMPOSSIBLE (D-181).
+
+**Four-mechanism fail-open lesson codified [process-gap] (D-180):** same defect (check reports success while verifying nothing) recurred by four NEW mechanisms across four fix rounds. Only two durable defenses: (a) unrepresentable bad state; (b) independent probe not sharing the validated code path.
+
+**BI-060 extended two hook defects (D-182):** (c) cycle-keyed filename false-negative (hook matches literal `pr-review.md`; deliverable convention is `pr-review-cycleN.md`); (d) machine-unreadable block state (`block_reason=""` while `block_intent=true`). Reviewer correctly did not rename artifact to silence hook.
+
+**NIT-A and NIT-B routed to sweep PR scope (D-183):** both address `scripts/spec-lint/` subtree frozen for PR #13; must land in the sweep PR; not blocking PR #13 cycle-2.
+
+**BI-061 OPENED:** PR #13 cycle-1 blocking set B-1..B-5 with prescribed fix order.
+
+**Files touched:**
+- `.factory/STATE.md` — version 3.3; timestamp 2026-08-09T20:34:00Z; frontmatter; Project Metadata; Phase Progress (Burst-37 row added); Current Phase Steps (Burst-37 added, Burst-31 archived here); Decisions Log D-173..D-184 appended; Blocking Issues (BI-056/BI-057 removed → resolved; BI-002/BI-058/BI-060 extended; BI-061 OPENED); Session Resume Checkpoint replaced D-172→D-184; Concurrent Cycles updated; Historical Content (PR #13 cycle-1 review row added); Spec Snapshot updated D-184 + open BI list
+- `.factory/SESSION-HANDOFF.md` — Latest pointer updated D-172→D-184; D-172 snapshot header marked SUPERSEDED; §RESUME SNAPSHOT D-184 appended
+- `.factory/code-delivery/VERIFIER-HARDENING-SWEEP-STEP0/pr-review-cycle1.md` — NEW untracked file (40,786 bytes); first line `**VERDICT: REQUEST_CHANGES**`; PR #13 cycle-1 review; durability-critical
+- `.factory/cycles/phase-1d/blocking-issues-resolved.md` — BI-056 and BI-057 closure records appended
+- `.factory/cycles/phase-1d/burst-log.md` — Burst-31 archive note + Burst-37 narrative appended
+- `.factory/cycles/phase-1d/session-checkpoints.md` — D-172 checkpoint archived
+- `.factory/cycles/phase-1d/lessons.md` — lessons 60+61 appended
+- `.factory/logs/` — modified + untracked .jsonl files staged
+- `.factory/sidecar-learning.md` — modified
+
+**Closes:** BI-056 (E-class detection regression; develop=2ac2c3e confirmed working), BI-057 (row-granularity skip; 17 named skips on develop=2ac2c3e). **Opens:** BI-061 (PR #13 cycle-1 blocking set). **Extends:** BI-058 (NIT-A/B routing D-183), BI-060 (two hook defects D-182). **Adds:** D-173..D-184 (exhaustive).
+
