@@ -61,6 +61,20 @@ TAXONOMY_CODE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Pattern 4: E-class error-code namespace (BI-056)
+#   Matches error-class codes of the form E-XXX-NNN (e.g. E-IO-002, E-CLI-001)
+#   INDEPENDENTLY of prose shape — these are NOT reason codes and are NOT passed
+#   through _is_reason_code_candidate.  Validated against the E-code registry in
+#   error-taxonomy.md §1 (currently empty → all occurrences are violations).
+#
+#   Structural proof that this pattern is incapable of reintroducing the 22 false
+#   positives removed in PR #11: it requires a 2-4 uppercase-letter namespace
+#   component between the 'E-' prefix and the '-NNN' suffix.  The false positives
+#   were lowercase reason-code tokens matched by the prior broad backtick pattern;
+#   none match E-[A-Z]{2,4}-\d{3}.  Corpus-wide population is exactly 8 occurrences
+#   (6× E-IO-002, 2× E-CLI-001 across 3 files).
+E_CLASS_CODE_RE = re.compile(r"(?<![A-Za-z0-9])(E-[A-Z]{2,4}-\d{3})(?!\d)")
+
 
 def extract_closed_reason_codes(taxonomy_path: Path) -> set[str]:
     """
@@ -97,6 +111,34 @@ def extract_closed_reason_codes(taxonomy_path: Path) -> set[str]:
             # Filter to hyphenated codes that look like reason codes
             if "-" in code and not any(kw in code for kw in ("sub_reason", "schema_version")):
                 codes.add(code)
+    return codes
+
+
+def extract_valid_e_class_codes(taxonomy_path: Path) -> set[str]:
+    """
+    Extract the closed set of E-class error codes (E-XXX-NNN) from error-taxonomy.md.
+    E-class codes are defined in §1 (error-class registry) if that section exists.
+
+    Currently error-taxonomy.md defines ZERO E-class codes (§3 Closed-Set Invariant
+    covers only reason codes).  All corpus E-code occurrences are therefore violations
+    until explicit E-codes are registered here.  This function is the live source-of-truth
+    so future codes can be whitelisted without changing the checker.
+    """
+    codes: set[str] = set()
+    if not taxonomy_path.exists():
+        return codes
+    in_eclass = False
+    for line in slp.cm_splitlines(taxonomy_path.read_text(encoding="utf-8")):
+        # §1 is the error-class registry (not yet populated — kept for future use)
+        if re.match(r"^## 1\.", line):
+            in_eclass = True
+        if in_eclass and line.startswith("## ") and not re.match(r"^## 1\.", line):
+            in_eclass = False
+        if not in_eclass:
+            continue
+        # Extract backtick-quoted E-class codes like `E-IO-002`
+        for m in re.finditer(r"`(E-[A-Z]{2,4}-\d{3})`", line):
+            codes.add(m.group(1))
     return codes
 
 
@@ -229,10 +271,14 @@ _PROSE_REASON_CODE_RE = re.compile(
 )
 
 
-def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[str], int]:
+def check_broad_corpus(
+    path: Path,
+    valid_reason_codes: set[str],
+    valid_e_codes: set[str],
+) -> tuple[list[str], int, int]:
     """
-    POLICY 19: check any spec file (non-ADR) for reason code violations.
-    Returns (violations, occurrences_count).
+    POLICY 19: check any spec file (non-ADR) for reason code and E-class code violations.
+    Returns (violations, reason_code_occurrences, e_code_occurrences).
 
     Detection patterns:
       Pattern 1: backtick-quoted codes with POSITIONAL predicate (BLOCKING-3):
@@ -240,9 +286,14 @@ def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[s
                  - In prose: only tokens immediately after 'reason code', 'reason:', 'sub_reason'
       Pattern 2: verdict + parenthetical "broken (malformed-fragment)"
       Pattern 3: taxonomy-reference "(consistent with E-CLI-001 taxonomy)"
+      Pattern 4: E-class code namespace (BI-056) — any occurrence of E-[A-Z]{2,4}-NNN,
+                 prose-shape-independent.  Uses its own logic; does NOT call
+                 _is_reason_code_candidate so it cannot interact with reason-code
+                 false-positive guards.  Uses shared seen_codes_this_line to avoid
+                 double-reporting when a line is caught by Pattern 3 and Pattern 4.
 
-    All three patterns now apply _is_reason_code_candidate() to exclude spec reference
-    IDs (D-018, DI-010, EC-123) and CLI flags (BLOCKING-2).
+    Patterns 1-3 apply _is_reason_code_candidate() to exclude spec reference IDs and
+    CLI flags (BLOCKING-2).  Pattern 4 does NOT — E-codes are a different namespace.
 
     Position-based predicate (D-081): YAML frontmatter is excluded from scanning.
     Frontmatter is identified as the content between the first and second "---" markers
@@ -252,6 +303,7 @@ def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[s
     """
     violations: list[str] = []
     occurrences = 0
+    e_code_occurrences = 0
     lines = slp.cm_splitlines(path.read_text(encoding="utf-8"))
 
     # Position-based frontmatter tracking (D-081)
@@ -429,7 +481,28 @@ def check_broad_corpus(path: Path, valid_reason_codes: set[str]) -> tuple[list[s
                     f"  {line.strip()[:100]}"
                 )
 
-    return violations, occurrences
+        # ── Pattern 4: E-class code namespace detector (BI-056) ──────────────────
+        # Detects error-class codes (E-[A-Z]{2,4}-NNN) INDEPENDENTLY of prose shape.
+        # These are a different namespace from reason codes and are validated against
+        # error-taxonomy.md §1 (the E-code registry, currently empty).
+        # Does NOT use _is_reason_code_candidate — no interaction with reason-code
+        # false-positive logic.  Uses shared seen_codes_this_line for deduplication
+        # (prevents double-reporting when Pattern 3 already caught the same token on
+        # the same line, e.g. "(consistent with E-CLI-001 taxonomy)" hits both P3 and P4).
+        for m in E_CLASS_CODE_RE.finditer(line):
+            code = m.group(1)
+            if code in seen_codes_this_line:
+                continue  # already reported via Pattern 3 or earlier Pattern 4 match
+            seen_codes_this_line.add(code)
+            e_code_occurrences += 1
+            if code not in valid_e_codes:
+                violations.append(
+                    f"{path}:{lineno}: E-class code '{code}' not defined in error-taxonomy.md "
+                    f"(POLICY 19 — E-code namespace)\n"
+                    f"  {line.strip()[:100]}"
+                )
+
+    return violations, occurrences, e_code_occurrences
 
 
 def should_check_for_broad_p19(path: Path) -> bool:
@@ -456,12 +529,17 @@ def main() -> int:
         print(f"ERROR: Could not extract reason codes from {ERROR_TAX}")
         return 2
 
+    valid_e_codes = extract_valid_e_class_codes(ERROR_TAX)
+    # valid_e_codes is currently empty (error-taxonomy.md §1 not yet populated);
+    # all corpus E-code occurrences are violations (BI-056).
+
     print(f"Closed reason code set ({len(valid_codes)} codes): {sorted(valid_codes)}")
 
     violations: list[str] = []
     adrs_checked = 0
     broad_files_checked = 0
     total_occurrences = 0
+    total_e_occurrences = 0
 
     # CORRECTION 2 (D-057 / POLICY 11): independently compute the ground-truth
     # spec corpus total (all .md files under SPECS excluding holdout-scenarios,
@@ -493,9 +571,10 @@ def main() -> int:
         if not should_check_for_broad_p19(spec_file):
             continue
         broad_files_checked += 1
-        new_v, new_occ = check_broad_corpus(spec_file, valid_codes)
+        new_v, new_occ, new_e_occ = check_broad_corpus(spec_file, valid_codes, valid_e_codes)
         violations.extend(new_v)
         total_occurrences += new_occ
+        total_e_occurrences += new_e_occ
 
     # POSITIVE-COVERAGE completeness assertion (D-057 / POLICY 11):
     # Parts must sum to the independently-computed corpus total.
@@ -513,7 +592,8 @@ def main() -> int:
             print(v)
         print(
             f"\nCheck FAILED: {len(violations)} violations found "
-            f"({total_occurrences} reason-code occurrences validated across "
+            f"({total_occurrences} reason-code occurrences + {total_e_occurrences} E-class code "
+            f"occurrences validated across "
             f"{broad_files_checked} files scanned + {adrs_checked} ADRs routed to POLICY 12 "
             f"= {total_scanned} of {total_corpus} spec files (complete), "
             f"{len(violations)} non-conforming)"
@@ -521,7 +601,8 @@ def main() -> int:
         return 1
 
     print(
-        f"Check passed: {total_occurrences} reason-code occurrences validated across "
+        f"Check passed: {total_occurrences} reason-code occurrences + "
+        f"{total_e_occurrences} E-class code occurrences validated across "
         f"{broad_files_checked} files scanned + {adrs_checked} ADRs routed to POLICY 12 "
         f"= {total_scanned} of {total_corpus} spec files (complete), 0 non-conforming"
     )

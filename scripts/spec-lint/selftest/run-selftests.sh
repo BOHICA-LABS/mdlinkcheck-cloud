@@ -24,7 +24,7 @@ REPO="$(cd "$(dirname "$0")/../../.." && pwd)"
 LINT_DIR="$REPO/scripts/spec-lint"
 FIXTURE_DIR="$LINT_DIR/selftest/fixtures"
 
-EXPECTED_TEST_COUNT=91
+EXPECTED_TEST_COUNT=92
 FAILURES=0
 TESTS_RUN=0
 TESTS_WITH_CLEAN_PASS=0
@@ -5654,7 +5654,7 @@ if [ "$ST5J_RC" -ne 0 ]; then
     echo "  STRUCTURAL FAIL: checker failed on table with valid Reason column and 'reason' in Case col"
     echo "  Output: $ST5J_OUT"
     FAILURES=$((FAILURES + 1))
-elif ! echo "$ST5J_OUT" | grep -q "[1-9][0-9]* reason-code occurrences validated"; then
+elif ! echo "$ST5J_OUT" | grep -q "[1-9][0-9]* reason-code occurrences"; then
     echo "  STRUCTURAL FAIL: checker exited 0 but reported 0 occurrences — row was silently skipped"
     echo "  Output: $ST5J_OUT"
     FAILURES=$((FAILURES + 1))
@@ -5679,6 +5679,105 @@ TV5JBAD
         FAILURES=$((FAILURES + 1))
     else
         echo "  PASS (clean-pass + ≥1 occurrence confirmed; phantom-5j on 'reason' data row detected)"
+    fi
+fi
+rm -rf "$T"
+
+# ── Test 5k (BI-056): check-adr-consistency — three phantom calibration codes detected as a set ──
+# Pins ALL THREE mandated phantom calibration codes AS A SET (BI-056 root-cause):
+#   (1) malformed-fragment — Pattern 2 (verdict-paren): "broken (malformed-fragment)"
+#   (2) E-CLI-001         — Pattern 3 (taxonomy-ref):  "(consistent with E-CLI-001 taxonomy)"
+#   (3) E-IO-002          — Pattern 4 (E-class detector, NEW in this repair): "emits an E-IO-002 error"
+#
+# Root cause of BI-056: TAXONOMY_CODE_RE matched ONLY the "(consistent with X taxonomy)" prose
+# shape, leaving E-IO-002 invisible in all other shapes (prose "emits an E-IO-002 error",
+# table cells "Exit 2; E-IO-002 on stderr", parenthetical "Error recorded (E-IO-002)").
+# Pattern 4 adds a prose-shape-independent E-class code detector.
+#
+# Mutation-verify: removing E_CLASS_CODE_RE (reverting Pattern 4) makes the defect tree exit 1
+#   but WITHOUT "E-IO-002" in the output → `grep -q "E-IO-002"` fails → FAIL fires → MUT DIES.
+#   Removing TAXONOMY_CODE_RE (reverting Pattern 3) loses E-CLI-001 → `grep -q "E-CLI-001"` fails.
+#   Removing VERDICT_PAREN_CODE_RE (reverting Pattern 2) loses malformed-fragment → grep fails.
+# All three grep assertions are necessary; dropping any one would re-open the original blind spot.
+#
+# Structural proof E_CLASS_CODE_RE cannot reintroduce PR-11 false positives: it requires a
+# 2-4 uppercase-letter namespace component between "E-" and "-NNN". All 22 false positives
+# removed in PR #11 were lowercase reason-code tokens — structurally incapable of matching.
+# Corpus-wide E-code population: 8 occurrences (6x E-IO-002, 2x E-CLI-001, 3 files).
+TESTS_RUN=$((TESTS_RUN + 1))
+echo "── selftest 5k (BI-056): check-adr-consistency: three-code phantom calibration set detected ──"
+T=$(make_temp)
+mkdir -p "$T/.factory/specs/architecture/decisions"
+mkdir -p "$T/.factory/specs/prd-supplements"
+
+cat > "$T/.factory/specs/prd-supplements/error-taxonomy.md" <<'TAXSTUB5K'
+## 2. Error Catalog
+
+| `file-not-found` | File not found |
+| `malformed-url` | Malformed URL |
+| `dns-failure` | DNS lookup failed |
+TAXSTUB5K
+
+# Clean tree: only valid codes; NO phantom codes, NO E-class codes
+cat > "$T/.factory/specs/prd-supplements/test-vectors.md" <<'TV5KCLEAN'
+## §1. Vectors
+
+| TV-ID | EC-ID | Verdict | Reason |
+|-------|-------|---------|--------|
+| TV-001 | EC-001 | broken | `file-not-found` |
+| TV-002 | EC-002 | broken | malformed-url |
+TV5KCLEAN
+
+CLEAN_PASS=0
+ST5K_CLEAN=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+ST5K_CLEAN_RC=$?
+if [ "$ST5K_CLEAN_RC" -eq 0 ]; then
+    TESTS_WITH_CLEAN_PASS=$((TESTS_WITH_CLEAN_PASS + 1))
+    CLEAN_PASS=1
+else
+    echo "  STRUCTURAL FAIL: checker failed on clean fixture (no phantom codes)"
+    echo "  Output: $ST5K_CLEAN"
+    FAILURES=$((FAILURES + 1))
+fi
+
+if [ "$CLEAN_PASS" = "1" ]; then
+    # Defect: inject all three phantom calibration codes into a single prose file.
+    # (1) malformed-fragment via Pattern 2 (verdict-paren shape)
+    # (2) E-CLI-001 via Pattern 3 (taxonomy-reference shape)
+    # (3) E-IO-002 via Pattern 4 (E-class code, prose shape OTHER than taxonomy-reference)
+    cat > "$T/.factory/specs/prd-supplements/interface-definitions.md" <<'IFACE5KBAD'
+# Interface Definitions
+
+## Error Classes
+
+An empty destination emits broken (malformed-fragment).
+Exit code 2 is used for all configuration errors (consistent with E-CLI-001 taxonomy).
+On I/O error the tool emits an E-IO-002 error and continues scanning.
+IFACE5KBAD
+
+    ST5K_OUT=$(SPEC_LINT_REPO_OVERRIDE="$T" python3 "$LINT_DIR/check-adr-consistency.py" 2>&1)
+    ST5K_RC=$?
+    FAIL=0
+    if [ "$ST5K_RC" -eq 0 ]; then
+        echo "  FAIL (checker returned 0 — no phantom codes detected at all)"
+        FAIL=1
+    fi
+    if ! echo "$ST5K_OUT" | grep -q "E-IO-002"; then
+        echo "  FAIL (E-IO-002 not detected — Pattern 4 E-class detector missing or broken)"
+        FAIL=1
+    fi
+    if ! echo "$ST5K_OUT" | grep -q "E-CLI-001"; then
+        echo "  FAIL (E-CLI-001 not detected — Pattern 3 taxonomy-reference broken)"
+        FAIL=1
+    fi
+    if ! echo "$ST5K_OUT" | grep -q "malformed-fragment"; then
+        echo "  FAIL (malformed-fragment not detected — Pattern 2 verdict-paren broken)"
+        FAIL=1
+    fi
+    if [ "$FAIL" -eq 1 ]; then
+        FAILURES=$((FAILURES + 1))
+    else
+        echo "  PASS (clean-pass confirmed; all three phantom codes detected: E-IO-002, E-CLI-001, malformed-fragment)"
     fi
 fi
 rm -rf "$T"
