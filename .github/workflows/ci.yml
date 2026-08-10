@@ -329,10 +329,13 @@ jobs:
     name: Verify evidence figures (advisory)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Run even if other jobs fail, but not if the workflow was cancelled.
-    # Mirrors the former step-level "if: ${{ !cancelled() }}" (B-5 fix).
-    # No needs: dependency — runs in parallel with other jobs.
-    if: ${{ !cancelled() }}
+    # Scoped to pull_request events: the verifier's purpose is comparing a PR's
+    # evidence figures against that PR, so non-PR events have nothing to verify.
+    # This is a genuine scope condition, not a suppression — on push events there
+    # is no PR number available, so the verifier cannot do its job.
+    # !cancelled() preserved so the job still runs even when other jobs fail
+    # (B-5 fix — do not regress it).  No needs: dependency — runs in parallel.
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
     # Least-privilege: read-only source tree.  No GH_TOKEN grant (D-203).
     permissions:
       contents: read
@@ -343,8 +346,8 @@ jobs:
           persist-credentials: false
           # B2-1: check out the real PR head, not GitHub's ephemeral merge ref,
           # so SHA-based artifact discovery in verify-evidence-figures.py sees
-          # the correct HEAD commit.  On push/workflow_dispatch events
-          # pull_request.head.sha is empty; github.sha provides the fallback.
+          # the correct HEAD commit.  github.sha fallback is unreachable in CI
+          # (job is pull_request-only) but retained for local/manual invocation.
           # fetch-depth: 0 so git rev-list develop..HEAD resolves correctly —
           # shallow clones break it.
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -364,7 +367,7 @@ jobs:
           # Pull request number from the GitHub event payload (no GH_TOKEN needed).
           # Bypasses gh-based PR resolution: checks 1-7,9 run unauthenticated.
           # Check 8 (live PR body) requires GH_TOKEN and skips loudly (exit 5)
-          # per operator design (D-203).  Empty string on push events.
+          # per operator design (D-203).
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
@@ -380,10 +383,6 @@ jobs:
             echo "  Exit 5 signals PARTIAL — this cannot be read as a pass."
             exit 5
           fi
-          # Pass --pr N when available from the event context so gh auth is not
-          # needed for PR resolution.  On push events PR_NUMBER is empty and
-          # the verifier falls through to gh-based resolution (exits 3 on auth
-          # failure so the step fails, consistent with exit-code semantics).
           PR_ARGS=()
           if [ -n "${PR_NUMBER:-}" ]; then
               PR_ARGS=("--pr" "${PR_NUMBER}")
@@ -393,13 +392,13 @@ jobs:
           case $ret in
             0) echo "verify-evidence-figures: PASS" ;;
             2)
-              # B2-1 closure: on pull_request events exit 2 (REFUSED-benign) is
-              # not acceptable.  Validated against the code path in
-              # verify-evidence-figures.py that produces exit 2: REFUSED means
-              # zero checks ran — gate is green having compared nothing.  We
-              # reject all exit-2 on PRs regardless of which REFUSED reason
-              # triggered it.  On push/workflow_dispatch events REFUSED-benign
-              # is legitimate (no PR for this branch, post-merge context, etc.).
+              # B2-1 closure: exit 2 (REFUSED-benign) is not acceptable on a PR.
+              # Validated against the code path in verify-evidence-figures.py that
+              # produces exit 2: REFUSED means zero checks ran — gate is green
+              # having compared nothing.  We reject all exit-2 on PRs regardless
+              # of which REFUSED reason triggered it.
+              # Note: the else branch below is unreachable in CI (job is scoped to
+              # pull_request events) but retained for local/manual invocation.
               if [ "${GITHUB_EVENT_NAME:-}" = "pull_request" ]; then
                 echo "verify-evidence-figures: FAIL — REFUSED on pull_request event"
                 echo "  (gate must reach comparisons on every PR;"
