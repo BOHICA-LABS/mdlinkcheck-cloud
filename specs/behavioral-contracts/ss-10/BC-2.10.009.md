@@ -1,17 +1,17 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "c3e82ce"
+input-hash: "07d983a"
 traces_to: .factory/specs/domain-spec/L2-INDEX.md
 origin: greenfield
 extracted_from: null
@@ -22,6 +22,7 @@ introduced: v1.2.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
+  - "v1.5: (GATE-58/D-244) EC-149 description completed — same underlying scenario (same URL referenced at multiple lines + DNS NXDOMAIN), description was partial; added DNS NXDOMAIN vocabulary so checker agrees with registry (direction b, same scenario, wording drift)."
   - "v1.3: (P4-024) PC2 rewritten to distinguish HTTP-layer liveness outcome (alive/broken/indeterminate) from link-level verdict (clean/broken/indeterminate per DD-022); Invariant 4 added; canonical test vector corrected."
 deprecated: null
 deprecated_by: null
@@ -79,7 +80,7 @@ than each triggering an independent pause cycle.
 | EC | Description |
 |----|-------------|
 | EC-090 | `https://example.com/x` (×50 occurrences in corpus) with successful HEAD; `--online` |
-| EC-149 | Same URL referenced on two different lines within the same file |
+| EC-149 | Same URL referenced at two source locations (lines 3 and 7); DNS NXDOMAIN for broken.example.com; exactly one HTTP request (dedup) |
 | EC-150 | `http://example.com` (HTTP) and `https://example.com` (HTTPS) both referenced; server returns 200 on both |
 
 ## Canonical Test Vectors

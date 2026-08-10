@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -20,6 +20,7 @@ capability: "CAP-014"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - v1.5: "(GATE-58/D-244) EC citation corrected: EC-146 → EC-143 — 'Only --online indeterminate results' matches '0 broken links, 1 indeterminate' (both test indeterminate-only scan → exit 0 boundary); EC-146 registry describes SIGINT/exit-2, a different scenario (direction a, same underlying scenario)."
   - v1.4: "WS-4 Shard E: POLICY-5 repair — L2 Capability fabricated quote replaced with verbatim CAP-014 title ('Exit Code Determination'); VP-005 and VP-006 proof methods corrected to 'kani' (was 'unit test') per VP-INDEX authority."
   - "v1.3: (exit-code ruling) PC4 updated: removed 'unrecognized flags' from config_error description — unrecognized flags are handled by clap before app::run() and do not set config_error; config_error = true has exactly one trigger (invalid --ignore glob); scope-exclusion note added for --help/--version."
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
@@ -60,7 +61,7 @@ links; the calling script should treat this as a CI failure.
 |----|-------------|
 | EC-144 | 1 broken link, 0 I/O errors |
 | EC-145 | 100 broken links, 0 I/O errors |
-| EC-146 | 0 broken links, 1 indeterminate |
+| EC-143 | 0 broken links, 1 indeterminate |
 
 ## Canonical Test Vectors
 | Scenario | Expected Exit |

@@ -1,7 +1,7 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-10T00:00:00Z
@@ -20,6 +20,7 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.5: (EC-injectivity redo) EC-022 row description updated under disposition (b): BC scenario and registry EC-022 describe the same file-relative ../ resolution scenario; placeholder filenames aligned to registry (README.md/docs/a.md) to resolve SCENARIO-MISMATCH."
   - "v1.4: (GATE-58/POL-14) VP-NNN column bare em-dash is non-conforming per POL-14; replaced with VP-NONE (D-078) — proof method is integration, so VP-NONE is accepted."
   - "v1.3: (BI-052 remediation P7-S2-001/P7-S2-002) VP table corrected. Row 1 'Fragment stripped before path resolution' re-attributed from VP-008 (path resolution) to VP-004 (split_fragment kani proof that fragment is separated before any path operations). Row 2 '.. resolution is logical' has no current VP; VP-008 proptest verifies path resolution outcomes but does not specifically assert the filesystem-vs-logical distinction; row changed to bare dash with integration test note."
   - "v1.2: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string was fabricated paraphrase; corrected to verbatim section title 'Relative Path Resolution' per capabilities.md §CAP-007. VP-008 proof method corrected from 'unit test' to 'proptest' per VP-INDEX authority."
@@ -57,7 +58,7 @@ standard URL/file reference semantics: `docs/a.md` + `../api/ref.md` = `api/ref.
 ## Edge Cases
 | EC | Description |
 |----|-------------|
-| EC-022 | `[x](../sibling.md)` in `docs/guide.md` |
+| EC-022 | `[x](../README.md)` in `docs/a.md`; README.md exists at root |
 | EC-023 | `[x](./same-dir.md)` |
 | EC-024 | `[x](sub/nested.md)` |
 | EC-025 | `[x](../../above-root.md)` |
