@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-26 test cases (T01-T26).  Each proves:
+29 test cases (T01-T29, non-sequential numbering).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
 
@@ -119,6 +119,7 @@ ec-injectivity now compares 174 of 174 citations (17 EC-less skipped).
 
 (6 E-class code occurrences validated).  Detection confirmed at:
 `BC-2.01.009.md:44,52,71,73`, `interface-definitions.md:237`, `BC-2.11.004.md:61`.
+E-class code E-CLI-001 confirmed at BC-2.11.004.md:61.
 
 ## Rollback
 
@@ -856,6 +857,37 @@ def t28_check8_auth_skip():
     return run_test("T28 check8-auth-skip-exit5 [B2-1/exit-5]", defect, expect_rc=5)
 
 
+def t29_ecli001_absent_from_pr():
+    """T29 (B2-2 ATTACK-A): E-CLI-001 in live output but absent from PR -> check2a fails.
+
+    Before B2-2 fix: ATTACK-A relocated from check4a-ac002-suffix (cycle 1) to
+    check2a-e-cli-001.  anchor_check() returned True (E-CLI-001 in adr_out), the
+    inner re.search(r"E-CLI-001.*?test-vectors", pr) returned None (no such phrase),
+    so the comparison body was skipped, but record_comparison() was called
+    unconditionally after the if-block.  check2a registered with zero comparison.
+    The run exits 0 — ATTACK-A succeeds silently.
+
+    After fix: check2a first looks for E-CLI-001 in the PR document.  If absent,
+    fail("traceability/e-cli-001-in-pr") is called and record_comparison is NOT
+    called; the REQUIRED_CHECKS gate fires as a second signal.  Structurally:
+    record_comparison(doc_value=_pr_ecli_m) requires a non-None doc_value, so a
+    check that found nothing in the PR cannot reach a registered state.
+
+    Defect: E-CLI-001 removed from pr-description.md (still in adr live output).
+            Before fix: exits 0 (PASS — attack succeeds silently).
+            After fix:  exits 1 (FAIL — traceability/e-cli-001-in-pr + gate).
+    Control: default fixture retains E-CLI-001 in PR -> check2a compares and passes.
+    """
+    def defect(env):
+        # Remove E-CLI-001 from PR fixture; keep it in adr output (anchor present).
+        # This simulates the production-path attack: MOCK_ADR_OUT has E-CLI-001
+        # at BC-2.11.004.md:61, but pr-description.md does not acknowledge it.
+        text = env.pr_path.read_text().replace("E-CLI-001", "E-CLI-XXX")
+        env.pr_path.write_text(text)
+        env.gh_file.write_text(text)
+    return run_test("T29 e-cli-001-absent-from-pr [B2-2/ATTACK-A]", defect)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 TESTS = [
     t01_post_merge_context,
@@ -886,6 +918,7 @@ TESTS = [
     t26_ac002_nofm_mismatch,     # B-3 CONTROL
     t27_gh_not_found_exit_3,     # B2-1 exit-3 (env failure)
     t28_check8_auth_skip,        # B2-1 exit-5 (PARTIAL, check8 loud-skip)
+    t29_ecli001_absent_from_pr,  # B2-2 ATTACK-A (register-without-comparing class)
 ]
 
 

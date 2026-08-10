@@ -49,20 +49,24 @@ CI wrapper contract (used in .github/workflows/ci.yml):
                     continues when continue-on-error: true)
   any other exit  → FAIL and exit non-zero
 
-Structural guarantee (BLOCKING-D, B-3):
+Structural guarantee (BLOCKING-D, B-3, B2-2):
   Every check that performs a live-vs-document comparison MUST call
-  record_comparison(key) on the code path where the comparison runs.
-  The PASS gate asserts REQUIRED_CHECKS == checks_ran; a key in
-  REQUIRED_CHECKS that never calls record_comparison() produces a failure.
+  record_comparison(key, doc_value=<found_value>) on the code path where
+  the comparison runs.  The PASS gate asserts REQUIRED_CHECKS == checks_ran;
+  a key in REQUIRED_CHECKS that never calls record_comparison() produces a
+  failure.
 
   anchor_check() guards ENTRY only: it asserts the anchor was found and
   returns True/False.  It does NOT register the key.  Callers MUST call
-  record_comparison(key) at the actual comparison point.
+  record_comparison(key, doc_value=) at the actual comparison point.
 
-  Structural guarantee: "anchor found but comparison skipped" is
-  unrepresentable for every key in REQUIRED_CHECKS — anchor_check() truthy
-  without a subsequent record_comparison() call causes the gate to fire.
-  This holds for every future check added, not just the ones audited today.
+  Structural guarantee (B2-2, closes register-without-comparing class):
+  record_comparison() requires a keyword-only doc_value argument with no
+  default.  A call site that omits doc_value raises TypeError at runtime;
+  a call site that passes doc_value=None raises AssertionError.  A check
+  that found nothing in the document cannot produce a non-None doc_value,
+  so it cannot reach a registered state.  This holds for every future check
+  added, not just the ones audited today — the API enforces it, not review.
 
 Test-mode overrides (_VEF_TEST_* environment variables):
   EXCLUSIVELY for scripts/tests/test-vef.py.  Never set in CI or production.
@@ -144,9 +148,16 @@ args = _ap.parse_args()
 
 # ── Required-checks registry (BLOCKING-D structural guarantee) ────────────────
 # B-3 structural fix: anchor_check() no longer registers to checks_ran.
-# Registration is EXCLUSIVELY via record_comparison(key), called only on the
-# code path where the comparison executes.  This makes "anchor found but
-# comparison skipped" structurally unrepresentable for every key listed here.
+# B2-2 structural fix: record_comparison(key, doc_value=) requires a non-None
+# doc_value argument (keyword-only, no default).  A call site that omits
+# doc_value raises TypeError; one that passes doc_value=None raises
+# AssertionError.  A check that found nothing in the document cannot produce
+# a non-None doc_value, so it cannot reach a registered state.  This closes
+# the register-without-comparing class for all current sites AND future sites
+# without requiring per-site audit.
+# Registration is EXCLUSIVELY via record_comparison(key, doc_value=), called
+# only on the code path where the comparison executes AND a document value
+# was found.
 #
 # S-1 coverage: check1 and check5 added (previously unregistered but
 # fail-closed).  Sites deliberately left unregistered this pass:
@@ -183,11 +194,11 @@ def anchor_check(key: str, m, fail_label: str, fail_expected: str) -> bool:
     If anchor is falsy:  records a failure and returns False.
                          key is NOT added to checks_ran.
     If anchor is truthy: returns True.
-                         Caller MUST call record_comparison(key) at the
-                         actual comparison point — NOT here.
+                         Caller MUST call record_comparison(key, doc_value=)
+                         at the actual comparison point — NOT here.
 
     Separating entry-guard from comparison-registration makes "anchor found
-    but comparison skipped" structurally unrepresentable: if the comparison
+    but comparison skipped" structurally detectable: if the comparison
     body is never reached or its inner guard prevents it from running,
     record_comparison() is never called and the REQUIRED_CHECKS gate fires.
     """
@@ -197,18 +208,42 @@ def anchor_check(key: str, m, fail_label: str, fail_expected: str) -> bool:
     return True
 
 
-def record_comparison(key: str) -> None:
+def record_comparison(key: str, *, doc_value: object) -> None:
     """Register that a live-vs-document comparison was performed for `key`.
 
-    MUST be called on the code path where the actual comparison executes.
-    The canonical pattern is:
+    `doc_value` MUST be the actual value (or evidence of the value) retrieved
+    from the document during comparison.  It cannot be None — a None doc_value
+    means the document token was absent and no comparison was possible.  In
+    that case, call fail() and do NOT call record_comparison().
+
+    Structural guarantee (closes register-without-comparing class, B2-2):
+    This function requires a keyword-only `doc_value` argument with no default.
+    Any call site that omits doc_value raises TypeError at the call site.
+    Any call site that passes doc_value=None raises AssertionError here.
+    A check that performed no document lookup cannot produce a non-None
+    doc_value, so it cannot call this function successfully.  The class is
+    closed by the API signature, not by per-site audit — every current site
+    AND every future site is constrained without anyone having to remember.
+
+    Canonical usage:
         if anchor_check(key, anchor, ...):   # guards whether comparison can run
-            ...comparison logic...
-            record_comparison(key)           # records that comparison ran
+            doc_val = re.search(pattern, document)
+            if not doc_val:
+                fail(label, expected, "not found in document")
+            else:
+                ...validate doc_val vs live value...
+                record_comparison(key, doc_value=doc_val)
 
     A key in REQUIRED_CHECKS that never calls record_comparison() causes the
     PASS gate to fire — "anchor present but comparison skipped" is detectable.
     """
+    if doc_value is None:
+        raise AssertionError(
+            f"record_comparison({key!r}): doc_value=None is not allowed — "
+            "this means the comparison code ran but found nothing in the document. "
+            "If the document token is absent, call fail() instead of "
+            "record_comparison().  Passing doc_value=None is a programming error."
+        )
     checks_ran.add(key)
 
 
@@ -463,7 +498,7 @@ else:
     if not hm or f"{hm.group(1)}/{hm.group(2)}" != live_st:
         fail("selftest-count/evidence-heading", live_st,
              f"{hm.group(1)}/{hm.group(2)}" if hm else "heading not found")
-    record_comparison("check1-selftest-count")
+    record_comparison("check1-selftest-count", doc_value=live_st)
 
 # ── Check 2: check-adr-consistency figures (ALL occurrences — S-5) ────────────
 # BLOCKING-D fix: else-branch ensures unparseable live output is a failure, not
@@ -510,7 +545,7 @@ else:
             fail("adr-consistency/min-restatements",
                  f">= {MIN_RC_EC_COUNT} restatements of the rc/ec figure pair",
                  f"only {len(rc_matches)} found — a restatement site may have been removed")
-    record_comparison("check2-adr-figures")
+    record_comparison("check2-adr-figures", doc_value=rc_matches)
 
 # ── SUGGESTION-10 (Check 2 side): novel-spelling scan for rc/ec figure pair ───
 # After all RC_EC_PAT matches are collected, scan for any LINE that states
@@ -627,7 +662,7 @@ else:
             fail("e-class-ledger/min-count",
                  f">= {MIN_LEDGER_COUNT} ledger-triple assertions",
                  f"only {len(ledger_matches)} found — a restatement site may have been removed")
-    record_comparison("check3-ledger-triple")
+    record_comparison("check3-ledger-triple", doc_value=ledger_matches)
 
 # ── Check 4: check-ec-injectivity figures (ALL occurrences — S-5 complete) ────
 # BLOCKING-D fix: else-branch required; unparseable summary is a failure.
@@ -744,7 +779,7 @@ else:
              f">= {MIN_ADJ_COUNT} adjudication assertions",
              f"only {len(adj_found)} found — a restatement site may have been removed")
 
-    record_comparison("check4-ei-figures")
+    record_comparison("check4-ei-figures", doc_value=eim)
 
     # ── SUGGESTION-10 (Check 4 side): novel-spelling scan for ei figures ──────
     # After all five patterns have run, scan docs_no_prev for any occurrence of
@@ -883,7 +918,7 @@ if not sha_m:
 else:
     if sha_m.group(1) != head:
         fail("head-sha/pr-description", head, sha_m.group(1))
-    record_comparison("check5-head-sha-pr")
+    record_comparison("check5-head-sha-pr", doc_value=sha_m)
 
 # ── Check 6: Enumerated-site consistency (BLOCKING-B) ────────────────────────
 det_m = re.search(
@@ -924,7 +959,7 @@ else:
                 fail("enumerated-sites/completeness",
                      f"{bname} present in validated enumeration",
                      f"{bname} missing from 'Detection confirmed at:' list")
-        record_comparison("check6-completeness")
+        record_comparison("check6-completeness", doc_value=live_e_sites)
     for m in re.finditer(r"`([\w./-]+\.md):(\d+(?:,\d+)*)`", excl_text):
         for ln in m.group(2).split(","):
             site = f"{m.group(1)}:{ln.strip()}"
@@ -972,19 +1007,37 @@ else:
 
 # ── SUGGESTION-2 / check2a-e-cli-001: E-CLI-001 location ─────────────────────
 # SUGGESTION-8 fix: register via anchor_check() + fail when anchor absent.
-# B-3 fix: add record_comparison() at comparison point.
+# B-3 fix: record_comparison() called only at comparison point.
+# B2-2 fix (ATTACK-A class closure): redesigned as a positive assertion.
+#   Before: the inner re.search(..., pr) was conditional — if the PR had no
+#   E-CLI-001 at all the body was skipped but record_comparison() was called
+#   unconditionally.  This is ATTACK-A: anchor present in live output, no
+#   comparison against the document, check registered as passing.
+#   After: E-CLI-001 absent from PR is an explicit failure
+#   (traceability/e-cli-001-in-pr).  record_comparison(doc_value=_pr_ecli_m)
+#   enforces the class invariant structurally: doc_value must be non-None, so
+#   a check that found nothing in the document cannot reach a registered state.
 _ecli_m = re.search(r"E-CLI-001", adr_out)
 if anchor_check("check2a-e-cli-001", _ecli_m,
                 "traceability/e-cli-001-in-live",
                 "E-CLI-001 detection in live adr-consistency output"):
-    if re.search(r"E-CLI-001.*?test-vectors|test-vectors.*?E-CLI-001", pr):
-        ecli_live = re.search(r"([\w./-]+\.md:\d+): E-class code 'E-CLI-001'", adr_out)
-        live_loc  = Path(ecli_live.group(1)).name if ecli_live \
-                    else "BC-2.11.004.md:61 (from live run)"
-        fail("traceability/e-cli-001-location",
-             live_loc,
-             "pr-description.md attributes E-CLI-001 ×1 to 'test-vectors'")
-    record_comparison("check2a-e-cli-001")
+    _pr_ecli_m = re.search(r"E-CLI-001", pr)
+    if not _pr_ecli_m:
+        fail("traceability/e-cli-001-in-pr",
+             "E-CLI-001 mentioned in pr-description.md "
+             "(traceability: detected E-class code must be acknowledged in PR)",
+             "E-CLI-001 not found in pr-description.md")
+        # record_comparison NOT called: document token absent, no comparison ran.
+        # The REQUIRED_CHECKS gate fires as a second signal.
+    else:
+        if re.search(r"E-CLI-001.*?test-vectors|test-vectors.*?E-CLI-001", pr):
+            ecli_live = re.search(r"([\w./-]+\.md:\d+): E-class code 'E-CLI-001'", adr_out)
+            live_loc  = Path(ecli_live.group(1)).name if ecli_live \
+                        else "BC-2.11.004.md:61 (from live run)"
+            fail("traceability/e-cli-001-location",
+                 live_loc,
+                 "pr-description.md attributes E-CLI-001 ×1 to 'test-vectors'")
+        record_comparison("check2a-e-cli-001", doc_value=_pr_ecli_m)
 
 # ── SUGGESTION-4 / check4a-ac002-suffix: AC-002 filename suffix ───────────────
 # SUGGESTION-8 fix: register via anchor_check() + fail when AC-002 is absent.
@@ -1014,7 +1067,7 @@ if anchor_check("check4a-ac002-suffix", _ac002,
                 fail("evidence-report/ac002-suffix", correct_sfx,
                      f"evidence-report.md references '{m.group(0)}'")
                 break
-        record_comparison("check4a-ac002-suffix")
+        record_comparison("check4a-ac002-suffix", doc_value=sfx_m)
 
 # ── B-4 / check7+check9: derive branch SHA set from git (not a literal) ──────
 # Used by both check7 (rollback completeness) and check9 (captured-SHA on-branch).
@@ -1066,7 +1119,7 @@ if anchor_check("check7-rollback", _revert_m,
         fail("rollback/count-claim-missing",
              "Rollback reverts all N commits",
              "count-claim anchor absent — check cannot verify commit count")
-    record_comparison("check7-rollback")
+    record_comparison("check7-rollback", doc_value=_revert_m)
 
 # ── B-4 / check9: captured-SHA on-branch (replaces circular head-SHA check) ───
 # SUGGESTION-8 fix: register via anchor_check() + fail when anchor absent.
@@ -1096,7 +1149,7 @@ if anchor_check("check9-head-sha-ev", _cap_sha_m,
              f"({len(_branch_sha_set)} commits: {sorted(_branch_sha_set)})",
              f"SHA {_ev_sha7} not found on this branch — evidence may be "
              f"from a different PR or borrowed from another branch")
-    record_comparison("check9-head-sha-ev")
+    record_comparison("check9-head-sha-ev", doc_value=_cap_sha_m)
 
 # ── Check 8: Live PR body must match pr-description.md (FINDING 2) ────────────
 # B2-1 fix: Check 8 requires gh API authentication (GH_TOKEN).  When running
@@ -1164,7 +1217,7 @@ if _live_pr_body_raw is not None:
              "live PR body matches pr-description.md (normalised)",
              f"live PR body has diverged from pr-description.md — "
              f"run: gh pr edit {pr_number} --body-file {PR_DESC}")
-    record_comparison("check8-live-pr-body")
+    record_comparison("check8-live-pr-body", doc_value=_live_pr_body_raw)
 
 # ── BLOCKING-D: required-checks gate ─────────────────────────────────────────
 # B-3: checks_ran is populated exclusively by record_comparison(key) calls.
