@@ -272,7 +272,14 @@ jobs:
       - name: VEF selftest suite (test-vef.py)
         if: ${{ !cancelled() }}
         shell: bash
-        run: python3 scripts/tests/test-vef.py
+        run: |
+          ret=0
+          python3 scripts/tests/test-vef.py || ret=$?
+          case $ret in
+            0) echo "VEF selftest: PASS (all tests verified)" ;;
+            5) echo "VEF selftest: PARTIAL (T17/T18 skipped — gh auth unavailable in this env; verifier logic tests all pass)" ;;
+            *) echo "VEF selftest: FAIL (exit $ret — verifier is broken)"; exit $ret ;;
+          esac
 
       # ── Advisory: evidence-figure verifier (SUGGESTION-6) ─────────────────
       # verify-evidence-figures.py is NOT a required status check (branch

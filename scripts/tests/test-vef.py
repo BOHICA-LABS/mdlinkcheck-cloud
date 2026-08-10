@@ -265,6 +265,22 @@ class TestEnv:
         shutil.rmtree(self._tmpdir, ignore_errors=True)
 
 
+def _gh_is_authenticated() -> bool:
+    """Return True iff gh is available and has a valid auth token.
+
+    T17/T18 rely on gh validating JSON field names, which only happens after
+    successful auth.  In CI without GH_TOKEN, gh returns an auth error for all
+    calls — including ones with invalid field names — so T17/T18 cannot
+    distinguish a bad field from an auth failure.  When unauthenticated,
+    both tests loud-skip (same as if gh were absent from PATH).
+    """
+    r = subprocess.run(
+        ["gh", "auth", "status"],
+        capture_output=True, text=True, cwd=str(REPO), timeout=15,
+    )
+    return r.returncode == 0
+
+
 def run_test(name, defect_fn, clean_fn=None, expect_rc=None):
     """Execute defect-present and defect-absent cases; return True if both pass.
 
@@ -564,6 +580,14 @@ def t17_gh_field_contract():
         print("  SKIP  T17 gh-field-contract [gh unavailable]"
               "  **** LOUD SKIP — not a pass ****")
         return None  # distinct from True (pass) and False (fail)
+    if not _gh_is_authenticated():
+        # gh validates auth BEFORE field names when unauthenticated — so an
+        # invalid field and a valid field both return the same auth error.
+        # The field-contract signal ("Unknown JSON field") is unreachable
+        # without auth.  Loud-skip rather than false-fail.
+        print("  SKIP  T17 gh-field-contract [gh unauthenticated — "
+              "field validation requires auth]  **** LOUD SKIP — not a pass ****")
+        return None
 
     # Defect present: request a field that does not exist in gh's schema.
     r_bad = subprocess.run(
@@ -611,15 +635,21 @@ def t18_gh_real_path_field_contract():
     current branch: gh validates field names before the API call, so an invalid
     field always yields 'Unknown JSON field' even with no open PR.
 
-    If gh is unavailable: LOUD SKIP (counted, not a silent pass).
-    T18 is vacuous when gh is absent — the skip is reported and cannot be
-    mistaken for a pass because run() counts None results separately from True.
+    If gh is unavailable or unauthenticated: LOUD SKIP (counted, not a pass).
+    T18 is vacuous when gh is absent or unauthenticated — without auth, gh
+    returns an auth error for all calls (including ones with bad field names),
+    so the verifier exits 3 (env failure) instead of 4 (verifier bug) on the
+    mutated field name, making T18's defect signal unreachable.
     """
     import shutil as _shutil
     if not _shutil.which("gh"):
         print("  SKIP  T18 gh-real-path-field-contract [gh unavailable]"
               "  **** LOUD SKIP — not a pass ****")
         return None  # distinct from True (pass) and False (fail)
+    if not _gh_is_authenticated():
+        print("  SKIP  T18 gh-real-path-field-contract [gh unauthenticated — "
+              "field validation requires auth]  **** LOUD SKIP — not a pass ****")
+        return None
 
     # Base env: all non-_VEF_TEST_ vars, plus _VEF_TEST_N_AHEAD so the pre-flight
     # guard does not fire before we reach the gh call.
