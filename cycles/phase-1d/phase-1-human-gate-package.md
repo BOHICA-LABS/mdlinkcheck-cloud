@@ -1,12 +1,12 @@
 ---
 document_type: gate-package
 level: ops
-version: "1.1"
-status: awaiting-human-ratification
+version: "1.2"
+status: ratified-with-condition
 phase: phase-1d
 producer: vsdd-factory:technical-writer
 date: 2026-08-10
-timestamp: "2026-08-10T18:00:00Z"
+timestamp: "2026-08-10T20:00:00Z"
 gate: 57
 title: "Phase-1 Human Gate Package — Spec ratification WITH disclosed defects"
 ---
@@ -522,3 +522,24 @@ If Approve:
   [ ] OPEN — retain until confirmed by subsequent audit
   [ ] Other: ___________________________
 ```
+
+---
+
+### Gate #58 Ratification Record — 2026-08-10
+
+**Verdict: APPROVED WITH CONDITION — CLOSED-WORLD REMEDIATION** (human/operator, gate #58, 2026-08-10).
+
+Operator condition verbatim: "I want to remediate all the known open items, the known defects, but I do not want to work on any more defects beyond the ones that we already know about."
+
+**§4 D-205 candidates: both ruled KNOWN class. No deal-breaker.**
+- VP-010 (negation of CAP-011 fallback requirement) → BI-052/BI-053 inversion lineage. Known class.
+- `verification-coverage-matrix.md` false 13/13 DI-coverage count → D-241/BI-063 false-claim lineage. Known class.
+- No D-205 deal-breaker triggered. Both to be FIXED under the known-item remediation, not merely carried.
+
+**§5 recommendation: ACCEPTED.** Spec-lint flip precondition swapped from "flip when the checkers are repaired" (D-117/D-122) to "flip when the corpus is clean or its violations are adjudicated." `Spec lint` remains advisory; the flip itself remains deferred.
+
+**DEV-11: CONTINUE** — Phase 2 story decomposition then Phase 3 wave 1. Wave-1 wave gate = Run A endpoint with the stop-vs-continue re-ask there. Sequence: known-item remediation burst(s) → Phase 2 → wave 1. Merges and verdict posts remain HUMAN-executed via operator-packaged commands.
+
+**Hook/process items expressly excluded from remediation scope:** BI-062 (`pr-manager-completion-guard` merge coercion) and BI-064 (`verify-state-timestamp-refresh` unsatisfiable for multi-edit bursts) remain post-run backlog, adjudicated-and-disclosed. No mid-run hook edits (D-158/D-182/D-231 unchanged).
+
+Decision D-244 records these rulings in full. Pending STATE.md insert held in `cycles/phase-1d/decisions-pending-state-insert.md` (D-243 classifier block — insert deferred to fresh session).
