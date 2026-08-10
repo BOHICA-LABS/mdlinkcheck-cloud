@@ -1,7 +1,7 @@
 # Demo Evidence Report — VERIFIER-HARDENING-SWEEP-STEP0
 
 **Branch:** fix/verifier-hardening-sweep-step0
-**Captured at SHA:** aede571
+**Captured at SHA:** PENDING
 **Captured:** 2026-08-09
 **Type:** CLI tool evidence (terminal output)
 
@@ -13,7 +13,7 @@
 | AC-2 | Nine-checker selftest suite: 99/99 pass | PASS |
 | AC-5 | check-adr-consistency live corpus: 9 violations (79 reason-code + 6 E-class code occ) | PASS |
 | AC-6 | check-ec-injectivity live corpus: 174 citations compared; 42 divergent; 22 adjudication | PASS |
-| AC-7 | VEF selftest suite: 32/32 pass (each proved clean-pass + defect-fail) | PASS |
+| AC-7 | VEF selftest suite: 44/44 pass (each proved clean-pass + defect-fail) | PASS |
 
 ## Evidence Files
 
@@ -47,9 +47,10 @@ See `AC-002-selftest-99of99.txt`.
 
 ## VEF Selftest Evidence
 
-VEF selftest suite (`scripts/tests/test-vef.py`): 32/32 pass.
+VEF selftest suite (`scripts/tests/test-vef.py`): 44/44 pass.
 Each test proved DEFECT PRESENT (verifier exits non-zero) and DEFECT ABSENT (verifier exits 0).
-Covers T01-T32 including B-1 residual (T22-T24), B-3 structural (T25-T26), B2-4 (T30),
-and S2-1 check7-provenance with throwaway git repo (T31).
+Covers T01-T44 including B-1 residual (T22-T24), B-3 structural (T25-T26), B2-4 (T30),
+S2-1 check7-provenance with throwaway git repo (T31), and B2-3 novel-spelling suppression
+shapes (T33-T44: P-A/A2/B/C/C2/D probes plus L-65 relocated variants).
 
 See `AC-007-vef-selftest.txt`.
