@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-29 test cases (T01-T29, non-sequential numbering).  Each proves:
+32 test cases (T01-T32, non-sequential numbering).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
 
@@ -10,10 +10,19 @@ T17 (gh field contract) exercises the REAL gh CLI, not an env stub.
   If gh is available:  defect=bad field name → gh exits non-zero; clean=
   correct field names → gh does not emit "Unknown JSON field" error.
 
+T31 (check7-provenance-stamps) creates a throwaway git repo in tmpdir and
+verifies check7's git-object content comparison directly.
+
+T32 (check9 production shape of B2-4) creates a throwaway git repo exactly as
+T31-positive does, but leaves evidence-report **Captured at SHA:** at a
+different on-branch SHA.  Verifies check9 rejects the mismatch when
+_verified_stamp_sha comes from a real check7 run (not a mock).
+
 Test isolation: _VEF_TEST_* env vars redirect all file I/O and subprocess
 calls to a temp directory.  The real repo is used for git commands (which
 the verifier routes through _SCRIPT_REPO regardless of _VEF_TEST_REPO),
-but provenance stamp verification is skipped in test mode.
+but provenance stamp verification is skipped in test mode unless
+_VEF_TEST_STAMP_REPO provides a throwaway git repo.
 
 Run:  python3 scripts/tests/test-vef.py
 Reports: N/N tests verified (each proved clean-pass + defect-fail)
@@ -225,6 +234,14 @@ class TestEnv:
         # B2-1 exit-code split mocks
         self.gh_not_found    = False  # simulate 'gh' not in PATH → exit 3
         self.check8_auth_fail = False  # simulate check8 gh auth failure → exit 5
+        # B2-4 / check9: mock verified stamp SHA (replaces check7-derived value
+        # when check7 is skipped in test mode).  When non-empty, passed as
+        # _VEF_TEST_STAMP_SHA so check9 can require evidence-SHA == stamp-SHA.
+        self.stamp_sha  = ""
+        # S2-1 / check7: throwaway git repo for provenance-stamp git-show
+        # verification.  When non-empty, check7 runs against this repo instead
+        # of being skipped in test mode.
+        self.stamp_repo = ""
 
     def run(self):
         """Run the verifier under _VEF_TEST_* overrides; return (rc, combined output)."""
@@ -252,6 +269,15 @@ class TestEnv:
             # then simulate an auth failure (check8 → loud SKIP → exit 5).
             del env["_VEF_TEST_GH_BODY"]
             env["_VEF_TEST_CHECK8_AUTH_FAIL"] = "1"
+        if self.stamp_sha:
+            # B2-4: override the stamp SHA that check9 requires evidence-SHA to match.
+            # Used when check7 is skipped (normal test mode) but we need check9 to
+            # enforce stamp equality.
+            env["_VEF_TEST_STAMP_SHA"] = self.stamp_sha
+        if self.stamp_repo:
+            # S2-1: provide a throwaway git repo for check7 git-show verification.
+            # When set, check7 runs (not skipped) against this repo.
+            env["_VEF_TEST_STAMP_REPO"] = str(self.stamp_repo)
         # Per-PR-number body routing: _VEF_TEST_GH_BODY_<N>
         for num, path in self.gh_body_overrides.items():
             env[f"_VEF_TEST_GH_BODY_{num}"] = str(path)
@@ -857,6 +883,57 @@ def t28_check8_auth_skip():
     return run_test("T28 check8-auth-skip-exit5 [B2-1/exit-5]", defect, expect_rc=5)
 
 
+def t30_captured_sha_wrong_but_on_branch():
+    """T30 (B2-4): **Captured at SHA:** on-branch but not matching stamp → check9 fails.
+
+    B2-4 finding: evidence-report.md said '**Captured at SHA:** 3dc681b'.
+    3dc681b is a real branch commit (on-branch check PASSES), but the AC
+    artifact stamps all say 16b3513.  The old check9 accepted 3dc681b because
+    it only asked "is this SHA on the branch?" — a necessary but not sufficient
+    condition.
+
+    Fix: check9 requires the evidence-SHA to also equal the stamp SHA that
+    check7 independently verified against git object content.  A wrong-but-on-
+    branch SHA ('3dc681b' here, '16b3513' as stamp) MUST fail.
+
+    Defect: stamp_sha set to 16b3513..., branch_shas includes '3dc681b',
+            evidence says '**Captured at SHA:** 3dc681b'.
+            Before fix: exits 0 (on-branch check passes, stamp equality not enforced).
+            After fix:  exits 1 (3dc681b != 16b3513 stamp mismatch).
+    Clean:  stamp_sha = MOCK_HEAD (40 hex), evidence says MOCK_HEAD_7 'deadbee'.
+            Stamp equality: 'deadbee' == MOCK_HEAD[:7] → passes.
+    """
+    STAMP_SHA = "16b351354fe0148fd1f2254b6eb9c022c4906602"
+
+    def defect(env):
+        # stamp_sha is the "verified stamp" (what check7 returns in production)
+        env.stamp_sha = STAMP_SHA
+        # '3dc681b' is added to branch_shas so the on-branch check passes.
+        # It must ALSO appear in the PR rollback list (check7-rollback requires
+        # every branch_sha to be in the revert list).
+        env.branch_shas = f"{MOCK_HEAD} aaaa111 bbbb222 cccc333 dddd444 3dc681b"
+        pr = env.pr_path.read_text().replace(
+            f"git revert {MOCK_HEAD_7}",
+            f"git revert {MOCK_HEAD_7} 3dc681b",
+        )
+        env.pr_path.write_text(pr)
+        env.gh_file.write_text(pr)
+        # evidence-report claims a capture at '3dc681b' — wrong, but on-branch
+        ev = env.ev_path.read_text().replace(
+            f"**Captured at SHA:** {MOCK_HEAD_7}",
+            "**Captured at SHA:** 3dc681b",
+        )
+        env.ev_path.write_text(ev)
+
+    def clean(env):
+        # stamp_sha = MOCK_HEAD so check9 enforces equality and the default
+        # evidence SHA (MOCK_HEAD_7) satisfies it.
+        env.stamp_sha = MOCK_HEAD
+
+    return run_test("T30 captured-sha-wrong-but-on-branch [B2-4/check9]",
+                    defect, clean)
+
+
 def t29_ecli001_absent_from_pr():
     """T29 (B2-2 ATTACK-A): E-CLI-001 in live output but absent from PR -> check2a fails.
 
@@ -886,6 +963,213 @@ def t29_ecli001_absent_from_pr():
         env.pr_path.write_text(text)
         env.gh_file.write_text(text)
     return run_test("T29 e-cli-001-absent-from-pr [B2-2/ATTACK-A]", defect)
+
+
+def t31_check7_provenance_stamps():
+    """T31 (S2-1): check7-provenance-stamps exercised via throwaway git repo.
+
+    Verifies that check7 passes when a STAMPED artifact's content matches
+    the committed git object at the stamp SHA, and fails when the content
+    was tampered after the stamp was written.  Uses _VEF_TEST_STAMP_REPO to
+    point check7 at an isolated throwaway git repo rather than _SCRIPT_REPO.
+
+    Coverage (per review S-1 / REQUIRED OUTCOME 3):
+      Positive: stamp SHA → git show → content matches → check7 PASS.
+      Negative: same stamp SHA → git show → content DIFFERS → check7 FAIL.
+
+    Each sub-case is independent: a fresh TestEnv and fresh throwaway repo.
+    The function returns True iff BOTH sub-cases produce the expected result.
+    """
+    import subprocess as _sp
+
+    # Names of the STAMPED files (must match STAMPED list in verifier).
+    # Create all of them so check7 iterates the full list without KeyError.
+    AC_NAMES = [
+        "AC-001-preflight.txt",
+        "AC-002-selftest-99of99.txt",
+        "AC-005-adr-consistency-live.txt",
+        "AC-006-ec-injectivity-live.txt",
+        "AC-007-vef-selftest.txt",
+    ]
+    COMMITTED_CONTENT = "check7 throwaway artifact content\n"
+    TAMPERED_CONTENT  = "TAMPERED — must not match committed object\n"
+
+    def _make_repo_with_ac_files(git_dir: Path, content: str) -> str:
+        """Init a git repo, commit all AC files with given content; return HEAD SHA."""
+        _sp.run(["git", "init", str(git_dir)], check=True, capture_output=True)
+        _sp.run(["git", "config", "user.email", "t31@t.local"],
+                check=True, capture_output=True, cwd=str(git_dir))
+        _sp.run(["git", "config", "user.name", "T31 Test"],
+                check=True, capture_output=True, cwd=str(git_dir))
+        _sp.run(["git", "config", "init.defaultBranch", "main"],
+                capture_output=True, cwd=str(git_dir))  # tolerate older git
+        for name in AC_NAMES:
+            p = git_dir / EV_DIR_REL / name
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content)
+        _sp.run(["git", "add", "."], check=True, capture_output=True, cwd=str(git_dir))
+        _sp.run(["git", "commit", "--allow-empty-message", "-m", "ac artifacts"],
+                check=True, capture_output=True, cwd=str(git_dir))
+        return _sp.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True, text=True, cwd=str(git_dir),
+        ).stdout.strip()
+
+    results = []
+    for (label, tamper) in [("pass-content-matches", False),
+                             ("fail-content-tampered", True)]:
+        env_t = TestEnv()
+        git_dir = Path(tempfile.mkdtemp(prefix="vef-t31-"))
+        try:
+            stamp_sha = _make_repo_with_ac_files(git_dir, COMMITTED_CONTENT)
+            stamp_sha7 = stamp_sha[:7]
+
+            # Write STAMPED files in TestEnv.  Clean case: same as committed
+            # content + stamp line.  Defect case: tampered content + stamp line.
+            in_fixture_content = (TAMPERED_CONTENT if tamper else COMMITTED_CONTENT)
+            for name in AC_NAMES:
+                (env_t.ev_dir / name).write_text(
+                    in_fixture_content + f"Captured at: {stamp_sha}\n"
+                )
+
+            # Update evidence-report SHA + branch_shas + rollback list so all
+            # OTHER checks pass (we are only targeting check7 here).
+            ev = env_t.ev_path.read_text().replace(
+                f"**Captured at SHA:** {MOCK_HEAD_7}",
+                f"**Captured at SHA:** {stamp_sha7}",
+            )
+            env_t.ev_path.write_text(ev)
+            # Add stamp_sha7 to branch set (needed for check9 on-branch check).
+            env_t.branch_shas = (
+                f"{MOCK_HEAD} aaaa111 bbbb222 cccc333 dddd444 {stamp_sha7}"
+            )
+            # Add stamp_sha7 to the rollback SHA list (needed for check7-rollback).
+            pr = env_t.pr_path.read_text().replace(
+                f"git revert {MOCK_HEAD_7}",
+                f"git revert {MOCK_HEAD_7} {stamp_sha7}",
+            )
+            env_t.pr_path.write_text(pr)
+            env_t.gh_file.write_text(pr)
+            # Point check7 at the throwaway git repo.
+            env_t.stamp_repo = str(git_dir)
+
+            rc, out = env_t.run()
+            expect_fail = tamper
+            ok = (rc != 0) if expect_fail else (rc == 0)
+            if not ok:
+                marker = "rc!=0" if expect_fail else "rc==0"
+                print(f"    FAIL T31 [{label}]: expected {marker}, got rc={rc}")
+                print(f"      output: {out[:500]!r}")
+            results.append(ok)
+            print(f"  {'PASS' if ok else 'FAIL'}  T31 check7-provenance [{label}]")
+        except Exception as exc:
+            print(f"  FAIL  T31 check7-provenance [{label}]: {exc}")
+            results.append(False)
+        finally:
+            env_t.cleanup()
+            shutil.rmtree(str(git_dir), ignore_errors=True)
+
+    return all(results)
+
+
+def t32_check9_ev_sha_disagrees_with_check7_stamp():
+    """T32 (R2/L-65): production shape of B2-4 — check7 succeeds, ev SHA disagrees.
+
+    L-65: probe the RELOCATED form of the defect, not just the mock form in T30.
+    T30 uses _VEF_TEST_STAMP_SHA (mock) to supply _expected_stamp_sha7 while
+    check7 is still skipped.  T32 uses _VEF_TEST_STAMP_REPO so check7 actually
+    runs, derives _verified_stamp_sha from git objects, and check9 compares
+    _ev_sha7 against that real derived value.
+
+    Setup:
+      - Throwaway git repo with all 5 STAMPED AC files committed.
+      - AC files in test fixture carry matching content + stamp → check7 PASS.
+      - _verified_stamp_sha = stamp_sha (set by check7 via real git-show).
+      - evidence-report **Captured at SHA:** stays MOCK_HEAD_7 (NOT stamp_sha7).
+        MOCK_HEAD_7 IS on-branch → necessary on-branch guard passes.
+        MOCK_HEAD_7 != stamp_sha7 → sufficient equality guard fires.
+
+    Expected: rc != 0, output contains 'captured-sha-stamp-mismatch'.
+
+    Non-tautology: if the _ev_sha7 != _expected_stamp_sha7 equality assertion
+    is removed, check9 only tests on-branch.  MOCK_HEAD_7 IS on-branch, so
+    the verifier exits 0.  This test then reports FAIL (expected rc!=0, got
+    rc=0), proving the test is sensitive to the assertion being present.
+    """
+    import subprocess as _sp
+
+    AC_NAMES = [
+        "AC-001-preflight.txt",
+        "AC-002-selftest-99of99.txt",
+        "AC-005-adr-consistency-live.txt",
+        "AC-006-ec-injectivity-live.txt",
+        "AC-007-vef-selftest.txt",
+    ]
+    COMMITTED_CONTENT = "T32 check9 production-shape fixture content\n"
+
+    def _make_repo(git_dir: Path, content: str) -> str:
+        """Init throwaway git repo, commit all STAMPED AC files; return HEAD SHA."""
+        _sp.run(["git", "init", str(git_dir)], check=True, capture_output=True)
+        _sp.run(["git", "config", "user.email", "t32@t.local"],
+                check=True, capture_output=True, cwd=str(git_dir))
+        _sp.run(["git", "config", "user.name", "T32 Test"],
+                check=True, capture_output=True, cwd=str(git_dir))
+        _sp.run(["git", "config", "init.defaultBranch", "main"],
+                capture_output=True, cwd=str(git_dir))  # tolerate older git
+        for name in AC_NAMES:
+            p = git_dir / EV_DIR_REL / name
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(content)
+        _sp.run(["git", "add", "."], check=True, capture_output=True, cwd=str(git_dir))
+        _sp.run(["git", "commit", "--allow-empty-message", "-m", "ac artifacts"],
+                check=True, capture_output=True, cwd=str(git_dir))
+        return _sp.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True, text=True, cwd=str(git_dir),
+        ).stdout.strip()
+
+    env_t = TestEnv()
+    git_dir = Path(tempfile.mkdtemp(prefix="vef-t32-"))
+    try:
+        stamp_sha = _make_repo(git_dir, COMMITTED_CONTENT)
+        stamp_sha7 = stamp_sha[:7]
+        # Sanity: stamp_sha7 must differ from MOCK_HEAD_7 or the test is vacuous.
+        assert stamp_sha7 != MOCK_HEAD_7, (
+            f"stamp_sha7 {stamp_sha7!r} collides with MOCK_HEAD_7 — re-run")
+
+        # Write STAMPED AC files: content matches committed blob → check7 PASSES.
+        # Stamp line added after content (same as production two-commit sequence).
+        for name in AC_NAMES:
+            (env_t.ev_dir / name).write_text(
+                COMMITTED_CONTENT + f"Captured at: {stamp_sha}\n"
+            )
+
+        # evidence-report stays at default MOCK_HEAD_7 — NOT replaced with stamp_sha7.
+        # Default branch_shas includes MOCK_HEAD, so MOCK_HEAD_7 is on-branch.
+        # Default rollback list covers all branch_shas → check7-rollback passes.
+        # Only check9's sufficient equality guard fires: MOCK_HEAD_7 != stamp_sha7.
+
+        # Point check7 at the throwaway repo — production code path, NOT mock.
+        env_t.stamp_repo = str(git_dir)
+
+        rc, out = env_t.run()
+        ok = rc != 0
+        if not ok:
+            print(f"    FAIL T32: expected rc!=0, got rc={rc}")
+            print(f"      output: {out[:600]!r}")
+        elif "captured-sha-stamp-mismatch" not in out:
+            print(f"    FAIL T32: rc!=0 but expected 'captured-sha-stamp-mismatch' in output")
+            print(f"      output: {out[:600]!r}")
+            ok = False
+        print(f"  {'PASS' if ok else 'FAIL'}  T32 check9-ev-sha-disagrees-with-stamp [R2/L-65]")
+        return ok
+    except Exception as exc:
+        print(f"  FAIL  T32 check9-ev-sha-disagrees-with-stamp [R2/L-65]: {exc}")
+        import traceback; traceback.print_exc()
+        return False
+    finally:
+        env_t.cleanup()
+        shutil.rmtree(str(git_dir), ignore_errors=True)
 
 
 # ── Runner ────────────────────────────────────────────────────────────────────
@@ -919,6 +1203,9 @@ TESTS = [
     t27_gh_not_found_exit_3,     # B2-1 exit-3 (env failure)
     t28_check8_auth_skip,        # B2-1 exit-5 (PARTIAL, check8 loud-skip)
     t29_ecli001_absent_from_pr,  # B2-2 ATTACK-A (register-without-comparing class)
+    t30_captured_sha_wrong_but_on_branch,  # B2-4 stamp-equality (on-branch not sufficient)
+    t31_check7_provenance_stamps,          # S2-1 check7 real git-show coverage
+    t32_check9_ev_sha_disagrees_with_check7_stamp,  # R2/L-65 production shape of B2-4
 ]
 
 

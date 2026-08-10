@@ -1,3 +1,4 @@
+
 test-vef.py -- verify-evidence-figures.py selftest suite
 ============================================================
   PASS  T01 post-merge-context [exit-2]
@@ -26,5 +27,12 @@ test-vef.py -- verify-evidence-figures.py selftest suite
   PASS  T21 captured-sha-not-on-branch [check9/B-4]
   PASS  T25 ac002-no-nofm-token [B-3/ATTACK-A]
   PASS  T26 ac002-nofm-mismatch [B-3/CONTROL]
+  PASS  T27 gh-not-found-env-fail [B2-1/exit-3]
+  PASS  T28 check8-auth-skip-exit5 [B2-1/exit-5]
+  PASS  T29 e-cli-001-absent-from-pr [B2-2/ATTACK-A]
+  PASS  T30 captured-sha-wrong-but-on-branch [B2-4/check9]
+  PASS  T31 check7-provenance [pass-content-matches]
+  PASS  T31 check7-provenance [fail-content-tampered]
+  PASS  T32 check9-ev-sha-disagrees-with-stamp [R2/L-65]
 ============================================================
-PASS  26/26 tests verified (each proved clean-pass + defect-fail)
+PASS  32/32 tests verified (each proved clean-pass + defect-fail)

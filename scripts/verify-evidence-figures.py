@@ -90,10 +90,18 @@ Test-mode overrides (_VEF_TEST_* environment variables):
   _VEF_TEST_CHECK8_AUTH_FAIL — any non-empty string; simulate gh auth
                               failure during check8 body fetch → loud SKIP
                               and exit 5 (PARTIAL).
+  _VEF_TEST_STAMP_SHA   — 40-hex string; mock "verified stamp SHA" for check9
+                          stamp-equality assertion.  Used when check7 is skipped
+                          (normal test mode) but T30/similar tests need check9 to
+                          enforce stamp equality.  Takes effect only when check7
+                          was skipped (_verified_stamp_sha is None).
+  _VEF_TEST_STAMP_REPO  — filesystem path to a git repo; when set, check7 runs
+                          git show against this repo instead of _SCRIPT_REPO.
+                          Also disables the _TEST_MODE skip of check7.
+                          Used by T31 (throwaway-repo coverage).
 
-  Git commands (git show for provenance stamps) always run against the real
-  git repo (_SCRIPT_REPO), not the test tmpdir, so stamp verification remains
-  live even in test mode.
+  Git commands (git show for provenance stamps) run against _SCRIPT_REPO by
+  default; _VEF_TEST_STAMP_REPO overrides this for check7 specifically.
 """
 import argparse, json as _json, os, re, subprocess, sys
 from pathlib import Path
@@ -115,6 +123,11 @@ _TEST_NO_OPEN_PR       = os.environ.get("_VEF_TEST_NO_OPEN_PR")
 _TEST_BRANCH_SHAS      = os.environ.get("_VEF_TEST_BRANCH_SHAS")
 _TEST_GH_NOT_FOUND     = os.environ.get("_VEF_TEST_GH_NOT_FOUND")
 _TEST_CHECK8_AUTH_FAIL = os.environ.get("_VEF_TEST_CHECK8_AUTH_FAIL")
+# B2-4 / check9: mock stamp SHA (replaces check7-derived _verified_stamp_sha).
+_TEST_STAMP_SHA        = os.environ.get("_VEF_TEST_STAMP_SHA")
+# S2-1 / check7: throwaway git repo for stamp git-show verification.
+# NOT included in _TEST_MODE — it is a targeted override, not a mode switch.
+_TEST_STAMP_REPO       = os.environ.get("_VEF_TEST_STAMP_REPO")
 _TEST_MODE             = any([_TEST_REPO, _TEST_ADR_FILE, _TEST_EI_FILE, _TEST_ST_FILE,
                                _TEST_N_AHEAD, _TEST_HEAD, _TEST_GH_BODY,
                                _TEST_PR_NUM, _TEST_NO_OPEN_PR, _TEST_BRANCH_SHAS,
@@ -161,7 +174,8 @@ args = _ap.parse_args()
 #
 # S-1 coverage: check1 and check5 added (previously unregistered but
 # fail-closed).  Sites deliberately left unregistered this pass:
-#   - check7-provenance-stamps: fully skipped in test mode; no test coverage
+#   - check7-provenance-stamps: skipped in test mode unless _VEF_TEST_STAMP_REPO
+#     is provided; T31 covers it via a throwaway git repo (positive + negative).
 #   - ADR/EI novel-spelling sub-scans: sub-scans of check2/check4 respectively;
 #     parent registration covers them
 REQUIRED_CHECKS = {
@@ -440,10 +454,15 @@ else:
         sys.exit(2)
 
 EV_RPT  = EV_DIR / "evidence-report.md"
+# S2-1 fix: AC-002 and AC-007 added to STAMPED so check7 verifies their
+# provenance stamps via git show, and check9 binds **Captured at SHA:** to
+# the same verified SHA (not merely an on-branch membership check).
 STAMPED = [
     EV_DIR / "AC-001-preflight.txt",
+    EV_DIR / "AC-002-selftest-99of99.txt",
     EV_DIR / "AC-005-adr-consistency-live.txt",
     EV_DIR / "AC-006-ec-injectivity-live.txt",
+    EV_DIR / "AC-007-vef-selftest.txt",
 ]
 
 # ── Derive expected values from live runs (independent probes) ────────────────
@@ -977,15 +996,25 @@ def _normalise_stamp(text: str) -> str:
     )
     return filtered.strip()
 
-if _TEST_MODE:
+# _verified_stamp_sha: the stamp SHA that check7 verified against git objects.
+# Used by check9 (stamp-equality assertion).  Set to None if check7 is skipped.
+_verified_stamp_sha: "str | None" = None
+
+# S2-1 fix: skip ONLY when in test mode AND no throwaway repo was provided.
+# When _TEST_STAMP_REPO is set the check runs against that repo instead of
+# _SCRIPT_REPO, giving T31 full git-show coverage without touching real history.
+if _TEST_MODE and not _TEST_STAMP_REPO:
     # Provenance stamp verification requires the AC files to exist at their
-    # captured-at commit in the real git history.  In test mode, the temp
-    # directory may contain synthetic AC files whose stamps don't match the
-    # current worktree; skipping avoids false failures while preserving the
-    # check for all non-test runs (CI and manual invocations).
-    print("  [provenance-stamps] SKIPPED — test mode (_VEF_TEST_* vars active)",
+    # captured-at commit in the git history.  In standard test mode the temp
+    # directory contains synthetic AC files whose stamps don't match any real
+    # commit; skipping avoids false failures.  T31 supplies _TEST_STAMP_REPO
+    # so the check runs against a throwaway repo with committed content.
+    print("  [provenance-stamps] SKIPPED — test mode (no _VEF_TEST_STAMP_REPO)",
           flush=True)
 else:
+    # Use the throwaway repo if provided; otherwise the real script repo.
+    _stamp_git_cwd = Path(_TEST_STAMP_REPO) if _TEST_STAMP_REPO else _SCRIPT_REPO
+    _stamp_shas: set = set()
     for ac_path in STAMPED:
         content = ac_path.read_text()
         stamp_m = re.search(r"Captured at: ([0-9a-f]{40})", content)
@@ -995,15 +1024,35 @@ else:
                  "stamp not found in artifact")
         else:
             stamp    = stamp_m.group(1)
-            # rel_path is computed relative to REPO (test tmpdir or real repo).
-            # The path structure is identical in both, so git show with this
-            # relative path against _SCRIPT_REPO (via sh()) is correct.
             rel_path = str(ac_path.relative_to(REPO))
-            blob = sh("git", "show", f"{stamp}:{rel_path}")
-            if _normalise_stamp(blob) != _normalise_stamp(content):
+            # Run git show directly so we can target _stamp_git_cwd rather than
+            # _SCRIPT_REPO (sh() always routes git to _SCRIPT_REPO).
+            _r = subprocess.run(
+                ["git", "show", f"{stamp}:{rel_path}"],
+                capture_output=True, text=True,
+                cwd=str(_stamp_git_cwd), timeout=30,
+            )
+            if _r.returncode != 0:
                 fail(f"provenance-stamp/{ac_path.name}",
-                     f"stamp names a commit whose normalised content matches current artifact",
-                     f"content at {stamp[:7]} differs — artifact was not captured there")
+                     f"git show {stamp[:7]}:{rel_path} exits 0",
+                     f"exit {_r.returncode}: {_r.stderr.strip()[:200]}")
+            else:
+                blob = (_r.stdout + _r.stderr).strip()
+                if _normalise_stamp(blob) != _normalise_stamp(content):
+                    fail(f"provenance-stamp/{ac_path.name}",
+                         "stamp names a commit whose normalised content matches "
+                         "current artifact",
+                         f"content at {stamp[:7]} differs — artifact was not "
+                         f"captured there")
+                else:
+                    _stamp_shas.add(stamp)
+    if len(_stamp_shas) > 1:
+        fail("provenance-stamp/inconsistent-shas",
+             "all STAMPED artifacts carry the same Captured-at SHA",
+             f"found {len(_stamp_shas)} distinct SHAs: "
+             f"{sorted(s[:7] for s in _stamp_shas)}")
+    elif _stamp_shas:
+        _verified_stamp_sha = next(iter(_stamp_shas))
 
 # ── SUGGESTION-2 / check2a-e-cli-001: E-CLI-001 location ─────────────────────
 # SUGGESTION-8 fix: register via anchor_check() + fail when anchor absent.
@@ -1121,34 +1170,70 @@ if anchor_check("check7-rollback", _revert_m,
              "count-claim anchor absent — check cannot verify commit count")
     record_comparison("check7-rollback", doc_value=_revert_m)
 
-# ── B-4 / check9: captured-SHA on-branch (replaces circular head-SHA check) ───
+# ── B-4 / check9: captured-SHA verified against provenance stamps ─────────────
 # SUGGESTION-8 fix: register via anchor_check() + fail when anchor absent.
+# B2-4 fix (S2-1 closes enabling condition): require **Captured at SHA:** to
+# EQUAL the stamp SHA that check7 independently verified against git objects.
+# On-branch membership is kept as a necessary condition but is no longer
+# sufficient — a wrong-but-on-branch SHA (e.g. 3dc681b while stamps say
+# 16b3513) MUST fail.
 #
-# Old design (circular): evidence-report.md said '**Head SHA:** X' and required
-# X == HEAD.  Since evidence-report.md is committed to the code branch,
-# committing it changes HEAD, making the captured SHA immediately stale.
+# Design (non-circular):
+#   - evidence-report.md says '**Captured at SHA:** X'
+#   - X must be on this branch (git rev-list develop..HEAD) — necessary
+#   - X must equal the Captured-at SHA that check7 verified via git show
+#     for every STAMPED artifact — sufficient and non-circular
+#   - check7's stamp SHA is derived from git history, not from this document,
+#     so binding check9 to it removes the circularity
 #
-# New design (non-circular): evidence-report.md says '**Captured at SHA:** X'
-# where X is any commit on this branch (git rev-list develop..HEAD).
-# This is git-derivable and provably non-circular:
-#   - Evidence is captured at commit A (a prior branch commit)
-#   - evidence-report.md is committed as commit B
-#   - X = A, which is an ancestor of B (and hence of HEAD)
-#   - A ∈ git rev-list develop..HEAD ✓ — non-circular, on-branch guarantee
-#
-# The check distinguishes a legitimate on-branch SHA from an off-branch or
-# unrelated SHA: git rev-list develop..HEAD is the discriminating predicate.
+# Stamp SHA source (priority):
+#   1. _verified_stamp_sha — set by check7 when it ran (production or T31).
+#   2. _TEST_STAMP_SHA     — test-mode mock; used when check7 was skipped.
+#   If neither is available, the equality assertion is not enforced (graceful
+#   degradation for test fixtures that do not populate STAMPED files).
 _cap_sha_m = re.search(r"\*\*Captured at SHA:\*\*\s+([0-9a-f]{7,40})", ev)
 if anchor_check("check9-head-sha-ev", _cap_sha_m,
                 "evidence-report/captured-sha-missing",
                 "**Captured at SHA:** field in evidence-report.md"):
     _ev_sha7 = _cap_sha_m.group(1)[:7]
+    # Necessary: SHA is on this branch.
     if _ev_sha7 not in _branch_sha_set:
         fail("evidence-report/captured-sha-not-on-branch",
              f"SHA {_ev_sha7} in git rev-list develop..HEAD "
              f"({len(_branch_sha_set)} commits: {sorted(_branch_sha_set)})",
              f"SHA {_ev_sha7} not found on this branch — evidence may be "
              f"from a different PR or borrowed from another branch")
+    # Sufficient: SHA equals the stamp verified by check7.
+    # Priority: check7-verified (_verified_stamp_sha) > test mock (_TEST_STAMP_SHA)
+    #
+    # Invariant: in production (_TEST_MODE is False), check7 ALWAYS runs.
+    # Therefore _verified_stamp_sha is set unless check7 itself recorded a
+    # provenance-stamp/* failure.  If we arrive here in production with
+    # _expected_stamp_sha7 still None, check7 ran but set _verified_stamp_sha
+    # to None without recording a failure — an impossible state that is itself
+    # a failure.  We record it explicitly so the sufficiency assertion is never
+    # silently absent (D-180, lesson: "graceful degradation" is the euphemism
+    # that produced five consecutive fail-open rounds).
+    #
+    # In test mode, _TEST_STAMP_SHA is the mock; if neither source is set, the
+    # caller deliberately omitted stamp coverage (T01-T29 do not populate
+    # STAMPED, and that is by design — they test other checks).
+    _expected_stamp_sha7: "str | None" = None
+    if _verified_stamp_sha:
+        _expected_stamp_sha7 = _verified_stamp_sha[:7]
+    elif _TEST_STAMP_SHA:
+        _expected_stamp_sha7 = _TEST_STAMP_SHA[:7]
+    if not _TEST_MODE and _expected_stamp_sha7 is None:
+        fail("evidence-report/stamp-sha-unavailable",
+             "a verified stamp SHA from check7 (production runs always execute check7)",
+             "no verified stamp SHA available — check7 must have failed or been "
+             "bypassed; audit the provenance-stamp/* failures above")
+    if _expected_stamp_sha7 is not None and _ev_sha7 != _expected_stamp_sha7:
+        fail("evidence-report/captured-sha-stamp-mismatch",
+             f"**Captured at SHA:** {_expected_stamp_sha7} "
+             f"(consistent with provenance stamps verified by check7)",
+             f"**Captured at SHA:** {_ev_sha7} — does not match stamp "
+             f"{_expected_stamp_sha7} (on-branch is necessary but not sufficient)")
     record_comparison("check9-head-sha-ev", doc_value=_cap_sha_m)
 
 # ── Check 8: Live PR body must match pr-description.md (FINDING 2) ────────────

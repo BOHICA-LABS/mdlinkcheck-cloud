@@ -1,7 +1,7 @@
 # Demo Evidence Report — VERIFIER-HARDENING-SWEEP-STEP0
 
 **Branch:** fix/verifier-hardening-sweep-step0
-**Captured at SHA:** 3dc681b
+**Captured at SHA:** 9a65da7
 **Captured:** 2026-08-09
 **Type:** CLI tool evidence (terminal output)
 
@@ -13,7 +13,7 @@
 | AC-2 | Nine-checker selftest suite: 99/99 pass | PASS |
 | AC-5 | check-adr-consistency live corpus: 9 violations (79 reason-code + 6 E-class code occ) | PASS |
 | AC-6 | check-ec-injectivity live corpus: 174 citations compared; 42 divergent; 22 adjudication | PASS |
-| AC-7 | VEF selftest suite: 26/26 pass (each proved clean-pass + defect-fail) | PASS |
+| AC-7 | VEF selftest suite: 32/32 pass (each proved clean-pass + defect-fail) | PASS |
 
 ## Evidence Files
 
@@ -21,7 +21,7 @@
 - `AC-002-selftest-99of99.txt` — nine-checker selftest run confirming 99/99
 - `AC-005-adr-consistency-live.txt` — live corpus run; 9 violations from 134 files
 - `AC-006-ec-injectivity-live.txt` — live corpus run; 42 divergent, 22 adjudication
-- `AC-007-vef-selftest.txt` — VEF selftest suite confirming 26/26 pass
+- `AC-007-vef-selftest.txt` — VEF selftest suite confirming 32/32 pass
 
 ## Key Baselines
 
@@ -47,8 +47,9 @@ See `AC-002-selftest-99of99.txt`.
 
 ## VEF Selftest Evidence
 
-VEF selftest suite (`scripts/tests/test-vef.py`): 26/26 pass.
+VEF selftest suite (`scripts/tests/test-vef.py`): 32/32 pass.
 Each test proved DEFECT PRESENT (verifier exits non-zero) and DEFECT ABSENT (verifier exits 0).
-Covers T01-T26 including B-1 residual (T22-T24), B-3 structural (T25-T26), and all prior fixes.
+Covers T01-T32 including B-1 residual (T22-T24), B-3 structural (T25-T26), B2-4 (T30),
+and S2-1 check7-provenance with throwaway git repo (T31).
 
 See `AC-007-vef-selftest.txt`.
