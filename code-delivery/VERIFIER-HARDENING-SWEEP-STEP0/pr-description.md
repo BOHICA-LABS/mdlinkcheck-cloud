@@ -3,7 +3,7 @@
 **Epic:** Spec-Lint Integrity — Verifier Hardening Sweep
 **Mode:** maintenance
 **Branch:** fix/verifier-hardening-sweep-step0
-**Head SHA:** c1ccc399b37a544a1757bb7a74805741c7942ed8
+**Head SHA:** eae146a1536fd093aa74bfb28cc9b29903728d58
 **Base:** develop
 
 ![Tests](https://img.shields.io/badge/selftests-99%2F99-brightgreen)
@@ -223,10 +223,10 @@ All new regex patterns use bounded quantifiers (ReDoS-safe).
 To revert this PR completely:
 
 ```
-git revert c1ccc39 b9751c0 eb1d5e8 ebb1a78 7e9cc16 5f69ad3 b7e95d0 9d8e1b2 7521152 a31227f a9e2e3b aede571 0593be3 f4c43e6 00ec082 0d730a5 7739995 04f5ec9 8593f4e 8499a67 f3bdf2f 16b3513 3dc681b 09be233 27688e3 5bf4c45 831b72b
+git revert eae146a c1ccc39 b9751c0 eb1d5e8 ebb1a78 7e9cc16 5f69ad3 b7e95d0 9d8e1b2 7521152 a31227f a9e2e3b aede571 0593be3 f4c43e6 00ec082 0d730a5 7739995 04f5ec9 8593f4e 8499a67 f3bdf2f 16b3513 3dc681b 09be233 27688e3 5bf4c45 831b72b
 ```
 
-Rollback reverts all 27 commits.
+Rollback reverts all 28 commits.
 
 ---
 
