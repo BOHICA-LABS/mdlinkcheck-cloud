@@ -3,7 +3,7 @@
 **Epic:** Spec-Lint Integrity — Verifier Hardening Sweep
 **Mode:** maintenance
 **Branch:** fix/verifier-hardening-sweep-step0
-**Head SHA:** 95e9f215667adb3885c5e1548526d910451c0204
+**Head SHA:** f4c036e21fceb71fd261496aaa9a5571e8ddbb6d
 **Base:** develop
 
 ![Tests](https://img.shields.io/badge/selftests-99%2F99-brightgreen)
@@ -23,7 +23,7 @@ closes the audit cycle opened after GATE35.  No changes to `scripts/spec-lint/` 
 ```mermaid
 graph TD
     VEF["verify-evidence-figures.py<br/>(B-4: SHA set from git; check9 redesign;<br/>parameterised entry; headRefOid guard)"]
-    TVEF["test-vef.py<br/>(51 tests — was 18; T19-T49 + T38a/T38b + T44a/T44b new)"]
+    TVEF["test-vef.py<br/>(52 tests — was 18; T19-T50 + T38a/T38b + T44a/T44b new)"]
     EV["docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/<br/>(new evidence directory)"]
 
     TVEF -->|"tests"| VEF
@@ -176,7 +176,7 @@ This is a CLI tooling PR (Python verifier script).  Evidence is captured as term
 | AC-2 | Full selftest suite: 99/99 pass | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-002-selftest-99of99.txt` | PASS |
 | AC-5 | check-adr-consistency on live corpus: 9 violations (79 reason-code + 6 E-class code occ) from 134 files | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-005-adr-consistency-live.txt` | PASS |
 | AC-6 | check-ec-injectivity on live corpus: 174 citations compared, 42 divergent, 22 adjudication | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-006-ec-injectivity-live.txt` | PASS |
-| AC-7 | VEF selftest suite: 51/51 pass (T01-T49 + T38a/T38b + T44a/T44b; each proved clean-pass + defect-fail) | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-007-vef-selftest.txt` | PASS |
+| AC-7 | VEF selftest suite: 52/52 pass (T01-T50 + T38a/T38b + T44a/T44b; each proved clean-pass + defect-fail) | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-007-vef-selftest.txt` | PASS |
 
 Full evidence report: `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/evidence-report.md`
 
@@ -230,17 +230,17 @@ All new regex patterns use bounded quantifiers (ReDoS-safe).
 To revert this PR completely:
 
 ```
-git revert 95e9f21 666694e 2cf0ce4 280bcd3 b79f909 7944201 08702a9 3d2e3ea 7915c18 68462e0 eae146a c1ccc39 b9751c0 eb1d5e8 ebb1a78 7e9cc16 5f69ad3 b7e95d0 9d8e1b2 7521152 a31227f a9e2e3b aede571 0593be3 f4c43e6 00ec082 0d730a5 7739995 04f5ec9 8593f4e 8499a67 f3bdf2f 16b3513 3dc681b 09be233 27688e3 5bf4c45 831b72b
+git revert f4c036e 3f48f24 f4e56d6 95e9f21 666694e 2cf0ce4 280bcd3 b79f909 7944201 08702a9 3d2e3ea 7915c18 68462e0 eae146a c1ccc39 b9751c0 eb1d5e8 ebb1a78 7e9cc16 5f69ad3 b7e95d0 9d8e1b2 7521152 a31227f a9e2e3b aede571 0593be3 f4c43e6 00ec082 0d730a5 7739995 04f5ec9 8593f4e 8499a67 f3bdf2f 16b3513 3dc681b 09be233 27688e3 5bf4c45 831b72b
 ```
 
-Rollback reverts all 38 commits.
+Rollback reverts all 41 commits.
 
 ---
 
 ## Pre-Merge Checklist
 
 - [x] Nine-checker selftests 99/99 pass (each proves clean-pass AND defect-fail)
-- [x] VEF selftest suite 51/51 pass (T01-T49 + T38a/T38b + T44a/T44b; B-1/B-3/B-5 + B2-1..B2-5 + M-1..M-5 cycle-3 + M4-1/M4-2 cycle-4 fixes verified)
+- [x] VEF selftest suite 52/52 pass (T01-T50 + T38a/T38b + T44a/T44b; B-1/B-3/B-5 + B2-1..B2-5 + M-1..M-5 cycle-3 + M4-1/M4-2 cycle-4 fixes verified)
 - [x] Pre-flight guard: 0 unproven scope reductions across 15 checkers
 - [x] Primitive unit tests 10/10 pass
 - [x] `.factory/specs/` untouched — no spec-corpus changes
