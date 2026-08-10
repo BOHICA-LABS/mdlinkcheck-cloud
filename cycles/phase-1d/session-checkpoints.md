@@ -319,3 +319,21 @@ mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean pa
 | D-204 | Burst-39 session wrap; RESUME SNAPSHOT D-204 — B2-1 CLOSED (D-199/D-200/D-203); PR MERGE-REF DEFECT found+fixed; continue-on-error masking L-62 third form (D-201); D-202 residual OPEN; operator declined CI token grant (D-203); L-66..L-68; D-199..D-204 (exhaustive); PR #13 head `f4c43e68` (14 commits; 28/28 local). Superseded by D-210. |
 
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
+## §ARCHIVED CHECKPOINT D-213 (Burst-41 session wrap — superseded by D-222)
+
+*Written: 2026-08-10 — Burst-41. Superseded by D-222 session wrap (Burst-43).*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean passes, trajectory →0→32→34→39→37→259→273-275. **PR #12 MERGED** (squash `2ac2c3e`; BI-056/BI-057 CLOSED). **PR #13** (`fix/verifier-hardening-sweep-step0`, head `0593be3`, 15 commits ahead) OPEN — cycle-2 **B2-1 CLOSED** (D-199/D-200/D-203), **B2-2 CLOSED** (D-207). **D-208 NEW MUST-FIX, D-212 NEW SCOPE.** Frozen perimeter `a79de7e841c705a499f7aec634c4894b3097764e`. D-001..D-213 (exhaustive).
+
+**Pickup (at D-213):** B2-4+S2-1 → B2-3 → B2-5 → FINAL PACKAGING → D-212 → cycle-3.
+
+### Decision Delta (D-211..D-213)
+
+| ID | Summary |
+|----|---------|
+| D-211 | D-206 partition alignment RATIFIED with two binding guards (adjudication ledger + NEW-CLASS assertion). PG-012 exact integers. No engine/hook change. |
+| D-212 | New scope: fix L-66 continue-on-error conclusion masking. Must land before/with cycle-3. D-203 no-token-grant preserved. |
+| D-213 | Burst-41 session wrap; RESUME SNAPSHOT D-213. Supersedes D-210. No fix work this turn; B2-4+S2-1 remains pickup. |
+

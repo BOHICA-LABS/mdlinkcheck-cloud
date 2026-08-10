@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-213
+  Latest: §RESUME SNAPSHOT D-222
 -->
 
 ---
@@ -3187,7 +3187,7 @@ Exactly TWO worktrees:
 - **D-202 RESIDUAL OPEN:** CI advisory step proven LIVE but NOT yet observed reaching real figure comparisons. Cycle-3 MUST verify from CI LOG after packaging.
 - **L-69 (load-bearing):** materiality bar not machine-enforceable under severity-only gate. Documented-accepted findings in a separate non-counted section is the only viable implementation.
 
-## §RESUME SNAPSHOT D-213
+## §RESUME SNAPSHOT D-213 [SUPERSEDED by D-222 — retained for audit]
 
 *Written: 2026-08-10 — Burst-41 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-210.*
 
@@ -3287,3 +3287,116 @@ Exactly TWO worktrees:
 - **D-212 OPEN:** `continue-on-error: true` makes advisory step CONCLUSION unreliable. Fix before/with cycle-3. D-203 constraint preserved.
 - **D-202 RESIDUAL OPEN:** CI advisory step proven LIVE but NOT yet observed reaching real figure comparisons. Cycle-3 MUST verify from CI LOG after packaging.
 - **L-69 (load-bearing, RATIFIED D-211):** materiality bar not machine-enforceable under severity-only gate. D-211 partition alignment ratified with two binding guards — adjudication ledger + NEW-CLASS assertion.
+## §RESUME SNAPSHOT D-222
+
+*Written: 2026-08-10 — Burst-43 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-213.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean passes, trajectory →0→32→34→39→37→259→273-275. **PR #12 MERGED** (squash `2ac2c3e`; BI-056/BI-057 CLOSED). **PR #13** (`fix/verifier-hardening-sweep-step0`, head `eae146a`, 28 commits ahead) OPEN MERGEABLE — cycle-2 ALL BLOCKING ITEMS CLOSED: B2-1 (D-199), B2-2 (D-207), **B2-3 CLOSED** (D-216; `_strip_prev_col()` + novel-spelling channel deleted; suite 29→48), **B2-4 CLOSED** (D-215; check9 requires equality to check7-verified stamp; T32 non-tautological), **B2-5 CLOSED** (D-218; Risk Assessment corrected), **S2-1 CLOSED** (D-215; AC-002/AC-007 in STAMPED), **S2-4 CLOSED** (D-216), **D-208 CLOSED** (D-218; pr-description.md acknowledges E-CLI-001), **D-212 CLOSED** (D-217; top-level job, no continue-on-error), **D-202 CLOSED** (D-219; CI-log confirms real comparisons CI run `31365193619`). Verifier selftests 48/48. **D-214 GOOD-ENOUGH directive (operator):** findings without false-green risk are ADJUDICATE-AND-RECORD, no cycle-4 for polish; nine-checker sweep scoped to ledger + anti-tautology + independent-probe populations (D-141). **D-220 OPEN operator decision:** CI-green unreachable for `verify-evidence-figures` without token grant — operator must choose (a) grant token or (b) accept permanently-red advisory job with LOG as authoritative signal. Frozen perimeter `a79de7e841c705a499f7aec634c4894b3097764e` UNCHANGED. D-001..D-222 (exhaustive).
+
+**Pickup point: cycle-3 review of PR #13 at head `eae146a` via gate-#28 v3** (reviewer read-only + cycle-keyed audit file). Cycle-3 MUST confirm figure comparison from the **CI LOG** — already available and quoted in D-219, CI run `31365193619`. Apply the **D-214 GOOD ENOUGH bar**: findings without false-green risk are ADJUDICATE-AND-RECORD, no cycle-4 for polish. NEVER merge on unposted verdict (D-120); `gh pr review --approve` is structurally impossible (BI-039/D-021/D-105) — verdicts go via `gh pr comment`.
+
+**BINDING PROBE for cycle-3 (operator-required, carry forward verbatim):** the cycle-3 reviewer MUST construct a check that calls `record_comparison(key, doc_value=<dummy non-None>)` having compared nothing, and report whether the required-check gate is satisfied. The concrete site to attack is `scripts/verify-evidence-figures.py` where `record_comparison("check9-head-sha-ev", doc_value=_cap_sha_m)` is called — `doc_value` is a match object, so a non-None dummy may satisfy the gate without any comparison having occurred. This is the live doc_value residual question.
+
+**Adversary dispatch requirements MANDATORY (D-211) — embed verbatim in every adversary/pass dispatch prompt:** render BOTH sections (counted MUST-FIX table + non-counted documented-accepted section); every accepted finding carries reason + adjudicator inline; section moves are recorded events; include an explicit NEW-CLASS assertion listing findings that map to no known class; severity table uses EXACT INTEGERS (ranges in prose only). D-205 deal-breakers evaluated by operator from the NEW-CLASS list: (a) new content defect class; (b) new-CRITICAL rate not decaying; (c) domain-model-invalidating defect.
+
+### HEADS
+
+| Branch | HEAD | Notes |
+|--------|------|-------|
+| `develop` | `2ac2c3e` | oracle repairs + BI-056/057 live; selftests 99/99 |
+| `fix/verifier-hardening-sweep-step0` | `eae146a` | PR #13; 48/48 verifier selftests; cycle-2 ALL CLOSED; cycle-3 PENDING |
+| `factory-artifacts` | Burst-43 commit (this) | state artifacts; Burst-43 single-commit TD-VSDD-053 |
+
+### PR #13 STATUS
+
+- **Branch:** `fix/verifier-hardening-sweep-step0`
+- **Head:** `eae146a` (orchestrator-verified local == `origin`; 28 commits ahead of develop)
+- **Commits ahead of develop:** 28
+- **CI:** Required checks all SUCCESS; advisory `Spec lint` FAILURE (correct per D-128); `verify-evidence-figures` job `failure` (check8 loud-skip exit 5 per D-203 — CI LOG is authoritative: real comparisons confirmed D-219)
+- **Selftests:** 48/48 verifier selftests
+- **Cycle-2 verdict:** REQUEST_CHANGES → ALL BLOCKING ITEMS CLOSED (D-215/D-216/D-217/D-218 exhaustive); D-202 CLOSED (D-219)
+- **Review file:** `.factory/code-delivery/VERIFIER-HARDENING-SWEEP-STEP0/pr-review-cycle2.md`
+- **Mergeable:** MERGEABLE (GitHub API confirmed by orchestrator)
+- **Cycle-3 status:** PENDING — via gate-#28 v3
+
+### FROZEN PERIMETER
+
+`specs/` tree `a79de7e841c705a499f7aec634c4894b3097764e`. **UNCHANGED from Burst-36.** Adversary pass 8 MUST use this hash (NOT `ace1745`).
+
+### BLOCKING ISSUES RELEVANT TO PICKUP
+
+| ID | Summary | Status | Path to Close |
+|----|---------|--------|---------------|
+| BI-061 | PR #13 cycle-2 ALL CLOSED; cycle-3 PENDING + S2-2/S2-5/N2-1 remaining | PENDING-CYCLE-3 | Cycle-3 review via gate-#28 v3. Apply D-214 GOOD ENOUGH bar. NEVER merge on unposted verdict. |
+| BI-058 | Guard INERT + 5 false-green checkers + bc-module-map + NIT-A/B | OPEN | Gate-#42 nine-checker sweep (after sweep step 0 complete). Scoped per D-214. |
+| BI-060 | validate-pr-review-posted hook — 4 structural defects; second-identity flagged for pre-wave-1 | OPEN | Do not modify mid-run (D-158/D-182). Second-identity: pre-wave-1 checkpoint per D-197. |
+| BI-052 | False-green VP attribution class + BI-053 VP propagation debt | OPEN | After sweep step 0 + EC-151 burn. Handle VP-004/VP-025/VP-INDEX/TV-157 together (D-165). |
+
+### QUEUE ORDER
+
+1. **cycle-3 review of PR #13 at head `eae146a`** via gate-#28 v3 (reviewer read-only + cycle-keyed audit file). Confirm figure comparison from CI LOG (D-219 already available). Apply D-214 GOOD ENOUGH bar. Execute BINDING PROBE on `check9-head-sha-ev` doc_value question. NEVER merge on unposted verdict (D-120).
+2. **Gate-#42 nine-checker ledger sweep (BI-058):** scoped per D-214 to ledger + anti-tautology + independent-probe populations (D-141), NOT exhaustive beautification. INDEPENDENT-PROBE canary populations MANDATORY.
+3. **EC-151 burn** + fresh hidden replacement.
+4. **BI-052 PLUS BI-053 VP propagation debt** (VP-004/VP-025/VP-INDEX/TV-157 — same class per D-165; handle together).
+5. **Input-hash drift sweep** (MANDATORY before phase-1 gate per D-170): ONCE, after BI-052/EC-151 land.
+6. **Adversary pass 8** — streak ZERO, frozen perimeter **`a79de7e841c705a499f7aec634c4894b3097764e`** (NOT `ace1745`).
+
+### STANDING CONSTRAINTS
+
+- **D-214 GOOD-ENOUGH bar (LOAD-BEARING, AMENDS D-205 application):** findings without false-green risk are ADJUDICATE-AND-RECORD; nine-checker sweep scoped to ledger + anti-tautology + independent-probe; must-fix only what corrupts implementation.
+- **D-205 build-sufficiency ruling (LOAD-BEARING):** MUST-FIX = defects that corrupt implementation (wrong BCs, false-green VP, EC mis-anchoring, holdout integrity). ADJUDICATE-AND-RECORD-NOT-FIX = historical/cosmetic/gloss/index. Three deal-breakers (stop run): (a) pass 8 finds new content defect class; (b) new-CRITICAL rate not decaying; (c) domain-model-invalidating defect.
+- **D-211 TWO BINDING GUARDS (LOAD-BEARING):** (1) Adjudication ledger — reason + adjudicator inline; both sections always rendered; section moves are recorded events. (2) NEW-CLASS assertion — novelty score insufficient; deal-breaker test from NEW-CLASS list. Severity table EXACT INTEGERS; ranges in prose only. No engine/hook change.
+- **spec-lint REQUIRED flip DEFERRED** (D-117/D-122/D-133): do not flip without operator sign-off.
+- **Merges operator-gated** (D-120): every merge to `develop` requires operator confirmation.
+- **`GH_TOKEN` NOT added; `permissions` NOT widened** without a fresh operator ruling (D-203).
+- **`gh pr review --approve` IMPOSSIBLE** (BI-039/D-021/D-105): use `gh pr comment` for verdicts.
+- **DEV-11 unchanged:** development cadence constraint in force.
+- **D-141 amended ruling 2:** independent-probe canary populations MANDATORY for all nine checkers.
+- **CI-063 mitigation:** embed operator authorization verbatim in each implementer's INITIAL SPAWN PROMPT.
+- **BI-060:** do not modify `validate-pr-review-posted` hook mid-run (D-158/D-182). Second-identity flagged pre-wave-1 (D-197).
+- **BI-041 --write PROHIBITED:** `gen-bc-traceability.py` write mode is lossy; never invoke.
+- **D-039 no suppression:** no suppression in any spec-lint checker.
+- **BI-053 VP propagation debt:** VP-004/VP-025/VP-INDEX/TV-157 queued with BI-052 (D-165).
+- **L-62..L-73 (load-bearing):** (L-62) CI step STATUS ≠ verification; only OUTPUT is. (L-63) Selftest suite without real-corpus run insufficient. (L-64) Provenance claim must be verified at named SHA. (L-65) Every fix must be probed against the RELOCATED form. (L-66) `continue-on-error: true` makes CONCLUSION structurally incapable of signalling failure. (L-67) SHA-identity gates must pin `${{ github.event.pull_request.head.sha }}`. (L-68) Fix is not verified until CI log output on real-corpus run is read. (L-69) Materiality bar not machine-enforceable under severity-only gate — must partition; RATIFIED D-211 with two binding guards. (L-70) Removing a mask reveals the masked thing was broken, not merely failing. (L-71) Push factory-artifacts BEFORE pushing code branch — artifact race. (L-72) Deleting the data exploiting a mechanism is not fixing the mechanism. (L-73) Verify agent claims by direct execution regardless of report format.
+
+### SPEC SNAPSHOT
+
+PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151).
+
+D-001..D-222 (exhaustive). Open BI list: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/058/060/061; CI-063.
+
+### WORKTREE INVENTORY
+
+Exactly TWO worktrees:
+
+| Worktree | Branch | HEAD | Notes |
+|----------|--------|------|-------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | `fix/verifier-hardening-sweep-step0` | `eae146a` | PR #13 branch; 48/48 verifier selftests |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | Burst-43 commit | state artifacts |
+
+### DECISION DELTA (D-214..D-222)
+
+| ID | Summary |
+|----|---------|
+| D-214 | OPERATOR DIRECTIVE: GOOD ENOUGH bar. Cycle-3 findings without false-green risk → ADJUDICATE-AND-RECORD. Nine-checker sweep scoped per D-141. AMENDS D-205 application. |
+| D-215 | B2-4/S2-1/S2-4 CLOSED + R1/R2 residuals. check9 requires SHA equality to check7-verified stamp. AC-002/AC-007 in STAMPED. T32 non-tautological. Known gap per D-214. |
+| D-216 | B2-3 CLOSED: `_strip_prev_col()` + novel-spelling channel DELETED ENTIRELY. Suite 29→48. |
+| D-217 | D-212 CLOSED: top-level job, no continue-on-error. Push → skip; PR → honest failure. D-203 preserved. |
+| D-218 | B2-5 + D-208 CLOSED; final packaging. Risk Assessment corrected; pr-description.md acknowledges E-CLI-001. End-to-end exit 0 verified. |
+| D-219 | D-202 CLOSED: first CI-log confirmation of real figure comparisons (CI run `31365193619`). Job `failure` (check8 loud-skip exit 5 per D-203). |
+| D-220 | OPEN operator decision: CI-green unreachable under D-203. Operator must choose (a) grant token or (b) accept permanently-red advisory job. |
+| D-221 | PROCESS-GAP: orchestrator over-fixed before D-214 landed (extra B2-3 sub-round, latent-only). Work is sound; apply D-214 test before dispatching. |
+| D-222 | Burst-43 session wrap; RESUME SNAPSHOT D-222. Supersedes D-213. Pickup: cycle-3 review of PR #13 at head `eae146a`. |
+
+### OPEN OPERATOR DECISION: D-220
+
+`verify-evidence-figures` job is permanently `failure` in CI under D-203 (no `GH_TOKEN`). `check8` cannot run → exit 5 (PARTIAL) → job red. The CI LOG remains authoritative. Operator ruling required before gate; see D-220.
+
+### CAVEATS
+
+- **D-220 OPEN OPERATOR DECISION:** CI-green unreachable for `verify-evidence-figures` without token grant. See D-220.
+- **D-214 GOOD ENOUGH bar:** cycle-3 findings without false-green risk are ADJUDICATE-AND-RECORD — no cycle-4 for polish.
+- **D-202 CLOSED:** CI-log confirms real comparisons (D-219). The LOG is authoritative, not the step status.
+- **L-71 (NEW, load-bearing):** push factory-artifacts BEFORE pushing code branch to avoid artifact race in CI.
