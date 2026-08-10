@@ -577,10 +577,14 @@ ev_no_prev = "\n".join(ln for ln in ev.splitlines() if PREV_LABEL not in ln)
 
 # M-2 fix: historical content whitelists for positive-pinning.
 # The stripped spans (ev prev_lines and pr baseline table cells) must equal
-# these known historical strings exactly.  Any modification — including
-# appending wrong current-figure text (Case G) — makes a line/cell not match
-# and fires the fail() below before the live EI scans run.  This makes the
-# wrong-value-hidden attack direction unrepresentable.
+# these known historical strings exactly.  Any modification of an existing
+# stripped span — including appending wrong current-figure text (Case G) —
+# makes a line/cell not match and fires the fail() below before the live EI
+# scans run.  This makes the wrong-value-hidden attack direction
+# unrepresentable for modification of an existing stripped span.
+# NOTE: a newly added span whose stripped content byte-matches a whitelist
+# member is NOT detected, nor is a duplicated ev line — the pin covers
+# mutation of existing spans, not addition of new ones.
 _EV_PREV_HISTORICAL = frozenset({
     "- Previous (post-gate34): 4 violations, 0 E-class detections",
     "- Previous (post-gate34): 110 citations compared (80 skipped), 9 divergent, 5 adjudication",
