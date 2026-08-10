@@ -49,12 +49,16 @@ CI wrapper contract (used in .github/workflows/ci.yml):
                     continues when continue-on-error: true)
   any other exit  → FAIL and exit non-zero
 
-Structural guarantee (BLOCKING-D, B-3, B2-2):
+Completeness gate (BLOCKING-D, B-3):
   Every check that performs a live-vs-document comparison MUST call
   record_comparison(key, doc_value=<found_value>) on the code path where
   the comparison runs.  The PASS gate asserts REQUIRED_CHECKS == checks_ran;
   a key in REQUIRED_CHECKS that never calls record_comparison() produces a
-  failure.
+  failure.  Limitation (B2-2): the gate enforces that each required key
+  calls record_comparison() somewhere — it does NOT verify that a comparison
+  actually occurred.  Any non-None doc_value (including falsy values [], {},
+  '', 0, False) satisfies it (see API boundary below).  Safety at call sites
+  comes from per-site hand-written fail() calls, not from this gate.
 
   anchor_check() guards ENTRY only: it asserts the anchor was found and
   returns True/False.  It does NOT register the key.  Callers MUST call
@@ -676,8 +680,12 @@ if am:  # only run if live figures were parseable
         # never reached the scan.  New code keys on the semantic markers: a
         # line is a combined rc+ec claim if it mentions BOTH "reason-code" AND
         # "E-class", regardless of which integers appear on it.
-        # Structural guarantee: an uncovered combined context line always fails.
-        # Declaration channel removed (B2-3); the unconditional fail() is the only path.
+        # Bounded property: a line matching BOTH "reason-code" AND "E-class" markers
+        # that is not covered by RC_EC_PAT fails unconditionally — the only path is
+        # the fail() below (declaration channel removed, B2-3).  Lines not matching
+        # both markers are skipped entirely and not scanned (M-1 deferred: closing
+        # that gap requires the inversion to flag any integer in context that is not
+        # a live value, a covered-span value, or in a whitelist).
         if not (_ADR_RC_CTX.search(_line) and _ADR_EC_CTX.search(_line)):
             continue
         if RC_EC_PAT.search(_line):
