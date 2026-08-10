@@ -1,10 +1,10 @@
 ---
 document_type: prd
 level: L3
-version: "1.14"
+version: "1.15"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-06T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -364,7 +364,7 @@ Nothing may fail with a reason outside this closed set.
 
 > **Supplement:** Canonical test vectors in `prd-supplements/test-vectors.md`.
 
-212 edge cases registered (EC-001..EC-213) (213 IDs allocated; ID 102 is retired — became TV-BV013 per D-010, EC-151 as replacement holdout) and 16 correctness traps (T1–T16) converted to executable test vectors. Includes the self-referential BV-013 vector: `mdlinkcheck BRIEF.md` MUST exit 0 (TV-BV013 is now a visible required test vector per D-010). Holdout vectors **(EC-079, EC-093, EC-094, EC-141, EC-147, EC-148, EC-151, EC-156, EC-165, EC-166, EC-167, EC-168)** reserved for holdout evaluation and NOT in the visible test suite — 12 holdouts total. EC-151 is the BV-013 holdout scenario (D-010). EC-036, EC-049, EC-074, EC-157, EC-158 burned to visible tests (D-020): their holdout designation is retired; they are now normal visible tests in the suite — vectors TV-036, TV-049, TV-074, TV-157, TV-157b, TV-158, TV-158b are present in test-vectors.md v1.6 (P3-005 hotfix). DI-002/D-006/T12 flagship differentiator (KD-004 — case-sensitive filename comparison) now has falsifiable visible coverage via TV-036. EC-165..EC-168 are fresh replacement hidden scenarios (D-020) covering the same risk clusters; concrete inputs and expected outputs are stored ONLY in `.factory/holdout-scenarios/wave-scenarios/` per POL-18.
+213 edge cases registered (EC-001..EC-214) (214 IDs allocated; ID 102 is retired — became TV-BV013 per D-010; EC-151 was D-010 replacement holdout burned per D-122, EC-214 as new replacement holdout) and 16 correctness traps (T1–T16) converted to executable test vectors. Includes the self-referential BV-013 vector: `mdlinkcheck BRIEF.md` MUST exit 0 (TV-BV013 is now a visible required test vector per D-010). Holdout vectors **(EC-079, EC-093, EC-094, EC-141, EC-147, EC-148, EC-214, EC-156, EC-165, EC-166, EC-167, EC-168)** reserved for holdout evaluation and NOT in the visible test suite — 12 holdouts total. EC-036, EC-049, EC-074, EC-151, EC-157, EC-158 burned to visible tests (D-020 / D-122): their holdout designation is retired; they are now normal visible tests in the suite — vectors TV-036, TV-049, TV-074, TV-151, TV-157, TV-157b, TV-158, TV-158b are present in test-vectors.md (P3-005 hotfix / v1.11 D-122 burn). DI-002/D-006/T12 flagship differentiator (KD-004 — case-sensitive filename comparison) now has falsifiable visible coverage via TV-036. EC-165..EC-168 are fresh replacement hidden scenarios (D-020) covering the same risk clusters; EC-214 is fresh replacement hidden scenario (D-122) covering heading-inside-HTML-block × cross-file anchor resolution; concrete inputs and expected outputs are stored ONLY in `.factory/holdout-scenarios/wave-scenarios/` per POL-18.
 
 ---
 
@@ -493,6 +493,7 @@ Nothing may fail with a reason outside this closed set.
 
 | Version | Date | Findings Addressed | Changes |
 |---------|------|-------------------|---------|
+| v1.15 | 2026-08-10 | D-122 (EC-151 holdout burn) | EC-151 holdout designation retired per D-122; prd.md:618 D-010 note leaked concrete input/expected output verbatim. §5b updated: EC-151 removed from holdout list, EC-214 added; burned-list updated; count 212→213 edge cases, range EC-001..EC-213→EC-001..EC-214, 213→214 IDs allocated. D-010 note at §618 annotated with D-122 burn and EC-214 replacement. |
 | v1.0 | 2026-08-05 | (initial) | PRD created in Phase 1a |
 | v1.1 | 2026-08-05 | SF-001, SF-002, SF-003, NOTE-4 (architecture feasibility-review.md) | See below |
 | v1.2 | 2026-08-05 | INC-001, INC-002, INC-003, INC-004, INC-005, INC-006 (via BC-INDEX), INC-007, INC-009 (via BC-INDEX), DFT-001 (error-taxonomy.md), F-001/SR-032 (error-taxonomy.md), SR-027, SR-035 | See below |
@@ -615,7 +616,7 @@ gene-transfusion-assessment.md uses "valid" for the positive external URL verdic
 
 ### v1.3 — Adversary Pass-1 Remediation (Sub-Burst A: Behavioral Semantics)
 
-**D-010 (holdout scenario replacement):** TV-BV013 (`mdlinkcheck BRIEF.md` → exit 0) is now a visible required test vector. Former holdout removed from holdout list; replaced by EC-151 (hidden `## Hidden Section` inside `<details>` HTML block with `[x](#hidden-section)` → broken). Updated §5b and test-vectors.md §0 holdout WARNING accordingly.
+**D-010 (holdout scenario replacement):** TV-BV013 (`mdlinkcheck BRIEF.md` → exit 0) is now a visible required test vector. Former holdout removed from holdout list; replaced by EC-151 (hidden `## Hidden Section` inside `<details>` HTML block with `[x](#hidden-section)` → broken). Updated §5b and test-vectors.md §0 holdout WARNING accordingly. *[D-122 update (2026-08-08): the concrete EC-151 content stated in this D-010 note constituted a POL-18 breach — holdout input and expected output were verbatim in a visible spec. EC-151 burned to visible test TV-151 per D-122; replaced by EC-214 (HS-008). §5b and test-vectors.md updated in prd.md v1.15.]*
 
 **D-011 (dropped flags: --quiet, --offline, --insecure, --hidden):** All four flags removed from interface-definitions.md §2 and §8. §1.5 Out of Scope updated with explicit non-goals. BC-2.01.004 rewritten (dot-dir skip unconditional; no --hidden override). BC-2.12.003 retitled "Stderr Summary Line (Always Emitted)" — --quiet qualifier removed from title, preconditions, invariants, edge cases, test vectors. AMB-042 updated: --insecure is a non-goal; TLS failures are always `broken`. §3 interface summary updated.
 

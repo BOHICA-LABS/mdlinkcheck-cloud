@@ -2,10 +2,10 @@
 document_type: prd-supplement
 supplement_type: test-vectors
 level: L3
-version: "1.10"
+version: "1.11"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-06T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -20,18 +20,21 @@ primary_consumers: [test-writer, holdout-evaluator]
 # Test Vectors: mdlinkcheck
 
 > Primary consumers: test-writer, holdout-evaluator.
-> Concrete, executable test vectors derived from EC-001..EC-213 (active holdout pool excluded per HOLDOUT WARNING below) and T1..T16.
+> Concrete, executable test vectors derived from EC-001..EC-214 (active holdout pool excluded per HOLDOUT WARNING below) and T1..T16.
 >
 > **HOLDOUT WARNING:** The following ECs are NOT present in this file. They belong
 > exclusively in the hidden holdout evaluation scenarios under
 > `.factory/holdout-scenarios/wave-scenarios/`.
 > Active holdout pool (12 total): EC-079, EC-093, EC-094, EC-141, EC-147, EC-148,
-> EC-151, EC-156, EC-165, EC-166, EC-167, EC-168.
+> EC-214, EC-156, EC-165, EC-166, EC-167, EC-168.
 > EC-102 was formerly on this list; it has been replaced by EC-151 (D-010 decision).
 > TV-BV013 (formerly EC-102) is now a visible required test vector in §0.
 > EC-036, EC-049, EC-074, EC-157, EC-158: holdout designation retired per D-020
 > (burned to visible tests); vectors TV-036, TV-049, TV-074, TV-157, TV-157b, TV-158,
 > TV-158b added in v1.6 (P3-005 hotfix).
+> EC-151: holdout designation retired per D-122 (2026-08-08) — prd.md:618 D-010 note
+> leaked concrete input/expected output verbatim; burned to visible test TV-151 (§3);
+> replaced by EC-214 (HS-008) in the same risk cluster.
 > EC-165..EC-168 are fresh replacement hidden scenarios (D-020) covering anchor
 > resolution, source-exclusion × cross-file anchors, percent-encoding × fragment
 > split, and duplicate-slug collisions.
@@ -167,6 +170,7 @@ primary_consumers: [test-writer, holdout-evaluator]
 | TV-157b | EC-182 | `a.md` | — | `[Guide](other.md#caf%C3%A9)` where `other.md` has `## Coffee` (no Café heading) | 1 | broken (`anchor-not-found`) | Negative control for TV-157: decoded fragment `café` finds no matching slug in `other.md`. |
 | TV-158 | EC-158 | `doc.md` | `## 🚀 Foo` then `## Foo` (in document order) | `[first](#foo)`, `[second](#foo-1)` | 0 | clean ×2 | Emoji-strip before collision counter: both headings produce candidate slug `foo` after emoji removal; counter assigns `foo` to first, `foo-1` to second. If emoji-strip runs AFTER the counter, keys are `🚀 Foo` ≠ `Foo` → no collision detected → `foo-1` remains unassigned → broken. (D-020) |
 | TV-158b | EC-183 | `doc.md` | Same two headings plus link `[probe](#foo-2)` | `[first](#foo)`, `[second](#foo-1)`, `[probe](#foo-2)` | 1 | broken (`anchor-not-found`) | Failure probe: only 2 headings exist; `foo-2` has no third occurrence. Confirms the counter stops at the correct upper bound. |
+| TV-151 | EC-151 | `a.md` | `<details>` block containing `## Hidden Section` | `[x](#hidden-section)` | 1 | broken (`anchor-not-found`) | Heading inside raw HTML `<details>` block yields no anchor-table entry; `Event::Html` content is not parsed for headings. D-122 burn of formerly-holdout EC-151 (prd.md:618 D-010 note leaked concrete content). |
 
 ---
 
@@ -473,6 +477,7 @@ replacing a previously colliding ID in the referencing BC.
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.11 | 2026-08-10 | EC-151 burned per D-122: holdout designation retired; TV-151 added to §3 (heading inside `<details>` HTML block × same-file anchor). EC-214 (HS-008) allocated as replacement holdout in same risk cluster (cross-file variant, `<div>` element). Holdout WARNING updated: EC-151 removed, EC-214 added; burned-list sentence updated. Intro range updated: EC-001..EC-213 → EC-001..EC-214; 212 → 213 edge cases registered; 213 → 214 IDs allocated. |
 | 1.10 | 2026-08-07 | EC-205..EC-213 allocated (§10.7..§10.10): SS-07 EC-205..EC-206 (non-MD target resolution, BC-2.07.006), SS-11 EC-207..EC-208 (invalid --ignore glob, BC-2.11.004), SS-12 EC-209..EC-210 (text stream separation, BC-2.12.005), SS-14 EC-211..EC-213 (--help/--version, BC-2.14.004). §10 range updated to EC-159..EC-213. Intro range updated to EC-001..EC-213. input-hash corrected to 07d983a. |
 | 1.9 | 2026-08-06 | D-043 (macOS-only platform directive): T13 retired as platform-obsolete (kept with note; TV-042 macOS-scoped residual retained); TV-036 description updated (removed Linux CI cross-platform framing; restated per D-043 determinism rationale); TV-041 fixture description updated ("Linux/macOS" → "macOS"); TV-042 fixture description updated ("Linux FS" → "macOS FS"); TV-187 description updated (removed "Linux NFC" reference; macOS APFS NFD context only) |
 | 1.8 | 2026-08-05 | POL-16 EC injectivity remediation; EC-159..EC-204 registered in §10; holdout WARNING updated; CRLF column offset note added; §10 collision-remapping registry |

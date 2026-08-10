@@ -1,10 +1,10 @@
 ---
 document_type: holdout-index
 level: ops
-version: "1.1"
+version: "1.3"
 status: active
 producer: vsdd-factory:product-owner
-timestamp: "2026-08-05T15:00:00Z"
+timestamp: "2026-08-10T01:00:00Z"
 phase: phase-1d
 inputs:
   - .factory/holdout-scenarios/wave-scenarios/
@@ -45,6 +45,7 @@ scope as future waves add subdirectories.
 | HS-005 | EC-166 | Source-Exclusion × Cross-File Anchor | Exclusion boundary × anchor target: source-exclusion flag interaction with cross-file anchor lookup | BC-2.01.003, BC-2.05.001, BC-2.08.004, BC-2.11.001 | active |
 | HS-006 | EC-167 | Percent-Encoding × Fragment Split | Percent-encoding combined with fragment splitting: tests the interaction of DI-003 (fragment-at-first-unescaped-#) with percent-encoded anchor values | BC-2.08.003, BC-2.08.002 | active |
 | HS-007 | EC-168 | Duplicate-Slug Collision Variant | Duplicate slug collision edge: a collision pattern not covered by EC-047/EC-048 visible tests | BC-2.06.001, BC-2.06.002 | active |
+| HS-008 | EC-214 | HTML-Block Heading × Cross-File Anchor | Heading nested inside a raw HTML block × cross-file anchor-table construction and anchor resolution; replaces EC-151 (D-122) | BC-2.05.001, BC-2.08.004 | active |
 
 ---
 
@@ -64,7 +65,7 @@ in `.factory/holdout-scenarios/`. Listing them here prevents silent gaps.
 | EC-141 | prd.md:332 | (scenario not yet specified) | not-yet-authored |
 | EC-147 | prd.md:332 | (scenario not yet specified) | not-yet-authored |
 | EC-148 | prd.md:332 | (scenario not yet specified) | not-yet-authored |
-| EC-151 | prd.md:332 | (scenario not yet specified) | not-yet-authored |
+| ~~EC-151~~ | ~~prd.md:618~~ | ~~heading nested inside a raw HTML `<details>` block × anchor resolution.~~ D-122 (2026-08-08): holdout signal compromised — prd.md:618 D-010 audit note exposed concrete input and expected output verbatim. **burned to visible test TV-151**; holdout designation retired. Replaced by EC-214 (HS-008). | **retired** |
 
 ---
 
@@ -83,6 +84,14 @@ compromised holdouts to visible tests and replacing them with fresh hidden scena
 
 ---
 
+## D-122 Resolution (2026-08-08)
+
+Operator gate #34 ruling D-122 determined that EC-151's POL-18 holdout boundary was breached by the D-010 audit note at prd.md:618, which stated EC-151's concrete input and expected output verbatim in a visible spec. EC-151 was a RESERVED, never-authored holdout; its concrete details were thus already public.
+
+- **EC-151** (Reserved, never authored): holdout designation **retired**; burned to visible test TV-151 per D-122. The leaked content (heading inside `<details>` HTML block × same-file anchor resolution) is now a normal visible test vector. Replaced by EC-214 (HS-008) covering the same risk cluster with a cross-file variant using a different raw HTML block element — a genuinely non-leaked scenario verified against all spec files before authoring.
+
+---
+
 ## Scenario File Locations
 
 All authored scenario files reside in `.factory/holdout-scenarios/wave-scenarios/`:
@@ -94,3 +103,4 @@ All authored scenario files reside in `.factory/holdout-scenarios/wave-scenarios
 - `wave-scenarios/EC-166-source-exclusion-cross-file-anchor.md` → HS-005 (active)
 - `wave-scenarios/EC-167-percent-encoding-fragment-split.md` → HS-006 (active)
 - `wave-scenarios/EC-168-duplicate-slug-collision.md` → HS-007 (active)
+- `wave-scenarios/EC-214-html-block-heading-cross-file-anchor.md` → HS-008 (active)
