@@ -39,17 +39,19 @@ test-vef.py -- verify-evidence-figures.py selftest suite
   PASS  T35 adr-wrong-rc-line-with-correct-match [B2-3/P-B]
   PASS  T36 ei-wrong-div-divergence-spelling [B2-3/P-C]
   PASS  T37 ei-wrong-cmp-examined-spelling [B2-3/P-C2]
-  PASS  T38 ei-wrong-div-inside-4tuple-bound [B2-3/P-D]
+  PASS  T38a ei-wrong-div-no-declaration [B2-3/P-D-div]
+  PASS  T38b ei-wrong-adj-no-declaration [B2-3/P-D-adj]
   PASS  T39 adr-wrong-rc-relocated [B2-3/P-A-R/L-65]
   PASS  T40 adr-wrong-ec-relocated [B2-3/P-A2-R/L-65]
   PASS  T41 adr-wrong-rc-relocated-span [B2-3/P-B-R/L-65]
   PASS  T42 ei-wrong-div-divergence-relocated [B2-3/P-C-R/L-65]
   PASS  T43 ei-wrong-cmp-analyzed-relocated [B2-3/P-C2-R/L-65]
-  PASS  T44 ei-wrong-div-plural-relocated [B2-3/P-D-R/L-65]
+  PASS  T44a ei-wrong-div-plural-relocated [B2-3/P-D-R/div/L-65]
+  PASS  T44b ei-wrong-adj-plural-relocated [B2-3/P-D-R/adj/L-65]
   PASS  T45 pr-prev-column-header-absent [B2-3/option-1/struct]
   PASS  T46 pr-prev-column-no-data-rows [B2-3/option-1/struct]
   PASS  T47 adr-no-declaration-channel [B2-3/channel-deleted]
   PASS  T48 ei-no-declaration-channel [B2-3/channel-deleted]
 ============================================================
-PASS  48/48 tests verified (each proved clean-pass + defect-fail)
+PASS  50/50 tests verified (each proved clean-pass + defect-fail)
 Captured at: ebb1a78ac1585afb6a9d34f73ab21ed354d50219
