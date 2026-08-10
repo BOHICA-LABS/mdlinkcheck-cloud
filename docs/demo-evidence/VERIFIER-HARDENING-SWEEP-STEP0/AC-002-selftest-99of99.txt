@@ -223,4 +223,4 @@ Property test passed: 300/300 cases verified (total_candidates == sum(buckets) f
   PASS (clean-pass with §2-shape comparison confirmed; EC-007 divergence correctly detected)
 
 Selftest passed: 99/99 negative tests verified (each proved clean-pass + defect-fail)
-Captured at: PENDING
+Captured at: 7e9cc16c5c2a58d99faaa40f622fde3dbb3e28e0
