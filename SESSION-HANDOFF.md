@@ -3531,7 +3531,7 @@ PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001
 
 Exactly TWO: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `fix/verifier-hardening-sweep-step0` (`280bcd3`); `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`.
 
-## §RESUME SNAPSHOT D-243
+## §RESUME SNAPSHOT D-243 [SUPERSEDED by D-248 — retained for audit]
 
 *Written: 2026-08-10 — Burst-47c, session-closing wrap (L-77 minimal shape). Supersedes D-234.*
 
@@ -3624,5 +3624,70 @@ Render BOTH sections (counted MUST-FIX table + non-counted documented-accepted s
 PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (7 not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-243. Open BI list: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/058/060/062/063/064; CI-063. BI-061 CLOSED.
 
 ### WORKTREE INVENTORY
+
+`.factory/` — ACTIVE, `factory-artifacts` @ `841460c`, keep. No story worktrees existed at wrap boundary; nothing stale.
+
+---
+
+## §RESUME SNAPSHOT D-248
+
+*Written: 2026-08-10 — session-closing wrap (post-gate-#58, closed-world remediation complete). Supersedes D-243.*
+
+> **DEVIATION FROM STANDARD WRAP:** `STATE.md` was NOT bumped this session. The standard wrap procedure advances `version:`, `current_step`, and the Session Resume Checkpoint in STATE.md; that step is SKIPPED because STATE.md is off limits under the operator's deferral ruling (D-243 classifier block). The full wrap lives here in `SESSION-HANDOFF.md §RESUME SNAPSHOT D-248`. `cycles/phase-1d/decisions-pending-state-insert.md` remains AUTHORITATIVE for all pending STATE.md records.
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud **Phase 1 is RATIFIED WITH CONDITION** (operator gate #58, D-244) at **0 of 3 clean adversarial passes — convergence was TRUNCATED BY RULING, not achieved**; trajectory →0→32→34→39→37→259→273-275 UNCHANGED. The ratified **closed-world remediation is COMPLETE**: EC-151 burned to visible TV-151 with replacement HS-008/EC-214; BI-052 22 of 23 items FIXED; the 5 spec-lint root causes FIXED; 39 EC-pointer mismatches ADJUDICATED. Spec-lint is **8 of 9 passing**, with `check-ec-injectivity.py` RED at 39 **BY DESIGN** (D-246). **NEXT: Phase 2 story decomposition, then Phase 3 wave 1; the wave-1 wave gate is the DEV-11 Run A endpoint where stop-vs-continue is re-asked.** D-001..D-248.
+
+### HEADS
+
+| Branch / worktree | HEAD | State |
+|---|---|---|
+| `develop` | `f81f412` | local == `origin/develop`; working tree CLEAN; PUSHED |
+| `factory-artifacts` (`.factory/`) | `841460c` | local == `origin/factory-artifacts`; CLEAN apart from live `logs/*.jsonl` telemetry; PUSHED |
+| `.worktrees/` | none | no story worktrees exist |
+| Open PRs | none | `gh pr list` empty |
+
+Commits this session, all PUSHED: `374386a` (Phase-1 gate package) → `788ffb6` (D-244 ratification + durable pending records) → `af7519b` (BI-052 + 5 lint root causes) → `841460c` (D-246/D-247 EC adjudication + 3 EC fixes). Nothing is local-only. `.factory/hooks/verify-sha-currency.sh` does not exist in this project — that hook is prism-specific, not a skipped check.
+
+### ⚠ STATE.md IS INCOMPLETE AND ITS REPAIR IS DEFERRED — READ BEFORE TOUCHING IT
+
+`STATE.md` was NOT updated this session, deliberately. A repair burst was DENIED by the auto-mode permission classifier (it read the embedded D-242/D-243 audit text, which narrates an older scripted-write bypass, as a fresh bypass attempt). Per CI-063 the orchestrator did NOT reword to evade, and the operator then ruled: DEFER. Consequences a fresh session must know:
+- STATE.md still asserts PRE-MERGE state in six places (Current Step, Position, Branch state, PR #13 state, Pickup point, Concurrent Cycles) and a stale `D-001..D-222` spec-snapshot range.
+- **`cycles/phase-1d/decisions-pending-state-insert.md` is AUTHORITATIVE for the pending set** and is the ready-made insert source: decisions D-242..D-248, the BI-061 closure plus BI-062/BI-063/BI-064, and lessons L-78..L-82. It is committed and branch-retrievable.
+- One known wrinkle at insert time: the pending lessons are keyed `| L-78 |` while `cycles/phase-1d/lessons.md` siblings use bare `| 77 |` — normalize the key when inserting.
+- BI-064 note: `verify-state-timestamp-refresh` was designed with a satisfiable batch path (`MultiEdit`, timestamp-checked once per reconstructed call, AC-013), but **`MultiEdit` no longer exists in the Claude Code harness**, so only spanning-`Edit` or full-file `Write` remain. Prefer `Edit`: it fails LOUDLY on mismatch, whereas `Write` would silently truncate the audit log.
+
+### PER-WORKSTREAM STATE AND NEXT-ACTION
+
+**1. Phase 2 — story decomposition. RESUME NEXT-ACTION:** run `workflows/phases/phase-2-story-decomposition.lobster` — epics, stories, dependency graph, wave schedule, holdout mapping. **BINDING CONSTRAINT (D-246): in the 39 adjudicated BC rows the BC's own scenario text is AUTHORITATIVE and the cited EC id is NOT — trace every acceptance criterion from the BC scenario text, never from the cited EC**, or stories will be traced to test vectors that test something else. See `cycles/phase-1d/ec-injectivity-adjudication.md`. Also discharge the D-165 story-propagation debt for the BC-2.07.004 / BC-2.08.001 corrections. Adversarial story convergence is CUT to the post-run backlog (gate #53) — do NOT run it.
+
+**2. Phase 3 — wave 1. RESUME NEXT-ACTION:** after Phase 2, per-story TDD delivery via `per-story-delivery.md`. **BI-062 is LIVE and unrepaired**: the `pr-manager-completion-guard` hook manufactures `AUTHORIZE_MERGE=yes` authorizations it was never granted, and it also degrades agent reporting. Carry BI-060/BI-062 refuse-and-record VERBATIM in every reviewer and pr-manager prompt. Merges and verdict posts are HUMAN-executed via operator-packaged commands (gate-#28 v3, D-120); never merge on an unposted verdict; `gh pr review` is structurally impossible (BI-039/D-021/D-105) — verdicts go via `gh pr comment`.
+
+**3. Run A endpoint. RESUME NEXT-ACTION:** at the wave-1 wave gate, RE-ASK the human stop-vs-continue (DEV-11).
+
+### PENDING OPERATOR-APPROVED WORK NOT YET STARTED
+
+Phase 2 decomposition and Phase 3 wave 1 are both APPROVED and unstarted (D-244(4) DEV-11 continue ruling). No other approved-but-unstarted work exists.
+
+### POST-RUN BACKLOG — expressly EXCLUDED from remediation by D-244
+
+BI-058 nine-checker ledger sweep; BI-063 semantic claim-audit; adversary passes 8/9/10 and the 3-clean streak; BI-062 and BI-064 hook repairs (no mid-run hook edits — D-158/D-182/D-231); PG-013+ process-gap promotions (~20 lessons L-60..L-82 never promoted); CI-063 wording revision; the L-77 read-what-you-commit carve-out; **~39 EC registry additions** (see the adjudication ledger for the enumerated list); **62 pre-existing input-hash drifts** plus 1 unverifiable artifact (`cycles/phase-1d/adversary-pass-2.md`, prose `inputs:`) and 3 session-changed files structurally outside hash coverage; and the STATE.md repair.
+
+### SPEC-LINT AND VERIFICATION STATUS
+
+8 of 9 checkers PASS (adr-consistency 0 violations, canonical-facts, counts 37/37, holdout-boundary 0/12, id-resolution 134/134, index-integrity 80 checks with HS 8/8, placeholders 0/134, title-sync 66). `check-ec-injectivity.py` is RED at **39 SCENARIO-MISMATCH by design** per D-246, and that count is a **LOWER BOUND** (D-126). The spec-lint REQUIRED flip stays DEFERRED and the job stays ADVISORY, but its precondition was swapped by D-244(3) to **"flip when the corpus is clean OR its violations are adjudicated"** — the D-246 adjudication satisfies that, so the flip is now reachable without the cut nine-checker sweep. Residual verification gap: VP-007's dns/tls/timeout harnesses cannot be proven until `HttpAttempt` gains transport-error variants or a `classify_error` function exists; DI-010's dns/tls carve-outs remain unverified and are DISCLOSED, not hidden.
+
+### SPEC SNAPSHOT
+
+PRD **v1.15** | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry **EC-001..EC-214** | holdout pool 12 (HS-001..HS-008; HS-002/HS-003 retired; 6 reserved-not-yet-authored: EC-079/093/094/141/147/148) | 134 spec files | frozen perimeter `a79de7e841c705a499f7aec634c4894b3097764e` (adversary pass 8 CUT — hash retained for the record only). Phase-1 gate package: `cycles/phase-1d/phase-1-human-gate-package.md` v1.2, `status: ratified-with-condition`.
+
+### DECISION DELTA THIS SESSION
+
+D-244 (gate #58 — Phase 1 RATIFIED WITH CONDITION, closed-world remediation; both D-205 candidates ruled KNOWN class, no deal-breaker; lint precondition swap; DEV-11 continue). D-245 (BI-023/BI-027 split-adjudicated — content CLOSED, enforcement guard post-run; BI-014 ID-space hole recorded; stale `adjudication-ss07-ss14.md` frontmatter observed-not-fixed). D-246 (39 EC-pointer mismatches adjudicated; BC scenario text ruled AUTHORITATIVE; EC id space shown non-injective across BCs). D-247 (remediation-induced spec damage caught by orchestrator diff and reverted before any commit). L-78..L-82 (L-82: a checker-driven remediation damages the artifact unless "leave it unfixed" is a blessed outcome). D-248 = this wrap.
+
+### WORKTREE INVENTORY
+
+`.factory/` — ACTIVE, `factory-artifacts` @ `841460c`, keep. No story worktrees exist; nothing stale, nothing removable.
 
 Exactly TWO: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `develop` after the merge (verify branch on resume); `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`.
