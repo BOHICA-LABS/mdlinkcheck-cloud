@@ -21,7 +21,7 @@
 - `AC-002-selftest-99of99.txt` — nine-checker selftest run confirming 99/99
 - `AC-005-adr-consistency-live.txt` — live corpus run; 9 violations from 134 files
 - `AC-006-ec-injectivity-live.txt` — live corpus run; 42 divergent, 22 adjudication
-- `AC-007-vef-selftest.txt` — VEF selftest suite confirming 32/32 pass
+- `AC-007-vef-selftest.txt` — VEF selftest suite confirming 48/48 pass
 
 ## Key Baselines
 
