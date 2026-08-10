@@ -54,4 +54,4 @@ test-vef.py -- verify-evidence-figures.py selftest suite
   PASS  T48 ei-no-declaration-channel [B2-3/channel-deleted]
 ============================================================
 PASS  50/50 tests verified (each proved clean-pass + defect-fail)
-Captured at: ebb1a78ac1585afb6a9d34f73ab21ed354d50219
+Captured at: 794420100af60d8aa9b12ffe1bf10f652763a8c0
