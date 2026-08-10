@@ -60,13 +60,15 @@ Structural guarantee (BLOCKING-D, B-3, B2-2):
   returns True/False.  It does NOT register the key.  Callers MUST call
   record_comparison(key, doc_value=) at the actual comparison point.
 
-  Structural guarantee (B2-2, closes register-without-comparing class):
+  API boundary (B2-2, narrows register-without-comparing class):
   record_comparison() requires a keyword-only doc_value argument with no
   default.  A call site that omits doc_value raises TypeError at runtime;
-  a call site that passes doc_value=None raises AssertionError.  A check
-  that found nothing in the document cannot produce a non-None doc_value,
-  so it cannot reach a registered state.  This holds for every future check
-  added, not just the ones audited today — the API enforces it, not review.
+  a call site that passes doc_value=None raises AssertionError.  Falsy
+  values ([], {}, '', 0, False) register successfully — the guard rejects
+  only literal None.  The class is narrowed, not closed: per-site audit
+  is still required to verify that each call site performs a real
+  comparison before registering.  Current sites are audited; future sites
+  must be audited at review time.
 
 Test-mode overrides (_VEF_TEST_* environment variables):
   EXCLUSIVELY for scripts/tests/test-vef.py.  Never set in CI or production.
@@ -230,14 +232,16 @@ def record_comparison(key: str, *, doc_value: object) -> None:
     means the document token was absent and no comparison was possible.  In
     that case, call fail() and do NOT call record_comparison().
 
-    Structural guarantee (closes register-without-comparing class, B2-2):
+    API boundary (narrows register-without-comparing class, B2-2):
     This function requires a keyword-only `doc_value` argument with no default.
     Any call site that omits doc_value raises TypeError at the call site.
     Any call site that passes doc_value=None raises AssertionError here.
-    A check that performed no document lookup cannot produce a non-None
-    doc_value, so it cannot call this function successfully.  The class is
-    closed by the API signature, not by per-site audit — every current site
-    AND every future site is constrained without anyone having to remember.
+    Falsy values ([], {}, '', 0, False) pass this guard and register
+    successfully — the guard rejects only literal None.  The class is
+    narrowed, not closed: every call site must still be audited to ensure
+    it performs a real comparison before calling record_comparison().
+    Current call sites have been audited; future sites require the same
+    per-site audit at review time.
 
     Canonical usage:
         if anchor_check(key, anchor, ...):   # guards whether comparison can run
@@ -291,9 +295,13 @@ def _strip_prev_col(text: str, label: str) -> "tuple[str, dict]":
       stats["tables"]  — number of header rows where the label column was found
       stats["rows"]    — number of data rows whose cell was blanked
 
-    Structural guarantee: callers MUST assert stats["tables"] >= 1 and
-    stats["rows"] >= 1 so the filter cannot silently become a no-op if the
-    baseline table is removed or renamed.
+    Count guards: callers MUST assert stats["tables"] >= 1 and
+    stats["rows"] >= 1.  These prove that something was stripped — not
+    that the correct (baseline) column was stripped.  A ragged or
+    malformed table can satisfy both counts while blanking the wrong
+    cell.  The M-2 content assertion (performed after live EI figures
+    are known) closes that gap by asserting no live figure appears in
+    the stripped content.
     """
     lines = text.splitlines()
     out: list = []
@@ -919,9 +927,11 @@ else:
     # integer is adjacent, and fails if that integer differs from the live value.
     # A wrong figure was previously invisible because it never matched
     # re.escape(live_figure).
-    # Structural guarantee: a wrong figure adjacent to a metric context word cannot
-    # silently pass — it is unrepresentable as "correct" because the scan compares
-    # to the live value, not to a pattern keyed on the correct answer.
+    # Coverage note (M-1 deferred): this scan validates the four metric context
+    # patterns below.  Prose shapes not matching any of these four patterns
+    # pass silently — the scan covers what it knows, not all possible phrasings.
+    # A structural close (M-1 inversion: require every integer in EI context to
+    # be a live value, in a covered span, or in a whitelist) is deferred.
     # B2-3 fix (P-C, P-C2): expanded per-metric patterns.
     # P-C: old DIV pattern only matched 'N divergent'; 'divergence count came to N'
     #       (context-first form) was never examined.  Add a context-first pattern.
