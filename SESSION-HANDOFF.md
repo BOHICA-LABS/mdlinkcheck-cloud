@@ -3404,7 +3404,7 @@ Exactly TWO worktrees:
 
 ---
 
-## §RESUME SNAPSHOT D-230
+## §RESUME SNAPSHOT D-230 [SUPERSEDED by D-234 — retained for audit]
 
 *Written: 2026-08-10 — Burst-44b, minimal-shape state burst (L-77). Supersedes D-222.*
 
@@ -3475,3 +3475,58 @@ PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001
 ### WORKTREE INVENTORY
 
 Exactly TWO: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `fix/verifier-hardening-sweep-step0` (`eae146a`); `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`.
+
+
+---
+
+## §RESUME SNAPSHOT D-234
+
+*Written: 2026-08-10 — Burst-46, minimal-shape burst (L-77). Supersedes D-230.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in **phase-1d**: **0 of 3 clean passes**, trajectory →0→32→34→39→37→259→273-275. **PR #13** (`fix/verifier-hardening-sweep-step0`) head **`280bcd3`**, 34 commits over `develop` (`2ac2c3e`), OPEN, local == origin. **All cycle-2 findings and all five cycle-3 MUST-FIX (M-1..M-5) are CLOSED** (D-232), with M-1's inversion deliberately DEFERRED per the reviewer and D-214 — only its false claim was fixed. Verifier selftests **50/50**; local end-to-end **exit 0**; evidence stamped `7944201`, all `git show` resolve. **CI at `280bcd3` (run `31383337632`): `vef-selftest` SUCCESS (M-5 proven), and the log body again shows the full 55 real comparisons (8/4/14/15/14)** — D-202 closure holds at the new head. `verify-evidence-figures` is permanently red by ACCEPTED operator ruling (D-231): `check8` cannot authenticate under D-203, so exit 5 is guaranteed. **THE LOG IS THE SIGNAL — never the status (D-227, BINDING).** D-001..D-234 (exhaustive).
+
+**Pickup point: CYCLE-4 re-review of PR #13 at head `280bcd3` via gate-#28 v3** (reviewer read-only, cycle-keyed audit file `code-delivery/VERIFIER-HARDENING-SWEEP-STEP0/pr-review-cycle4.md`). Apply the **D-214 GOOD-ENOUGH bar**: findings without false-green risk are ADJUDICATE-AND-RECORD, **no cycle-5 for polish**. Cycle-4 MUST confirm the figure comparison from the **CI LOG BODY** (run `31383337632`, quoted in D-233), never the status. Cycle-4 must also verify the five M-1..M-5 closures independently rather than on trust (D-193), and re-run the binding probe on `record_comparison` to confirm the M-4a disclosure is now accurate. Then **pr-manager attempts the verdict comment post via `gh pr comment`** (`gh pr review` is structurally impossible — BI-039/D-021/D-105); **if blocked, package for the human.** **Then the merge decision returns to the operator/human (D-120/D-231). NEVER merge on an unposted verdict.**
+
+### KNOWN CARRY-FORWARD ITEMS FOR CYCLE-4
+
+- **M-1 inversion DEFERRED (follow-up work, not a cycle-4 blocker):** closing it requires flagging any integer inside an EI/ADR context window that is not a live value, not inside a covered pattern span, and not in a metric-and-value-bound whitelist entry. The covered-span machinery already exists; the change is to iterate all integers rather than only the live-figure regex. Reviewer: "the inversion is real engineering and may be deferred."
+- **Accepted cycle-3 items (11)** remain recorded, not fixed, per D-214 — including A-1 (permanently-red job, now an accepted operator ruling), A-3 (MIN_* literals with slack), A-4 (the 50/50 figure is not derived by the verifier from a live run), A-5 (R1's fail path unreachable under the harness; invariant traced TRUE by the reviewer), A-6 (unused `key` param), A-7 (ADR scans read raw `docs`, fail-closed), A-8 (test-quality gloss).
+- **BI-060 (D-228, severity RAISED):** the hook offers `--approve` as an equally-valid branch on a REQUEST_CHANGES review — verdict-inversion coercion. **Keep the refuse-and-record mitigation VERBATIM in every reviewer prompt. NO mid-run hook edit.** Carried to the pre-wave-1 checkpoint with the second-identity question (D-197).
+
+### HEADS
+
+| Branch | HEAD | Notes |
+|--------|------|-------|
+| `develop` | `2ac2c3e` | |
+| `fix/verifier-hardening-sweep-step0` | `280bcd3` | PR #13; 34 commits; 50/50 selftests; local == origin |
+| `factory-artifacts` | Burst-46 commit | |
+
+### THEN IN ORDER (after cycle-4 + merge)
+
+1. **Gate-#42 nine-checker ledger sweep (BI-058)** — scoped per **D-214/D-231** to ledger + anti-tautology + independent-probe populations (**D-141 MANDATORY**), NOT exhaustive beautification. If a checker item does not affect whether a green can be trusted, record it and move on.
+2. **EC-151 burn** + fresh hidden replacement.
+3. **BI-052 PLUS BI-053 VP propagation debt** (VP-004/VP-025/VP-INDEX/TV-157 — D-165; together).
+4. **Input-hash drift sweep** (D-170; ONCE, after BI-052/EC-151 land).
+5. **Adversary pass 8** — streak ZERO, frozen perimeter **`a79de7e841c705a499f7aec634c4894b3097764e`** (NOT `ace1745`); freeze and NAME the remediated HEAD. **Pass 8 MUST read the CI log body, never the status (D-227).** Then the gate, then **BUILDING**.
+
+### MANDATORY ADVERSARY DISPATCH EMBEDS (D-211 — carry verbatim)
+
+Render BOTH sections (counted MUST-FIX table + non-counted documented-accepted section); every accepted finding carries reason + adjudicator inline; section moves are recorded events; include an explicit NEW-CLASS assertion listing findings mapping to no known class; severity table uses **EXACT INTEGERS** (ranges in prose only). D-205 deal-breakers evaluated by the operator from the NEW-CLASS list: (a) new content defect class; (b) new-CRITICAL rate not decaying; (c) domain-model-invalidating defect.
+
+### STANDING CONSTRAINTS
+
+- **D-214 GOOD ENOUGH (binding):** findings without false-green risk are ADJUDICATE-AND-RECORD. The verifier must be honest, not perfect. Must-fix only what corrupts implementation. Goal: pass 8 against honest oracles → the gate → BUILDING.
+- **D-231:** permanently-red advisory job ACCEPTED; **D-203 NOT reversed — no CI token, no widened permissions**; the LOG is the signal.
+- **D-205** build-sufficiency + three deal-breakers. **D-211** two binding guards. **D-120** merges operator-gated. **D-117/D-122/D-133** spec-lint REQUIRED flip DEFERRED. **D-128** the `Spec lint` advisory FAILURE is CORRECT. **D-141** independent-probe canaries MANDATORY. **D-039** no suppression. **BI-041** `--write` PROHIBITED. **CI-063** embed operator authorization VERBATIM in every INITIAL SPAWN PROMPT. **D-193** verify agent claims by direct execution. **D-221** no sub-rounds beyond spec.
+- **L-77 STANDING STATE-BURST SHAPE:** pre-composed insertions, zero composition, zero reads over 100 lines, explicit forbidden-file list, exact anchors with STOP-on-mismatch, small bursts. Never let STATE.md assert a snapshot or exhaustive range that does not exist.
+- **L-62..L-77 load-bearing.**
+
+### SPEC SNAPSHOT
+
+PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (7 not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-234 (exhaustive). Open BI list: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/058/060/061; CI-063.
+
+### WORKTREE INVENTORY
+
+Exactly TWO: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `fix/verifier-hardening-sweep-step0` (`280bcd3`); `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`.
