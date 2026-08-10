@@ -9,7 +9,7 @@
 
 | AC | Description | Status |
 |----|-------------|--------|
-| AC-1 | Pre-flight guard: 0 unproven scope reductions; 10/10 primitives; 99/99 selftests | PASS |
+| AC-1 | Pre-flight guard: 0 unproven scope reductions; 10/10 primitives | PASS |
 | AC-2 | Full selftest suite: 99/99 pass | PASS |
 | AC-3 | New selftest 5k: E-IO-002 + E-CLI-001 + malformed-fragment detected as a set | PASS |
 | AC-4 | New selftest EI-7: §2 Filesystem column parsed; EC-007 divergence detected | PASS |

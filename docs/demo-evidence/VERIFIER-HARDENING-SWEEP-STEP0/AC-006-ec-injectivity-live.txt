@@ -1,0 +1,265 @@
+
+SCENARIO-MISMATCH EC-022: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.001.md:58
+  BC  : '`[x](../sibling.md)` in `docs/guide.md`'
+  TV  : '`README.md` exists at root'
+  (J=0.00)
+SCENARIO-MISMATCH EC-023: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.001.md:59
+  BC  : '`[x](./same-dir.md)`'
+  TV  : '`docs/b.md` exists (git repo)'
+  (J=0.00)
+SCENARIO-MISMATCH EC-024: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.001.md:60
+  BC  : '`[x](sub/nested.md)`'
+  TV  : '`/etc/passwd` exists'
+  (J=0.00)
+SCENARIO-MISMATCH EC-025: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.001.md:61
+  BC  : '`[x](../../above-root.md)`'
+  TV  : '`docs/my file.md` exists'
+  (J=0.00)
+SCENARIO-MISMATCH EC-033: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.004.md:65
+  BC  : '`[x](My%20File.md)` where file is `My File.md`'
+  TV  : '`a.md` exists'
+  (J=0.00)
+SCENARIO-MISMATCH EC-035: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.004.md:67
+  BC  : '`[x](a%20b.md#section)`'
+  TV  : '`a.md` exists'
+  (J=0.00)
+SCENARIO-MISMATCH EC-035: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-08/BC-2.08.003.md:60
+  BC  : '`a%20b.md#section`'
+  TV  : '`a.md` exists'
+  (J=0.00)
+SCENARIO-MISMATCH EC-043: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-06/BC-2.06.001.md:87
+  BC  : '`## Hello World`'
+  TV  : '`## AI & Automation`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-044: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-06/BC-2.06.001.md:88
+  BC  : '`## C++ Guide`'
+  TV  : '`## AI & Automation`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-046: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-06/BC-2.06.001.md:90
+  BC  : '`## **Bold** Heading`'
+  TV  : '`## Phase 1: MVP (128 Features)`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-047: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-06/BC-2.06.001.md:91
+  BC  : '`## A  B` (two spaces)'
+  TV  : '`## Setup` (×2)'
+  (J=0.00)
+SCENARIO-MISMATCH EC-048: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-06/BC-2.06.001.md:92
+  BC  : '`##` (empty heading)'
+  TV  : '`## Setup` (×3)'
+  (J=0.00)
+SCENARIO-MISMATCH EC-055: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-06/BC-2.06.002.md:76
+  BC  : '`## Setup` × 2'
+  TV  : '`## Done ✅`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-056: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-06/BC-2.06.002.md:77
+  BC  : '`## Setup` × 2 + `## Setup 1`'
+  TV  : '`## **Bold** Heading`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-057: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-06/BC-2.06.002.md:78
+  BC  : '`## Setup` × 3'
+  TV  : '`` ## `code` heading ``'
+  (J=0.00)
+SCENARIO-MISMATCH EC-059: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-06/BC-2.06.001.md:93
+  BC  : '`## 🦀Rust` (emoji directly adjacent to word)'
+  TV  : '`Setext Title\\n=====`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-061: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-08/BC-2.08.001.md:65
+  BC  : '`[x](#Setup)` where `## Setup` exists'
+  TV  : '`#NoSpace` (no space after `#`)'
+  (J=0.00)
+SCENARIO-MISMATCH EC-062: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-08/BC-2.08.001.md:66
+  BC  : '`[x](#no-such-anchor)`'
+  TV  : '`<a name="legacy"></a>`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-063: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-08/BC-2.08.002.md:84
+  BC  : '`[x](docs/api.md#overview)` where `docs/api.md` has `## Overview`'
+  TV  : '`<h2 id="custom">T</h2>`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-064: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-08/BC-2.08.002.md:85
+  BC  : '`[x](docs/api.md#nope)` where `docs/api.md` has no such heading'
+  TV  : '`## Title {#custom}`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-066: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-05/BC-2.05.003.md:61
+  BC  : '`<a name="custom-anchor">`'
+  TV  : 'YAML front matter `title: Foo` + `[x](#foo)`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-067: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-05/BC-2.05.003.md:62
+  BC  : '`<span id="api-reference">`'
+  TV  : '`## setup`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-071: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-11/BC-2.11.001.md:67
+  BC  : "`--ignore 'vendor/**'` excludes all files under `vendor/`"
+  TV  : '`## setup`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-077: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md:58
+  BC  : '`https://example.com/path?q=1&r=2#frag`'
+  TV  : 'Returns 200 to HEAD'
+  (J=0.00)
+SCENARIO-MISMATCH EC-078: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md:59
+  BC  : '`http://` (no host)'
+  TV  : 'Returns 405 to HEAD, 200 to GET'
+  (J=0.00)
+SCENARIO-MISMATCH EC-081: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.005.md:59
+  BC  : 'URL to non-existent hostname `https://this-domain-does-not-exist-xyz-123.com`'
+  TV  : 'Returns 500'
+  (J=0.00)
+SCENARIO-MISMATCH EC-082: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md:60
+  BC  : '`https://user:pass@host.com/path`'
+  TV  : 'Returns 429 with `Retry-After: 60`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-083: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md:61
+  BC  : '`https://[::1]:8080/path` (IPv6)'
+  TV  : 'Returns 401 to HEAD, 401 to GET'
+  (J=0.00)
+SCENARIO-MISMATCH EC-084: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-09/BC-2.09.001.md:62
+  BC  : '`https://xn--nxasmq6b.com` (Punycode)'
+  TV  : 'Hangs 30s'
+  (J=0.00)
+SCENARIO-MISMATCH EC-085: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.001.md:68
+  BC  : 'HEAD succeeds (200)'
+  TV  : 'Redirect chain of 12 hops'
+  (J=0.00)
+SCENARIO-MISMATCH EC-086: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.001.md:69
+  BC  : 'Both HEAD and GET return 404'
+  TV  : '301 → `http://a.com/page` → 200'
+  (J=0.00)
+SCENARIO-MISMATCH EC-088: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.002.md:131
+  BC  : 'HTTP 503'
+  TV  : 'DNS NXDOMAIN'
+  (J=0.00)
+SCENARIO-MISMATCH EC-124: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.001.md:60
+  BC  : 'Multiple findings in same file'
+  TV  : '`docs/a.md` exists; broken link inside'
+  (J=0.00)
+SCENARIO-MISMATCH EC-126: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.002.md:60
+  BC  : 'Piped stdout without CLICOLOR_FORCE'
+  TV  : '`README.md` with broken link'
+  (J=0.00)
+SCENARIO-MISMATCH EC-127: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.002.md:61
+  BC  : 'NO_COLOR=1 set'
+  TV  : '`a.md` and `b.md` both broken'
+  (J=0.00)
+SCENARIO-MISMATCH EC-130: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.003.md:62
+  BC  : '3 broken links in 2 files'
+  TV  : '`[x](https://example.com/x)`'
+  (J=0.00)
+SCENARIO-MISMATCH EC-131: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.003.md:63
+  BC  : '0 broken, 2 indeterminate'
+  TV  : '`[x](https://example.com/x)` (offline)'
+  (J=0.00)
+SCENARIO-MISMATCH EC-134: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.004.md:57
+  BC  : '`--format text`'
+  TV  : 'One of each OFFLINE reason type: file-not-found, target-is-directory, broken-sym'
+  (J=0.00)
+SCENARIO-MISMATCH EC-135: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.004.md:58
+  BC  : '`--format xml`'
+  TV  : 'Broken link found; diagnostic also occurs'
+  (J=0.00)
+SCENARIO-MISMATCH EC-142: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-14/BC-2.14.001.md:64
+  BC  : 'Scan with 0 findings'
+  TV  : 'Only an unreadable file'
+  (J=0.00)
+SCENARIO-MISMATCH EC-146: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-14/BC-2.14.003.md:63
+  BC  : '0 broken links, 1 indeterminate'
+  TV  : 'Long-running scan; SIGINT sent'
+  (J=0.00)
+SCENARIO-MISMATCH EC-149: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.009.md:82
+  BC  : 'Same URL referenced on two different lines within the same file'
+  TV  : 'DNS NXDOMAIN for `broken.example.com`'
+  (J=0.00)
+
+REQUIRES-ADJUDICATION EC-031: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.007.md:59
+  BC  : '`[x]()` in any file'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-045: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-06/BC-2.06.001.md:89
+  BC  : '`## 日本語`'
+  TV  : '`## Integrations - Growth`'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-050: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-05/BC-2.05.002.md:60
+  BC  : 'File with three `## Setup` headings'
+  TV  : '`## my_heading`'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-051: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-05/BC-2.05.002.md:61
+  BC  : '`# Hello World`'
+  TV  : '`## my_heading`'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-052: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-05/BC-2.05.002.md:62
+  BC  : '`## C++ API`'
+  TV  : '`## Café`'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-053: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-05/BC-2.05.002.md:63
+  BC  : '`## 日本語 heading`'
+  TV  : '`## Café`'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-058: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-06/BC-2.06.002.md:79
+  BC  : '`## A` × 4'
+  TV  : '`## [Link](x.md) heading`'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-068: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-05/BC-2.05.003.md:63
+  BC  : '`id=""` empty value'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-069: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-05/BC-2.05.003.md:64
+  BC  : '`[x](#custom-anchor)` targeting `<a name="custom-anchor">`'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-072: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.006.md:70
+  BC  : '`[x](notes.txt#section)` where `notes.txt` exists'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-072: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-08/BC-2.08.002.md:86
+  BC  : '`[x](notes.txt#section)` where `notes.txt` exists'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-073: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-07/BC-2.07.006.md:71
+  BC  : '`[x](src/main.rs#L42-L50)` where `src/main.rs` exists'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-089: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.002.md:132
+  BC  : 'HTTP 410 Gone'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-091: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-09/BC-2.09.002.md:63
+  BC  : '`--allow https://example.com`; URL `https://example.com.evil.tld/`'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-091: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.002.md:134
+  BC  : 'https://example.com redirects to http://example.com'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-092: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.002.md:135
+  BC  : 'Connection to private IP `http://10.0.0.1/`'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-092: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-10/BC-2.10.010.md:68
+  BC  : '`http://192.168.1.1/` (RFC 1918 private)'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-128: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.002.md:62
+  BC  : 'CLICOLOR_FORCE=1'
+  TV  : '`docs/a.md` with broken link'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-132: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.003.md:64
+  BC  : '0 broken, 0 indeterminate'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-136: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.004.md:59
+  BC  : '`--format TEXT` (uppercase)'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-137: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-12/BC-2.12.004.md:60
+  BC  : '`--format json --format text`'
+  TV  : '—'
+  (J=0.00)
+REQUIRES-ADJUDICATION EC-138: /Users/jmagady/Dev/mdlinkcheck-cloud/.factory/specs/behavioral-contracts/ss-13/BC-2.13.001.md:75
+  BC  : 'No findings, no errors'
+  TV  : '—'
+  (J=0.00)
+
+174 EC citations compared (17 TV rows skipped (legitimately-EC-less ×17 (TV-BV013 + TV-S001..TV-S016))) across 134 of 134 spec files (complete), 42 divergent, 22 require adjudication
+D-132: 161 EC IDs compared (19 BC-only, 39 TV-only, 58 single-occurrence skipped)
+D-132: 4 verdict comparisons performed (170 skipped — no BC verdict column)
+D-132: 161 EC IDs tested for collision (58 single-occurrence not tested)
+D-132: BC rows: 193 parsed, 1042 skipped-no-ec, 0 skipped-empty (= 1235 scanned)
+Captured at: 01fc3288c1ce9033376d898a907fe5e576d83801
