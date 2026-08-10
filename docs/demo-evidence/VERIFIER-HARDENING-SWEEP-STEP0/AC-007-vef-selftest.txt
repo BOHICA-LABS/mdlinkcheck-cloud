@@ -36,3 +36,4 @@ test-vef.py -- verify-evidence-figures.py selftest suite
   PASS  T32 check9-ev-sha-disagrees-with-stamp [R2/L-65]
 ============================================================
 PASS  32/32 tests verified (each proved clean-pass + defect-fail)
+Captured at: aede571d6d261be17d331deeed8fcf65ca40eccd
