@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-48 test cases (T01-T48, non-sequential numbering).  Each proves:
+50 test cases (T01-T48 + T38a/T38b + T44a/T44b replacing T38/T44,
+non-sequential numbering).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
 
@@ -308,12 +309,15 @@ def _gh_is_authenticated() -> bool:
     return r.returncode == 0
 
 
-def run_test(name, defect_fn, clean_fn=None, expect_rc=None):
+def run_test(name, defect_fn, clean_fn=None, expect_rc=None, expect_label=None):
     """Execute defect-present and defect-absent cases; return True if both pass.
 
-    defect_fn(env)  -- mutates the env so the target check should fail
-    clean_fn(env)   -- optional; applies any clean-state setup (default: no mutation)
-    expect_rc       -- expected rc for defect case (default: != 0, i.e., any failure)
+    defect_fn(env)   -- mutates the env so the target check should fail
+    clean_fn(env)    -- optional; applies any clean-state setup (default: no mutation)
+    expect_rc        -- expected rc for defect case (default: != 0, i.e., any failure)
+    expect_label     -- if set, assert this string appears in the defect-case output.
+                        Prevents a mutant from switching WHICH label fires while
+                        still producing a non-zero exit (label-blindness fix, M-3).
     """
     results = []
 
@@ -329,6 +333,11 @@ def run_test(name, defect_fn, clean_fn=None, expect_rc=None):
         if not defect_ok:
             marker = f"rc=={expect_rc}" if expect_rc is not None else "rc!=0"
             print(f"    FAIL {name} [defect-present]: expected {marker}, got rc={rc_d}")
+            print(f"      output: {out_d[:400]!r}")
+        elif expect_label is not None and expect_label not in out_d:
+            defect_ok = False
+            print(f"    FAIL {name} [defect-present]: rc ok but "
+                  f"expected label {expect_label!r} not in output")
             print(f"      output: {out_d[:400]!r}")
         results.append(defect_ok)
     finally:
@@ -931,7 +940,8 @@ def t30_captured_sha_wrong_but_on_branch():
         env.stamp_sha = MOCK_HEAD
 
     return run_test("T30 captured-sha-wrong-but-on-branch [B2-4/check9]",
-                    defect, clean)
+                    defect, clean,
+                    expect_label="evidence-report/captured-sha-stamp-mismatch")
 
 
 def t29_ecli001_absent_from_pr():
@@ -1192,7 +1202,8 @@ def t33_adr_wrong_rc_single_metric():
         new_pr = env.pr_path.read_text() + novel
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
-    return run_test("T33 adr-wrong-rc-single-metric [B2-3/P-A]", defect)
+    return run_test("T33 adr-wrong-rc-single-metric [B2-3/P-A]", defect,
+                    expect_label="adr-consistency/novel-spelling/rc")
 
 
 def t34_adr_wrong_ec_single_metric():
@@ -1208,7 +1219,8 @@ def t34_adr_wrong_ec_single_metric():
         new_pr = env.pr_path.read_text() + novel
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
-    return run_test("T34 adr-wrong-ec-single-metric [B2-3/P-A2]", defect)
+    return run_test("T34 adr-wrong-ec-single-metric [B2-3/P-A2]", defect,
+                    expect_label="adr-consistency/novel-spelling/ec")
 
 
 def t35_adr_wrong_rc_line_with_correct_match():
@@ -1230,7 +1242,8 @@ def t35_adr_wrong_rc_line_with_correct_match():
         new_pr = env.pr_path.read_text() + novel
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
-    return run_test("T35 adr-wrong-rc-line-with-correct-match [B2-3/P-B]", defect)
+    return run_test("T35 adr-wrong-rc-line-with-correct-match [B2-3/P-B]", defect,
+                    expect_label="adr-consistency/novel-spelling/rc")
 
 
 def t36_ei_wrong_div_divergence_spelling():
@@ -1247,7 +1260,8 @@ def t36_ei_wrong_div_divergence_spelling():
         new_pr = env.pr_path.read_text() + novel
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
-    return run_test("T36 ei-wrong-div-divergence-spelling [B2-3/P-C]", defect)
+    return run_test("T36 ei-wrong-div-divergence-spelling [B2-3/P-C]", defect,
+                    expect_label="ec-injectivity/novel-spelling/div")
 
 
 def t37_ei_wrong_cmp_examined_spelling():
@@ -1263,29 +1277,46 @@ def t37_ei_wrong_cmp_examined_spelling():
         new_pr = env.pr_path.read_text() + novel
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
-    return run_test("T37 ei-wrong-cmp-examined-spelling [B2-3/P-C2]", defect)
+    return run_test("T37 ei-wrong-cmp-examined-spelling [B2-3/P-C2]", defect,
+                    expect_label="ec-injectivity/novel-spelling/cmp")
 
 
-def t38_ei_wrong_div_inside_4tuple_bound():
-    """P-D (B2-3): wrong div/adj figures near EI_NOVEL_DECLARED fragment.
+def t38a_ei_wrong_div_no_declaration():
+    """P-D (B2-3/split-div): wrong divergent figure near the old 4-tuple fragment.
 
-    The old 2-tuple exempted ANY wrong figure near '110 of 190 TV rows' by
-    ±40-char fragment proximity — including wrong values like 7 (not 9) and
-    3 (not 5) that should not be exempt.
-    Fix: 4-tuple ('frag', 'metric', 'expected_wrong_val', count) only exempts
-    the exact declared (metric, value) pair; 7 does not match declared '9'.
+    Split from the original T38 OR-masked test (M-3 fix): single-metric probe
+    for the divergent detector so each branch is independently tested.
 
-    Injects '7 divergent; 110 of 190 TV rows; 3 adjudication' (wrong values
-    7 and 3 near the fragment; declared values are 9 and 5).
-    Clean: default fixture has '9 divergent, 5 adjudication; 110 of 190 TV rows'
-    which matches the 4-tuple declarations exactly (count=1 each).
+    Declaration channel was deleted (B2-3); 7 divergent (wrong, live=42) near
+    '110 of 190 TV rows' fires ec-injectivity/novel-spelling/div unconditionally.
+    No adjudication figure injected — only the div detector can catch this.
     """
     def defect(env):
-        novel = "Baseline note: 7 divergent; 110 of 190 TV rows; 3 adjudication.\n"
+        novel = "Baseline note: 7 divergent; 110 of 190 TV rows.\n"
         new_pr = env.pr_path.read_text() + novel
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
-    return run_test("T38 ei-wrong-div-inside-4tuple-bound [B2-3/P-D]", defect)
+    return run_test("T38a ei-wrong-div-no-declaration [B2-3/P-D-div]", defect,
+                    expect_label="ec-injectivity/novel-spelling/div")
+
+
+def t38b_ei_wrong_adj_no_declaration():
+    """P-D (B2-3/split-adj): wrong adjudication figure near the old 4-tuple fragment.
+
+    Split from the original T38 OR-masked test (M-3 fix): single-metric probe
+    for the adjudication detector so each branch is independently tested.
+
+    Declaration channel was deleted (B2-3); 3 adjudication (wrong, live=22) near
+    '110 of 190 TV rows' fires ec-injectivity/novel-spelling/adj unconditionally.
+    No divergent figure injected — only the adj detector can catch this.
+    """
+    def defect(env):
+        novel = "Baseline note: 3 adjudication; 110 of 190 TV rows.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T38b ei-wrong-adj-no-declaration [B2-3/P-D-adj]", defect,
+                    expect_label="ec-injectivity/novel-spelling/adj")
 
 
 # ── L-65 relocated variants (T39-T44) ─────────────────────────────────────────
@@ -1301,7 +1332,8 @@ def t39_adr_wrong_rc_relocated():
         new_pr = env.pr_path.read_text() + novel
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
-    return run_test("T39 adr-wrong-rc-relocated [B2-3/P-A-R/L-65]", defect)
+    return run_test("T39 adr-wrong-rc-relocated [B2-3/P-A-R/L-65]", defect,
+                    expect_label="adr-consistency/novel-spelling/rc")
 
 
 def t40_adr_wrong_ec_relocated():
@@ -1314,7 +1346,8 @@ def t40_adr_wrong_ec_relocated():
         new_pr = env.pr_path.read_text() + novel
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
-    return run_test("T40 adr-wrong-ec-relocated [B2-3/P-A2-R/L-65]", defect)
+    return run_test("T40 adr-wrong-ec-relocated [B2-3/P-A2-R/L-65]", defect,
+                    expect_label="adr-consistency/novel-spelling/ec")
 
 
 def t41_adr_wrong_rc_relocated_span():
@@ -1331,7 +1364,8 @@ def t41_adr_wrong_rc_relocated_span():
         new_pr = env.pr_path.read_text() + novel
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
-    return run_test("T41 adr-wrong-rc-relocated-span [B2-3/P-B-R/L-65]", defect)
+    return run_test("T41 adr-wrong-rc-relocated-span [B2-3/P-B-R/L-65]", defect,
+                    expect_label="adr-consistency/novel-spelling/rc")
 
 
 def t42_ei_wrong_div_divergence_relocated():
@@ -1344,7 +1378,8 @@ def t42_ei_wrong_div_divergence_relocated():
         new_pr = env.pr_path.read_text() + novel
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
-    return run_test("T42 ei-wrong-div-divergence-relocated [B2-3/P-C-R/L-65]", defect)
+    return run_test("T42 ei-wrong-div-divergence-relocated [B2-3/P-C-R/L-65]", defect,
+                    expect_label="ec-injectivity/novel-spelling/div")
 
 
 def t43_ei_wrong_cmp_analyzed_relocated():
@@ -1358,41 +1393,80 @@ def t43_ei_wrong_cmp_analyzed_relocated():
         new_pr = env.pr_path.read_text() + novel
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
-    return run_test("T43 ei-wrong-cmp-analyzed-relocated [B2-3/P-C2-R/L-65]", defect)
+    return run_test("T43 ei-wrong-cmp-analyzed-relocated [B2-3/P-C2-R/L-65]", defect,
+                    expect_label="ec-injectivity/novel-spelling/cmp")
 
 
-def t44_ei_wrong_div_plural_relocated():
-    """P-D-R (B2-3/L-65): relocated — plural 'divergences'/'adjudications' forms.
+def t44a_ei_wrong_div_plural_relocated():
+    """P-D-R (B2-3/L-65/split-div): plural 'divergences' form — single-metric probe.
 
-    _EI_DIV_NOVEL_PAT updated to match plural 'divergences'; _EI_ADJ_NOVEL_PAT
-    updated to match plural 'adjudications'.  Wrong values 7/3 are near the
-    declared fragment '110 of 190 TV rows' but don't match declared 9/5.
+    Split from the original T44 OR-masked test (M-3 fix): single-metric probe
+    for the plural-divergences branch of _EI_DIV_NOVEL_PAT so M18 is independently
+    killed.  No adjudications figure injected — only the div detector can catch this.
+
+    _EI_DIV_NOVEL_PAT matches '(\\d+)\\s+diverg(?:ent|ences?)\\b'; removing the
+    ences? branch (M18) leaves '7 divergences' undetected → false green.
     """
     def defect(env):
-        novel = "Baseline note: 7 divergences; 110 of 190 TV rows; 3 adjudications.\n"
+        novel = "Baseline note: 7 divergences; 110 of 190 TV rows.\n"
         new_pr = env.pr_path.read_text() + novel
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
-    return run_test("T44 ei-wrong-div-plural-relocated [B2-3/P-D-R/L-65]", defect)
+    return run_test("T44a ei-wrong-div-plural-relocated [B2-3/P-D-R/div/L-65]", defect,
+                    expect_label="ec-injectivity/novel-spelling/div")
+
+
+def t44b_ei_wrong_adj_plural_relocated():
+    """P-D-R (B2-3/L-65/split-adj): plural 'adjudications' form — single-metric probe.
+
+    Split from the original T44 OR-masked test (M-3 fix): single-metric probe
+    for the plural-adjudications branch of _EI_ADJ_NOVEL_PAT so M21 is independently
+    killed.  No divergences figure injected — only the adj detector can catch this.
+
+    _EI_ADJ_NOVEL_PAT matches '(\\d+)\\s+(?:require\\s+)?adjudications?\\b'; removing
+    the s? (M21 makes it require plural only) leaves '3 adjudication' undetected;
+    removing plural (M21 makes it singular only) leaves '3 adjudications' undetected.
+    """
+    def defect(env):
+        novel = "Baseline note: 3 adjudications; 110 of 190 TV rows.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T44b ei-wrong-adj-plural-relocated [B2-3/P-D-R/adj/L-65]", defect,
+                    expect_label="ec-injectivity/novel-spelling/adj")
 
 
 def t45_pr_prev_column_header_absent():
     """B2-3 (option 1): PR baseline table missing 'Previous (post-gate34)' column header.
 
     _strip_prev_col() cannot find the column to filter, so its tables count is 0.
-    Structural assertion pr-baseline/prev-column-header fires before any
-    novel-spelling scan — column filter cannot silently become a no-op.
+    Structural assertion pr-baseline/prev-column-header fires.
 
-    Defect: rename the column header in pr-description.md (and gh_file).
-    Clean:  unmodified PR fixture has the correct header.
+    M-3 fix: defect blanks the historical data cell in addition to renaming the
+    header, so the EI novel-spelling scan does NOT fire on leaked historical figures
+    (9 divergent).  Without this isolation, a mutant (M5) that removes the header
+    guard survives because the rows guard + EI novel-spelling still produce rc!=0.
+    With the blanked cell, only the header guard (or the rows guard as secondary)
+    fires — and the expect_label check requires the header guard's label specifically.
+
+    Defect: rename the column header AND blank the historical data cell so the
+            only failure is pr-baseline/prev-column-header (plus the rows guard,
+            which is a secondary effect of tables=0; expect_label pins the primary).
+    Clean:  unmodified PR fixture has the correct header and data row.
     """
+    _HIST_CELL = "9 divergent, 5 adjudication; 110 of 190 TV rows (80 skipped)"
+
     def defect(env):
         text = env.pr_path.read_text().replace(
             "Previous (post-gate34)", "Previous (baseline)")
+        # Blank the historical data cell so EI novel-spelling does not fire
+        # on the now-unstripped "9 divergent" — isolates the header guard.
+        text = text.replace(_HIST_CELL, " ")
         env.pr_path.write_text(text)
         env.gh_file.write_text(text)
     return run_test(
-        "T45 pr-prev-column-header-absent [B2-3/option-1/struct]", defect)
+        "T45 pr-prev-column-header-absent [B2-3/option-1/struct]", defect,
+        expect_label="pr-baseline/prev-column-header")
 
 
 def t46_pr_prev_column_no_data_rows():
@@ -1419,7 +1493,8 @@ def t46_pr_prev_column_no_data_rows():
         env.pr_path.write_text(text)
         env.gh_file.write_text(text)
     return run_test(
-        "T46 pr-prev-column-no-data-rows [B2-3/option-1/struct]", defect)
+        "T46 pr-prev-column-no-data-rows [B2-3/option-1/struct]", defect,
+        expect_label="pr-baseline/prev-column-rows")
 
 
 def t47_adr_no_declaration_channel():
@@ -1445,7 +1520,8 @@ def t47_adr_no_declaration_channel():
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
     return run_test(
-        "T47 adr-no-declaration-channel [B2-3/channel-deleted]", defect)
+        "T47 adr-no-declaration-channel [B2-3/channel-deleted]", defect,
+        expect_label="adr-consistency/novel-spelling")
 
 
 def t48_ei_no_declaration_channel():
@@ -1468,7 +1544,8 @@ def t48_ei_no_declaration_channel():
         env.pr_path.write_text(new_pr)
         env.gh_file.write_text(new_pr)
     return run_test(
-        "T48 ei-no-declaration-channel [B2-3/channel-deleted]", defect)
+        "T48 ei-no-declaration-channel [B2-3/channel-deleted]", defect,
+        expect_label="ec-injectivity/novel-spelling/cmp")
 
 
 # ── Runner ────────────────────────────────────────────────────────────────────
@@ -1505,22 +1582,24 @@ TESTS = [
     t30_captured_sha_wrong_but_on_branch,  # B2-4 stamp-equality (on-branch not sufficient)
     t31_check7_provenance_stamps,          # S2-1 check7 real git-show coverage
     t32_check9_ev_sha_disagrees_with_check7_stamp,  # R2/L-65 production shape of B2-4
-    # B2-3 novel-spelling suppression shapes (T33-T44)
+    # B2-3 novel-spelling suppression shapes (T33-T44; T38/T44 split for single-metric coverage)
     t33_adr_wrong_rc_single_metric,        # P-A
     t34_adr_wrong_ec_single_metric,        # P-A2
     t35_adr_wrong_rc_line_with_correct_match,  # P-B
     t36_ei_wrong_div_divergence_spelling,  # P-C
     t37_ei_wrong_cmp_examined_spelling,    # P-C2
-    t38_ei_wrong_div_inside_4tuple_bound,  # P-D
+    t38a_ei_wrong_div_no_declaration,      # P-D-div (M-3 split: div only)
+    t38b_ei_wrong_adj_no_declaration,      # P-D-adj (M-3 split: adj only)
     t39_adr_wrong_rc_relocated,            # P-A-R/L-65
     t40_adr_wrong_ec_relocated,            # P-A2-R/L-65
     t41_adr_wrong_rc_relocated_span,       # P-B-R/L-65
     t42_ei_wrong_div_divergence_relocated, # P-C-R/L-65
     t43_ei_wrong_cmp_analyzed_relocated,   # P-C2-R/L-65
-    t44_ei_wrong_div_plural_relocated,     # P-D-R/L-65
+    t44a_ei_wrong_div_plural_relocated,    # P-D-R/div/L-65 (M-3 split: kills M18)
+    t44b_ei_wrong_adj_plural_relocated,    # P-D-R/adj/L-65 (M-3 split: kills M21)
     # B2-3 option-1 structural assertions (T45-T46)
-    t45_pr_prev_column_header_absent,      # no-op guard: header not found
-    t46_pr_prev_column_no_data_rows,       # no-op guard: header found, no rows
+    t45_pr_prev_column_header_absent,      # header guard: expect_label kills M5
+    t46_pr_prev_column_no_data_rows,       # rows guard: header found, no rows
     # B2-3 declaration-channel-deleted probes (T47-T48)
     t47_adr_no_declaration_channel,        # ADR: uncovered site fails unconditionally
     t48_ei_no_declaration_channel,         # EI: uncovered site fails unconditionally
