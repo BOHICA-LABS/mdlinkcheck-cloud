@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-46 test cases (T01-T46, non-sequential numbering).  Each proves:
+48 test cases (T01-T48, non-sequential numbering).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
 
@@ -1422,6 +1422,55 @@ def t46_pr_prev_column_no_data_rows():
         "T46 pr-prev-column-no-data-rows [B2-3/option-1/struct]", defect)
 
 
+def t47_adr_no_declaration_channel():
+    """B2-3 (declaration-channel deleted): ADR combined scan fails unconditionally.
+
+    Before deletion: ADR_NOVEL_DECLARED could exempt a combined rc+ec line via
+    proximity match.  After deletion: the else: fail() branch is the only path —
+    no declaration can intercept it.
+
+    Defect: inject a combined reason-code + E-class line not matched by RC_EC_PAT
+    and not triggering the per-metric scan (digits are parenthesised, not immediately
+    before 'reason-code' or 'E-class occ').
+    'Summary: reason-code (77 total) and E-class (9 total) require review.' has
+    both context words, wrong values (77/9 vs 78/6) in parentheses, no '+' connector.
+    -> RC_EC_PAT misses; _ADR_RC_NOVEL_PAT misses ('77' not before 'reason-code');
+    -> combined scan fires -> adr-consistency/novel-spelling.
+
+    Non-tautology (D-141): neutralising the ADR combined else: fail() lets this pass.
+    """
+    def defect(env):
+        novel = "Summary: reason-code (77 total) and E-class (9 total) require review.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test(
+        "T47 adr-no-declaration-channel [B2-3/channel-deleted]", defect)
+
+
+def t48_ei_no_declaration_channel():
+    """B2-3 (declaration-channel deleted): EI uncovered site fails unconditionally.
+
+    Before deletion: EI_NOVEL_DECLARED could exempt a figure-adjacent occurrence
+    via proximity match.  After deletion: the else: fail() branch is the only path.
+
+    Defect: inject live cmp figure (174) near 'divergent' context, in a phrase not
+    matched by any existing pattern ('174 citations reviewed' — 'reviewed' is not
+    in STANDARD_PAT's 'compared|with' alternation).  The first EI scan finds '174'
+    within 80 chars of 'divergent', sees no covered span, fires unconditionally.
+    Triggers ec-injectivity/novel-spelling/cmp.
+
+    Non-tautology (D-141): neutralising the EI first-scan else: fail() lets this pass.
+    """
+    def defect(env):
+        novel = "Summary: 174 citations reviewed; 42 divergent, 22 adjudication.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test(
+        "T48 ei-no-declaration-channel [B2-3/channel-deleted]", defect)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 TESTS = [
     t01_post_merge_context,
@@ -1472,6 +1521,9 @@ TESTS = [
     # B2-3 option-1 structural assertions (T45-T46)
     t45_pr_prev_column_header_absent,      # no-op guard: header not found
     t46_pr_prev_column_no_data_rows,       # no-op guard: header found, no rows
+    # B2-3 declaration-channel-deleted probes (T47-T48)
+    t47_adr_no_declaration_channel,        # ADR: uncovered site fails unconditionally
+    t48_ei_no_declaration_channel,         # EI: uncovered site fails unconditionally
 ]
 
 

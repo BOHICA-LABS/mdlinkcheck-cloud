@@ -48,6 +48,8 @@ test-vef.py -- verify-evidence-figures.py selftest suite
   PASS  T44 ei-wrong-div-plural-relocated [B2-3/P-D-R/L-65]
   PASS  T45 pr-prev-column-header-absent [B2-3/option-1/struct]
   PASS  T46 pr-prev-column-no-data-rows [B2-3/option-1/struct]
+  PASS  T47 adr-no-declaration-channel [B2-3/channel-deleted]
+  PASS  T48 ei-no-declaration-channel [B2-3/channel-deleted]
 ============================================================
-PASS  46/46 tests verified (each proved clean-pass + defect-fail)
-Captured at: b7e95d033924f313538139f6d2b60f4420e6af8c
+PASS  48/48 tests verified (each proved clean-pass + defect-fail)
+Captured at: PENDING

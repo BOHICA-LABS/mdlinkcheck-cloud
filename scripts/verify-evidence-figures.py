@@ -652,20 +652,10 @@ else:
 # figure ("6") which appears in the enumerated-sites block and other contexts
 # where it is NOT a paired rc/ec restatement.
 #
-# D-039 disclosure: every declared entry is printed in the output.
-# An entry here is a DISCLOSURE, not a suppression — the site is auditable.
-ADR_NOVEL_DECLARED: list = [
-    # (identifying_fragment, justification)
-    # Empty: no uncovered sites in current documents.
-    # When a new novel-spelling site is added, declare it here with justification.
-    # Every declared entry is enumerated in the output per D-039.
-]
 if am:  # only run if live figures were parseable
     _ADR_RC_CTX = re.compile(r'\breason-code\b', re.IGNORECASE)
     _ADR_EC_CTX = re.compile(r'\bE-class\b', re.IGNORECASE)
     _NUM = re.compile(r'\b(\d+)\b')
-    _novel_rc_count = 0
-    _adr_decl_seen: set = set()
     # Build covered spans from structured RC_EC_PAT matches.
     # Used by the per-metric scans below (B2-3 fix: P-A, P-A2, P-B).
     _adr_covered = [(m.start(), m.end()) for m in rc_matches]
@@ -676,46 +666,24 @@ if am:  # only run if live figures were parseable
         # never reached the scan.  New code keys on the semantic markers: a
         # line is a combined rc+ec claim if it mentions BOTH "reason-code" AND
         # "E-class", regardless of which integers appear on it.
-        # Structural guarantee: "figure present but unvalidated" is
-        # unrepresentable — an uncovered combined context line always fails.
+        # Structural guarantee: an uncovered combined context line always fails.
+        # Declaration channel removed (B2-3); the unconditional fail() is the only path.
         if not (_ADR_RC_CTX.search(_line) and _ADR_EC_CTX.search(_line)):
             continue
         if RC_EC_PAT.search(_line):
             continue  # covered by the structured pattern
-        # Uncovered combined rc+ec context line.  Fail unless declared.
-        _decl = next((d for d in ADR_NOVEL_DECLARED if d[0] in _line), None)
-        if _decl:
-            if _line not in _adr_decl_seen:
-                _adr_decl_seen.add(_line)
-                _novel_rc_count += 1
-                print(f"  DECLARED novel-spelling [adr]: {_decl[1]!r}", flush=True)
-                print(f"    context: ...{_line[:100]}...", flush=True)
+        # Uncovered combined rc+ec context line — always fail.
+        # Declaration channel removed (B2-3); uncovered site fails unconditionally.
+        _wrong = [_m.group(1) for _m in _NUM.finditer(_line)
+                  if _m.group(1) not in (live_rc, live_ec)]
+        if _wrong:
+            fail("adr-consistency/novel-spelling",
+                 f"rc={live_rc} ec={live_ec}",
+                 f"uncovered figure(s) {_wrong!r} on line: {_line[:100]!r}")
         else:
-            # Extract wrong integers for the diagnostic; always fail on uncovered lines.
-            _wrong = [_m.group(1) for _m in _NUM.finditer(_line)
-                      if _m.group(1) not in (live_rc, live_ec)]
-            if _wrong:
-                fail("adr-consistency/novel-spelling",
-                     f"rc={live_rc} ec={live_ec} (or a declared exemption)",
-                     f"uncovered figure(s) {_wrong!r} on line: {_line[:100]!r}")
-            else:
-                fail("adr-consistency/novel-spelling",
-                     "combined rc+ec mention matched by RC_EC_PAT or declared "
-                     "in ADR_NOVEL_DECLARED",
-                     f"uncovered combined mention on line: {_line[:100]!r}")
-    if _novel_rc_count:
-        print(f"  adr-consistency: {_novel_rc_count} declared novel-spelling site(s) "
-              "(enumerated above per D-039)", flush=True)
-    # S-7: stale-declaration detection — every declared entry must match >= 1 live site.
-    for _de in ADR_NOVEL_DECLARED:
-        if not any(
-            _ADR_RC_CTX.search(_ln) and _ADR_EC_CTX.search(_ln)
-            and not RC_EC_PAT.search(_ln) and _de[0] in _ln
-            for _ln in docs.splitlines()
-        ):
-            fail("adr-consistency/stale-novel-declaration",
-                 f"declared exemption {_de[0]!r} must match >= 1 uncovered site",
-                 "no matching uncovered combined rc+ec line found — declaration is stale")
+            fail("adr-consistency/novel-spelling",
+                 "combined rc+ec mention matched by RC_EC_PAT",
+                 f"uncovered combined mention on line: {_line[:100]!r}")
     # Per-metric ADR scans (B2-3 fix: P-A, P-A2).
     # The combined scan above requires BOTH 'reason-code' AND 'E-class' on the same
     # line — a standalone 'reason-code' mention with a wrong rc figure (P-A shape)
@@ -736,17 +704,11 @@ if am:  # only run if live figures were parseable
             if _nm.group(1) == _adr_live:
                 continue  # correct value
             _site_ctx = docs[max(0, _nm.start()-40):_nm.end()+40].strip()
-            _decl = next((d for d in ADR_NOVEL_DECLARED if d[0] in _site_ctx), None)
-            if _decl:
-                _novel_rc_count += 1
-                print(f"  DECLARED novel-spelling [adr/{_adr_metric}]: {_decl[1]!r}",
-                      flush=True)
-                print(f"    context: ...{_site_ctx}...", flush=True)
-            else:
-                fail(f"adr-consistency/novel-spelling/{_adr_metric}",
-                     f"{_adr_metric}={_adr_live} (or a declared exemption)",
-                     f"uncovered wrong {_adr_metric} figure {_nm.group(1)!r} "
-                     f"near: ...{_site_ctx!r}...")
+            # Declaration channel removed (B2-3); uncovered wrong figure always fails.
+            fail(f"adr-consistency/novel-spelling/{_adr_metric}",
+                 f"{_adr_metric}={_adr_live}",
+                 f"uncovered wrong {_adr_metric} figure {_nm.group(1)!r} "
+                 f"near: ...{_site_ctx!r}...")
 
 # ── Check 3: E-class ledger triple + invariant (SUGGESTION-11) ────────────────
 # BLOCKING-D fix: else-branch required; unparseable ledger line is a failure.
@@ -913,26 +875,10 @@ else:
     # ── SUGGESTION-10 (Check 4 side): novel-spelling scan for ei figures ──────
     # After all five patterns have run, scan docs_no_prev for any occurrence of
     # a live figure adjacent to an ec-injectivity context keyword that is NOT
-    # covered by an existing pattern match span.  Uncovered occurrences must be
-    # declared in EI_NOVEL_DECLARED or the check fails — inverting the default
-    # from "unmatched text is invisible" to "unmatched text must be declared".
-    #
-    # D-039 disclosure: every declared entry is printed in the output.
-    EI_NOVEL_DECLARED: list = [
-        # (identifying_fragment, justification)
-        # B2-3 fix (option 1): EI_NOVEL_DECLARED is now EMPTY.
-        # Historical baseline figures (9 divergent, 5 adjudication) in the
-        # pr-description.md "Previous (post-gate34)" column are stripped from
-        # docs_no_prev by _strip_prev_col() before the novel-spelling scans run.
-        # No proximity-based fragment exemption is needed — the column filter
-        # removes the cells entirely rather than declaring them after the fact.
-        #
-        # This list remains as a D-039 disclosure hook: if a future story
-        # introduces a genuinely uncoverable novel-spelling site that cannot be
-        # handled by column filtering, declare it here with justification.
-        # S-7 stale-detection below will fire if a declaration no longer matches
-        # any live uncovered site (prevents stale entries accumulating silently).
-    ]
+    # covered by an existing pattern match span.  Uncovered occurrences fail
+    # unconditionally — the declaration channel was removed (B2-3 fix).
+    # Historical baseline figures were handled by column filtering (_strip_prev_col)
+    # rather than by fragment exemptions; EI_NOVEL_DECLARED has been deleted.
     _EI_CTX = re.compile(
         r'\b(?:citations?\s+(?:compared|with|examined|analyzed)'
         r'|divergen(?:t|ces?)'
@@ -954,7 +900,6 @@ else:
         for _pm in _pat.finditer(ev_no_prev):
             _ei_covered.append((_pm.start() + _ev_offset, _pm.end() + _ev_offset))
 
-    _novel_ei_count = 0
     for _fig, _fig_label in [(lcmp, "cmp"), (ldiv, "div"), (ladj, "adj")]:
         for _fm in re.finditer(re.escape(_fig), docs_no_prev):
             _window = docs_no_prev[max(0, _fm.start()-80):_fm.end()+80]
@@ -963,17 +908,10 @@ else:
             if any(_s <= _fm.start() < _e for _s, _e in _ei_covered):
                 continue  # already covered by an existing pattern
             _site_ctx = docs_no_prev[max(0, _fm.start()-40):_fm.end()+40].strip()
-            _decl = next((d for d in EI_NOVEL_DECLARED if d[0] in _site_ctx), None)
-            if _decl:
-                _novel_ei_count += 1
-                print(f"  DECLARED novel-spelling [ei/{_fig_label}]: {_decl[1]!r}",
-                      flush=True)
-                print(f"    context: ...{_site_ctx}...", flush=True)
-            else:
-                fail(f"ec-injectivity/novel-spelling/{_fig_label}",
-                     "figure-adjacent occurrence matched by an existing pattern or "
-                     "declared in EI_NOVEL_DECLARED",
-                     f"uncovered mention of '{_fig}' near: ...{_site_ctx!r}...")
+            # Declaration channel removed (B2-3); uncovered mention always fails.
+            fail(f"ec-injectivity/novel-spelling/{_fig_label}",
+                 "figure-adjacent occurrence matched by an existing pattern",
+                 f"uncovered mention of '{_fig}' near: ...{_site_ctx!r}...")
     # B-1 fix: per-metric context scan to catch WRONG figures in novel prose.
     # The existing scan above (keyed on live figure values) catches correct-value
     # novel spellings (e.g. T07: "174 citations found, 42 divergent").  This scan
@@ -990,7 +928,7 @@ else:
     # P-C2: old CMP pattern only matched 'compared'; 'examined'/'analyzed' synonyms
     #        were never examined.  Expand the alternation.
     # P-D: handled by _strip_prev_col (option 1) — historical figures stripped from
-    #       docs_no_prev before scans run; EI_NOVEL_DECLARED is empty.
+    #       docs_no_prev before scans run; declaration channel deleted entirely.
     _EI_DIV_NOVEL_PAT = re.compile(r'(\d+)\s+diverg(?:ent|ences?)\b', re.IGNORECASE)
     _EI_DIV_CTX_FIRST_PAT = re.compile(
         r'\bdiverg(?:ent|ences?)\b'        # context word (divergent/divergence/s)
@@ -1011,7 +949,6 @@ else:
         (ladj, "adj", _EI_ADJ_NOVEL_PAT),
         (lcmp, "cmp", _EI_CMP_NOVEL_PAT),
     ]
-    _ei_novel_wrong_seen: set = set()
     for _live_val, _fig_label, _novel_pat in _ei_metric_scans:
         for _nm in _novel_pat.finditer(docs_no_prev):
             if any(_s <= _nm.start() < _e for _s, _e in _ei_covered):
@@ -1019,45 +956,11 @@ else:
             if _nm.group(1) == _live_val:
                 continue  # correct value — existing per-figure scan handles it
             # Wrong integer in metric context, not covered by any structured pattern.
+            # Declaration channel removed (B2-3); uncovered wrong figure always fails.
             _site_ctx = docs_no_prev[max(0, _nm.start()-40):_nm.end()+40].strip()
-            _decl = next((d for d in EI_NOVEL_DECLARED if d[0] in _site_ctx), None)
-            _key = (_fig_label, _nm.start())
-            if _decl:
-                if _key not in _ei_novel_wrong_seen:
-                    _ei_novel_wrong_seen.add(_key)
-                    _novel_ei_count += 1
-                    print(f"  DECLARED novel-spelling [ei/{_fig_label}]: {_decl[1]!r}",
-                          flush=True)
-                    print(f"    context: ...{_site_ctx}...", flush=True)
-            else:
-                fail(f"ec-injectivity/novel-spelling/{_fig_label}",
-                     f"{_fig_label}={_live_val} (or a declared exemption)",
-                     f"uncovered wrong figure {_nm.group(1)!r} near: ...{_site_ctx!r}...")
-    if _novel_ei_count:
-        print(f"  ec-injectivity: {_novel_ei_count} declared novel-spelling site(s) "
-              "(enumerated above per D-039)", flush=True)
-    # S-7: stale-declaration detection for EI — every declared entry must match >= 1
-    # live uncovered site (either in the original per-figure scan or the new
-    # per-metric context scan).
-    for _de in EI_NOVEL_DECLARED:
-        _frag = _de[0]
-        _live_orig = any(
-            _EI_CTX.search(docs_no_prev[max(0, _fm.start()-80):_fm.end()+80])
-            and not any(_s <= _fm.start() < _e for _s, _e in _ei_covered)
-            and _frag in docs_no_prev[max(0, _fm.start()-40):_fm.end()+40]
-            for _fig in (lcmp, ldiv, ladj)
-            for _fm in re.finditer(re.escape(_fig), docs_no_prev)
-        )
-        _live_new = any(
-            not any(_s <= _nm.start() < _e for _s, _e in _ei_covered)
-            and _frag in docs_no_prev[max(0, _nm.start()-40):_nm.end()+40]
-            for _live_val, _, _npat in _ei_metric_scans
-            for _nm in _npat.finditer(docs_no_prev)
-        )
-        if not (_live_orig or _live_new):
-            fail("ec-injectivity/stale-novel-declaration",
-                 f"declared exemption {_frag!r} must match >= 1 uncovered site",
-                 "no matching uncovered ei-context mention found — declaration is stale")
+            fail(f"ec-injectivity/novel-spelling/{_fig_label}",
+                 f"{_fig_label}={_live_val}",
+                 f"uncovered wrong figure {_nm.group(1)!r} near: ...{_site_ctx!r}...")
 
 # ── Check 5: Head SHA ─────────────────────────────────────────────────────────
 sha_m = re.search(r"\*\*Head SHA:\*\*\s+([0-9a-f]{40})", pr)
