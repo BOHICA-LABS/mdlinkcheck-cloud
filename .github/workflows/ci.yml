@@ -295,46 +295,95 @@ jobs:
             *) echo "VEF selftest: FAIL (exit $ret — verifier is broken)"; exit $ret ;;
           esac
 
-      # ── Advisory: evidence-figure verifier (SUGGESTION-6) ─────────────────
-      # verify-evidence-figures.py is NOT a required status check (branch
-      # protection change is operator-gated per D-120).  continue-on-error
-      # ensures the spec-lint job result is unaffected by this advisory step.
-      #
-      # B2-1 fix: exit-code disambiguation and PR-number injection.
-      #   exit 0 → PASS (verified all checks)
-      #   exit 2 → REFUSED-BENIGN (post-merge / no PR — not a failure)
-      #   exit 3 → FAIL (environment/auth failure — CI wrapper exits 1)
-      #   exit 4 → FAIL (verifier self-diagnosed bug — CI wrapper exits 1)
-      #   exit 5 → PARTIAL (some checks skipped — CI wrapper exits 1)
-      #
-      # PR number injection: on pull_request events github.event.pull_request.number
-      # is available without GH_TOKEN.  Passing --pr N bypasses the gh-based
-      # PR resolution so checks 1-7,9 run unauthenticated.  Check 8 (live PR
-      # body) requires GH_TOKEN and SKIPS loudly (exit 5) per operator design.
-      # On push events PR_NUMBER is empty and the verifier falls through to
-      # gh-based resolution (exits 3 on auth failure, step fails advisory).
-      #
-      # B-5 / if: !cancelled() so this step runs even when spec validators fail.
-      # Develop-ref guard: fetch the develop ref so rev-list develop..HEAD works.
-      - name: Verify evidence figures (advisory)
-        if: ${{ !cancelled() }}
-        continue-on-error: true
+  # ─────────────────────────────────────────────────────────────────
+  # Job 6: Evidence-figure verifier — own job for conclusion honesty
+  # Local equivalent: python3 scripts/verify-evidence-figures.py
+  #
+  # WHY THIS IS ITS OWN JOB — do NOT merge back into spec-lint:
+  #   When the verifier lived as a step in spec-lint it required
+  #   continue-on-error: true so spec-lint's conclusion was not
+  #   affected by an advisory failure.  But continue-on-error causes
+  #   GitHub to record the step "outcome" as "failure" while its
+  #   "conclusion" becomes "success", leaving the job result clean
+  #   regardless of what the verifier returned.  Every failure path
+  #   (exit 1, 3, 4, 5) was neutralised at the conclusion level —
+  #   L-66 verbatim: "continue-on-error: true makes CONCLUSION
+  #   structurally incapable of signalling failure."
+  #
+  #   In its own job — with no continue-on-error at either step or
+  #   job level (job-level continue-on-error would reintroduce the
+  #   same masking one level up) — a failing verifier produces a
+  #   failing job conclusion visible in the GitHub UI and CI logs.
+  #
+  #   This job is NOT a required status check.  The REQUIRED flip is
+  #   operator-gated per D-117/D-120/D-122/D-133 and no branch-
+  #   protection change is made here.  An advisory failing conclusion
+  #   does not block merges (D-120 preserved).  spec-lint keeps its
+  #   own conclusion and its three known advisory failures on develop
+  #   remain advisory (D-128 preserved).
+  #
+  # Covered decisions: D-212 (L-66 fix), B2-1, B-5, S2-3 (VEF
+  #   selftests remain in spec-lint — not regressed here)
+  # ─────────────────────────────────────────────────────────────────
+  verify-evidence-figures:
+    name: Verify evidence figures (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Run even if other jobs fail, but not if the workflow was cancelled.
+    # Mirrors the former step-level "if: ${{ !cancelled() }}" (B-5 fix).
+    # No needs: dependency — runs in parallel with other jobs.
+    if: ${{ !cancelled() }}
+    # Least-privilege: read-only source tree.  No GH_TOKEN grant (D-203).
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          # B2-1: check out the real PR head, not GitHub's ephemeral merge ref,
+          # so SHA-based artifact discovery in verify-evidence-figures.py sees
+          # the correct HEAD commit.  On push/workflow_dispatch events
+          # pull_request.head.sha is empty; github.sha provides the fallback.
+          # fetch-depth: 0 so git rev-list develop..HEAD resolves correctly —
+          # shallow clones break it.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Checkout spec artifacts (factory-artifacts orphan branch)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: factory-artifacts
+          path: .factory
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify evidence figures
         shell: bash
         env:
           # Pull request number from the GitHub event payload (no GH_TOKEN needed).
           # Bypasses gh-based PR resolution: checks 1-7,9 run unauthenticated.
-          # Empty string on push events (no pull_request in payload).
+          # Check 8 (live PR body) requires GH_TOKEN and skips loudly (exit 5)
+          # per operator design (D-203).  Empty string on push events.
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
           git fetch --no-tags --depth=50 origin develop:refs/remotes/origin/develop 2>/dev/null || true
           git branch develop refs/remotes/origin/develop 2>/dev/null || true
           if ! git rev-parse --verify --quiet develop >/dev/null 2>&1; then
-            echo "verify-evidence-figures: SKIPPED (develop ref unavailable in this checkout)"
-            exit 0
+            # LOUD-SKIP: develop ref unavailable after fetch attempt.
+            # Exit 5 (PARTIAL/loud-skip) — consistent with the existing scheme
+            # where exit 5 means "not a full pass; some checks could not run."
+            # Exit 0 here would be indistinguishable from a successful run to
+            # any consumer reading the exit code.
+            echo "verify-evidence-figures: LOUD-SKIP (develop ref unavailable in this checkout)"
+            echo "  Exit 5 signals PARTIAL — this cannot be read as a pass."
+            exit 5
           fi
           # Pass --pr N when available from the event context so gh auth is not
-          # needed for PR resolution.  On push events PR_NUMBER is empty.
+          # needed for PR resolution.  On push events PR_NUMBER is empty and
+          # the verifier falls through to gh-based resolution (exits 3 on auth
+          # failure so the step fails, consistent with exit-code semantics).
           PR_ARGS=()
           if [ -n "${PR_NUMBER:-}" ]; then
               PR_ARGS=("--pr" "${PR_NUMBER}")
@@ -344,18 +393,16 @@ jobs:
           case $ret in
             0) echo "verify-evidence-figures: PASS" ;;
             2)
-              # Structural guarantee (B2-1 closure): on pull_request events
-              # REFUSED-benign (exit 2) is not acceptable.  The gate MUST reach
-              # actual comparisons on every PR — any REFUSED means zero checks
-              # ran, which is "green having compared nothing" and is the exact
-              # failure mode we are preventing.
-              # This is structural, not an enumeration of REFUSED reasons: we
-              # reject ALL exit-2 on PRs regardless of why they occurred.
-              # On push/workflow_dispatch events REFUSED-benign is legitimate
-              # (no PR for this branch, post-merge context, etc.).
+              # B2-1 closure: on pull_request events exit 2 (REFUSED-benign) is
+              # not acceptable.  Validated against the code path in
+              # verify-evidence-figures.py that produces exit 2: REFUSED means
+              # zero checks ran — gate is green having compared nothing.  We
+              # reject all exit-2 on PRs regardless of which REFUSED reason
+              # triggered it.  On push/workflow_dispatch events REFUSED-benign
+              # is legitimate (no PR for this branch, post-merge context, etc.).
               if [ "${GITHUB_EVENT_NAME:-}" = "pull_request" ]; then
                 echo "verify-evidence-figures: FAIL — REFUSED on pull_request event"
-                echo "  (structural guarantee: gate must reach comparisons on every PR;"
+                echo "  (gate must reach comparisons on every PR;"
                 echo "   REFUSED means zero checks ran — gate is green having compared nothing)"
                 exit 1
               else
