@@ -262,4 +262,4 @@ D-132: 161 EC IDs compared (19 BC-only, 39 TV-only, 58 single-occurrence skipped
 D-132: 4 verdict comparisons performed (170 skipped — no BC verdict column)
 D-132: 161 EC IDs tested for collision (58 single-occurrence not tested)
 D-132: BC rows: 193 parsed, 1042 skipped-no-ec, 0 skipped-empty (= 1235 scanned)
-Captured at: 666694eed70c443d4bbaf824c07d11ae18dd040a
+Captured at: 3f48f24dfbf0d5fca4b21609cc6de05c4f537adb
