@@ -165,15 +165,17 @@ _ap.add_argument(
 )
 args = _ap.parse_args()
 
-# ── Required-checks registry (BLOCKING-D structural guarantee) ────────────────
+# ── Required-checks registry (BLOCKING-D completeness gate) ──────────────────
 # B-3 structural fix: anchor_check() no longer registers to checks_ran.
 # B2-2 structural fix: record_comparison(key, doc_value=) requires a non-None
 # doc_value argument (keyword-only, no default).  A call site that omits
 # doc_value raises TypeError; one that passes doc_value=None raises
-# AssertionError.  A check that found nothing in the document cannot produce
-# a non-None doc_value, so it cannot reach a registered state.  This closes
-# the register-without-comparing class for all current sites AND future sites
-# without requiring per-site audit.
+# AssertionError.
+# NOTE: the gate does NOT verify that a comparison occurred.  Any non-None
+# doc_value — including falsy values [], {}, '', 0, False — satisfies the
+# guard.  Safety at call sites comes from per-site hand-written fail() calls,
+# not from this gate.  A per-site audit IS still required (the class is
+# narrowed, not closed).  See the module docstring for full disclosure.
 # Registration is EXCLUSIVELY via record_comparison(key, doc_value=), called
 # only on the code path where the comparison executes AND a document value
 # was found.
@@ -303,9 +305,12 @@ def _strip_prev_col(text: str, label: str) -> "tuple[str, dict]":
     stats["rows"] >= 1.  These prove that something was stripped — not
     that the correct (baseline) column was stripped.  A ragged or
     malformed table can satisfy both counts while blanking the wrong
-    cell.  The M-2 content assertion (performed after live EI figures
-    are known) closes that gap by asserting no live figure appears in
-    the stripped content.
+    cell.  The M-2 positive-pinning assertion (performed after the call)
+    closes that gap by checking each stripped cell equals an expected
+    historical string exactly.
+
+    Returns (filtered_text, stats, stripped_cells) where stripped_cells
+    is the list of raw cell strings that were blanked (one per data row).
     """
     lines = text.splitlines()
     out: list = []
@@ -339,7 +344,7 @@ def _strip_prev_col(text: str, label: str) -> "tuple[str, dict]":
             if col_idx is not None and not is_table_row:
                 col_idx = None    # end of current table
             out.append(ln)
-    return '\n'.join(out), {"tables": tables, "rows": rows}, " ".join(stripped_cells)
+    return '\n'.join(out), {"tables": tables, "rows": rows}, stripped_cells
 
 
 # Allowed return codes per command (keyed on cmd[-1]).
@@ -570,6 +575,22 @@ if len(prev_lines) != 2:
          f"{len(prev_lines)} found — exclusion set has drifted")
 ev_no_prev = "\n".join(ln for ln in ev.splitlines() if PREV_LABEL not in ln)
 
+# M-2 fix: historical content whitelists for positive-pinning.
+# The stripped spans (ev prev_lines and pr baseline table cells) must equal
+# these known historical strings exactly.  Any modification — including
+# appending wrong current-figure text (Case G) — makes a line/cell not match
+# and fires the fail() below before the live EI scans run.  This makes the
+# wrong-value-hidden attack direction unrepresentable.
+_EV_PREV_HISTORICAL = frozenset({
+    "- Previous (post-gate34): 4 violations, 0 E-class detections",
+    "- Previous (post-gate34): 110 citations compared (80 skipped), 9 divergent, 5 adjudication",
+})
+_PR_CELL_HISTORICAL = frozenset({
+    " 4 violations, 0 E-class detections ",
+    " 9 divergent, 5 adjudication; 110 of 190 TV rows (80 skipped) ",
+    " unchanged ",
+})
+
 # B2-3 fix (option 1): column-aware filter for pr-description.md.
 # ev uses line-level filtering because every historical line starts with PREV_LABEL.
 # pr uses column-level filtering because PREV_LABEL is a table column HEADER;
@@ -578,7 +599,7 @@ ev_no_prev = "\n".join(ln for ln in ev.splitlines() if PREV_LABEL not in ln)
 # A line-level filter on pr would only remove the header row, leaving the data
 # rows (and their historical wrong figures) visible to the novel-spelling scans.
 # _strip_prev_col blanks out only the matching column cell in each data row.
-pr_no_prev, _prev_col_stats, _pr_stripped = _strip_prev_col(pr, PREV_LABEL)
+pr_no_prev, _prev_col_stats, _stripped_cells = _strip_prev_col(pr, PREV_LABEL)
 if _prev_col_stats["tables"] == 0:
     fail("pr-baseline/prev-column-header",
          f"at least one table with '{PREV_LABEL}' column header in pr-description.md",
@@ -890,19 +911,24 @@ else:
 
     record_comparison("check4-ei-figures", doc_value=eim)
 
-    # ── M-2 content assertion: stripped text must not contain any live EI figure ─
-    # Count-based guards (tables >= 1, rows >= 1) prove something was stripped but
-    # not WHICH column.  A ragged row shifts col_idx onto the current-figure cell,
-    # satisfying the count guards while hiding live values from all downstream scans.
-    # This assertion closes that gap: if any live EI figure appears in the stripped
-    # content, the filter over-stripped (blanked a current-figure cell, not historical).
-    _filter_removed = _pr_stripped + " " + " ".join(prev_lines)
-    for _lf in (ldiv, ladj, lcmp):
-        if re.search(r'\b' + re.escape(_lf) + r'\b', _filter_removed):
-            fail("filter-strip/live-figure-in-removed",
-                 f"stripped content must not contain live EI figure {_lf!r}",
-                 f"live {_lf!r} found in filter-removed text — filter over-stripped "
-                 f"a current-figure cell or line (Case A/G)")
+    # ── M-2 fix: positive-pinning of filter-removed content ─────────────────────
+    # Replacing the negative assertion (no live figure in removed text) with an
+    # equality-pin: assert that each stripped span EQUALS the expected historical
+    # text.  The old negative assertion could not detect a WRONG figure hidden in
+    # the stripped span (Case G) — only live figures tripped it, and a wrong figure
+    # is by construction not a live value.  Positive-pinning makes "arbitrary
+    # content hidden in the stripped span" unrepresentable, closing Cases A, B, E,
+    # F2, and G together.  Safety at each site rests on per-site fail() calls.
+    for _pl in prev_lines:
+        if _pl not in _EV_PREV_HISTORICAL:
+            fail("filter-strip/ev-prev-line-content",
+                 "each ev prev_line must equal the expected historical string",
+                 f"unexpected content in filter-removed ev line: {_pl!r}")
+    for _sc in _stripped_cells:
+        if _sc not in _PR_CELL_HISTORICAL:
+            fail("filter-strip/pr-stripped-cell-content",
+                 "each stripped PR baseline cell must equal an expected historical value",
+                 f"unexpected content in filter-removed PR cell: {_sc!r}")
 
     # ── SUGGESTION-10 (Check 4 side): novel-spelling scan for ei figures ──────
     # After all five patterns have run, scan docs_no_prev for any occurrence of

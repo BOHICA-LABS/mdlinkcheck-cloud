@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-50 test cases (T01-T48 + T38a/T38b + T44a/T44b replacing T38/T44,
+51 test cases (T01-T49 + T38a/T38b + T44a/T44b replacing T38/T44,
 non-sequential numbering).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
@@ -1548,6 +1548,42 @@ def t48_ei_no_declaration_channel():
         expect_label="ec-injectivity/novel-spelling/cmp")
 
 
+def t49_ev_prev_line_content_appended():
+    """M-2 fix (Case G): wrong figure appended to a filter-stripped ev prev_line.
+
+    The attack appends wrong current-figure text to one of the two
+    "Previous (post-gate34)" lines in evidence-report.md.  ev_no_prev removes
+    the entire line (PREV_LABEL filter) so all downstream EI scans miss it, and
+    the old negative assertion (live-figure-in-removed) does not fire because the
+    appended figures are WRONG values (41/19), not live values (42/22).  The
+    verifier exits 0 — a false green on the real documents at 280bcd3.
+
+    After the M-2 positive-pinning fix: filter-strip/ev-prev-line-content fires
+    because the modified line no longer matches any entry in _EV_PREV_HISTORICAL.
+
+    Non-tautology (D-141): the defect-fail direction is possible ONLY because the
+    positive-pinning equality-pin exists.  Neutralising the pin (reverting to the
+    negative live-figure assertion) restores the false green — confirmed in the RED
+    step before this fix was applied.
+
+    Defect: append wrong-value text to the ec-injectivity prev_line so the line
+            no longer equals the expected historical string.
+    Clean:  unmodified EV_FIXTURE has exactly the two expected historical lines.
+    """
+    _ORIG = (
+        "- Previous (post-gate34): 110 citations compared (80 skipped), "
+        "9 divergent, 5 adjudication"
+    )
+    _MODIFIED = _ORIG + " -> now **41 divergent** and 19 adjudication"
+
+    def defect(env):
+        text = env.ev_path.read_text().replace(_ORIG, _MODIFIED)
+        env.ev_path.write_text(text)
+    return run_test(
+        "T49 ev-prev-line-content-appended [M-2/Case-G]", defect,
+        expect_label="filter-strip/ev-prev-line-content")
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 TESTS = [
     t01_post_merge_context,
@@ -1603,6 +1639,7 @@ TESTS = [
     # B2-3 declaration-channel-deleted probes (T47-T48)
     t47_adr_no_declaration_channel,        # ADR: uncovered site fails unconditionally
     t48_ei_no_declaration_channel,         # EI: uncovered site fails unconditionally
+    t49_ev_prev_line_content_appended,     # M-2 Case-G: positive-pin ev prev_line content
 ]
 
 
