@@ -315,5 +315,6 @@ mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean pa
 | D-182 | BI-060 extended: cycle-keyed filename false-negative + machine-unreadable block state |
 | D-183 | NIT-A and NIT-B routed to sweep PR scope; not blocking PR #13 cycle-2 |
 | D-184 | Burst-37 session wrap; RESUME SNAPSHOT D-184 |
+| D-198 | Burst-38 session wrap; RESUME SNAPSHOT D-198 — cycle-2 REQUEST_CHANGES B2-1..B2-5 at `7739995e`; first genuine end-to-end exit 0 (D-190); MECHANISM FIVE D-192; orch-verification defect D-193; gate-#28 v3 CLEAN; D-185..D-198 (exhaustive). Superseded by D-204. |
 
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

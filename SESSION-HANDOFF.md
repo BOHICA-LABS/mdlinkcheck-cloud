@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-198
+  Latest: §RESUME SNAPSHOT D-204
 -->
 
 ---
@@ -2878,7 +2878,7 @@ Exactly TWO worktrees:
 
 ---
 
-## §RESUME SNAPSHOT D-198
+## §RESUME SNAPSHOT D-198 [SUPERSEDED by D-204 — retained for audit]
 
 *Written: 2026-08-09 — Burst-38 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-184.*
 
@@ -2983,4 +2983,104 @@ Exactly TWO worktrees:
 - **MECHANISM FIVE (D-192):** two new fail-open mechanisms introduced BY the cycle-1 fixes themselves. D-180 lineage is FIVE rounds.
 - **Orchestrator verification defect (D-193):** CI step CONCLUSION is not evidence of execution. Only step LOG output is.
 - **B2-4 (D-194):** captured-at SHA claim false; any branch-member SHA satisfies check9 (necessary not sufficient). Fix: validate counts and artifacts AT the named SHA.
+- **BI-060 second identity (D-197):** standing human ruling is to continue current way (twice affirmed, informed). Do NOT re-raise before pre-wave-1 checkpoint.
+
+## §RESUME SNAPSHOT D-204
+
+*Written: 2026-08-09 — Burst-39 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-198.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean passes, trajectory →0→32→34→39→37→259→273-275. **PR #12 MERGED** (squash `2ac2c3e`; BI-056/BI-057 CLOSED). **PR #13** (`fix/verifier-hardening-sweep-step0`, head `f4c43e68c0f2d1a916f5887850a189f5da7b51f7`, 14 commits ahead) OPEN — cycle-2 **B2-1 CLOSED** (D-199/D-200/D-203). Exit-2 split (0/1/2/3/4/5); CI wrapper FAILS on 3/4/5; `GH_TOKEN` NOT added (operator ruling D-203); Check 8 SKIP-loudly; `test-vef.py` own CI step. PR MERGE-REF DEFECT FOUND+FIXED (D-200): ephemeral merge-ref in CI replaced by `${{ github.event.pull_request.head.sha }}` + structural wrapper guarantee on pull_request events. continue-on-error masking = L-62 third form (D-201). D-202 residual OPEN: gate is live but not yet observed reaching real figure comparisons. Frozen perimeter `a79de7e841c705a499f7aec634c4894b3097764e` UNCHANGED. D-001..D-204 (exhaustive).
+
+**Pickup point: Resume at B2-2 — ELIMINATE the register-without-comparing class at `check2a-e-cli-001` (ATTACK-A relocated not eliminated; do not relocate again). Then B2-4+S2-1 (make captured-at claim truthful; add AC-002/AC-007 to STAMPED). Then B2-3 (bind EI_NOVEL_DECLARED exemption to metric+value+multiplicity via PREV_LABEL pattern ~300 lines earlier in same file). Then B2-5 (docs). Then FINAL PACKAGING + cycle-3 via gate-#28 v3. NEVER merge on unposted verdict (D-120). Per D-202: verify from CI LOG after packaging that advisory step reaches real figure comparisons.**
+
+### HEADS
+
+| Branch | HEAD | Notes |
+|--------|------|-------|
+| `develop` | `2ac2c3e` | oracle repairs + BI-056/057 live; selftests 99/99 |
+| `fix/verifier-hardening-sweep-step0` | `f4c43e68` | PR #13; 28/28 verifier selftests; B2-1 CLOSED; B2-2..B2-5 OPEN |
+| `factory-artifacts` | Burst-39 commit | state artifacts; Burst-39 single-commit TD-VSDD-053 |
+
+### PR #13 STATUS
+
+- **Branch:** `fix/verifier-hardening-sweep-step0`
+- **Head:** `f4c43e68c0f2d1a916f5887850a189f5da7b51f7`
+- **Commits ahead of develop:** 14
+- **CI:** Required checks all SUCCESS; advisory `Spec lint` FAILURE (correct per D-128)
+- **Selftests:** 28/28 verifier selftests local; 26/28+2 loud-skip unauthenticated (exit 5 per design)
+- **Cycle-2 verdict:** REQUEST_CHANGES (B2-1 CLOSED; B2-2/B2-4+S2-1/B2-3/B2-5 OPEN)
+- **Review file:** `.factory/code-delivery/VERIFIER-HARDENING-SWEEP-STEP0/pr-review-cycle2.md`
+- **Remaining fix order:** B2-2 (eliminate ATTACK-A) → B2-4+S2-1 (captured-at truthful; AC-002/AC-007 in STAMPED) → B2-3 (bind EI_NOVEL_DECLARED exemption) → B2-5 (docs) → FINAL PACKAGING → cycle-3
+
+### FROZEN PERIMETER
+
+`specs/` tree `a79de7e841c705a499f7aec634c4894b3097764e`. **UNCHANGED from Burst-36.** Adversary pass 8 MUST use this hash (NOT `ace1745`).
+
+### BLOCKING ISSUES RELEVANT TO PICKUP
+
+| ID | Summary | Status | Path to Close |
+|----|---------|--------|---------------|
+| BI-061 | PR #13 B2-2..B2-5 + S2-1/S2-2/S2-4/S2-5/N2-1 + D-202 residual | OPEN | Fix order: B2-2→B2-4+S2-1→B2-3→B2-5→packaging→cycle-3 via gate-#28 v3. NEVER merge on unposted verdict. |
+| BI-058 | Guard INERT + 5 false-green checkers + bc-module-map + NIT-A/B | OPEN | Gate-#42 nine-checker sweep (after sweep step 0 complete). |
+| BI-060 | validate-pr-review-posted hook — 4 structural defects; second-identity flagged for pre-wave-1 | OPEN | Do not modify mid-run (D-158/D-182). Second-identity question: pre-wave-1 checkpoint per D-197. |
+| BI-052 | False-green VP attribution class + BI-053 VP propagation debt | OPEN | After sweep step 0 + EC-151 burn. Handle VP-004/VP-025/VP-INDEX/TV-157 together (D-165). |
+
+### QUEUE ORDER
+
+1. **Complete sweep step 0 (PR #13):** B2-2→B2-4+S2-1→B2-3→B2-5→FINAL PACKAGING→cycle-3 via gate-#28 v3. NEVER merge on unposted verdict. Per D-202: verify CI log shows real figure comparisons after packaging.
+2. **Gate-#42 nine-checker ledger sweep (BI-058):** INDEPENDENT-PROBE canary populations + anti-tautology for all nine checkers + NIT-A/B. D-141 amended ruling 2: independent-probe canary MANDATORY.
+3. **EC-151 burn** + fresh hidden replacement.
+4. **BI-052 PLUS BI-053 VP propagation debt** (VP-004/VP-025/VP-INDEX/TV-157 — same class per D-165; handle together).
+5. **Input-hash drift sweep** (MANDATORY before phase-1 gate per D-170): ONCE, after BI-052/EC-151 land.
+6. **Adversary pass 8** — streak ZERO, frozen perimeter **`a79de7e841c705a499f7aec634c4894b3097764e`** (NOT `ace1745`).
+
+### STANDING CONSTRAINTS
+
+- **spec-lint REQUIRED flip DEFERRED** (D-117/D-122/D-133): do not flip without operator sign-off.
+- **Merges operator-gated** (D-120): every merge to `develop` requires operator confirmation.
+- **`GH_TOKEN` NOT added; `permissions` NOT widened** without a fresh operator ruling (D-203). Do not re-escalate without operator directive.
+- **`gh pr review --approve` IMPOSSIBLE** (BI-039/D-021/D-105): use `gh pr comment` for verdicts; never attempt `gh pr review --approve`.
+- **DEV-11 unchanged:** development cadence constraint in force.
+- **D-141 amended ruling 2:** independent-probe canary populations MANDATORY for all nine checkers in gate-#42 sweep.
+- **CI-063 mitigation:** embed operator authorization verbatim in each implementer's INITIAL SPAWN PROMPT; mid-session relay is refused.
+- **BI-060:** do not modify `validate-pr-review-posted` hook mid-run (D-158/D-182). Four structural defects. Second-identity question: flagged for pre-wave-1 checkpoint per D-197 — **do not re-raise before then.**
+- **BI-041 --write PROHIBITED:** `gen-bc-traceability.py` write mode causes lossy destruction; never invoke.
+- **D-039 no suppression:** no suppression in any spec-lint checker.
+- **BI-053 VP propagation debt:** VP-004/VP-025/VP-INDEX/TV-157 queued with BI-052 (D-165).
+- **L-62..L-68 (load-bearing):** (L-62) CI step STATUS ≠ verification; only OUTPUT is. (L-63) Selftest suite without real-corpus run is insufficient. (L-64) Provenance claim must be verified at the named SHA. (L-65) Every fix must be probed against the RELOCATED form of the defect. (L-66) `continue-on-error: true` makes CONCLUSION structurally incapable of signalling failure — only log is authoritative. (L-67) SHA-identity gates must pin `${{ github.event.pull_request.head.sha }}` and be proven live by observing a real comparison in the log. (L-68) A fix is not verified until you read the log output on a real-corpus run and confirm the gate reached an actual comparison.
+
+### SPEC SNAPSHOT
+
+PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151).
+
+D-001..D-204 (exhaustive). Open BI list: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/058/060/061; CI-063.
+
+### WORKTREE INVENTORY
+
+Exactly TWO worktrees:
+
+| Worktree | Branch | HEAD | Notes |
+|----------|--------|------|-------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | `fix/verifier-hardening-sweep-step0` | `f4c43e68` | PR #13 branch; 28/28 + 99/99 selftests |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | Burst-39 commit | state artifacts |
+
+### DECISION DELTA (D-199..D-204)
+
+| ID | Summary |
+|----|---------|
+| D-199 | B2-1 CLOSED. Exit-2 split (0/1/2/3/4/5). CI wrapper FAILS on 3/4/5. test-vef.py own CI step (S2-3). N2-2 closed (exit 5 on loud-skips). Commits 0d730a5, 00ec082 |
+| D-200 | PR MERGE-REF DEFECT found+fixed. Ephemeral merge-ref prevented SHA-based auto-discovery from ever matching. checkout ${{ github.event.pull_request.head.sha }}, structural wrapper guarantee on pull_request events. Commit f4c43e6 |
+| D-201 | L-62 third form: continue-on-error masks step failures — only log is authoritative. L-66 codified |
+| D-202 | B2-1 residual OPEN: CI gate live but not yet observed reaching real figure comparisons. Cycle-3 MUST verify from CI log after packaging |
+| D-203 | Operator declined GH_TOKEN/permissions grant. Check 8 skips loudly by design. Do NOT add GH_TOKEN without fresh operator ruling |
+| D-204 | Burst-39 session wrap; RESUME SNAPSHOT D-204. Clean-boundary wrap (D-112). B2-1 closed+verified, all remaining work specified, nothing partially done |
+
+### CAVEATS
+
+- **D-202 RESIDUAL OPEN (B2-1):** CI gate is proven LIVE (fails when it cannot compare) but has NOT been observed reaching actual figure comparisons. Cycle-3 MUST verify from the CI LOG that the advisory step shows real comparison output after packaging.
+- **B2-2..B2-5 OPEN:** B2-2 is next — eliminate ATTACK-A at `check2a-e-cli-001`, do not relocate a third time.
+- **L-67 (load-bearing):** SHA-identity gates are permanently inoperable on pull_request events unless workflow pins `${{ github.event.pull_request.head.sha }}`. This was the merge-ref masking class that kept the gate green while comparing nothing.
+- **L-66 (load-bearing):** `continue-on-error: true` makes the CONCLUSION field structurally incapable of signalling failure. Always read the log.
 - **BI-060 second identity (D-197):** standing human ruling is to continue current way (twice affirmed, informed). Do NOT re-raise before pre-wave-1 checkpoint.
