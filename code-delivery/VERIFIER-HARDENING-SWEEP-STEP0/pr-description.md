@@ -3,7 +3,7 @@
 **Epic:** Spec-Lint Integrity — Verifier Hardening Sweep
 **Mode:** maintenance
 **Branch:** fix/verifier-hardening-sweep-step0
-**Head SHA:** 7739995e7e3f25c0af3dd9bcad535af2a7774fbb
+**Head SHA:** c1ccc399b37a544a1757bb7a74805741c7942ed8
 **Base:** develop
 
 ![Tests](https://img.shields.io/badge/selftests-99%2F99-brightgreen)
@@ -23,7 +23,7 @@ closes the audit cycle opened after GATE35.  No changes to `scripts/spec-lint/` 
 ```mermaid
 graph TD
     VEF["verify-evidence-figures.py<br/>(B-4: SHA set from git; check9 redesign;<br/>parameterised entry; headRefOid guard)"]
-    TVEF["test-vef.py<br/>(26 tests — was 18; T19-T26 new)"]
+    TVEF["test-vef.py<br/>(48 tests — was 18; T19-T48 new)"]
     EV["docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/<br/>(new evidence directory)"]
 
     TVEF -->|"tests"| VEF
@@ -111,8 +111,8 @@ flowchart LR
 | Primitive unit tests | **10/10** | `spec_lint_primitives.py` (unchanged) |
 | Suppression guard pre-flight | **0/15 unproven scope reductions** | All 15 checkers pass |
 | Corpus coverage | **134/134 spec files** | All checkers assert completeness |
-| New selftests this PR | **8** (T19-T26) | |
-| Total vef selftests | **26** (was 18) | |
+| New selftests this PR | **30** (T19-T48) | |
+| Total vef selftests | **48** (was 18) | |
 
 ### New Selftests (This PR)
 
@@ -150,6 +150,7 @@ E-class ledger: pop=8, examined=6, skipped=2 (see AC-005-adr-consistency-live.tx
 
 E-class sites (6 E-class code occurrences validated). Detection confirmed at:
 `BC-2.01.009.md:44,52,71,73`, `interface-definitions.md:237`, `BC-2.11.004.md:61`.
+Live-detected E-class code: E-CLI-001 (BC-2.11.004.md line 61 — not defined in error-taxonomy.md, POLICY 19 violation; tracked, not fixed in this PR).
 
 ### EC-Injectivity Figures
 
@@ -175,7 +176,7 @@ This is a CLI tooling PR (Python verifier script).  Evidence is captured as term
 | AC-2 | Full selftest suite: 99/99 pass | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-002-selftest-99of99.txt` | PASS |
 | AC-5 | check-adr-consistency on live corpus: 9 violations (79 reason-code + 6 E-class code occ) from 134 files | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-005-adr-consistency-live.txt` | PASS |
 | AC-6 | check-ec-injectivity on live corpus: 174 citations compared, 42 divergent, 22 adjudication | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-006-ec-injectivity-live.txt` | PASS |
-| AC-7 | VEF selftest suite: 26/26 pass (T01-T26; each proved clean-pass + defect-fail) | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-007-vef-selftest.txt` | PASS |
+| AC-7 | VEF selftest suite: 48/48 pass (T01-T48; each proved clean-pass + defect-fail) | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-007-vef-selftest.txt` | PASS |
 
 Full evidence report: `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/evidence-report.md`
 
@@ -186,13 +187,19 @@ Full evidence report: `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/evidenc
 | Pass | Findings | Critical | High | Status |
 |------|----------|----------|------|--------|
 | Cycle-1 | B-1..B-5, S-4, S-5, S-7, S-8, NIT-C | 5 | 3 | All 5 blocking findings resolved |
+| Cycle-2 | B2-1..B2-5, S2-1..S2-5, N2-1, N2-2 | 5 | 5 | All 5 blocking findings resolved |
 
-**All blocking findings resolved in this PR:**
+**All blocking findings resolved in this PR (cycle-1 + cycle-2):**
 - B-1: novel-spelling scan inverted to key on context words (not live figure value); T22-T24 prove detection
 - B-2: headRefOid guard — REFUSED if resolved PR head ≠ local HEAD
 - B-3: structural separation — entry guard (`anchor_check`) never registers key; only `record_comparison()` does; T25-T26 prove detection
 - B-4: hardcoded `39efec2` → `git rev-list develop..HEAD` set comparison; Lesson-60 empty-set guard; count anchor; T19-T21 prove detection
-- B-5: advisory CI step confirmed `success` (was `skipped`) at run `31340914559`, head `04f5ec9`
+- B-5: advisory CI step fixed — exit-code split (2=benign/3=env/4=bug), GH_TOKEN auth, pull_request checkout of real head, CI test step; T27-T28 prove detection
+- B2-1: (B-5 cycle-2) CI wiring + exit-code split resolved; honest fail on env/auth failure; T27-T28 prove exit-3 and check8-auth-skip
+- B2-2: register-without-comparing eliminated; `check2a-e-cli-001` now fails if E-CLI-001 absent from PR description; T29 proves detection
+- B2-3: novel-spelling breadth — `PREV_LABEL` column filter applied to pr-description.md; declaration channel deleted; T33-T48 prove all 6 probe shapes caught
+- B2-4: `**Captured at SHA:**` must equal AC stamp SHA verified by check7; T30 proves wrong-but-on-branch SHA is caught
+- B2-5: Risk Assessment corrected — `.github/workflows/ci.yml` added to Systems affected; "no CI workflow changes" claim removed
 
 ---
 
@@ -206,27 +213,27 @@ All new regex patterns use bounded quantifiers (ReDoS-safe).
 
 ## Risk Assessment
 
-- **Systems affected:** `scripts/verify-evidence-figures.py`, `scripts/tests/test-vef.py`, `docs/demo-evidence/` — not spec-lint checkers
+- **Systems affected:** `scripts/verify-evidence-figures.py`, `scripts/tests/test-vef.py`, `docs/demo-evidence/`, `.github/workflows/ci.yml`
 - **User impact:** None in production. This is a developer-facing CI evidence verifier
 - **Data impact:** Zero. Verifier is read-only
-- **Risk level:** LOW — no Rust changes, no CI workflow changes, no `.factory/specs/` changes
+- **Risk level:** LOW — no Rust changes, no `.factory/specs/` changes; `ci.yml` adds a `Verify evidence figures` advisory job (+35 lines, read-only advisory step, gated to pull_request events)
 
 ## Rollback
 
 To revert this PR completely:
 
 ```
-git revert 7739995 04f5ec9 8593f4e 8499a67 f3bdf2f 16b3513 3dc681b 09be233 27688e3 5bf4c45 831b72b
+git revert c1ccc39 b9751c0 eb1d5e8 ebb1a78 7e9cc16 5f69ad3 b7e95d0 9d8e1b2 7521152 a31227f a9e2e3b aede571 0593be3 f4c43e6 00ec082 0d730a5 7739995 04f5ec9 8593f4e 8499a67 f3bdf2f 16b3513 3dc681b 09be233 27688e3 5bf4c45 831b72b
 ```
 
-Rollback reverts all 11 commits.
+Rollback reverts all 27 commits.
 
 ---
 
 ## Pre-Merge Checklist
 
 - [x] Nine-checker selftests 99/99 pass (each proves clean-pass AND defect-fail)
-- [x] VEF selftest suite 26/26 pass (T01-T26; B-1/B-3/B-5 residual fixes verified)
+- [x] VEF selftest suite 48/48 pass (T01-T48; B-1/B-3/B-5 + B2-1..B2-5 residual fixes verified)
 - [x] Pre-flight guard: 0 unproven scope reductions across 15 checkers
 - [x] Primitive unit tests 10/10 pass
 - [x] `.factory/specs/` untouched — no spec-corpus changes
