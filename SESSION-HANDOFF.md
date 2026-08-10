@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-204
+  Latest: §RESUME SNAPSHOT D-210
 -->
 
 ---
@@ -2985,7 +2985,7 @@ Exactly TWO worktrees:
 - **B2-4 (D-194):** captured-at SHA claim false; any branch-member SHA satisfies check9 (necessary not sufficient). Fix: validate counts and artifacts AT the named SHA.
 - **BI-060 second identity (D-197):** standing human ruling is to continue current way (twice affirmed, informed). Do NOT re-raise before pre-wave-1 checkpoint.
 
-## §RESUME SNAPSHOT D-204
+## §RESUME SNAPSHOT D-204 [SUPERSEDED by D-210 — retained for audit]
 
 *Written: 2026-08-09 — Burst-39 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-198.*
 
@@ -3084,3 +3084,105 @@ Exactly TWO worktrees:
 - **L-67 (load-bearing):** SHA-identity gates are permanently inoperable on pull_request events unless workflow pins `${{ github.event.pull_request.head.sha }}`. This was the merge-ref masking class that kept the gate green while comparing nothing.
 - **L-66 (load-bearing):** `continue-on-error: true` makes the CONCLUSION field structurally incapable of signalling failure. Always read the log.
 - **BI-060 second identity (D-197):** standing human ruling is to continue current way (twice affirmed, informed). Do NOT re-raise before pre-wave-1 checkpoint.
+
+## §RESUME SNAPSHOT D-210
+
+*Written: 2026-08-09 — Burst-40 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-204.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean passes, trajectory →0→32→34→39→37→259→273-275. **PR #12 MERGED** (squash `2ac2c3e`; BI-056/BI-057 CLOSED). **PR #13** (`fix/verifier-hardening-sweep-step0`, head `0593be3`, 15 commits ahead) OPEN — cycle-2 **B2-1 CLOSED** (D-199/D-200/D-203), **B2-2 CLOSED** (D-207; `record_comparison` keyword-only+no-default; suite 28→29). **D-208 NEW MUST-FIX:** `pr-description.md` does not acknowledge live-detected `E-CLI-001` — close in final packaging. **D-205 BUILD-SUFFICIENCY RULING** (human, journaled): MUST-FIX = wrong BCs/false-green VPs/EC mis-anchoring/holdout integrity; ADJUDICATE-AND-RECORD-NOT-FIX = historical/cosmetic/gloss/index. Three deal-breakers (stop run): new content defect class found by pass 8, new-CRITICAL rate not decaying, domain-model-invalidating defect. **D-206 CONFLICT:** severity-only convergence gate cannot enforce materiality bar — operator ruling required before pass 8. Frozen perimeter `a79de7e841c705a499f7aec634c4894b3097764e` UNCHANGED. D-001..D-210 (exhaustive).
+
+**Pickup point: Resume at B2-4+S2-1 — make the `Captured at SHA` claim truthful (at `3dc681b` suite had 21 test functions and evidence dir had 0 files while report claims 26/26; `check9` accepts because branch-membership is necessary but NOT sufficient) and add AC-002/AC-007 to STAMPED. Then B2-3 (bind `EI_NOVEL_DECLARED` exemption to metric+value+multiplicity following PREV_LABEL pattern ~300 lines earlier in same file; six wrong-figure injections still PASS). Then B2-5 (docs: Risk Assessment claims "no CI workflow changes" while diff changes `ci.yml`). Then FINAL PACKAGING — refresh `docs/demo-evidence/`; close D-208 E-CLI-001 gap in `pr-description.md`; author `pr-description.md` on `factory-artifacts` naming final head with full rollback list and matching count claim; sync live PR body; demonstrate local end-to-end exit 0. Then cycle-3 via gate-#28 v3 (reviewer read-only + cycle-keyed audit file), which per D-202 MUST confirm the figure comparison from the CI LOG, not the step status (L-66). NEVER merge on unposted verdict (D-120). Before pass 8: obtain operator ruling ratifying D-206 alignment.**
+
+### HEADS
+
+| Branch | HEAD | Notes |
+|--------|------|-------|
+| `develop` | `2ac2c3e` | oracle repairs + BI-056/057 live; selftests 99/99 |
+| `fix/verifier-hardening-sweep-step0` | `0593be3` | PR #13; 29/29 verifier selftests; B2-1+B2-2 CLOSED; B2-3..B2-5+D-208 OPEN |
+| `factory-artifacts` | Burst-40 commit | state artifacts; Burst-40 single-commit TD-VSDD-053 |
+
+### PR #13 STATUS
+
+- **Branch:** `fix/verifier-hardening-sweep-step0`
+- **Head:** `0593be3` (orchestrator-verified local == remote)
+- **Commits ahead of develop:** 15
+- **CI:** Required checks all SUCCESS; advisory `Spec lint` FAILURE (correct per D-128)
+- **Selftests:** 29/29 verifier selftests local; 27/29+2 loud-skip unauthenticated (exit 5 per design)
+- **Cycle-2 verdict:** REQUEST_CHANGES (B2-1 CLOSED D-199..D-203; B2-2 CLOSED D-207; B2-3/B2-4+S2-1/B2-5/D-208 OPEN)
+- **Review file:** `.factory/code-delivery/VERIFIER-HARDENING-SWEEP-STEP0/pr-review-cycle2.md`
+- **Remaining fix order:** B2-4+S2-1 → B2-3 → B2-5 → FINAL PACKAGING (D-208 E-CLI-001 close) → cycle-3
+
+### FROZEN PERIMETER
+
+`specs/` tree `a79de7e841c705a499f7aec634c4894b3097764e`. **UNCHANGED from Burst-36.** Adversary pass 8 MUST use this hash (NOT `ace1745`).
+
+### BLOCKING ISSUES RELEVANT TO PICKUP
+
+| ID | Summary | Status | Path to Close |
+|----|---------|--------|---------------|
+| BI-061 | PR #13 B2-3..B2-5 + S2-1/S2-2/S2-4/S2-5/N2-1 + D-202 residual + D-208 E-CLI-001 gap | OPEN | Fix order: B2-4+S2-1→B2-3→B2-5→packaging (D-208)→cycle-3 via gate-#28 v3. NEVER merge on unposted verdict. |
+| BI-058 | Guard INERT + 5 false-green checkers + bc-module-map + NIT-A/B | OPEN | Gate-#42 nine-checker sweep (after sweep step 0 complete). |
+| BI-060 | validate-pr-review-posted hook — 4 structural defects; second-identity flagged for pre-wave-1 | OPEN | Do not modify mid-run (D-158/D-182). Second-identity: pre-wave-1 checkpoint per D-197. |
+| BI-052 | False-green VP attribution class + BI-053 VP propagation debt | OPEN | After sweep step 0 + EC-151 burn. Handle VP-004/VP-025/VP-INDEX/TV-157 together (D-165). |
+
+### QUEUE ORDER
+
+1. **Complete sweep step 0 (PR #13):** B2-4+S2-1 → B2-3 → B2-5 → FINAL PACKAGING (close D-208) → cycle-3 via gate-#28 v3. NEVER merge on unposted verdict. Per D-202: verify CI log shows real figure comparisons after packaging.
+2. **Pre-pass-8 gate:** Obtain operator ruling ratifying D-206 alignment of D-205 materiality bar with engine severity-only clean-pass gate.
+3. **Gate-#42 nine-checker ledger sweep (BI-058):** INDEPENDENT-PROBE canary populations + anti-tautology for all nine checkers + NIT-A/B. D-141 amended ruling 2: independent-probe canary MANDATORY.
+4. **EC-151 burn** + fresh hidden replacement.
+5. **BI-052 PLUS BI-053 VP propagation debt** (VP-004/VP-025/VP-INDEX/TV-157 — same class per D-165; handle together).
+6. **Input-hash drift sweep** (MANDATORY before phase-1 gate per D-170): ONCE, after BI-052/EC-151 land.
+7. **Adversary pass 8** — streak ZERO, frozen perimeter **`a79de7e841c705a499f7aec634c4894b3097764e`** (NOT `ace1745`).
+
+### STANDING CONSTRAINTS
+
+- **D-205 build-sufficiency ruling (NEW — LOAD-BEARING):** MUST-FIX = defects that corrupt implementation (wrong BCs, false-green VP, EC mis-anchoring, holdout integrity). ADJUDICATE-AND-RECORD-NOT-FIX = historical/cosmetic/gloss/index. Three deal-breakers (stop run): (a) pass 8 finds new content defect class; (b) new-CRITICAL rate not decaying; (c) domain-model-invalidating defect.
+- **D-206 conflict — operator ruling required before pass 8:** Severity-only convergence gate cannot enforce materiality policy without partitioning counted vs non-counted findings. Align before dispatching pass 8.
+- **spec-lint REQUIRED flip DEFERRED** (D-117/D-122/D-133): do not flip without operator sign-off.
+- **Merges operator-gated** (D-120): every merge to `develop` requires operator confirmation.
+- **`GH_TOKEN` NOT added; `permissions` NOT widened** without a fresh operator ruling (D-203).
+- **`gh pr review --approve` IMPOSSIBLE** (BI-039/D-021/D-105): use `gh pr comment` for verdicts.
+- **DEV-11 unchanged:** development cadence constraint in force.
+- **D-141 amended ruling 2:** independent-probe canary populations MANDATORY for all nine checkers.
+- **CI-063 mitigation:** embed operator authorization verbatim in each implementer's INITIAL SPAWN PROMPT.
+- **BI-060:** do not modify `validate-pr-review-posted` hook mid-run (D-158/D-182). Second-identity flagged pre-wave-1 (D-197).
+- **BI-041 --write PROHIBITED:** `gen-bc-traceability.py` write mode is lossy; never invoke.
+- **D-039 no suppression:** no suppression in any spec-lint checker.
+- **BI-053 VP propagation debt:** VP-004/VP-025/VP-INDEX/TV-157 queued with BI-052 (D-165).
+- **L-62..L-69 (load-bearing):** (L-62) CI step STATUS ≠ verification; only OUTPUT is. (L-63) Selftest suite without real-corpus run insufficient. (L-64) Provenance claim must be verified at named SHA. (L-65) Every fix must be probed against the RELOCATED form. (L-66) `continue-on-error: true` makes CONCLUSION structurally incapable of signalling failure. (L-67) SHA-identity gates must pin `${{ github.event.pull_request.head.sha }}`. (L-68) Fix is not verified until CI log output on real-corpus run is read. (L-69) Materiality bar is not machine-enforceable under severity-only convergence gate — must partition counted vs non-counted sections.
+
+### SPEC SNAPSHOT
+
+PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151).
+
+D-001..D-210 (exhaustive). Open BI list: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/058/060/061; CI-063.
+
+### WORKTREE INVENTORY
+
+Exactly TWO worktrees:
+
+| Worktree | Branch | HEAD | Notes |
+|----------|--------|------|-------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | `fix/verifier-hardening-sweep-step0` | `0593be3` | PR #13 branch; 29/29 verifier selftests |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | Burst-40 commit | state artifacts |
+
+### DECISION DELTA (D-205..D-210)
+
+| ID | Summary |
+|----|---------|
+| D-205 | Build-sufficiency ruling (human, journaled). MUST-FIX vs ADJUDICATE-AND-RECORD-NOT-FIX. Three deal-breakers. |
+| D-206 | Clean-pass criteria surfaced + structural conflict with D-205. Operator ruling required before pass 8. |
+| D-207 | B2-2 CLOSED. register-without-comparing class ELIMINATED. Suite 28→29. Commit `0593be3`. |
+| D-208 | New genuine finding: `traceability/e-cli-001-in-pr`. MUST-FIX in final packaging. |
+| D-209 | Operator ratified Burst-39 discard-and-rerun. False-green state from partial write must be discarded, not patched. |
+| D-210 | Burst-40 session wrap; RESUME SNAPSHOT D-210. Supersedes D-204. |
+
+### CAVEATS
+
+- **D-208 MUST-FIX (B2-2 side effect):** real `pr-description.md` does not acknowledge live-detected `E-CLI-001`. Close in final packaging.
+- **D-206 OPERATOR RULING PENDING:** severity-only clean-pass gate is incompatible with D-205 materiality bar without partitioning counted vs non-counted findings. Align BEFORE pass 8.
+- **D-202 RESIDUAL OPEN:** CI advisory step proven LIVE but NOT yet observed reaching real figure comparisons. Cycle-3 MUST verify from CI LOG after packaging.
+- **L-69 (load-bearing):** materiality bar not machine-enforceable under severity-only gate. Documented-accepted findings in a separate non-counted section is the only viable implementation.

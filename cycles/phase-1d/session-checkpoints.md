@@ -316,5 +316,6 @@ mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean pa
 | D-183 | NIT-A and NIT-B routed to sweep PR scope; not blocking PR #13 cycle-2 |
 | D-184 | Burst-37 session wrap; RESUME SNAPSHOT D-184 |
 | D-198 | Burst-38 session wrap; RESUME SNAPSHOT D-198 — cycle-2 REQUEST_CHANGES B2-1..B2-5 at `7739995e`; first genuine end-to-end exit 0 (D-190); MECHANISM FIVE D-192; orch-verification defect D-193; gate-#28 v3 CLEAN; D-185..D-198 (exhaustive). Superseded by D-204. |
+| D-204 | Burst-39 session wrap; RESUME SNAPSHOT D-204 — B2-1 CLOSED (D-199/D-200/D-203); PR MERGE-REF DEFECT found+fixed; continue-on-error masking L-62 third form (D-201); D-202 residual OPEN; operator declined CI token grant (D-203); L-66..L-68; D-199..D-204 (exhaustive); PR #13 head `f4c43e68` (14 commits; 28/28 local). Superseded by D-210. |
 
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->
