@@ -1,0 +1,175 @@
+---
+# Sprint state — mdlinkcheck Phase 3 wave tracking
+# Generated: 2026-08-10T00:00:00Z
+# Producer: story-writer (Phase 2 Step D)
+
+current_wave: 1
+
+stories:
+  S-1.01:
+    status: pending
+    wave: 1
+    branch: null
+    worktree: null
+    blocked_by: []
+
+  S-1.02:
+    status: blocked
+    wave: 2
+    branch: null
+    worktree: null
+    blocked_by: [S-1.01]
+
+  S-1.03:
+    status: blocked
+    wave: 2
+    branch: null
+    worktree: null
+    blocked_by: [S-1.01]
+
+  S-3.01:
+    status: blocked
+    wave: 2
+    branch: null
+    worktree: null
+    blocked_by: [S-1.01]
+
+  S-3.03:
+    status: blocked
+    wave: 2
+    branch: null
+    worktree: null
+    blocked_by: [S-1.01]
+
+  S-5.02:
+    status: blocked
+    wave: 2
+    branch: null
+    worktree: null
+    blocked_by: [S-1.01]
+
+  S-6.01:
+    status: blocked
+    wave: 2
+    branch: null
+    worktree: null
+    blocked_by: [S-1.01]
+
+  S-7.02:
+    status: blocked
+    wave: 2
+    branch: null
+    worktree: null
+    blocked_by: [S-1.01]
+
+  S-1.04:
+    status: blocked
+    wave: 3
+    branch: null
+    worktree: null
+    blocked_by: [S-1.02, S-1.03]
+
+  S-2.01:
+    status: blocked
+    wave: 3
+    branch: null
+    worktree: null
+    blocked_by: [S-1.03]
+
+  S-6.02:
+    status: blocked
+    wave: 3
+    branch: null
+    worktree: null
+    blocked_by: [S-6.01]
+
+  S-7.01:
+    status: blocked
+    wave: 3
+    branch: null
+    worktree: null
+    blocked_by: [S-1.02]
+
+  S-7.03:
+    status: blocked
+    wave: 3
+    branch: null
+    worktree: null
+    blocked_by: [S-7.02]
+
+  S-2.02:
+    status: blocked
+    wave: 4
+    branch: null
+    worktree: null
+    blocked_by: [S-2.01]
+
+  S-2.03:
+    status: blocked
+    wave: 4
+    branch: null
+    worktree: null
+    blocked_by: [S-2.01]
+
+  S-3.02:
+    status: blocked
+    wave: 4
+    branch: null
+    worktree: null
+    blocked_by: [S-3.01, S-2.01]
+
+  S-4.02:
+    status: blocked
+    wave: 4
+    branch: null
+    worktree: null
+    blocked_by: [S-3.03, S-2.01]
+
+  S-5.01:
+    status: blocked
+    wave: 4
+    branch: null
+    worktree: null
+    blocked_by: [S-2.01, S-6.01]
+
+  S-3.04:
+    status: blocked
+    wave: 5
+    branch: null
+    worktree: null
+    blocked_by: [S-3.02, S-3.03]
+
+  S-4.01:
+    status: blocked
+    wave: 5
+    branch: null
+    worktree: null
+    blocked_by: [S-3.02]
+
+  S-5.03:
+    status: blocked
+    wave: 5
+    branch: null
+    worktree: null
+    blocked_by: [S-5.01, S-5.02]
+
+  S-4.03:
+    status: blocked
+    wave: 6
+    branch: null
+    worktree: null
+    blocked_by: [S-4.01, S-4.02]
+
+  S-5.04:
+    status: blocked
+    wave: 6
+    branch: null
+    worktree: null
+    blocked_by: [S-5.03]
+
+  S-7.04:
+    status: blocked
+    wave: 7
+    branch: null
+    worktree: null
+    blocked_by: [S-7.01, S-7.02, S-7.03, S-3.04, S-4.03]
