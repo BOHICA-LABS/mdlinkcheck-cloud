@@ -30,9 +30,24 @@ Context requirement (Item 0):
 Exit codes:
   0  — PASS: all figure checks match live output and git state.
   1  — FAIL: one or more figure mismatches detected.
-  2  — REFUSED: context not applicable (post-merge, no open PR, or
-       incoherent state — resolved PR head ≠ local HEAD, or no matching
-       pr-description.md found for current HEAD).
+  2  — REFUSED (benign): context not applicable — on develop/post-merge,
+       no open PR found (but auth succeeded), resolved PR head ≠ local HEAD,
+       or no matching pr-description.md found for current HEAD.
+  3  — REFUSED (environment failure): 'gh' not in PATH, or gh returned an
+       authentication/token error that prevented PR resolution.
+  4  — REFUSED (verifier bug): gh reported an unknown JSON field name —
+       this indicates a bug in verify-evidence-figures.py, not a user error.
+  5  — PARTIAL: all runnable checks passed but one or more checks were
+       loudly skipped due to missing environment capabilities (e.g.
+       check8-live-pr-body requires gh API authentication not available).
+
+CI wrapper contract (used in .github/workflows/ci.yml):
+  exit 0          → PASS (step succeeds)
+  exit 2          → REFUSED-BENIGN (not a failure)
+  exit 3 or 4     → FAIL and exit non-zero (genuine CI failure)
+  exit 5          → PARTIAL (not a full pass — step fails, job
+                    continues when continue-on-error: true)
+  any other exit  → FAIL and exit non-zero
 
 Structural guarantee (BLOCKING-D, B-3):
   Every check that performs a live-vs-document comparison MUST call
@@ -66,6 +81,11 @@ Test-mode overrides (_VEF_TEST_* environment variables):
                           (rollback set comparison) and check9 (captured-SHA
                           on-branch verification).  In production these are
                           derived from git rev-list develop..HEAD.
+  _VEF_TEST_GH_NOT_FOUND    — any non-empty string; simulate 'gh' not in
+                              PATH during PR resolution → exit 3.
+  _VEF_TEST_CHECK8_AUTH_FAIL — any non-empty string; simulate gh auth
+                              failure during check8 body fetch → loud SKIP
+                              and exit 5 (PARTIAL).
 
   Git commands (git show for provenance stamps) always run against the real
   git repo (_SCRIPT_REPO), not the test tmpdir, so stamp verification remains
@@ -79,19 +99,22 @@ from pathlib import Path
 _SCRIPT_REPO = Path(__file__).resolve().parent.parent
 
 # ── Test-mode overrides ────────────────────────────────────────────────────────
-_TEST_REPO        = os.environ.get("_VEF_TEST_REPO")
-_TEST_ADR_FILE    = os.environ.get("_VEF_TEST_ADR_FILE")
-_TEST_EI_FILE     = os.environ.get("_VEF_TEST_EI_FILE")
-_TEST_ST_FILE     = os.environ.get("_VEF_TEST_ST_FILE")
-_TEST_N_AHEAD     = os.environ.get("_VEF_TEST_N_AHEAD")
-_TEST_HEAD        = os.environ.get("_VEF_TEST_HEAD")
-_TEST_GH_BODY     = os.environ.get("_VEF_TEST_GH_BODY")
-_TEST_PR_NUM      = os.environ.get("_VEF_TEST_PR_NUM")
-_TEST_NO_OPEN_PR  = os.environ.get("_VEF_TEST_NO_OPEN_PR")
-_TEST_BRANCH_SHAS = os.environ.get("_VEF_TEST_BRANCH_SHAS")
-_TEST_MODE        = any([_TEST_REPO, _TEST_ADR_FILE, _TEST_EI_FILE, _TEST_ST_FILE,
-                         _TEST_N_AHEAD, _TEST_HEAD, _TEST_GH_BODY,
-                         _TEST_PR_NUM, _TEST_NO_OPEN_PR, _TEST_BRANCH_SHAS])
+_TEST_REPO             = os.environ.get("_VEF_TEST_REPO")
+_TEST_ADR_FILE         = os.environ.get("_VEF_TEST_ADR_FILE")
+_TEST_EI_FILE          = os.environ.get("_VEF_TEST_EI_FILE")
+_TEST_ST_FILE          = os.environ.get("_VEF_TEST_ST_FILE")
+_TEST_N_AHEAD          = os.environ.get("_VEF_TEST_N_AHEAD")
+_TEST_HEAD             = os.environ.get("_VEF_TEST_HEAD")
+_TEST_GH_BODY          = os.environ.get("_VEF_TEST_GH_BODY")
+_TEST_PR_NUM           = os.environ.get("_VEF_TEST_PR_NUM")
+_TEST_NO_OPEN_PR       = os.environ.get("_VEF_TEST_NO_OPEN_PR")
+_TEST_BRANCH_SHAS      = os.environ.get("_VEF_TEST_BRANCH_SHAS")
+_TEST_GH_NOT_FOUND     = os.environ.get("_VEF_TEST_GH_NOT_FOUND")
+_TEST_CHECK8_AUTH_FAIL = os.environ.get("_VEF_TEST_CHECK8_AUTH_FAIL")
+_TEST_MODE             = any([_TEST_REPO, _TEST_ADR_FILE, _TEST_EI_FILE, _TEST_ST_FILE,
+                               _TEST_N_AHEAD, _TEST_HEAD, _TEST_GH_BODY,
+                               _TEST_PR_NUM, _TEST_NO_OPEN_PR, _TEST_BRANCH_SHAS,
+                               _TEST_GH_NOT_FOUND, _TEST_CHECK8_AUTH_FAIL])
 
 if _TEST_MODE:
     print("WARNING: _VEF_TEST_* env vars active — non-production test run", flush=True)
@@ -143,7 +166,8 @@ REQUIRED_CHECKS = {
     "check8-live-pr-body",
     "check9-head-sha-ev",       # SUGGESTION-8: was unregistered
 }
-checks_ran: set = set()
+checks_ran:     set = set()
+checks_skipped: set = set()  # B2-1: loudly-skipped checks (not run, not passed)
 
 fails: list = []
 
@@ -186,6 +210,17 @@ def record_comparison(key: str) -> None:
     PASS gate to fire — "anchor present but comparison skipped" is detectable.
     """
     checks_ran.add(key)
+
+
+def _is_auth_error(stderr: str) -> bool:
+    """True when gh's stderr indicates an authentication/token issue.
+
+    Distinguishes auth failures (exit 3 — environment failure) from genuine
+    'no PR' responses (exit 2 — benign).  Checks for the three main gh error
+    forms: GH_TOKEN mention, the Actions onboarding message, or authentication.
+    """
+    s = stderr.lower()
+    return "gh_token" in s or "to use github cli" in s or "authenticat" in s
 
 
 # Allowed return codes per command (keyed on cmd[-1]).
@@ -266,7 +301,11 @@ elif _TEST_PR_NUM is not None:
     pr_number = int(_TEST_PR_NUM.strip())
 else:
     # Auto-resolve PR from current branch via gh.
+    # B2-1 exit-code split: distinct codes for benign (2), env-failure (3),
+    # and verifier-bug (4) rather than collapsing everything into exit 2.
     try:
+        if _TEST_GH_NOT_FOUND:
+            raise FileNotFoundError("simulated by _VEF_TEST_GH_NOT_FOUND")
         _gh_r = subprocess.run(
             ["gh", "pr", "view", "--json", "number,headRefOid"],
             capture_output=True, text=True,
@@ -276,24 +315,33 @@ else:
         print("\nREFUSED — 'gh' CLI not found in PATH.", flush=True)
         print("  Install from https://cli.github.com/ or pass --pr N explicitly.",
               flush=True)
-        sys.exit(2)
+        sys.exit(3)  # exit 3: environment failure (tool unavailable)
     if _gh_r.returncode != 0:
-        # Distinguish a malformed gh query from a genuine no-PR condition.
-        # "Unknown JSON field" means the requested field does not exist in gh's
-        # schema — that is a verifier bug, not a user condition.
+        _gh_err = _gh_r.stderr.strip()
         if "Unknown JSON field" in _gh_r.stderr or "unknown field" in _gh_r.stderr.lower():
+            # Verifier requested a field that gh does not recognise — this is a
+            # bug in the verifier's field list, not a user or environment issue.
             print(f"\nREFUSED — gh query returned an unexpected error "
                   f"(possible bad JSON field name in verifier).", flush=True)
-            print(f"  (gh said: {_gh_r.stderr.strip()[:200]})", flush=True)
+            print(f"  (gh said: {_gh_err[:200]})", flush=True)
             print(f"  This is a bug in verify-evidence-figures.py. "
                   f"Please file an issue.", flush=True)
+            sys.exit(4)  # exit 4: verifier self-diagnosed bug
+        elif _is_auth_error(_gh_r.stderr):
+            # Auth/token failure — environment constraint, not a benign condition.
+            print(f"\nREFUSED — gh authentication failed; cannot resolve PR.", flush=True)
+            print(f"  Set GH_TOKEN or pass --pr N explicitly.", flush=True)
+            if _gh_err:
+                print(f"  (gh said: {_gh_err[:200]})", flush=True)
+            sys.exit(3)  # exit 3: environment failure (auth unavailable)
         else:
+            # No PR found for this branch — benign (no PR exists yet, or was merged).
             print("\nREFUSED — no open pull request found for current branch.",
                   flush=True)
             print("  Create a PR first, or pass --pr N explicitly.", flush=True)
-            if _gh_r.stderr.strip():
-                print(f"  (gh said: {_gh_r.stderr.strip()[:120]})", flush=True)
-        sys.exit(2)
+            if _gh_err:
+                print(f"  (gh said: {_gh_err[:120]})", flush=True)
+            sys.exit(2)  # exit 2: benign (no PR for this branch)
     if not _gh_r.stdout.strip():
         print("\nREFUSED — no open pull request found for current branch.", flush=True)
         print("  Create a PR first, or pass --pr N explicitly.", flush=True)
@@ -304,7 +352,7 @@ else:
         _gh_head  = _gh_meta.get("headRefOid", "")
     except (_json.JSONDecodeError, KeyError) as _e:
         print(f"\nREFUSED — could not parse PR metadata from gh: {_e}", flush=True)
-        sys.exit(2)
+        sys.exit(3)  # exit 3: environment failure (unexpected gh output format)
     # Coherence: PR head SHA on GitHub must match local HEAD.
     if _gh_head and _gh_head != head:
         print(f"\nREFUSED — PR #{pr_number} head SHA from GitHub ({_gh_head[:7]})"
@@ -1051,8 +1099,17 @@ if anchor_check("check9-head-sha-ev", _cap_sha_m,
     record_comparison("check9-head-sha-ev")
 
 # ── Check 8: Live PR body must match pr-description.md (FINDING 2) ────────────
-# NIT-G fix: wrap gh invocation to produce a diagnostic rather than a traceback
-# when the gh binary is not found.
+# B2-1 fix: Check 8 requires gh API authentication (GH_TOKEN).  When running
+# in CI without a token (operator's deliberate design: checks 1-7,9 run; check
+# 8 SKIPS loudly), or when gh returns an auth error, this check is recorded to
+# checks_skipped — not a failure, not a pass.  A run with any loud-skips exits
+# 5 (PARTIAL).  The output explicitly names the skipped check and the reason,
+# so a log reader can tell which checks ran and which did not (D-039, lesson-61).
+#
+# Loud-skip criteria: gh returns non-zero AND _is_auth_error(stderr) is True.
+# Any other gh failure is recorded as an ordinary fail.
+# Test-mode: _VEF_TEST_GH_BODY_<N>, _VEF_TEST_GH_BODY — mock body (unchanged).
+#            _VEF_TEST_CHECK8_AUTH_FAIL=1 — simulate auth failure for check 8.
 def _norm_body(t: str) -> str:
     return "\n".join(l.rstrip() for l in t.splitlines()).strip()
 
@@ -1065,12 +1122,36 @@ if _gh_body_per_pr:
     _live_pr_body_raw: str | None = Path(_gh_body_per_pr).read_text()
 elif _TEST_GH_BODY:
     _live_pr_body_raw = Path(_TEST_GH_BODY).read_text()
+elif _TEST_CHECK8_AUTH_FAIL:
+    # Test-mode: simulate gh auth failure for check 8.
+    _live_pr_body_raw = None
+    print("\nCHECK 8 SKIP — gh authentication unavailable "
+          "(simulated by _VEF_TEST_CHECK8_AUTH_FAIL).", flush=True)
+    print("  check8-live-pr-body requires GH_TOKEN; skipping loudly.", flush=True)
+    checks_skipped.add("check8-live-pr-body")
 else:
     _live_pr_body_raw = None
     try:
-        _live_pr_body_raw = sh("gh", "pr", "view", str(pr_number),
-                                "--json", "body", "--jq", ".body",
-                                allowed_rc={0})
+        _gh8_r = subprocess.run(
+            ["gh", "pr", "view", str(pr_number),
+             "--json", "body", "--jq", ".body"],
+            capture_output=True, text=True, cwd=str(_SCRIPT_REPO), timeout=30,
+        )
+        if _gh8_r.returncode == 0:
+            _live_pr_body_raw = _gh8_r.stdout.strip()
+        elif _is_auth_error(_gh8_r.stderr):
+            # Auth failure: skip loudly.  This is NOT a FAIL and NOT a PASS.
+            # D-039: skip is enumerated in output; cannot be mistaken for a pass.
+            print("\nCHECK 8 SKIP — gh API authentication not available.", flush=True)
+            print("  check8-live-pr-body requires GH_TOKEN to fetch the live "
+                  "PR body; skipping loudly.", flush=True)
+            print(f"  (gh said: {_gh8_r.stderr.strip()[:200]})", flush=True)
+            checks_skipped.add("check8-live-pr-body")
+        else:
+            fail("live-pr-body/gh-error",
+                 "gh pr view exit 0",
+                 f"gh exited {_gh8_r.returncode}: "
+                 f"{_gh8_r.stderr.strip()[:120]}")
     except FileNotFoundError:
         fail("live-pr-body/gh-unavailable",
              "gh CLI available in PATH",
@@ -1084,16 +1165,16 @@ if _live_pr_body_raw is not None:
              f"live PR body has diverged from pr-description.md — "
              f"run: gh pr edit {pr_number} --body-file {PR_DESC}")
     record_comparison("check8-live-pr-body")
-# When _live_pr_body_raw is None (gh unavailable), record_comparison is NOT
-# called: fail("live-pr-body/gh-unavailable") was already recorded above, and
-# the REQUIRED_CHECKS gate fires as a structural second signal.
 
 # ── BLOCKING-D: required-checks gate ─────────────────────────────────────────
 # B-3: checks_ran is populated exclusively by record_comparison(key) calls.
 # A missing key means record_comparison() was never called on the comparison
 # path — either anchor absent (per-site fail already recorded above) or
 # comparison body bypassed (structural gap caught here).
-missing_checks = REQUIRED_CHECKS - checks_ran
+# B2-1 fix: checks_skipped are intentionally not run (loud skip, not pass).
+# Excluded from the gate so they do not trigger a double-failure.
+# Any check that is neither in checks_ran NOR in checks_skipped fires the gate.
+missing_checks = REQUIRED_CHECKS - checks_ran - checks_skipped
 for key in sorted(missing_checks):
     fail(f"required-check/{key}",
          "record_comparison(key) called on the comparison code path",
@@ -1105,4 +1186,12 @@ if fails:
     for f in fails:
         print(f)
     sys.exit(1)
+if checks_skipped:
+    # exit 5: PARTIAL — all runnable checks passed but at least one was
+    # loudly skipped due to environment constraints.  This is NOT a full pass.
+    print(f"\nPARTIAL — {len(checks_skipped)} check(s) skipped (not a full pass):")
+    for _sk in sorted(checks_skipped):
+        print(f"  SKIP  {_sk} — gh API authentication not available")
+    print("  All other checks passed.  Run with GH_TOKEN to perform a full check.")
+    sys.exit(5)
 print("\nPASS — all figure checks match live output and git state")

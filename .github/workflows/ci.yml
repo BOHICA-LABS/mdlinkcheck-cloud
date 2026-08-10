@@ -263,25 +263,47 @@ jobs:
           fi
           echo "spec-lint passed: all ${#CHECKS[@]} checks clean"
 
+      # ── B2-1 / S2-3: VEF selftest suite ──────────────────────────────────────
+      # Runs test-vef.py as an independent CI step.  Closes S2-3 (nothing ran
+      # the suite in CI before this fix).  NOT continue-on-error: failure here
+      # means the verifier itself is broken.
+      # if: !cancelled() so it runs even when the prior spec-lint validators
+      # exit 1 (tracked develop failures that this PR must not fix).
+      - name: VEF selftest suite (test-vef.py)
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: python3 scripts/tests/test-vef.py
+
       # ── Advisory: evidence-figure verifier (SUGGESTION-6) ─────────────────
       # verify-evidence-figures.py is NOT a required status check (branch
       # protection change is operator-gated per D-120).  continue-on-error
-      # ensures spec-lint job result is unaffected.
-      # Item 0: script exits 2 (REFUSED) on post-merge / develop context — that
-      # is not a CI failure; only exit 1 (FAIL) is a genuine check failure.
+      # ensures the spec-lint job result is unaffected by this advisory step.
       #
-      # B-5 fix: if: !cancelled() makes this step run even when the prior
-      # "Run spec validators" step exits 1 (tracked develop failures that this
-      # PR must not fix).  Without this the step is always skipped at head.
+      # B2-1 fix: exit-code disambiguation and PR-number injection.
+      #   exit 0 → PASS (verified all checks)
+      #   exit 2 → REFUSED-BENIGN (post-merge / no PR — not a failure)
+      #   exit 3 → FAIL (environment/auth failure — CI wrapper exits 1)
+      #   exit 4 → FAIL (verifier self-diagnosed bug — CI wrapper exits 1)
+      #   exit 5 → PARTIAL (some checks skipped — CI wrapper exits 1)
       #
-      # Develop-ref guard: actions/checkout default depth=1 may not include the
-      # develop ref.  The verifier uses 'git rev-list develop..HEAD' which FATALs
-      # if develop is absent.  We fetch it and create a local branch; if the
-      # fetch fails (develop doesn't exist on remote) we skip gracefully.
+      # PR number injection: on pull_request events github.event.pull_request.number
+      # is available without GH_TOKEN.  Passing --pr N bypasses the gh-based
+      # PR resolution so checks 1-7,9 run unauthenticated.  Check 8 (live PR
+      # body) requires GH_TOKEN and SKIPS loudly (exit 5) per operator design.
+      # On push events PR_NUMBER is empty and the verifier falls through to
+      # gh-based resolution (exits 3 on auth failure, step fails advisory).
+      #
+      # B-5 / if: !cancelled() so this step runs even when spec validators fail.
+      # Develop-ref guard: fetch the develop ref so rev-list develop..HEAD works.
       - name: Verify evidence figures (advisory)
         if: ${{ !cancelled() }}
         continue-on-error: true
         shell: bash
+        env:
+          # Pull request number from the GitHub event payload (no GH_TOKEN needed).
+          # Bypasses gh-based PR resolution: checks 1-7,9 run unauthenticated.
+          # Empty string on push events (no pull_request in payload).
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
           git fetch --no-tags --depth=50 origin develop:refs/remotes/origin/develop 2>/dev/null || true
@@ -290,10 +312,19 @@ jobs:
             echo "verify-evidence-figures: SKIPPED (develop ref unavailable in this checkout)"
             exit 0
           fi
+          # Pass --pr N when available from the event context so gh auth is not
+          # needed for PR resolution.  On push events PR_NUMBER is empty.
+          PR_ARGS=()
+          if [ -n "${PR_NUMBER:-}" ]; then
+              PR_ARGS=("--pr" "${PR_NUMBER}")
+          fi
           ret=0
-          python3 scripts/verify-evidence-figures.py || ret=$?
+          python3 scripts/verify-evidence-figures.py "${PR_ARGS[@]}" || ret=$?
           case $ret in
             0) echo "verify-evidence-figures: PASS" ;;
             2) echo "verify-evidence-figures: REFUSED (context not applicable — not a failure)" ;;
+            3) echo "verify-evidence-figures: FAIL — environment/auth failure (exit 3)"; exit 1 ;;
+            4) echo "verify-evidence-figures: FAIL — verifier self-diagnosed bug (exit 4)"; exit 1 ;;
+            5) echo "verify-evidence-figures: PARTIAL — some checks skipped, not a full pass (exit 5)"; exit 1 ;;
             *) echo "verify-evidence-figures: FAIL (exit $ret)"; exit $ret ;;
           esac

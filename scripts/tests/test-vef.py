@@ -219,8 +219,11 @@ class TestEnv:
         self.branch_shas = f"{MOCK_HEAD} aaaa111 bbbb222 cccc333 dddd444"
         # PR-resolution mocks
         self.pr_num          = "13"   # mock PR number (any value works in test mode)
-        self.no_open_pr      = False  # simulate no-PR-found → REFUSED
+        self.no_open_pr      = False  # simulate no-PR-found → REFUSED (exit 2)
         self.gh_body_overrides: dict = {}  # {pr_num_str: Path} per-PR body routing
+        # B2-1 exit-code split mocks
+        self.gh_not_found    = False  # simulate 'gh' not in PATH → exit 3
+        self.check8_auth_fail = False  # simulate check8 gh auth failure → exit 5
 
     def run(self):
         """Run the verifier under _VEF_TEST_* overrides; return (rc, combined output)."""
@@ -238,6 +241,16 @@ class TestEnv:
         }
         if self.no_open_pr:
             env["_VEF_TEST_NO_OPEN_PR"] = "1"
+        if self.gh_not_found:
+            # Remove PR_NUM override so the gh resolution path is reached,
+            # then simulate gh not being in PATH (exit 3).
+            del env["_VEF_TEST_PR_NUM"]
+            env["_VEF_TEST_GH_NOT_FOUND"] = "1"
+        if self.check8_auth_fail:
+            # Remove the gh body override so check 8 reaches the real gh path,
+            # then simulate an auth failure (check8 → loud SKIP → exit 5).
+            del env["_VEF_TEST_GH_BODY"]
+            env["_VEF_TEST_CHECK8_AUTH_FAIL"] = "1"
         # Per-PR-number body routing: _VEF_TEST_GH_BODY_<N>
         for num, path in self.gh_body_overrides.items():
             env[f"_VEF_TEST_GH_BODY_{num}"] = str(path)
@@ -641,12 +654,13 @@ def t18_gh_real_path_field_contract():
                 cwd=str(REPO), timeout=30,
             )
             combined_bad = r_bad.stdout + r_bad.stderr
+            # B2-1 exit-code split: verifier self-diagnosed bug → exit 4 (was 2).
             defect_ok = (
-                r_bad.returncode == 2
+                r_bad.returncode == 4
                 and "possible bad JSON field name in verifier" in combined_bad
             )
             if not defect_ok:
-                print(f"    FAIL T18 [defect-present]: expected rc=2 + bad-field msg, "
+                print(f"    FAIL T18 [defect-present]: expected rc=4 + bad-field msg, "
                       f"got rc={r_bad.returncode}")
                 print(f"      output: {combined_bad[:400]!r}")
         finally:
@@ -769,6 +783,49 @@ def t26_ac002_nofm_mismatch():
     return run_test("T26 ac002-nofm-mismatch [B-3/CONTROL]", defect)
 
 
+def t27_gh_not_found_exit_3():
+    """T27 (B2-1): 'gh' not in PATH during PR resolution → exit 3 (env failure).
+
+    Before B2-1 fix: gh not found → exit 2 (benign, "not a failure") —
+    indistinguishable from a post-merge context.  CI wrapper mapped exit 2 to
+    success, so a missing gh was silently reported as a non-failure.
+
+    After fix: gh not found → exit 3 (environment failure).  CI wrapper maps
+    exit 3 to a genuine failure, so the broken environment is visible.
+
+    Defect: _VEF_TEST_GH_NOT_FOUND=1 (simulates FileNotFoundError for gh).
+            _VEF_TEST_PR_NUM removed so the gh resolution path is exercised.
+    Clean:  default TestEnv with _VEF_TEST_PR_NUM set (bypasses gh entirely).
+    """
+    def defect(env):
+        env.gh_not_found = True
+    return run_test("T27 gh-not-found-env-fail [B2-1/exit-3]", defect, expect_rc=3)
+
+
+def t28_check8_auth_skip():
+    """T28 (B2-1): check8 gh auth failure → loud SKIP → exit 5 (PARTIAL).
+
+    Before B2-1 fix: when running with --pr N (bypassing PR resolution) check 8
+    would still call gh and fail; the failure either cascaded to exit 1 (FAIL) or
+    collapsed into the REQUIRED_CHECKS gate.  Neither distinguished "check ran and
+    found a mismatch" from "check could not run due to env constraints".
+
+    After fix: auth failure for check 8 → loud SKIP recorded to checks_skipped.
+    The REQUIRED_CHECKS gate excludes checks_skipped so no double-failure.
+    At the final report: exits 5 (PARTIAL) because checks_skipped is non-empty
+    and fails is empty.
+
+    Defect: _VEF_TEST_CHECK8_AUTH_FAIL=1 (simulates gh auth failure for body
+            fetch) and _VEF_TEST_GH_BODY removed (so check 8 reaches the gh
+            path).  All other checks pass → exit 5.
+    Clean:  default TestEnv has _VEF_TEST_GH_BODY set to correct content →
+            check 8 runs and passes → exit 0.
+    """
+    def defect(env):
+        env.check8_auth_fail = True
+    return run_test("T28 check8-auth-skip-exit5 [B2-1/exit-5]", defect, expect_rc=5)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 TESTS = [
     t01_post_merge_context,
@@ -797,6 +854,8 @@ TESTS = [
     t21_captured_sha_not_on_branch,
     t25_ac002_no_nofm_token,     # B-3 ATTACK-A
     t26_ac002_nofm_mismatch,     # B-3 CONTROL
+    t27_gh_not_found_exit_3,     # B2-1 exit-3 (env failure)
+    t28_check8_auth_skip,        # B2-1 exit-5 (PARTIAL, check8 loud-skip)
 ]
 
 
@@ -809,11 +868,17 @@ def main():
     n_fail = sum(1 for r in results if r is False)
     n_total = len(results)
     print("=" * 60)
-    if n_fail == 0:
-        skip_note = f"  ({n_skip} loud-skip)" if n_skip else ""
+    if n_fail == 0 and n_skip == 0:
         print(f"PASS  {n_pass}/{n_total} tests verified "
-              f"(each proved clean-pass + defect-fail){skip_note}")
+              f"(each proved clean-pass + defect-fail)")
         sys.exit(0)
+    elif n_fail == 0:
+        # N2-2 fix: loud-skips are NOT verified — exiting 0 would misrepresent
+        # the suite as fully confirmed.  Exit 5 (PARTIAL) is the honest result.
+        print(f"PASS  {n_pass}/{n_total} tests verified  ({n_skip} loud-skip)")
+        print("NOTE: loud-skipped tests are not verified — "
+              "run with gh available for a complete suite.  Exit 5 (PARTIAL).")
+        sys.exit(5)
     else:
         print(f"FAIL  {n_pass}/{n_total} tests passed  "
               f"({n_fail} failed, {n_skip} loud-skipped)")
