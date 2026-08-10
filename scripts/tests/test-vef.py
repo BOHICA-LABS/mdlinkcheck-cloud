@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-44 test cases (T01-T44, non-sequential numbering).  Each proves:
+46 test cases (T01-T46, non-sequential numbering).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
 
@@ -91,9 +91,9 @@ MOCK_ST_OUT = "Selftest passed: 99/99\n"
 #   Novel-spelling (ADR): all combined 78+reason-code+6+E-class on same line
 #                          are covered by RC_EC_PAT -- no novel-spelling fires
 #   Novel-spelling (EI):  all 174/42/22 near EI-CTX are within a pattern span;
-#     9 divergent and 5 adjudication in baseline table row are declared via
-#     EI_NOVEL_DECLARED (B-1 residual fix) -- S-7 stale-detection satisfied
-#     because the fragment '110 of 190 TV rows' is present in that row.
+#     9 divergent and 5 adjudication in the baseline table row are stripped from
+#     docs_no_prev by _strip_prev_col() (B2-3 option 1) before EI scans run.
+#     EI_NOVEL_DECLARED is empty; no explicit declaration needed.
 PR_FIXTURE = f"""\
 # PR: CHECKER-COMPLETENESS-GATE35
 
@@ -1376,6 +1376,52 @@ def t44_ei_wrong_div_plural_relocated():
     return run_test("T44 ei-wrong-div-plural-relocated [B2-3/P-D-R/L-65]", defect)
 
 
+def t45_pr_prev_column_header_absent():
+    """B2-3 (option 1): PR baseline table missing 'Previous (post-gate34)' column header.
+
+    _strip_prev_col() cannot find the column to filter, so its tables count is 0.
+    Structural assertion pr-baseline/prev-column-header fires before any
+    novel-spelling scan — column filter cannot silently become a no-op.
+
+    Defect: rename the column header in pr-description.md (and gh_file).
+    Clean:  unmodified PR fixture has the correct header.
+    """
+    def defect(env):
+        text = env.pr_path.read_text().replace(
+            "Previous (post-gate34)", "Previous (baseline)")
+        env.pr_path.write_text(text)
+        env.gh_file.write_text(text)
+    return run_test(
+        "T45 pr-prev-column-header-absent [B2-3/option-1/struct]", defect)
+
+
+def t46_pr_prev_column_no_data_rows():
+    """B2-3 (option 1): PR baseline table has header but zero data rows.
+
+    _strip_prev_col() finds the header (tables=1) but processes no data rows
+    (rows=0).  Structural assertion pr-baseline/prev-column-rows fires — the
+    filter detected the column but stripped nothing from docs_no_prev.
+
+    Defect: remove the data row from the PR baseline table, leaving header +
+    separator only.  The historical figures ('9 divergent, 5 adjudication;
+    110 of 190 TV rows') vanish entirely rather than being blanked in-column.
+    Clean:  unmodified PR fixture has one data row.
+    """
+    _DATA_ROW = (
+        "| check-ec-injectivity | 9 divergent, 5 adjudication; "
+        "110 of 190 TV rows (80 skipped) | "
+        "**42 DIVERGENT + 22 ADJUDICATION; 174 of 174 TV rows compared** "
+        "| Unchanged |\n"
+    )
+
+    def defect(env):
+        text = env.pr_path.read_text().replace(_DATA_ROW, "")
+        env.pr_path.write_text(text)
+        env.gh_file.write_text(text)
+    return run_test(
+        "T46 pr-prev-column-no-data-rows [B2-3/option-1/struct]", defect)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 TESTS = [
     t01_post_merge_context,
@@ -1423,6 +1469,9 @@ TESTS = [
     t42_ei_wrong_div_divergence_relocated, # P-C-R/L-65
     t43_ei_wrong_cmp_analyzed_relocated,   # P-C2-R/L-65
     t44_ei_wrong_div_plural_relocated,     # P-D-R/L-65
+    # B2-3 option-1 structural assertions (T45-T46)
+    t45_pr_prev_column_header_absent,      # no-op guard: header not found
+    t46_pr_prev_column_no_data_rows,       # no-op guard: header found, no rows
 ]
 
 

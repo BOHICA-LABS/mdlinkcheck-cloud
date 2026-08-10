@@ -46,6 +46,8 @@ test-vef.py -- verify-evidence-figures.py selftest suite
   PASS  T42 ei-wrong-div-divergence-relocated [B2-3/P-C-R/L-65]
   PASS  T43 ei-wrong-cmp-analyzed-relocated [B2-3/P-C2-R/L-65]
   PASS  T44 ei-wrong-div-plural-relocated [B2-3/P-D-R/L-65]
+  PASS  T45 pr-prev-column-header-absent [B2-3/option-1/struct]
+  PASS  T46 pr-prev-column-no-data-rows [B2-3/option-1/struct]
 ============================================================
-PASS  44/44 tests verified (each proved clean-pass + defect-fail)
-Captured at: 7521152bf4371c377b5fe5569f032c2221c8562d
+PASS  46/46 tests verified (each proved clean-pass + defect-fail)
+Captured at: PENDING

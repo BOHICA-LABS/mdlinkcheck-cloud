@@ -272,6 +272,62 @@ def _is_auth_error(stderr: str) -> bool:
     return "gh_token" in s or "to use github cli" in s or "authenticat" in s
 
 
+_SEP_CELL_PAT = re.compile(r'^\s*:?-+:?\s*$')
+
+
+def _strip_prev_col(text: str, label: str) -> "tuple[str, dict]":
+    """Strip the Markdown table column whose header contains `label`.
+
+    B2-3 fix (option 1): pr-description.md uses the PREV_LABEL string as a
+    column header; historical figures (9 divergent, 5 adjudication) live in
+    column cells on subsequent rows, NOT on the header row itself.  A simple
+    line-level filter (as used for evidence-report.md) would only strip the
+    header row and leave the data rows — specifically the historical figures —
+    intact in docs_no_prev.  A column-aware filter blanks out only the cell
+    at the matching column index in each data row, leaving all other columns
+    (including "After This PR") unchanged.
+
+    Returns (filtered_text, stats) where:
+      stats["tables"]  — number of header rows where the label column was found
+      stats["rows"]    — number of data rows whose cell was blanked
+
+    Structural guarantee: callers MUST assert stats["tables"] >= 1 and
+    stats["rows"] >= 1 so the filter cannot silently become a no-op if the
+    baseline table is removed or renamed.
+    """
+    lines = text.splitlines()
+    out: list = []
+    col_idx: "int | None" = None
+    tables = 0
+    rows = 0
+    for ln in lines:
+        stripped = ln.strip()
+        is_table_row = stripped.startswith('|') and stripped.endswith('|')
+        if is_table_row and col_idx is None and label in ln:
+            # Header row — determine column index and begin tracking this table.
+            cells = ln.split('|')
+            col_idx = next((i for i, c in enumerate(cells) if label in c), None)
+            if col_idx is not None:
+                tables += 1
+            out.append(ln)  # header row kept as-is
+        elif is_table_row and col_idx is not None:
+            cells = ln.split('|')
+            inner = cells[1:-1]   # exclude leading/trailing empty strings from split
+            if all(_SEP_CELL_PAT.match(c) for c in inner):
+                out.append(ln)    # separator row (|---|---|) — kept unchanged
+            elif len(cells) > col_idx:
+                cells[col_idx] = ' '   # blank out the historical-column cell
+                out.append('|'.join(cells))
+                rows += 1
+            else:
+                out.append(ln)    # row too short — structural anomaly, kept as-is
+        else:
+            if col_idx is not None and not is_table_row:
+                col_idx = None    # end of current table
+            out.append(ln)
+    return '\n'.join(out), {"tables": tables, "rows": rows}
+
+
 # Allowed return codes per command (keyed on cmd[-1]).
 # Default {0, 1}: checkers exit 0 (clean) or 1 (violations found).
 # Anything else signals a crash — surface it as a failure.
@@ -500,8 +556,28 @@ if len(prev_lines) != 2:
          f"{len(prev_lines)} found — exclusion set has drifted")
 ev_no_prev = "\n".join(ln for ln in ev.splitlines() if PREV_LABEL not in ln)
 
-docs         = pr + "\n" + ev            # used for Check 2 (no historical rc/ec in ev)
-docs_no_prev = pr + "\n" + ev_no_prev   # used for Check 4 (has historical ec-injectivity)
+# B2-3 fix (option 1): column-aware filter for pr-description.md.
+# ev uses line-level filtering because every historical line starts with PREV_LABEL.
+# pr uses column-level filtering because PREV_LABEL is a table column HEADER;
+# historical figures ("9 divergent, 5 adjudication; 110 of 190 TV rows") appear
+# in column cells on subsequent DATA rows — not on the same line as the header.
+# A line-level filter on pr would only remove the header row, leaving the data
+# rows (and their historical wrong figures) visible to the novel-spelling scans.
+# _strip_prev_col blanks out only the matching column cell in each data row.
+pr_no_prev, _prev_col_stats = _strip_prev_col(pr, PREV_LABEL)
+if _prev_col_stats["tables"] == 0:
+    fail("pr-baseline/prev-column-header",
+         f"at least one table with '{PREV_LABEL}' column header in pr-description.md",
+         "header row not found — column filter is a no-op; "
+         "add the baseline comparison table or check PREV_LABEL spelling")
+if _prev_col_stats["rows"] == 0:
+    fail("pr-baseline/prev-column-rows",
+         "at least 1 data row stripped from the prev-column baseline table",
+         "header found but no data rows processed — "
+         "table may be empty or its column count may have changed")
+
+docs         = pr + "\n" + ev             # used for Check 2 (no historical rc/ec in ev)
+docs_no_prev = pr_no_prev + "\n" + ev_no_prev  # both pr and ev filtered
 
 # ── Check 1: Selftest count ───────────────────────────────────────────────────
 sm = re.search(r"Selftest passed: (\d+)/(\d+)", st_out)
@@ -843,21 +919,19 @@ else:
     #
     # D-039 disclosure: every declared entry is printed in the output.
     EI_NOVEL_DECLARED: list = [
-        # (identifying_fragment, metric, expected_wrong_value, exact_site_count)
-        # B2-3 fix (option 2): 4-tuple replaces 2-tuple so the exemption is bound
-        # to a specific metric, a specific wrong value, and a required occurrence
-        # count.  The old 2-tuple matched ANY figure near the fragment by ±40-char
-        # proximity — wrong figures with any value were silently exempted (P-D shape).
-        # The 4-tuple only exempts the exact declared (fragment, metric, value) triple
-        # and enforces that it appears exactly exact_site_count times (multiplicity
-        # check prevents both stale declarations and uncounted extra sites).
+        # (identifying_fragment, justification)
+        # B2-3 fix (option 1): EI_NOVEL_DECLARED is now EMPTY.
+        # Historical baseline figures (9 divergent, 5 adjudication) in the
+        # pr-description.md "Previous (post-gate34)" column are stripped from
+        # docs_no_prev by _strip_prev_col() before the novel-spelling scans run.
+        # No proximity-based fragment exemption is needed — the column filter
+        # removes the cells entirely rather than declaring them after the fact.
         #
-        # Historical baseline table row in pr-description.md: gate34 figures
-        # (9 divergent, 5 adjudication) from the "Previous (post-gate34)" column —
-        # not current live values; positionally identified by unique cell text
-        # "110 of 190 TV rows".  Two separate declarations (one per metric).
-        ("110 of 190 TV rows", "div", "9", 1),
-        ("110 of 190 TV rows", "adj", "5", 1),
+        # This list remains as a D-039 disclosure hook: if a future story
+        # introduces a genuinely uncoverable novel-spelling site that cannot be
+        # handled by column filtering, declare it here with justification.
+        # S-7 stale-detection below will fire if a declaration no longer matches
+        # any live uncovered site (prevents stale entries accumulating silently).
     ]
     _EI_CTX = re.compile(
         r'\b(?:citations?\s+(?:compared|with|examined|analyzed)'
@@ -869,7 +943,9 @@ else:
     )
     # Build covered-spans: character ranges in docs_no_prev covered by any pattern.
     # ev-specific patterns (E) run on ev_no_prev; offset into docs_no_prev.
-    _ev_offset = len(pr) + 1  # +1 for the "\n" separator
+    # B2-3 fix: docs_no_prev uses pr_no_prev (not pr), so ev starts at
+    # len(pr_no_prev)+1, not len(pr)+1.
+    _ev_offset = len(pr_no_prev) + 1  # +1 for the "\n" separator
     _ei_covered: list = []
     for _pat in [STANDARD_PAT, BOLD_REV_PAT, TRANSITION_PAT, SINGLE_CMP_PAT]:
         for _pm in _pat.finditer(docs_no_prev):
@@ -887,19 +963,11 @@ else:
             if any(_s <= _fm.start() < _e for _s, _e in _ei_covered):
                 continue  # already covered by an existing pattern
             _site_ctx = docs_no_prev[max(0, _fm.start()-40):_fm.end()+40].strip()
-            # B2-3 fix: 4-tuple — also require metric and value to match.
-            # In the first scan _fig is the CORRECT live value; d[2] is the declared
-            # wrong value.  They will never be equal, so the first scan's exemption
-            # now correctly never fires for the historical wrong-value declarations.
-            _decl = next(
-                (d for d in EI_NOVEL_DECLARED
-                 if d[0] in _site_ctx and d[1] == _fig_label and d[2] == _fig),
-                None
-            )
+            _decl = next((d for d in EI_NOVEL_DECLARED if d[0] in _site_ctx), None)
             if _decl:
                 _novel_ei_count += 1
-                print(f"  DECLARED novel-spelling [ei/{_fig_label}]: "
-                      f"fragment={_decl[0]!r} expected={_decl[2]!r}", flush=True)
+                print(f"  DECLARED novel-spelling [ei/{_fig_label}]: {_decl[1]!r}",
+                      flush=True)
                 print(f"    context: ...{_site_ctx}...", flush=True)
             else:
                 fail(f"ec-injectivity/novel-spelling/{_fig_label}",
@@ -916,13 +984,13 @@ else:
     # Structural guarantee: a wrong figure adjacent to a metric context word cannot
     # silently pass — it is unrepresentable as "correct" because the scan compares
     # to the live value, not to a pattern keyed on the correct answer.
-    # B2-3 fix (P-C, P-C2, P-D): expanded per-metric patterns.
+    # B2-3 fix (P-C, P-C2): expanded per-metric patterns.
     # P-C: old DIV pattern only matched 'N divergent'; 'divergence count came to N'
     #       (context-first form) was never examined.  Add a context-first pattern.
     # P-C2: old CMP pattern only matched 'compared'; 'examined'/'analyzed' synonyms
     #        were never examined.  Expand the alternation.
-    # P-D: old 2-tuple exempted ANY figure near the fragment; new 4-tuple only
-    #       exempts the declared (metric, value) pair — handled in the match logic.
+    # P-D: handled by _strip_prev_col (option 1) — historical figures stripped from
+    #       docs_no_prev before scans run; EI_NOVEL_DECLARED is empty.
     _EI_DIV_NOVEL_PAT = re.compile(r'(\d+)\s+diverg(?:ent|ences?)\b', re.IGNORECASE)
     _EI_DIV_CTX_FIRST_PAT = re.compile(
         r'\bdiverg(?:ent|ences?)\b'        # context word (divergent/divergence/s)
@@ -944,13 +1012,6 @@ else:
         (lcmp, "cmp", _EI_CMP_NOVEL_PAT),
     ]
     _ei_novel_wrong_seen: set = set()
-    # B2-3 fix (P-D): per-declaration site counter for 4-tuple multiplicity check.
-    # The old 2-tuple only checked presence (stale if 0 sites); the 4-tuple also
-    # checks that exactly exact_site_count sites were found (P-D: wrong value near
-    # the fragment was exempt because the fragment was found; now the count must
-    # equal the declared count, and a wrong value like "7" doesn't increment any
-    # counter, so the real declaration count stays 1 but the wrong site fails first).
-    _ei_decl_site_counts: dict = {id(d): 0 for d in EI_NOVEL_DECLARED}
     for _live_val, _fig_label, _novel_pat in _ei_metric_scans:
         for _nm in _novel_pat.finditer(docs_no_prev):
             if any(_s <= _nm.start() < _e for _s, _e in _ei_covered):
@@ -959,38 +1020,19 @@ else:
                 continue  # correct value — existing per-figure scan handles it
             # Wrong integer in metric context, not covered by any structured pattern.
             _site_ctx = docs_no_prev[max(0, _nm.start()-40):_nm.end()+40].strip()
-            # B2-3 fix: 4-tuple — require fragment, metric, AND value to match.
-            # Old code: fragment only — any wrong figure near the fragment was exempt.
-            # New code: all three must match; a wrong value (e.g. "7" vs declared "9")
-            # will not find a matching declaration and will fail the check.
-            _decl = next(
-                (d for d in EI_NOVEL_DECLARED
-                 if d[0] in _site_ctx and d[1] == _fig_label
-                 and d[2] == _nm.group(1)),
-                None
-            )
+            _decl = next((d for d in EI_NOVEL_DECLARED if d[0] in _site_ctx), None)
             _key = (_fig_label, _nm.start())
             if _decl:
                 if _key not in _ei_novel_wrong_seen:
                     _ei_novel_wrong_seen.add(_key)
                     _novel_ei_count += 1
-                    _ei_decl_site_counts[id(_decl)] += 1
-                    print(f"  DECLARED novel-spelling [ei/{_fig_label}]: "
-                          f"fragment={_decl[0]!r} expected={_decl[2]!r}", flush=True)
+                    print(f"  DECLARED novel-spelling [ei/{_fig_label}]: {_decl[1]!r}",
+                          flush=True)
                     print(f"    context: ...{_site_ctx}...", flush=True)
             else:
                 fail(f"ec-injectivity/novel-spelling/{_fig_label}",
                      f"{_fig_label}={_live_val} (or a declared exemption)",
                      f"uncovered wrong figure {_nm.group(1)!r} near: ...{_site_ctx!r}...")
-    # B2-3 multiplicity check: every declaration must match exactly its declared count.
-    for _dec in EI_NOVEL_DECLARED:
-        _exp_cnt = _dec[3]
-        _act_cnt = _ei_decl_site_counts[id(_dec)]
-        if _act_cnt != _exp_cnt:
-            fail("ec-injectivity/novel-declaration-count",
-                 f"exactly {_exp_cnt} site(s) for declaration "
-                 f"({_dec[0]!r}, {_dec[1]}, {_dec[2]!r})",
-                 f"found {_act_cnt} site(s) — declaration count has drifted")
     if _novel_ei_count:
         print(f"  ec-injectivity: {_novel_ei_count} declared novel-spelling site(s) "
               "(enumerated above per D-039)", flush=True)
