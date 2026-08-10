@@ -21,4 +21,4 @@ E-class population: population=8, examined=6, skipped=2 (frontmatter, D-081)
   | TV-197 | EC-197 | `[x](a.md##double-hash)` — malformed fragment with double `#` | BC-2.08.003 | (n
 
 Check FAILED: 9 violations found (79 reason-code occurrences + 6 E-class code occurrences validated across 126 non-ADR + 8 ADRs (POLICY 12 + POLICY 19) = 134 of 134 spec files (complete), 9 non-conforming)
-Captured at: 7e9cc16c5c2a58d99faaa40f622fde3dbb3e28e0
+Captured at: ebb1a78ac1585afb6a9d34f73ab21ed354d50219
