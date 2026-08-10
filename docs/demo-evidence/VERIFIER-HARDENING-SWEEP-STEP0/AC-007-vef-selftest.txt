@@ -55,4 +55,4 @@ test-vef.py -- verify-evidence-figures.py selftest suite
   PASS  T49 ev-prev-line-content-appended [M-2/Case-G]
 ============================================================
 PASS  51/51 tests verified (each proved clean-pass + defect-fail)
-Captured at: 2cf0ce43d871532c09543fef0f249e237300e5e6
+Captured at: 666694eed70c443d4bbaf824c07d11ae18dd040a

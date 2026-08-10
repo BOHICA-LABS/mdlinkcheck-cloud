@@ -1,7 +1,7 @@
 # Demo Evidence Report — VERIFIER-HARDENING-SWEEP-STEP0
 
 **Branch:** fix/verifier-hardening-sweep-step0
-**Captured at SHA:** 7944201
+**Captured at SHA:** 666694e
 **Captured:** 2026-08-09
 **Type:** CLI tool evidence (terminal output)
 
