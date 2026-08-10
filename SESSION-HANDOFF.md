@@ -9,7 +9,7 @@ project: mdlinkcheck-cloud
   This file accumulates RESUME SNAPSHOTS across sessions.
   Each session wrap adds a new §RESUME SNAPSHOT.
   Prior snapshots are marked SUPERSEDED but retained for audit.
-  Latest: §RESUME SNAPSHOT D-184
+  Latest: §RESUME SNAPSHOT D-198
 -->
 
 ---
@@ -2875,3 +2875,112 @@ Exactly TWO worktrees:
 - **BI-041 --write PROHIBITED.**
 - **D-039 no suppression** in any spec-lint checker.
 - **Input-hash drift sweep MANDATORY** before phase-1 gate (D-170): queued after BI-052/EC-151 land.
+
+---
+
+## §RESUME SNAPSHOT D-198
+
+*Written: 2026-08-09 — Burst-38 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-184.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean passes, trajectory →0→32→34→39→37→259→273-275. **PR #12 MERGED** (squash `2ac2c3e`; develop `da86271`→`2ac2c3e`; BI-056 CLOSED, BI-057 CLOSED). First authoritative 9-checker baseline on develop = `2ac2c3e`: 6 pass / 3 fail. **PR #13** (`fix/verifier-hardening-sweep-step0`, head `7739995e7e3f25c0af3dd9bcad535af2a7774fbb`, 11 commits ahead) OPEN — cycle-2 REQUEST_CHANGES B2-1..B2-5. Cycle-1 B-1..B-5 ALL CLOSED (D-185..D-189, orchestrator-verified by direct mutation at three heads). First genuine end-to-end exit 0 achieved (D-190; PR #13's own artifacts). MECHANISM FIVE FOUND in two forms: 5(a) B-5's fix → dishonestly-green CI step (ran ZERO checks); 5(b) B-1's fix → unbounded EI_NOVEL_DECLARED exemption (D-192). Orchestrator verification defect: read CI step STATUS not OUTPUT (D-193). gate-#28 v3 CLEAN — zero classifier denials this session (D-195). BI-060 second-identity flagged for pre-wave-1 (D-197). Frozen perimeter `a79de7e841c705a499f7aec634c4894b3097764e` UNCHANGED. D-001..D-198 (exhaustive).
+
+**Pickup point: Fix PR #13 B2-1 FIRST — provide `GH_TOKEN`/permissions so verifier can run in CI, DISAMBIGUATE exit 2 (env-failure and self-diagnosed-verifier-bug must NOT map to "REFUSED (not a failure)"), and run `test-vef.py` in CI so B-2's probe is connected. Then B2-2 (eliminate ATTACK-A — do not relocate). Then B2-4+S2-1 (make captured-at claim truthful; add AC-002/AC-007 to STAMPED). Then B2-3 (bind EI_NOVEL_DECLARED exemption to metric+value+multiplicity, following PREV_LABEL pattern). Then docs (B2-5). Cycle-3 via gate-#28 v3. NEVER merge on unposted verdict (D-120).**
+
+### HEADS
+
+| Branch | HEAD | Notes |
+|--------|------|-------|
+| `develop` | `2ac2c3e` | oracle repairs + BI-056/057 live; selftests 99/99; first authoritative 9-checker baseline D-174 |
+| `fix/verifier-hardening-sweep-step0` | `7739995e` | PR #13; 26/26 verifier selftests; 99/99 nine-checker selftests; cycle-2 REQUEST_CHANGES |
+| `factory-artifacts` | Burst-38 commit | state artifacts; Burst-38 single-commit TD-VSDD-053 |
+
+### PR #13 STATUS
+
+- **Branch:** `fix/verifier-hardening-sweep-step0`
+- **Head:** `7739995e7e3f25c0af3dd9bcad535af2a7774fbb`
+- **Commits ahead of develop:** 11
+- **CI:** Required checks all SUCCESS; advisory `Spec lint` FAILURE (correct per D-128)
+- **Selftests:** 26/26 verifier selftests; 99/99 nine-checker selftests
+- **Cycle-2 verdict:** REQUEST_CHANGES
+- **Review file:** `.factory/code-delivery/VERIFIER-HARDENING-SWEEP-STEP0/pr-review-cycle2.md` (30,055 bytes; covered_sha `7739995e`)
+- **Blocking fix order:** B2-1 (CI honesty: GH_TOKEN + exit-2 disambiguation + test-vef.py in CI) → B2-2 (eliminate ATTACK-A) → B2-4+S2-1 (captured-at truthful; AC-002/AC-007 in STAMPED) → B2-3 (bind EI_NOVEL_DECLARED exemption) → docs (B2-5)
+
+### FROZEN PERIMETER
+
+`specs/` tree `a79de7e841c705a499f7aec634c4894b3097764e`. **UNCHANGED from Burst-36.** Adversary pass 8 MUST use this hash (NOT `ace1745`).
+
+### BLOCKING ISSUES RELEVANT TO PICKUP
+
+| ID | Summary | Status | Path to Close |
+|----|---------|--------|---------------|
+| BI-061 | PR #13 cycle-2 blocking set B2-1..B2-5 | OPEN | Fix order: B2-1→B2-2→B2-4+S2-1→B2-3→docs; cycle-3 via gate-#28 v3. NEVER merge on unposted verdict. |
+| BI-058 | Guard INERT + 5 false-green checkers + bc-module-map + NIT-A/B | OPEN | Gate-#42 nine-checker sweep (after sweep step 0 complete). Scope: D-169/D-183. |
+| BI-060 | validate-pr-review-posted hook — 4 structural defects; second-identity flagged for pre-wave-1 | OPEN | Do not modify mid-run (D-158/D-182). Second-identity question: flagged for pre-wave-1 checkpoint per D-197. |
+| BI-052 | False-green VP attribution class + BI-053 VP propagation debt | OPEN | After sweep step 0 + EC-151 burn. Handle VP-004/VP-025/VP-INDEX/TV-157 together (D-165). |
+
+### QUEUE ORDER
+
+1. **Complete sweep step 0 (PR #13):** Fix B2-1→B2-2→B2-4+S2-1→B2-3→docs; cycle-3 via gate-#28 v3. NEVER merge on unposted verdict.
+2. **Gate-#42 nine-checker ledger sweep (BI-058):** INDEPENDENT-PROBE canary populations + anti-tautology for all nine checkers + NIT-A/B. D-141 amended ruling 2: independent-probe canary MANDATORY.
+3. **EC-151 burn** + fresh hidden replacement.
+4. **BI-052 PLUS BI-053 VP propagation debt** (VP-004/VP-025/VP-INDEX/TV-157 — same class per D-165; handle together).
+5. **Input-hash drift sweep** (MANDATORY before phase-1 gate per D-170): ONCE, after BI-052/EC-151 land.
+6. **Adversary pass 8** — streak ZERO, frozen perimeter **`a79de7e841c705a499f7aec634c4894b3097764e`** (NOT `ace1745`).
+
+### STANDING CONSTRAINTS
+
+- **spec-lint REQUIRED flip DEFERRED** (D-117/D-122/D-133): do not flip without operator sign-off.
+- **Merges operator-gated** (D-120): every merge to `develop` requires operator confirmation.
+- **`gh pr review --approve` IMPOSSIBLE** (BI-039/D-021/D-105): use `gh pr comment` for verdicts; never attempt `gh pr review --approve`.
+- **DEV-11 unchanged:** development cadence constraint in force.
+- **D-141 amended ruling 2:** independent-probe canary populations MANDATORY for all nine checkers in gate-#42 sweep.
+- **CI-063 mitigation:** embed operator authorization verbatim in each implementer's INITIAL SPAWN PROMPT; mid-session relay is refused. Zero denials this session (D-195) — mitigation confirmed effective.
+- **BI-060:** do not modify `validate-pr-review-posted` hook mid-run (D-158/D-182). Four structural defects. Second-identity question flagged for pre-wave-1 checkpoint per D-197 — **do not re-raise before then.**
+- **BI-041 --write PROHIBITED:** `gen-bc-traceability.py` write mode causes lossy destruction; never invoke.
+- **D-039 no suppression:** no suppression in any spec-lint checker.
+- **BI-053 VP propagation debt:** VP-004/VP-025/VP-INDEX/TV-157 queued with BI-052 (D-165).
+- **L-62..L-65 (load-bearing):** (L-62) CI step STATUS ≠ verification; only OUTPUT is. (L-63) Selftest suite that never runs real corpus is insufficient; run verifier against real corpus before declaring fix complete. (L-64) Provenance claim must be verified against what was TRUE AT that SHA, not merely that SHA exists on branch. (L-65) D-180 lineage now FIVE rounds; every fix must be probed against RELOCATED form of the defect it closes.
+
+### SPEC SNAPSHOT
+
+PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (7 of 12 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151).
+
+D-001..D-198 (exhaustive). Open BI list: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/058/060/061; CI-063.
+
+### WORKTREE INVENTORY
+
+Exactly TWO worktrees:
+
+| Worktree | Branch | HEAD | Notes |
+|----------|--------|------|-------|
+| `/Users/jmagady/Dev/mdlinkcheck-cloud` | `fix/verifier-hardening-sweep-step0` | `7739995e` | PR #13 branch; 26/26 + 99/99 selftests |
+| `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` | `factory-artifacts` | Burst-38 commit | state artifacts |
+
+### DECISION DELTA (D-185..D-198)
+
+| ID | Summary |
+|----|---------|
+| D-185 | B-2 CLOSED. Field-contract structural: re.findall extracts gh --json field list from verifier source; T18 independent probe; mutation at 3 heads proves detection not accidental. Commit 09be233 |
+| D-186 | B-4 CLOSED. Hardcoded 39efec2 removed; set-difference rollback; check9 membership (non-circular). Commit 3dc681b |
+| D-187 | B-1 CLOSED WITH RESIDUAL. Novel-spelling re-keyed to context; real-corpus residual resolved via EI_NOVEL_DECLARED + S-7 stale-detection. Commits 8499a67, 8593f4e |
+| D-188 | B-3 CLOSED AS CLAIMED (partially falsified by D-191/B2-2). record_comparison sole-registration path; REQUIRED_CHECKS gate. Commit 8593f4e |
+| D-189 | B-5 CLOSED AT STATUS LEVEL, REFUTED SEMANTICALLY (see D-192). if: !cancelled() + develop-ref guard. Commit 04f5ec9 |
+| D-190 | FIRST GENUINE END-TO-END EXIT 0. auto-discovery mode; PR #13's own artifacts; circularity resolved by commit ordering. Code head 7739995; factory-artifacts 37d6275 |
+| D-191 | PR #13 cycle-2 REQUEST_CHANGES. covered_sha 7739995e. B2-1..B2-5 + S2-1..S2-5 + N2-1/N2-2. Fix order: B2-1→B2-2→B2-4+S2-1→B2-3→docs |
+| D-192 | MECHANISM FIVE — TWO FORMS. 5(a) B-5 fix: dishonestly-green CI step (zero checks; exit-2 conflation). 5(b) B-1 fix: unbounded EI_NOVEL_DECLARED exemption. D-180 lineage now FIVE rounds |
+| D-193 | ORCHESTRATOR VERIFICATION DEFECT. Read CI step CONCLUSION not OUTPUT; cycle-2 reviewer refuted; orchestrator confirmed refutation. L-62 codified |
+| D-194 | B2-4 confirmed by direct execution. Captured-at SHA 3dc681b: 21 tests + 0 evidence files at that SHA. check9 membership necessary but not sufficient. L-64 codified |
+| D-195 | gate-#28 v3 clean. Zero classifier denials this session. CI-063 mitigation confirmed effective |
+| D-196 | Streak accounting 0/3 CONFIRMED UNCHANGED. Operator ruling (twice affirmed, informed) |
+| D-197 | BI-060 second identity: human ruling continue current way. Flagged for pre-wave-1; do not re-raise before then |
+| D-198 | Burst-38 session wrap; RESUME SNAPSHOT D-198 |
+
+### CAVEATS
+
+- **BI-061 OPEN (cycle-2 B2-1..B2-5):** B2-1 must be fixed first (CI honesty prerequisite for all other fixes). Reviewer's rationale: until CI can distinguish a working verifier from a broken one, no later green means anything.
+- **MECHANISM FIVE (D-192):** two new fail-open mechanisms introduced BY the cycle-1 fixes themselves. D-180 lineage is FIVE rounds.
+- **Orchestrator verification defect (D-193):** CI step CONCLUSION is not evidence of execution. Only step LOG output is.
+- **B2-4 (D-194):** captured-at SHA claim false; any branch-member SHA satisfies check9 (necessary not sufficient). Fix: validate counts and artifacts AT the named SHA.
+- **BI-060 second identity (D-197):** standing human ruling is to continue current way (twice affirmed, informed). Do NOT re-raise before pre-wave-1 checkpoint.

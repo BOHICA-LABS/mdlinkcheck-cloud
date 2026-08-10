@@ -286,4 +286,34 @@ Spec snapshot: PRD v1.14 \| 66 BCs \| 26 VPs \| 13 DIs \| 8 ADRs \| 19 policies 
 
 ---
 
+
+---
+
+## §ARCHIVED CHECKPOINT D-184 (Burst-37 session wrap — superseded by D-198)
+
+*Written: 2026-08-09 — Burst-37. Superseded by D-198 session wrap (Burst-38).*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in phase-1d (adversarial spec convergence): 0 of 3 clean passes, trajectory →0→32→34→39→37→259→273-275. **PR #12 MERGED** by human at 18:42:19Z (squash `2ac2c3e`; `develop` advances `da86271`→`2ac2c3e`; BI-056 CLOSED, BI-057 CLOSED). **First authoritative 9-checker baseline on develop** = `2ac2c3e`: 6 pass / 3 fail; `adr-consistency` 9 violations (79 reason-code + 6 E-class); `ec-injectivity` 174 compared / 42 divergent / 22 adjudication; `holdout-boundary` EC-151 at `prd.md:618`. **PR #13** (`fix/verifier-hardening-sweep-step0`, head `27688e3`) OPEN — cycle-1 REQUEST_CHANGES (B-2 first). End-to-end demonstration using GATE35 artifacts PROVEN IMPOSSIBLE (D-181). Four-mechanism fail-open lesson codified [process-gap] D-180. BI-060 extended two hook defects D-182. BI-061 OPENED. D-001..D-184 (exhaustive).
+
+**Pickup point (at D-184): Fix PR #13 B-2 first — rename `headSha`→`headRefOid` AND add a selftest that demonstrates the suite now detects the regression. Then B-4 + create PR #13's own artifact directory + demonstrate end-to-end exit 0. Then B-1/B-3/B-5. Then cycle-2 via gate-#28 v3.**
+
+### Decision Delta (D-173..D-184)
+
+| ID | Summary |
+|----|---------|
+| D-173 | PR #12 MERGED by human at 18:42:19Z; squash 2ac2c3e; develop da86271→2ac2c3e; BI-056/057 CLOSED |
+| D-174 | First authoritative 9-checker baseline on develop = 2ac2c3e: 6 pass/3 fail; supersedes D-130 |
+| D-175 | BI-057 repair visibly working: 17 named skips vs prior 80 unnamed |
+| D-176 | malformed-fragment phantom code detected at test-vectors.md:432; refusal-to-invent vindicated |
+| D-177 | Reason-code population 78→79 (BI-053 fix adds conforming anchor-not-found); GATE35 evidence stale |
+| D-178 | PR #13 delivered: fix/verifier-hardening-sweep-step0, head 27688e3; 17/17 + 99/99; argparse; auto-discovery |
+| D-179 | PR #13 cycle-1 REQUEST_CHANGES: B-2/B-4/B-1/B-3/B-5 with prescribed fix order (B-2 first) |
+| D-180 | Four-mechanism fail-open lineage — standing lesson [process-gap]; only two durable defenses |
+| D-181 | Item-5 end-to-end proven impossible; GATE35 artifacts record 78, live=79; PR #13 must use own artifacts |
+| D-182 | BI-060 extended: cycle-keyed filename false-negative + machine-unreadable block state |
+| D-183 | NIT-A and NIT-B routed to sweep PR scope; not blocking PR #13 cycle-2 |
+| D-184 | Burst-37 session wrap; RESUME SNAPSHOT D-184 |
+
 <!-- Repeat for each archived checkpoint. Maintain chronological order. -->

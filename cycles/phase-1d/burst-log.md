@@ -2081,3 +2081,47 @@ PR #11 MERGED (`da86271`). develop `f8ee4eb`→`da86271`. Worktree and branch `f
 
 **Closes:** BI-056 (E-class detection regression; develop=2ac2c3e confirmed working), BI-057 (row-granularity skip; 17 named skips on develop=2ac2c3e). **Opens:** BI-061 (PR #13 cycle-1 blocking set). **Extends:** BI-058 (NIT-A/B routing D-183), BI-060 (two hook defects D-182). **Adds:** D-173..D-184 (exhaustive).
 
+
+---
+
+## Burst-38 — 2026-08-09
+
+**Trigger:** PR #13 cycle-1 fixes needed orchestrator verification + cycle-2 review via gate-#28 v3.
+
+**Agents dispatched:**
+- devops-engineer (B-2: field-contract structural fix + T18 independent probe)
+- devops-engineer (B-4: hardcoded SHA removal + set-difference rollback + check9 membership fix)
+- devops-engineer (B-1: novel-spelling re-keying + real-corpus false-positive resolution via EI_NOVEL_DECLARED)
+- devops-engineer (B-3: anchor_check refactor + record_comparison sole-registration path)
+- devops-engineer (B-5: CI step `if: !cancelled()` + develop-ref guard)
+- pr-reviewer (gate-#28 v3: cycle-2 review, read-only, cycle-keyed audit file)
+- state-manager (this burst)
+
+**Files touched in factory-artifacts:**
+- `.factory/STATE.md` — version 3.3→3.4; D-185..D-198; BI-061 cycle-1 CLOSED→cycle-2 OPENED; CI-063 extended; Session Resume Checkpoint D-184→D-198; Burst-33 archived; Burst-38 added as first Current Phase Steps row
+- `.factory/SESSION-HANDOFF.md` — Latest pointer D-184→D-198; §RESUME SNAPSHOT D-198 appended
+- `.factory/cycles/phase-1d/lessons.md` — L-62..L-65 appended
+- `.factory/cycles/phase-1d/burst-log.md` — this entry; Burst-33 Current Phase Steps row archived below
+- `.factory/cycles/phase-1d/session-checkpoints.md` — D-184 checkpoint archived
+- `.factory/code-delivery/VERIFIER-HARDENING-SWEEP-STEP0/pr-review-cycle2.md` — cycle-2 audit file (30055 bytes; covered_sha `7739995e`)
+
+**Key results:**
+- Cycle-1 B-1..B-5 ALL CLOSED (D-185..D-189), orchestrator-verified by direct mutation experiments at three separate heads
+- First genuine end-to-end exit 0 (D-190): `python3 scripts/verify-evidence-figures.py` → `PASS` with no flags; used PR #13's OWN artifacts (circularity resolved by commit ordering)
+- Cycle-2 REQUEST_CHANGES B2-1..B2-5 (D-191); reviewer's fix order: B2-1→B2-2→B2-4+S2-1→B2-3→docs
+- MECHANISM FIVE FOUND — TWO forms: 5(a) dishonestly-green CI step (B-5's own fix; ran zero checks); 5(b) unbounded EI_NOVEL_DECLARED exemption (B-1's own fix) (D-192)
+- Orchestrator verification defect recorded: read CI step STATUS not OUTPUT (D-193); L-62 codified
+- gate-#28 v3 executed cleanly; zero classifier denials this session (D-195); CI-063 mitigation confirmed effective
+- Streak: 0 of 3 clean passes UNCHANGED (operator ruling D-196)
+- BI-060 second identity: human ruling to continue current way, flagged for pre-wave-1 (D-197)
+- L-62..L-65 appended (all [process-gap], all load-bearing)
+
+**Closes:** cycle-1 BI-061 B-1..B-5 (D-185..D-189). **Opens:** cycle-2 BI-061 B2-1..B2-5 (D-191). **Extends:** CI-063 (zero denials D-195). **Adds:** D-185..D-198 (exhaustive). TD-VSDD-053 single-commit burst.
+
+---
+
+## Archived: Burst-33 Current Phase Steps row
+
+The following row was archived from STATE.md Current Phase Steps to this file during Burst-38 (oldest row rotated out per 5-row limit):
+
+| Burst-33 — gates #36-#39 + PR #12 lifecycle (ca8c1c0; 7 commits; 0 BLOCKING cycle-3; security APPROVE; 91→98 selftests all mutation-verified); BI-056/BI-057 REPAIRED-PENDING-MERGE; BI-058 OPENED (D-132 audit: suppression guard INERT + 5 false-green checkers); CI-063 recorded (recurring auto-mode classifier friction, ~9.7% wall-time loss); D-135..D-143 (exhaustive); d132-checker-audit.md created; D-134 checkpoint archived to session-checkpoints.md | state-manager | COMPLETE | D-135..D-143 appended to Decisions Log. BI-056/BI-057 updated REPAIRED-PENDING-MERGE at ca8c1c0. BI-058 OPENED. CI-063 recorded. Burst-26 archived to burst-log.md. D-134 checkpoint archived to session-checkpoints.md. d132-checker-audit.md created. specs/ tree ace1745… VERIFIED UNCHANGED. Single-commit burst TD-VSDD-053. |
