@@ -50,4 +50,4 @@ test-vef.py -- verify-evidence-figures.py selftest suite
   PASS  T46 pr-prev-column-no-data-rows [B2-3/option-1/struct]
 ============================================================
 PASS  46/46 tests verified (each proved clean-pass + defect-fail)
-Captured at: PENDING
+Captured at: b7e95d033924f313538139f6d2b60f4420e6af8c
