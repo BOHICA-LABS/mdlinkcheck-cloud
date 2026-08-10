@@ -4,14 +4,14 @@ level: ops
 version: "3.7"
 status: draft
 producer: state-manager
-timestamp: 2026-08-10T10:00:00Z
+timestamp: 2026-08-10T18:30:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
 traces_to: ""
 project: mdlinkcheck-cloud
 mode: greenfield
-current_step: "Burst-44a COMPLETE: cycle-3 REQUEST_CHANGES at eae146a (5 MUST-FIX M-1..M-5; 11 accepted; 1 unmapped new class = CI-signalling); B2-2 NARROWED not closed (D-224 binding probe); D-225 no deal-breakers triggered (operator to ratify); D-227 pass 8 MUST read CI log body never status; D-228 BI-060 verdict-inversion; D-229 third state-manager stall; D-223..D-229 (exhaustive); convergence UNCHANGED 0 of 3; PENDING Burst-44b (lessons L-74..L-76 + RESUME SNAPSHOT D-230 + BI-061/Standing-flags update); pickup: fix 5 MUST-FIX at eae146a TEST-FIRST per D-193, then cycle-4 only for those"
+current_step: "Burst-44b COMPLETE: cycle-3 verdict DURABLE — REQUEST_CHANGES at eae146a (5 MUST-FIX M-1..M-5; 11 accepted; 1 unmapped new class = CI-signalling); B2-2 NARROWED not closed (D-224); D-225 no deal-breakers triggered (operator to ratify); D-227 pass 8 MUST read CI log body never status; D-228 BI-060 verdict-inversion; D-229 third stall + L-77 standing minimal-burst shape; D-223..D-230 (exhaustive); RESUME SNAPSHOT D-230; convergence UNCHANGED 0 of 3; trajectory-tail →39→37→259→273-275; pickup: fix 5 MUST-FIX at eae146a TEST-FIRST per D-193, then cycle-4 only for those; verdict NOT yet posted to PR #13 (use gh pr comment; NEVER merge on unposted verdict D-120)"
 current_cycle: phase-1d
 dtu_required: false
 ---
@@ -40,7 +40,7 @@ dtu_required: false
 | **Product Type** | CLI (no UI) |
 | **Target Workspace** | /Users/jmagady/Dev/mdlinkcheck-cloud |
 | **Started** | 2026-08-05 |
-| **Last Updated** | 2026-08-10 — Burst-43: B2-3/B2-4/B2-5/S2-1/S2-4/D-208/D-212 CLOSED (D-215/D-216/D-217/D-218 exhaustive); D-202 CLOSED via CI-log confirmation (D-219; CI run `31365193619`); D-214 GOOD-ENOUGH directive (operator); D-220 OPEN operator decision; 48/48 selftests; PR #13 head `eae146a` OPEN MERGEABLE; RESUME SNAPSHOT D-222 |
+| **Last Updated** | 2026-08-10 — Burst-44a/44b: cycle-3 REQUEST_CHANGES at `eae146a` (MUST-FIX 5 / accepted 11 / unmapped new class 1); B2-2 NARROWED not closed (D-224 binding probe); D-225 no deal-breakers, new classes decayed 5→5→0; D-227 pass 8 must read CI log body not status; D-228 BI-060 verdict-inversion; D-229 third state-manager stall; L-77 standing minimal-burst shape; RESUME SNAPSHOT D-230 |
 | **Current Phase** | phase-1d |
 | **Current Step** | PR #13 (`fix/verifier-hardening-sweep-step0`, head `eae146a`) OPEN — cycle-3 PENDING (review via gate-#28 v3). 48/48 verifier selftests. Frozen perimeter `a79de7e`. 0 of 3 clean passes UNCHANGED. |
 
@@ -171,6 +171,7 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 | D-227 | A-1 BINDING CONSEQUENCE FOR ADVERSARY PASS 8. D-212/D-217 moved the `verify-evidence-figures` job conclusion from stuck-GREEN to stuck-RED: under D-203 `check8` can never authenticate, so exit 5 is guaranteed on every PR forever. The conclusion can signal failure but can NEVER signal success, so it cannot distinguish PARTIAL-all-passed from FAIL-figures-mismatched. ADVERSARY PASS 8 AND EVERY DOWNSTREAM CONSUMER MUST READ THE CI LOG BODY, NEVER THE STATUS (L-62/L-68). Sharpens D-220, which remains an OPEN OPERATOR DECISION: (a) grant a CI token, reversing D-203, so the job can reach green; or (b) accept a permanently-red advisory job whose log is the authoritative signal. | A conclusion channel is informative only if both outcomes are reachable; neither stuck-green nor stuck-red carries information. | phase-1d | 2026-08-10 | pr-reviewer/orchestrator |
 | D-228 | BI-060 EXTENDED — FIFTH and more severe defect: the hook can INVERT a reviewer's verdict. During cycle-3 `validate-pr-review-posted` blocked at `SubagentStop` (`exit_code=2`) demanding the reviewer spawn `github-ops` and run `gh pr review --approve` OR `--request-changes`, offering `--approve` as an equally-valid branch. Taking it would have posted an APPROVAL on a review whose verdict is REQUEST_CHANGES. The reviewer REFUSED all three counts (no `github-ops` spawn; no rename of the cycle-keyed audit file to the literal `pr-review.md` the hook greps for; no hook modification) and recorded the block verbatim — correct precedented behaviour per D-158/D-182. Severity RAISED. | A hook capable of inverting a verdict is materially more severe than the filename false-negative BI-060 was opened for. Do not modify the hook mid-run (D-158/D-182); second-identity remains flagged pre-wave-1 (D-197). | phase-1d | 2026-08-10 | pr-reviewer/orchestrator |
 | D-229 | THIRD STATE-MANAGER STALL — CI-063-class process finding. Burst-44 as originally dispatched stalled ~94 minutes with two subagent token-counter resets, the same signature as Bursts 39 and 42, and produced a false "Burst-44 COMPLETE" STATE.md asserting `D-223..D-229 (exhaustive)` and `RESUME SNAPSHOT D-229` while zero D-rows had been added and no snapshot existed. Operator interrupted; partial writes discarded; integrity verified byte-identical to `1733346`. THE REWRITE CEILING PERSISTS EVEN POST-COMPACTION (STATE.md was already slimmed 432 to 273 lines in Burst-42), so file size was NOT the root cause — DISPATCH SCOPE WAS. Mitigation adopted: split state bursts into minimal single-purpose units with all text pre-composed by the orchestrator, an explicit ban on reading or rewriting any file over 100 lines, and an explicit forbidden-file list. The agent-contract fix is post-run engine work. | Third occurrence of one class makes it a codification obligation, not an incident (S-7.02). Recording as process-gap; a false COMPLETE state is more dangerous than a stall. | phase-1d | 2026-08-10 | orchestrator/operator |
+| D-230 | Burst-44b session wrap; durable RESUME SNAPSHOT D-230 committed, superseding D-222. Cycle-3 verdict durable; 5 MUST-FIX open and unstarted; no fix work performed. L-77 records the minimal state-burst dispatch shape as standing practice after three stalls (Bursts 39/42/44) traced to dispatch scope rather than file size. | Clean-boundary wrap (D-112): cycle-3 complete and recorded, all remaining work specified, nothing partially done. | phase-1d | 2026-08-10 | orchestrator/state-manager |
 
 ## Skip Log
 
@@ -217,7 +218,7 @@ Pass 4 verdict: mechanical enforcement bent the COMPOSITION decisively but NOT t
 
 ## Session Resume Checkpoint
 
-Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-222`
+Full resume snapshot: `SESSION-HANDOFF.md §RESUME SNAPSHOT D-230`
 
 | Field | Value |
 |-------|-------|

@@ -3287,7 +3287,7 @@ Exactly TWO worktrees:
 - **D-212 OPEN:** `continue-on-error: true` makes advisory step CONCLUSION unreliable. Fix before/with cycle-3. D-203 constraint preserved.
 - **D-202 RESIDUAL OPEN:** CI advisory step proven LIVE but NOT yet observed reaching real figure comparisons. Cycle-3 MUST verify from CI LOG after packaging.
 - **L-69 (load-bearing, RATIFIED D-211):** materiality bar not machine-enforceable under severity-only gate. D-211 partition alignment ratified with two binding guards — adjudication ledger + NEW-CLASS assertion.
-## §RESUME SNAPSHOT D-222
+## §RESUME SNAPSHOT D-222 [SUPERSEDED by D-230 — retained for audit]
 
 *Written: 2026-08-10 — Burst-43 state burst via state-manager. Single-commit burst TD-VSDD-053. Supersedes D-213.*
 
@@ -3400,3 +3400,78 @@ Exactly TWO worktrees:
 - **D-214 GOOD ENOUGH bar:** cycle-3 findings without false-green risk are ADJUDICATE-AND-RECORD — no cycle-4 for polish.
 - **D-202 CLOSED:** CI-log confirms real comparisons (D-219). The LOG is authoritative, not the step status.
 - **L-71 (NEW, load-bearing):** push factory-artifacts BEFORE pushing code branch to avoid artifact race in CI.
+
+
+---
+
+## §RESUME SNAPSHOT D-230
+
+*Written: 2026-08-10 — Burst-44b, minimal-shape state burst (L-77). Supersedes D-222.*
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck-cloud is in **phase-1d** (adversarial spec convergence): **0 of 3 clean passes**, trajectory →0→32→34→39→37→259→273-275. **PR #13** (`fix/verifier-hardening-sweep-step0`, head **`eae146a`**, 28 commits ahead of `develop` = `2ac2c3e`) is OPEN and MERGEABLE, local == origin. Cycle-2 findings **B2-1..B2-5, S2-1, S2-3, S2-4 and D-208 are all CLOSED**; **D-212 CLOSED** (verifier decoupled into its own CI job, no `continue-on-error`, gated to `pull_request`); **D-202 CLOSED** — the CI **log body** of run `31365193619` (attempt 2) shows 55 real figure comparisons (8 / 4 / 14 / 15 / 14). Verifier selftests **48/48**; local end-to-end **exit 0**. **Cycle-3 is COMPLETE: REQUEST_CHANGES at `eae146a`** — MUST-FIX **5**, documented-accepted **11**, unmapped new classes **1**. Audit: `code-delivery/VERIFIER-HARDENING-SWEEP-STEP0/pr-review-cycle3.md`. **D-205 deal-breakers: NONE triggered** (new classes decayed 5→5→0). D-001..D-230 (exhaustive).
+
+**Pickup point: fix the 5 cycle-3 MUST-FIX (M-1..M-5, see D-226) on `fix/verifier-hardening-sweep-step0` at `eae146a`. EACH fix MUST first reproduce its finding as a failing probe before being fixed (test-first) — the orchestrator did NOT independently re-derive all five, so reproduction is the fix round's first obligation (D-193). Reviewer's assessment: a few dozen lines, no new engineering. Under D-214 the UNBOUNDED natural-language enumeration behind M-1 is ACCEPTED — what must be fixed is the false CLAIM, not the gap. Then re-run `test-vef.py`, the local end-to-end, and READ THE CI LOG BODY (never the status — D-227). Then cycle-4 ONLY for these MUST-FIX; no cycle-5 for polish.**
+
+### THE 5 MUST-FIX (D-226)
+
+| ID | Sev | Finding |
+|----|-----|---------|
+| M-1 | high | A wrong figure in ordinary prose ships green — REALIZED on the real documents at `eae146a`. Nine of ten novel prose shapes survive; four of four controls caught. |
+| M-2 | high–mid | Historical-value filters are validated by COUNTING, not content. Over-stripping is false-green and one routine document edit triggers it. |
+| M-3 | mid | `48/48 — each proved clean-pass + defect-fail` is FALSE. Three verifier mutants (M5, M18, M21) survive the full suite; T45 is tautological. |
+| M-4 | mid | Three shipped structural-guarantee comments are false; all falsified by probe this cycle. Includes M-4a: falsy-but-not-`None` defeats the `is None` gate. |
+| M-5 | low–mid | The `test-vef.py` step sits inside `Spec lint`, whose conclusion already fails by D-128 design, so a real suite regression is unobservable at status level — the L-66 defect D-212 exists to fix, left half-applied by D-217. |
+
+### BINDING PROBE RESULT (D-224) — the `doc_value` residual, ANSWERED
+
+**B2-2 is NARROWED, NOT CLOSED.** `record_comparison()` rejects only literal `None`; `[]`, `""`, `{}`, `0`, `False` and match objects all register, and the full 11-key required-check gate **IS satisfiable with zero comparisons performed**. Two live sites already pass possibly-empty lists. No false green today ONLY because every such path also carries a hand-written `fail()` — i.e. safety rests on exactly the per-site audit the docstring claims is unnecessary. Recorded as MUST-FIX M-4a.
+
+### HEADS
+
+| Branch | HEAD | Notes |
+|--------|------|-------|
+| `develop` | `2ac2c3e` | oracle repairs + BI-056/057 live |
+| `fix/verifier-hardening-sweep-step0` | `eae146a` | PR #13; 28 commits; 48/48 selftests; local == origin |
+| `factory-artifacts` | Burst-44b commit | state artifacts |
+
+### OPEN OPERATOR DECISIONS
+
+1. **D-220 / D-227 — CI-green is UNREACHABLE for the `verify-evidence-figures` job under D-203.** `check8` can never authenticate, so exit 5 (PARTIAL) is guaranteed on every PR forever: the conclusion can signal failure but never success. Choose (a) grant a CI token, reversing D-203, or (b) accept a permanently-red advisory job whose LOG is the authoritative signal. **Binding either way: adversary pass 8 MUST read the log body, never the status.**
+2. **Ratify D-225** — no D-205 deal-breakers triggered.
+3. **BI-060 severity (D-228)** — the hook can INVERT a verdict: it offered `--approve` as an equally-valid branch on a REQUEST_CHANGES review. Reviewer refused and recorded it. Do not modify the hook mid-run (D-158/D-182).
+
+### VERDICT POSTING
+
+The cycle-3 verdict is **NOT yet posted** to PR #13. `gh pr review --approve/--request-changes` is **structurally impossible** on self-authored PRs (BI-039/D-021/D-105) — post via `gh pr comment`. **NEVER merge on an unposted verdict (D-120/D-157).** Merges are operator-gated.
+
+### THEN IN ORDER
+
+1. **Gate-#42 nine-checker ledger sweep (BI-058)** — scoped per **D-214** to ledger + anti-tautology + independent-probe populations (**D-141 MANDATORY**), NOT exhaustive checker beautification. If a checker item does not affect whether a green can be trusted, record it and move on.
+2. **EC-151 burn** + fresh hidden replacement.
+3. **BI-052 PLUS BI-053 VP propagation debt** (VP-004/VP-025/VP-INDEX/TV-157 — D-165; handle together).
+4. **Input-hash drift sweep** (D-170; ONCE, after BI-052/EC-151 land).
+5. **Adversary pass 8** — streak ZERO, frozen perimeter **`a79de7e841c705a499f7aec634c4894b3097764e`** (NOT `ace1745`); freeze and NAME the remediated HEAD. Then the gate, then **BUILDING**.
+
+### MANDATORY ADVERSARY DISPATCH EMBEDS (D-211 — carry verbatim)
+
+Render BOTH sections (counted MUST-FIX table + non-counted documented-accepted section); every accepted finding carries reason + adjudicator inline; section moves are recorded events; include an explicit NEW-CLASS assertion listing findings mapping to no known class; severity table uses **EXACT INTEGERS** (ranges in prose only). D-205 deal-breakers evaluated by the operator from the NEW-CLASS list: (a) new content defect class; (b) new-CRITICAL rate not decaying; (c) domain-model-invalidating defect.
+
+### STANDING CONSTRAINTS
+
+- **D-214 GOOD ENOUGH (operator, binding):** findings without false-green risk are ADJUDICATE-AND-RECORD, not fix. The verifier must be honest, not perfect. No extra cycles for polish. Must-fix only what corrupts implementation. Goal: pass 8 against honest oracles → the gate → BUILDING.
+- **D-205** build-sufficiency + three deal-breakers. **D-211** two binding guards.
+- **D-120** merges operator-gated. **D-203** no `GH_TOKEN`, no widened `permissions` without a fresh ruling. **D-117/D-122/D-133** spec-lint REQUIRED flip DEFERRED. **D-128** the `Spec lint` advisory FAILURE is CORRECT.
+- **D-141** independent-probe canary populations MANDATORY for all nine checkers. **D-039** no suppression. **BI-041** `gen-bc-traceability.py --write` PROHIBITED (lossy).
+- **CI-063** embed operator authorization VERBATIM in each agent's INITIAL SPAWN PROMPT; mid-session relay is refused. **BI-060** do not modify the hook mid-run; second-identity pre-wave-1 (D-197).
+- **L-77 STANDING STATE-BURST SHAPE:** pre-composed insertions, zero composition, zero reads over 100 lines, explicit forbidden-file list, exact anchors with STOP-on-mismatch, split into small bursts. Never let STATE.md assert a snapshot or exhaustive range that does not exist.
+- **L-62..L-77 load-bearing.**
+
+### SPEC SNAPSHOT
+
+PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-213 (214 ids, 1 retired) | holdout pool 12 (7 EC IDs not-yet-authored: EC-079/093/094/141/147/148/151). D-001..D-230 (exhaustive). Open BI list: BI-002/007/010/017/021/022/023/024/027/028/037/039/041/052/058/060/061; CI-063.
+
+### WORKTREE INVENTORY
+
+Exactly TWO: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `fix/verifier-hardening-sweep-step0` (`eae146a`); `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`.
