@@ -305,6 +305,7 @@ def _strip_prev_col(text: str, label: str) -> "tuple[str, dict]":
     """
     lines = text.splitlines()
     out: list = []
+    stripped_cells: list = []   # M-2: content of each blanked cell (for content assertion)
     col_idx: "int | None" = None
     tables = 0
     rows = 0
@@ -324,6 +325,7 @@ def _strip_prev_col(text: str, label: str) -> "tuple[str, dict]":
             if all(_SEP_CELL_PAT.match(c) for c in inner):
                 out.append(ln)    # separator row (|---|---|) — kept unchanged
             elif len(cells) > col_idx:
+                stripped_cells.append(cells[col_idx])  # M-2: record removed content
                 cells[col_idx] = ' '   # blank out the historical-column cell
                 out.append('|'.join(cells))
                 rows += 1
@@ -333,7 +335,7 @@ def _strip_prev_col(text: str, label: str) -> "tuple[str, dict]":
             if col_idx is not None and not is_table_row:
                 col_idx = None    # end of current table
             out.append(ln)
-    return '\n'.join(out), {"tables": tables, "rows": rows}
+    return '\n'.join(out), {"tables": tables, "rows": rows}, " ".join(stripped_cells)
 
 
 # Allowed return codes per command (keyed on cmd[-1]).
@@ -572,7 +574,7 @@ ev_no_prev = "\n".join(ln for ln in ev.splitlines() if PREV_LABEL not in ln)
 # A line-level filter on pr would only remove the header row, leaving the data
 # rows (and their historical wrong figures) visible to the novel-spelling scans.
 # _strip_prev_col blanks out only the matching column cell in each data row.
-pr_no_prev, _prev_col_stats = _strip_prev_col(pr, PREV_LABEL)
+pr_no_prev, _prev_col_stats, _pr_stripped = _strip_prev_col(pr, PREV_LABEL)
 if _prev_col_stats["tables"] == 0:
     fail("pr-baseline/prev-column-header",
          f"at least one table with '{PREV_LABEL}' column header in pr-description.md",
@@ -879,6 +881,20 @@ else:
              f"only {len(adj_found)} found — a restatement site may have been removed")
 
     record_comparison("check4-ei-figures", doc_value=eim)
+
+    # ── M-2 content assertion: stripped text must not contain any live EI figure ─
+    # Count-based guards (tables >= 1, rows >= 1) prove something was stripped but
+    # not WHICH column.  A ragged row shifts col_idx onto the current-figure cell,
+    # satisfying the count guards while hiding live values from all downstream scans.
+    # This assertion closes that gap: if any live EI figure appears in the stripped
+    # content, the filter over-stripped (blanked a current-figure cell, not historical).
+    _filter_removed = _pr_stripped + " " + " ".join(prev_lines)
+    for _lf in (ldiv, ladj, lcmp):
+        if re.search(r'\b' + re.escape(_lf) + r'\b', _filter_removed):
+            fail("filter-strip/live-figure-in-removed",
+                 f"stripped content must not contain live EI figure {_lf!r}",
+                 f"live {_lf!r} found in filter-removed text — filter over-stripped "
+                 f"a current-figure cell or line (Case A/G)")
 
     # ── SUGGESTION-10 (Check 4 side): novel-spelling scan for ei figures ──────
     # After all five patterns have run, scan docs_no_prev for any occurrence of
