@@ -1,10 +1,10 @@
 ---
 document_type: vp-index
 level: L4
-version: "1.6"
+version: "1.7"
 status: draft
 producer: architect
-timestamp: 2026-08-06T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1b
 total_vps: 26
 kani_count: 7
@@ -17,6 +17,9 @@ p1_count: 11
 test_sufficient_count: 8
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 changelog:
+  - version: "1.7"
+    date: 2026-08-10
+    change: "BI-052 remediation: BC-to-VP table updated for 7 BCs. BC-2.07.001 VP changed from VP-008 to VP-004 (fragment-strip property belongs to VP-004 kani, not path-resolution proptest). BC-2.07.004 notes updated: P5 decode-ordering is integration test, not kani. BC-2.08.001 changed from VP-015/VP-025 to VP-004/VP-025 (VP-025 covers same-file lookup and case-sensitive; VP-004 P6 covers fragment decode). BC-2.10.005 and BC-2.10.006 moved from VP-007 to pending (dns/tls harnesses require classify_response_with_error API not in declared API). BC-2.12.001 and BC-2.13.001 VP-021 rows removed (VP-021 does not prove clean-link absence, ANSI absence, or field order; those are verified by acceptance corpus). BCs-with-real-VP count: 33→31 (BC-2.10.005 and BC-2.10.006 now pending). DI-003 note updated: VP-004 P5/P6 integration tests now provide decode-ordering coverage."
   - version: "1.6"
     date: 2026-08-06
     change: "D-043 / C4-008: VP-022 DI Covered column updated D-013/NFR-001 → D-013/NFR-008 (VP-022 validates the ~500ms per-commit CI regression gate NFR-008, not the 5s acceptance ceiling NFR-001). No VP count changes; arithmetic invariant unchanged."
@@ -87,7 +90,7 @@ Phase check: p0 (7) + p1 (11) + test_sufficient (8) = 26. Check before editing.
 |----|---------------------|-------|-----------|-------------|
 | DI-001 | Deterministic output ordering | VP-011 | proptest | Yes |
 | DI-002 | Case-sensitive NFC path comparison | VP-008, VP-009 | proptest x 2 | Yes |
-| DI-003 | Fragment split before percent-decode | VP-004, VP-013 | kani + fuzz | Yes |
+| DI-003 | Fragment split before percent-decode; path/fragment decode-ordering | VP-004, VP-013 | kani + fuzz + integration (P5/P6) | Yes — kani proves split precedes decode; P5/P6 integration tests prove path/fragment components are decoded by callers before lookup |
 | DI-004 | Code context exclusion structural | VP-014 | integration | Yes |
 | DI-005 | Exactly one verdict per link | VP-019 | proptest | Partial — VP-019 proves extract_links is duplicate-free within one file (extraction precondition); full pipeline guarantee (no-verdict and two-verdict cases, e.g. path_resolver AND anchor_resolver both firing on the same link) requires a Phase 3 integration test |
 | DI-006 | Excluded files (--ignore, .gitignore, dot-dirs, outside-root) are valid anchor targets | VP-016 | integration | Yes |
@@ -190,10 +193,10 @@ BCs with a real VP: **33**. BCs test-sufficient only: **33**.
 
 | BC | Title (abbreviated) | VP(s) | Notes |
 |----|---------------------|-------|-------|
-| BC-2.07.001 | Relative path resolution | VP-008 | NFC comparison proptest |
+| BC-2.07.001 | Relative path resolution | VP-004 | fragment stripped before path resolution (kani); .. resolution logical — no current VP |
 | BC-2.07.002 | Root-relative link resolution | test-sufficient | covered by acceptance corpus |
 | BC-2.07.003 | NFC normalization + case-sensitive comparison | VP-008, VP-009 | NFC comparison + idempotency |
-| BC-2.07.004 | Percent-encoding in destinations | VP-004 | fragment split handles % before decoding |
+| BC-2.07.004 | Percent-encoding in destinations | VP-004 | fragment split kani (P1-P4); P5 path decode-ordering via integration test; P6 fragment decode-ordering covered in BC-2.08.001 via VP-004 |
 | BC-2.07.005 | Destination-is-directory verdict | test-sufficient | covered by acceptance corpus |
 | BC-2.07.006 | Non-Markdown target existence-only | test-sufficient | covered by acceptance corpus |
 | BC-2.07.007 | Empty link destination → malformed-url | VP-023 | url_classifier totality proptest; empty string returns Malformed(_), never NonHttp |
@@ -203,7 +206,7 @@ BCs with a real VP: **33**. BCs test-sufficient only: **33**.
 
 | BC | Title (abbreviated) | VP(s) | Notes |
 |----|---------------------|-------|-------|
-| BC-2.08.001 | Anchor-only link (#fragment) | VP-015, VP-025 | two-pass completeness + resolver totality/correctness |
+| BC-2.08.001 | Anchor-only link (#fragment) | VP-004, VP-025 | decode-ordering P6 integration (VP-004) + resolver totality and case-sensitive lookup (VP-025) |
 | BC-2.08.002 | Cross-file anchor resolution | VP-015, VP-016, VP-025 | two-pass + out-of-scan anchor tables + resolver correctness |
 | BC-2.08.003 | Fragment split at first unescaped # | VP-004, VP-013 | Kani proof + fuzz |
 | BC-2.08.004 | Cross-file anchor into ignored file | VP-016, VP-025 | DI-006 integration + resolver correctness |
@@ -223,8 +226,8 @@ BCs with a real VP: **33**. BCs test-sufficient only: **33**.
 | BC-2.10.002 | Three-verdict model (broken/indeterminate/alive) | VP-007 | http_verdict Kani totality + correctness |
 | BC-2.10.003 | Per-URL 10-second timeout | test-sufficient | httpmock integration tests |
 | BC-2.10.004 | 429 rate-limit handling | test-sufficient | httpmock integration tests |
-| BC-2.10.005 | DNS resolution failure yields broken | VP-007 | http_verdict Kani: dns-failure -> broken |
-| BC-2.10.006 | TLS handshake failure behavior | VP-007 | http_verdict Kani: tls-error -> broken |
+| BC-2.10.005 | DNS resolution failure yields broken | pending | dns-failure harness pending HttpAttempt transport-error API extension; no classify_response_with_error in declared API |
+| BC-2.10.006 | TLS handshake failure behavior | pending | tls-error harness pending HttpAttempt transport-error API extension; no classify_response_with_error in declared API |
 | BC-2.10.007 | Redirect chain max 10 hops | test-sufficient | httpmock integration tests |
 | BC-2.10.008 | Concurrency 32 global / 4 per-host | test-sufficient | httpmock concurrent-connections assertions |
 | BC-2.10.009 | URL deduplication (fetch once, report each occurrence) | test-sufficient | httpmock integration tests |
@@ -243,7 +246,7 @@ BCs with a real VP: **33**. BCs test-sufficient only: **33**.
 
 | BC | Title (abbreviated) | VP(s) | Notes |
 |----|---------------------|-------|-------|
-| BC-2.12.001 | Text report format — one finding per line | VP-011, VP-021 | sort determinism + no-undefined-reason-codes |
+| BC-2.12.001 | Text report format — one finding per line | VP-011 | sort determinism (proptest); clean-links-produce-no-output verified by acceptance corpus |
 | BC-2.12.002 | Terminal color (NO_COLOR/CLICOLOR) | test-sufficient | covered by acceptance corpus |
 | BC-2.12.003 | Stderr summary line | test-sufficient | covered by acceptance corpus (--quiet is dropped D-011) |
 | BC-2.12.004 | --format text explicit alias | test-sufficient | covered by acceptance corpus |
@@ -253,7 +256,7 @@ BCs with a real VP: **33**. BCs test-sufficient only: **33**.
 
 | BC | Title (abbreviated) | VP(s) | Notes |
 |----|---------------------|-------|-------|
-| BC-2.13.001 | JSON report format | VP-011, VP-021 | sort determinism + no-undefined-reason-codes |
+| BC-2.13.001 | JSON report format | VP-011 | sort determinism (proptest); parseability, ANSI-absence, field order verified by acceptance corpus |
 | BC-2.13.002 | JSON schema stability contract | test-sufficient | covered by acceptance corpus + schema validation |
 
 ### SS-14: Exit Code (4 BCs)
@@ -270,8 +273,9 @@ BCs with a real VP: **33**. BCs test-sufficient only: **33**.
 | Metric | Count |
 |--------|-------|
 | Total BCs | 66 |
-| BCs with at least one real VP | 33 |
+| BCs with at least one real VP | 31 |
 | BCs test-sufficient only | 33 |
+| BCs pending API extension | 2 |
 | Dropped flags (D-011): --quiet, --offline, --insecure, --hidden | none of these have BCs in scope |
 
-All 66 BCs covered (33 with VP + 33 test-sufficient). All 13 DIs covered by at least one VP (13/13).
+All 66 BCs covered (31 with VP + 33 test-sufficient + 2 pending). All 13 DIs covered by at least one VP (13/13). Pending BCs: BC-2.10.005 (dns-failure) and BC-2.10.006 (tls-error) — both await HttpAttempt transport-error API extension to make Kani harness compilable.

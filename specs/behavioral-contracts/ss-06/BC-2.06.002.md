@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -20,10 +20,11 @@ capability: "CAP-006"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
-  - "v1.1: (F-009) restated PC1/PC2 as DD-015 key-containment semantics (not value semantics); corrected PC3 to restrict the canonical case to the specific document order where both ## Setup headings precede ## Setup 1; added Setup-1-first test vector and PC4"
-  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
-  - "v1.3: (P4-007/C4-002) Corrected L2 Domain Invariants: DI-008 → DI-013. Added VP-026 to Verification Properties (C4-006)."
+  - "v1.5: (BI-052 remediation P7-S7-001) VP-003 row 1 corrected. VP-003 proves injectivity (no two distinct inputs produce the same emitted slug in one file), not triple-collision case correctness. The triple-collision case expected outputs ('setup', 'setup-1', 'setup-1-1') are a correctness property verified by VP-026. VP-003 row 1 updated to state the injectivity property. VP-026 row added for triple-collision correctness."
   - "v1.4: (WS-4-B) Citation-authority repair: L2 Capability row — fabricated excerpt 'duplicate-heading suffix counters (the Setup x 2 + Setup 1 collision-bump case is explicitly in scope)' (invented paraphrase, not in capabilities.md) replaced with verbatim title 'Heading Slug Computation'; gloss moved outside quotes. Proof-method join: both VP-003 rows 'unit test' → 'kani'; VP-026 'differential oracle' → 'proptest' (all per VP-INDEX authority)."
+  - "v1.3: (P4-007/C4-002) Corrected L2 Domain Invariants: DI-008 → DI-013. Added VP-026 to Verification Properties (C4-006)."
+  - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.1: (F-009) restated PC1/PC2 as DD-015 key-containment semantics (not value semantics); corrected PC3 to restrict the canonical case to the specific document order where both ## Setup headings precede ## Setup 1; added Setup-1-first test vector and PC4"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -88,9 +89,9 @@ bumped to "setup-1-1".
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-003 | Canonical triple-collision case produces correct slugs | kani |
-| VP-003 | Counter reset between files | kani |
-| VP-026 | Duplicate-counter output matches github-slugger@2.0.0 oracle | proptest |
+| VP-003 | deduplicate is injective — for any sequence of headings in one file no two emitted slugs are identical | kani |
+| VP-003 | Counter reset between files — per-file counter does not carry state across file boundaries | kani |
+| VP-026 | Canonical triple-collision case (Setup x2 + Setup 1) produces correct slugs; duplicate-counter output matches github-slugger@2.0.0 oracle | proptest |
 
 ## Traceability
 | Field | Value |

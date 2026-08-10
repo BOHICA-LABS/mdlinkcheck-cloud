@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.8"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -23,6 +23,8 @@ modified:
   - v1.3: "D-011 — --insecure is an explicit non-goal. Removed all --insecure-conditional postconditions. TLS handshake failure is always broken (tls-error). EC-079d removed."
   - "v1.4: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.5: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.8: (GATE-58/POL-14) VP-NNN column bare em-dash is non-conforming per POL-14; replaced with VP-NONE (D-078) — proof method is pending, so VP-NONE is accepted."
+  - "v1.7: (BI-052 remediation P7-S7-003) VP-007 row corrected: tls-error harness (verify_vp007_correctness_dns_tls_broken) references classify_response_with_error(HttpError::TlsError) which does not exist in the declared API (api-surface.md exposes only classify_response(status: u16, attempt: HttpAttempt)). Row changed to pending with explanation."
   - "v1.6: (WS-4) VP-007 proof method corrected from 'unit test with mock TLS server' to 'kani (P0)' per VP-INDEX authority"
 deprecated: null
 deprecated_by: null
@@ -68,7 +70,7 @@ non-goal per D-011). Users with non-standard CAs must configure the system CA st
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | TLS failure → tls-error (broken) always | kani (P0) |
+| VP-NONE | TLS failure → tls-error (broken) always — pending HttpAttempt transport-error API extension; no classify_response_with_error or HttpError enum in declared API; see VP-007 pending harness note | pending |
 
 ## Traceability
 | Field | Value |

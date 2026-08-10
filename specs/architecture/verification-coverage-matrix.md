@@ -2,17 +2,20 @@
 document_type: architecture-section
 level: L3
 section: verification-coverage-matrix
-version: "1.8"
+version: "1.9"
 status: draft
 producer: architect
-timestamp: 2026-08-06T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/prd.md
   - .factory/specs/architecture/ARCH-INDEX.md
-input-hash: "9e802db"
+input-hash: "261efde"
 traces_to: ARCH-INDEX.md
 changelog:
+  - version: "1.9"
+    date: 2026-08-10
+    change: "BI-052 remediation: DI Coverage Summary corrected. Prior version asserted 13/13 coverage was accurate when two gaps existed: (1) VP-014 had no indented-code fixture despite claiming DI-004 coverage for indented code blocks — now closed by adding vp014_indented_code_no_links fixture in VP-014 v1.3; (2) DI-003 decode-ordering postconditions (path/fragment decoded before lookup) were unverified — now closed by VP-004 v1.2 P5/P6 integration tests. DI Coverage Summary updated to document both additions. 13/13 count is now accurate."
   - version: "1.8"
     date: 2026-08-06
     change: "D-043 / C4-008: VP-022 DI Discharged column updated D-013/NFR-001 → D-013/NFR-008 (VP-022 validates the ~500ms per-commit regression gate NFR-008, not the 5s acceptance ceiling NFR-001)."
@@ -108,7 +111,17 @@ Source of truth: VP-INDEX.md. Total VPs: **26**.
 
 ## DI Coverage Summary
 
-All 13 DIs have VP coverage (13/13). DI-012 covered by VP-018 (unit) + VP-026 (proptest oracle); DI-013 covered by VP-003 (Kani injectivity) + VP-026 (0-based counter oracle). FM-002 closed by VP-026. See verification-architecture.md §DI→VP Coverage Matrix for detail.
+All 13 DIs have VP coverage (13/13). Coverage is now accurate after BI-052 remediation closed two prior gaps:
+
+- **DI-003** (fragment split before percent-decode; decode-ordering): VP-004 kani (P1-P4: split precedes decode, %23 never splits, totality, reconstruction). VP-004 P5 integration test (`vp004_path_percent_decode_after_split`): path component percent-decoded after split before directory lookup. VP-004 P6 integration test (`vp004_fragment_percent_decode_before_anchor_lookup`): fragment percent-decoded before anchor-table lookup. These P5/P6 tests were added in VP-004 v1.2 (BI-053-A/B/D closure). DI-003 decode-ordering now fully verified; prior assertion of "Yes" was partial.
+
+- **DI-004** (code context exclusion — structural): VP-014 integration, now includes `vp014_indented_code_no_links` fixture (added VP-014 v1.3). All five excluded contexts (fenced code, inline code, indented code, HTML pre, HTML comments) have explicit fixtures. Prior assertion of "Yes" was partial (indented-code fixture was missing).
+
+- **DI-012** covered by VP-018 (unit) + VP-026 (proptest oracle).
+- **DI-013** covered by VP-003 (Kani injectivity) + VP-026 (0-based counter oracle).
+- **FM-002** closed by VP-026.
+
+See verification-architecture.md §DI→VP Coverage Matrix for detail.
 
 ## Mutation Kill Rate Targets (module-criticality.md)
 

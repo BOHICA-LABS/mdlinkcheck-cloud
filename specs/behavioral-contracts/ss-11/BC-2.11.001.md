@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.8"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -20,6 +20,8 @@ capability: "CAP-011"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - v1.8: "(GATE-58/POL-14) VP-NNN column bare em-dash is non-conforming per POL-14; replaced with VP-NONE (D-078) — proof method is integration, so VP-NONE is accepted."
+  - v1.7: "(BI-052 remediation P7-S11-001) VP-016 row 2 corrected: 'globset dialect: ** crosses directories' was attributed to VP-016 but VP-016 uses literal patterns and does not test globset wildcard semantics. Property has no current VP; integration test required in story. Row 2 changed to bare dash."
   - v1.6: "WS-4 Shard E: POLICY-5 repair — L2 Capability fabricated quote replaced with verbatim CAP-011 title ('Filter Application'); VP-016 row 2 proof method corrected to 'integration' (was 'unit test') per VP-INDEX authority."
   - v1.3: "DI-006 four-mechanism note added to Invariants: --ignore is one of four source-exclusion mechanisms that share the DI-006 anchor-target carve-out property."
   - v1.5: "Fix 1 (POL-18 holdout boundary): EC-074 citation removed from edge-case table. The anchor-target carve-out property is stated in PC3 and Invariant 4; corpus-fixture holdout details remain hidden. EC-071..EC-073 provide sufficient visible edge coverage."
@@ -77,8 +79,8 @@ crate dialect. `**` crosses directory boundaries. The pattern is anchored at CWD
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-016 | --ignore excludes source, not anchor target | integration test |
-| VP-016 | globset dialect: ** crosses directories | integration |
+| VP-016 | --ignore excludes source, not anchor target | integration |
+| VP-NONE | globset dialect: ** crosses directories — no current VP (VP-016 uses literal pattern); integration test required in story | integration |
 
 ## Traceability
 | Field | Value |

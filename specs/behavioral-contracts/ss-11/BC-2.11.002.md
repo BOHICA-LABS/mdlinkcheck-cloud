@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.8"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -20,6 +20,8 @@ capability: "CAP-011"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - v1.8: "(GATE-58/POL-14) VP-NNN column bare em-dash is non-conforming per POL-14; replaced with VP-NONE (D-078) — proof method is pending, so VP-NONE is accepted."
+  - v1.7: "(D-205/BI-052 remediation) VP-010 rows updated to reflect two-path algorithm (D-019). VP-010 proptest harness covers Path A (normalized URL component boundary). Path B (raw-string fallback for malformed URLs) requires AllowPrefix API path that exposes the WHATWG-failure branch; that harness is pending that API extension."
   - v1.6: "WS-4 Shard E: proof-method join repair — VP-010 proof method corrected to 'proptest' (was 'unit test') per VP-INDEX authority."
   - v1.3: "F-017 — this is now the CANONICAL --allow contract (owned by SS-11/CAP-011). BC-2.09.002 is a pointer to this BC. Added explicit normalize-then-prefix-match ordering in description and postconditions."
   - v1.4: "D-019/P2-M08 — added WHATWG-fail fallback to raw-string prefix match at component boundary for malformed URLs. P2-M09 — renamed EC-090/091/092 to EC-161/162/163 (deduplicated from BC-2.10.002's legitimate HTTP block use of those IDs). P2-m05 — fixed L2 Capability title; corrected Brief Requirement from R6 to R5."
@@ -96,8 +98,8 @@ matching `https://example.com.evil.tld`. A naive `starts_with` is never used.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-010 | Component boundary prevents bypass (trap T16) | proptest |
-| VP-010 | Exact match (no trailing /) is exempt | proptest |
+| VP-010 | Component boundary prevents bypass Path A normalized (trap T16); exact match is exempt | proptest |
+| VP-NONE | Path B raw-string fallback for malformed URLs — pending AllowPrefix API extension to expose WHATWG-failure branch; same boundary rule applies but harness cannot be written against current declared API | pending |
 
 ## Traceability
 | Field | Value |

@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.4"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -24,6 +24,8 @@ modified:
   - "v1.2: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
   - "v1.3: (P4-005) Added PC7 (use-site finding position); Invariant 4 (definition-site attribution is FORBIDDEN); EC-202 (two uses of one label at distinct lines) with canonical test vector."
   - "v1.4: (WS-4-B) Proof-method join repair: both VP-019 rows 'unit test' → 'proptest' (VP-INDEX authority)."
+  - "v1.6: (GATE-58/POL-14+VP-019-MISATTRIBUTION) Both VP-019 rows corrected. VP-019 proves extraction deduplication (unique (dest,line,col) tuples per file call) — it does not prove reference-definition ordering or case-insensitive label matching. Both rows changed to VP-NONE with integration test required in story. Ownership lock released by product-owner."
+  - "v1.5: (GATE-58/CLOSED-WORLD) case-insensitive descriptor removed from Canonical Test Vectors verdict cell — was a parenthetical description not a reason code; verdict left as bare 'clean'."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -79,15 +81,15 @@ with internal whitespace collapsed. First definition wins on duplicates.
 | Input | Expected Output | Category |
 |-------|----------------|----------|
 | `[x][ref]\n\n[ref]: docs/a.md` (docs/a.md exists) | clean | happy-path |
-| `[x][REF]\n\n[ref]: a.md` (a.md exists) | clean (case-insensitive) | edge-case |
+| `[x][REF]\n\n[ref]: a.md` (a.md exists) | clean | edge-case |
 | `[x]` (shortcut; no definition) | broken (undefined-reference-definition) | error |
 | `[x][ref]` on line 3 and `[x][ref]` on line 7; `[ref]: missing.md` at EOF | broken ×2; finding 1 at line=3, finding 2 at line=7 (EC-202) | use-site position |
 
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-019 | Reference definitions at EOF are resolved for uses at line 1 | proptest |
-| VP-019 | Label matching is case-insensitive | proptest |
+| VP-NONE | Reference definitions at EOF are resolved for uses at line 1 — VP-019 proves extraction deduplication (not resolution ordering); no current proptest VP; integration test required in story | integration |
+| VP-NONE | Label matching is case-insensitive — VP-019 proves extraction deduplication (not case folding); no current proptest VP; integration test required in story | integration |
 
 ## Traceability
 | Field | Value |

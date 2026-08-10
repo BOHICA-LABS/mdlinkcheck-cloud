@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -20,6 +20,8 @@ capability: "CAP-012"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - v1.4: "(GATE-58/POL-14) VP-NNN column bare em-dash is non-conforming per POL-14; replaced with VP-NONE (D-078) — proof method is integration, so VP-NONE is accepted."
+  - v1.3: "(BI-052 remediation P7-S12-001) VP-021 row corrected: 'Clean links produce no output' was attributed to VP-021 but VP-021 proves the text-format sort ordering property (trap T15); it does not specifically assert that clean links are absent from output. That property is verified by the acceptance corpus integration tests. Row changed to bare dash."
   - v1.2: "WS-4 Shard E: POLICY-5 repair — L2 Capability fabricated quote replaced with verbatim CAP-012 title ('Text Report Generation'); VP-021 proof method corrected to 'integration' (was 'unit test') per VP-INDEX authority."
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
@@ -68,8 +70,8 @@ The text report (default format) emits one line per finding to stdout, in the fo
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-011 | Deterministic sort (trap T15) | proptest: run twice, diff stdout |
-| VP-021 | Clean links produce no output | integration |
+| VP-011 | Deterministic sort (trap T15) | proptest |
+| VP-NONE | Clean links produce no output — no current VP; verified by acceptance corpus integration tests | integration |
 
 ## Traceability
 | Field | Value |

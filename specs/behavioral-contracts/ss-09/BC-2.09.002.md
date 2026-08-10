@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.6"
+version: "1.7"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -20,6 +20,7 @@ capability: "CAP-009"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.7: (D-205/BI-052 remediation) VP-010 row annotation updated: VP-010 now describes a two-path algorithm (D-019 per BC-2.11.002). The proptest harness covers Path A (normalized URL component boundary). Path B (raw-string fallback for malformed URLs) is pending AllowPrefix API extension."
   - "v1.6: (WS-4/Shard-C) VP-010 proof method corrected from 'unit test (owned by SS-11 tests)' to 'proptest' per VP-INDEX authority."
   - v1.3: "F-017 — converted to pointer. --allow specification is now OWNED by BC-2.11.002 (SS-11/CAP-011). This BC exists only to note the SS-09 side-effect of --allow (URL is not validated). Duplicate postconditions removed; readers reference BC-2.11.002 for full matching algorithm."
   - "v1.4: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
@@ -74,7 +75,7 @@ See BC-2.11.002 for the authoritative test vectors including ordering and bounda
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-010 | Component boundary prevents bypass — see BC-2.11.002 | proptest |
+| VP-010 | Component boundary prevents bypass Path A (normalized) — Path B raw-string fallback pending AllowPrefix API; see BC-2.11.002 and VP-010 v1.1 | proptest |
 
 ## Traceability
 | Field | Value |

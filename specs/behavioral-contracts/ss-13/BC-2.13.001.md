@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -22,6 +22,8 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-013) added PC7 — top-level errors array for file-level I/O failures; target-unreadable entries go in errors[], not results[]; updated invariants and test vectors. (F-023) fixed PC4 sort key to specify NFC-normalized file path per DI-001"
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.5: (GATE-58/POL-14) VP-NNN column bare em-dashes (3 rows) are non-conforming per POL-14; replaced with VP-NONE (D-078) — all three have proof method 'integration', so VP-NONE is accepted."
+  - "v1.4: (BI-052 remediation P7-S13-001) VP table corrected. VP-011 row re-scoped: VP-011 proves deterministic sort order; it does not verify JSON parseability or structural validity. Parseability is verified by acceptance corpus tests. VP-021 rows corrected: VP-021 tests the text-report sort ordering (reporter.rs); it does not detect ANSI escape sequences in JSON output or verify field order. VP-021 uses serde_json::Value which ignores field order. Both VP-021 rows changed to bare dash."
   - "v1.3: (WS-4/POLICY-5) L2 Capability fabricated quotation repaired: replaced invented excerpt with verbatim CAP-013 heading per capabilities.md §CAP-013; gloss moved outside quotes. VP-011 proof method corrected from 'integration test (jq)' to 'proptest (P1)'; VP-021 proof method corrected from 'unit test' to 'integration (test-sufficient)' — per VP-INDEX authority"
 deprecated: null
 deprecated_by: null
@@ -86,9 +88,10 @@ indeterminate). Clean links are never included. The object is compact (not prett
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-011 | JSON output is valid and parseable | proptest (P1) |
-| VP-021 | No ANSI codes in JSON output | integration (test-sufficient) |
-| VP-021 | Field order consistent | integration (test-sufficient) |
+| VP-011 | JSON findings sorted deterministically (NFC path asc, line asc, column asc, link_target asc) — same sort property as text output | proptest |
+| VP-NONE | JSON output is valid and parseable — no current VP; verified by acceptance corpus (jq parse in CI) | integration |
+| VP-NONE | No ANSI codes in JSON output — no current VP; verified by acceptance corpus integration tests | integration |
+| VP-NONE | Field order consistent (file, line, column, link_target, verdict, reason) — no current VP; VP-011 uses serde_json::Value which ignores field order | integration |
 
 ## Traceability
 | Field | Value |

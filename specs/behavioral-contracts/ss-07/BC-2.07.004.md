@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -20,6 +20,7 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.6: (BI-052 remediation BI-053-B) VP table row 2 corrected: '%20 in path decoded to space' was attributed to VP-004 kani but the VP-004 Kani harness only proves split correctness (P1-P4). The decode-ordering property is verified by VP-004 P5 integration test (vp004_path_percent_decode_after_split). Row 2 proof method corrected from 'kani' to 'integration'."
   - "v1.5: (BI-053 follow-up) Undecodable-fragment boundary case specified: Invariant 3 extended to cover the fragment component — invalid percent sequences in the fragment (e.g., `%GG`) are passed through undecoded; raw fragment used for anchor lookup → anchor-not-found (symmetric with path-component pass-through rule; no new reason code: anchor-not-found is in the 13-code closed set). Test vector added. All five authoritative sources (DI-003, CAP-008, DEC-005, events.md, prd.md) are silent on this case; symmetry with existing path rule is the defensible default."
   - "v1.4: (BI-053/P7-S3-001) Fragment percent-decode inversion corrected: Description sentence 3 stated 'NOT percent-decoded before slug comparison (DI-003)' and Postcondition 4 stated 'verbatim (not decoded)'. Both inverted DI-003/CAP-008/events.md/DEC-005 — all five authoritative sources require the fragment to be percent-decoded after the split. Corrected Description and PC4 to require 'percent-decoded before anchor lookup (DI-003, CAP-008)'. Added test vector for percent-encoded fragment (DEC-005 scenario). Resolves P7-S3-001."
   - "v1.3: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string was fabricated percent-encode description; corrected to verbatim section title 'Relative Path Resolution' per capabilities.md §CAP-007; gloss moved outside quotes. VP-004 proof method corrected from 'unit test' to 'kani' per VP-INDEX authority."
@@ -79,7 +80,7 @@ before anchor lookup (DI-003, CAP-008).
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | VP-004 | Fragment split precedes percent-decode (trap T9) | kani |
-| VP-004 | %20 in path decoded to space | kani |
+| VP-004 | %20 in path decoded to space — see VP-004 P5 decode-ordering integration test (vp004_path_percent_decode_after_split) | integration |
 
 ## Traceability
 | Field | Value |

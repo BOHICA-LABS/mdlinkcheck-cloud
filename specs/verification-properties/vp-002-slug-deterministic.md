@@ -1,16 +1,16 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
-timestamp: 2026-08-05T20:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/behavioral-contracts/ss-06/BC-2.06.001.md
   - .factory/specs/architecture/module-decomposition.md
-input-hash: "2d52acc"
+input-hash: "5495752"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.06.001
 module: slug
@@ -21,7 +21,10 @@ proof_completed_date: null
 proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
-modified: []
+modified:
+  - version: "1.1"
+    date: 2026-08-10
+    change: "BI-052 remediation (P7-S7-002): Property Statement rewritten to be precise and falsifiable. Prior version stated 'no hidden global state, thread-local state, or random element' which is unfalsifiable under Kani because f(x)==f(x) is trivially true for any pure function. New statement names the concrete falsifying conditions: rand::random(), SystemTime::now(), or any non-deterministic FFI cause the two symbolic calls to diverge. Scope limitation documented: static AtomicU32 counters not detectable by this harness; that guarantee is provided by DI-012 and the pure-core architecture constraint."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -36,7 +39,11 @@ removal_reason: null
 
 ## Property Statement
 
-For all valid UTF-8 strings `s` and `DuplicateCounter` states with the same counter value, two calls to `compute_slug(s, &mut counter)` with equivalent initial states return byte-identical `String` values. There is no hidden global state, thread-local state, or random element in the computation.
+For all valid UTF-8 strings `s` and `DuplicateCounter` states initialized to the same counter value, two independent calls to `compute_slug(s, &mut counter)` with equivalent initial states return byte-identical `String` values.
+
+**Falsifying conditions (what WOULD cause this harness to fail under Kani):** Any call to `rand::random()`, `SystemTime::now()`, or any other non-deterministic source inside `compute_slug` causes the two symbolic calls to diverge, failing `assert_eq!(slug1, slug2)`. Kani's symbolic execution model makes every such non-deterministic source observable.
+
+**Scope limitation:** A hidden `static AtomicU32` counter (per-binary state) initialized once at startup would appear identical across both symbolic calls — Kani cannot distinguish it from the DuplicateCounter argument. The absence of such a static is guaranteed by DI-012 (algorithm fidelity to github-slugger v2, which is stateless) and the pure-core architecture constraint (no globals in slug.rs), not by this proof. The proof's value is specifically in ruling out randomness, OS-clock reads, and non-deterministic FFI calls.
 
 ## Source Contract
 

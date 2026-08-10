@@ -2,17 +2,17 @@
 document_type: prd-supplement
 supplement_type: error-taxonomy
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "a53c532"
+input-hash: "07d983a"
 traces_to: .factory/specs/prd.md
 primary_consumers: [implementer, test-writer]
 ---
@@ -88,7 +88,7 @@ Note: The JSON output `verdict` field contains only `"broken"` or `"indeterminat
 
 | Code | Category | Verdict | Exit Code | Trigger | Human Message Template |
 |------|----------|---------|-----------|---------|----------------------|
-| `target-unreadable` | io | — (I/O error) | 2 | Source `.md` file exists but cannot be read (permission denied, non-UTF-8 content, unexpected read error) | `cannot read file: <path>: <os_error>` |
+| `target-unreadable` | io | — (I/O error) | 2 | Source `.md` file cannot be accessed: does not exist (nonexistent PATH argument at startup), OR exists but cannot be read (permission denied, non-UTF-8 content, unexpected read error) | `cannot read file: <path>: <os_error>` |
 
 ---
 
@@ -163,7 +163,7 @@ Non-http(s) schemes (`mailto:`, `ftp:`, `tel:`, `data:`, `vscode:`, protocol-rel
 
 ### 6.1 target-unreadable Conflation Note (F-032)
 
-`target-unreadable` covers two distinct conditions: (a) **permission denied** — the file exists but the process lacks read permission (environmental; fix: check CI permissions); (b) **invalid UTF-8 content** — the file exists and is readable but contains non-UTF-8 bytes (content defect; fix: re-encode the file).
+`target-unreadable` covers three distinct conditions: (a) **does not exist** — a PATH argument supplied on the command line does not exist at startup (I/O error; fix: correct the path); (b) **permission denied** — the file exists but the process lacks read permission (environmental; fix: check CI permissions); (c) **invalid UTF-8 content** — the file exists and is readable but contains non-UTF-8 bytes (content defect; fix: re-encode the file).
 
 These are **deliberately conflated into one reason code** for v1.0. Rationale:
 - Both prevent the tool from processing the file
@@ -173,4 +173,4 @@ These are **deliberately conflated into one reason code** for v1.0. Rationale:
 - The OS error string in the `message` field provides enough context to distinguish them
 - A future version (v2.0) with a `schema_version` increment may split into `target-unreadable` (permission) and `invalid-utf8` (encoding)
 
-**NFR-007 note:** The closed taxonomy remains 13 codes. Splitting would add a 14th code and require a `schema_version` increment, which is deferred to v2.0.
+**NFR-007 note:** The closed taxonomy remains 13 codes. Splitting would add additional codes and require a `schema_version` increment, which is deferred to v2.0. The three-condition conflation was established in v1.6 (spec-lint GATE-58 CLOSED-WORLD remediation; phantom code retired per D-117, citations corrected to `target-unreadable`).

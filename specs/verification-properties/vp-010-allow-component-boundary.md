@@ -1,15 +1,15 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.0"
+version: "1.1"
 status: draft
 producer: architect
-timestamp: 2026-08-05T20:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
-input-hash: "5670949"
+input-hash: "3efc65a"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.11.002
 module: filter
@@ -20,7 +20,10 @@ proof_completed_date: null
 proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
-modified: []
+modified:
+  - version: "1.1"
+    date: 2026-08-10
+    change: "D-205 remediation: Property Statement corrected to match BC-2.11.002 D-019. Prior version stated 'never raw byte prefixes' which directly negates the D-019 raw-string fallback requirement for malformed URLs (WHATWG parse failure). New statement describes the two-path algorithm: normalized path (URL-component comparison) for well-formed URLs; raw-string prefix match with identical component-boundary rule for malformed URLs. The proptest harness tests the normalized path. The raw-string fallback harness is pending AllowPrefix API extension to expose the malformed-URL code path."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -35,7 +38,15 @@ removal_reason: null
 
 ## Property Statement
 
-Given an `--allow` prefix of `https://a.com`, `should_allow("https://a.com/path")` returns `true` and `should_allow("https://a.com.evil.tld/path")` returns `false`. The allow-match logic compares full URL components (scheme + host), never raw byte prefixes. A URL whose host merely starts with the allowed host string is NOT allowed unless it is the same host. This is DD-013.
+`should_allow` uses a two-path algorithm (D-019, BC-2.11.002):
+
+**Path A — well-formed URLs (WHATWG normalization succeeds):** The normalized URL is prefix-matched against the allow prefix; a component-boundary check then requires that the character immediately after the prefix be `/`, `?`, `#`, or end-of-string. A URL whose host merely starts with the allowed host string is NOT allowed unless the boundary check passes.
+
+**Path B — malformed URLs (WHATWG normalization fails):** The raw URL string is prefix-matched against the allow prefix with the identical component-boundary rule applied to the raw string. This path exists specifically to allow `--allow` to exempt malformed intranet URLs (e.g., `https://build_server/status`) that fail WHATWG parsing.
+
+Both paths enforce the component boundary. In both paths, `should_allow("https://a.com/path")` returns `true` for prefix `https://a.com` and `should_allow("https://a.com.evil.tld/path")` returns `false`. The boundary rule — not a raw byte `starts_with` — is what prevents the `a.com.evil.tld` bypass in both cases (DD-013).
+
+**Scope:** The proptest harness below exercises Path A (well-formed URLs, normalized component matching). Path B (raw-string fallback for malformed URLs) requires an AllowPrefix API path that exposes the WHATWG-failure branch; that harness is pending that API extension.
 
 ## Source Contract
 

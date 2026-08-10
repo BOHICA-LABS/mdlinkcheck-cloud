@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.10"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -25,6 +25,8 @@ modified:
   - "v1.5: D-014/INCONSISTENCY-002 — separated 'alive' (liveness outcome) from 'clean' (link verdict per DD-022); removed 'alive (clean)' / 'alive → clean' conflation. D-018 — confirmed 400-after-GET is indeterminate (not broken). P2-M01 — made partition truly total: added 0..=99, 1xx, HEAD-400-when-GET-also-400, GET-also-405 cases; aligned range claim to 'all valid HTTP status code values'. P2-M15 — corrected VP-007 proof method to kani and removed two unverifiable attribution rows. P2-m05 — fixed L2 Capability title to verbatim capabilities.md title. P2-m06 — fixed Related BCs swap. D-016 — added sub_reason field documentation."
   - "v1.6: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
   - "v1.7: (EC-collision) EC-087→EC-198 (HTTP 429 case; EC-087 canonical owner is test-vectors.md TV-087 self-signed TLS); new EC-087 row added for self-signed TLS cert. EC-090→EC-201 (HTTP 401 case; EC-090 canonical owner is BC-2.10.009 per test-vectors.md registry). (Task-12) clarified 'configured window' to reference BC-2.10.003."
+  - "v1.10: (GATE-58/POL-14) VP-NNN column bare em-dash is non-conforming per POL-14; replaced with VP-NONE (D-078) — proof method is pending, so VP-NONE is accepted."
+  - "v1.9: (BI-052 remediation P7-S7-003) VP-007 row split. Prior row claimed VP-007 kani covers timeout verdict; timeout harness requires HttpError enum and classify_response_with_error API which do not exist in declared API (api-surface.md). VP-007 Kani covers the status-code partition only (429/5xx/404/410). Timeout property split to separate pending row."
   - "v1.8: (misfiling-repair) Removed two duplicate VP rows that were parked in this table but owned by sibling BCs: 'HTTPS→HTTP downgrade → indeterminate' belongs to and is already asserted by BC-2.10.007 (PC3, Invariant 2, VP table line 76); 'private-IP target never sends outbound request' belongs to and is already asserted by BC-2.10.010 (PC2, Invariant 1, VP table line 85). Both rows deleted as confirmed duplicates per reference-integrity repair. No VP minted, no sentinel written (D-092 unmerged)."
 deprecated: null
 deprecated_by: null
@@ -157,7 +159,8 @@ VP-021 does NOT check `sub_reason` values.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | 429/5xx/timeout never produces broken verdict; 404/410 always produce broken (after full fallback) | kani (P0) |
+| VP-007 | 429/5xx never produce broken verdict; 404/410 always produce broken (after full fallback) | kani (P0) |
+| VP-NONE | timeout produces indeterminate not broken — pending HttpAttempt transport-error API extension; no classify_response_with_error in declared API; see VP-007 pending harness note | pending |
 
 ## Traceability
 | Field | Value |

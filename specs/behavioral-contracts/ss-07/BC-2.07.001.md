@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.2"
+version: "1.4"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -20,6 +20,8 @@ capability: "CAP-007"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.4: (GATE-58/POL-14) VP-NNN column bare em-dash is non-conforming per POL-14; replaced with VP-NONE (D-078) — proof method is integration, so VP-NONE is accepted."
+  - "v1.3: (BI-052 remediation P7-S2-001/P7-S2-002) VP table corrected. Row 1 'Fragment stripped before path resolution' re-attributed from VP-008 (path resolution) to VP-004 (split_fragment kani proof that fragment is separated before any path operations). Row 2 '.. resolution is logical' has no current VP; VP-008 proptest verifies path resolution outcomes but does not specifically assert the filesystem-vs-logical distinction; row changed to bare dash with integration test note."
   - "v1.2: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string was fabricated paraphrase; corrected to verbatim section title 'Relative Path Resolution' per capabilities.md §CAP-007. VP-008 proof method corrected from 'unit test' to 'proptest' per VP-INDEX authority."
   - "v1.1: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
 deprecated: null
@@ -70,8 +72,8 @@ standard URL/file reference semantics: `docs/a.md` + `../api/ref.md` = `api/ref.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-008 | Fragment stripped before path resolution | proptest |
-| VP-008 | .. resolution is logical, not filesystem readlink | proptest |
+| VP-004 | Fragment stripped at first unescaped # before path resolution (split_fragment totality and correctness — DI-003) | kani |
+| VP-NONE | .. resolution is logical, not filesystem readlink — no current VP; integration test required in story | integration |
 
 ## Traceability
 | Field | Value |

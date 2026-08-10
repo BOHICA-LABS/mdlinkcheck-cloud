@@ -2,7 +2,7 @@
 document_type: prd-supplement
 supplement_type: test-vectors
 level: L3
-version: "1.11"
+version: "1.12"
 status: draft
 producer: vsdd-factory:product-owner
 timestamp: 2026-08-10T00:00:00Z
@@ -222,7 +222,7 @@ primary_consumers: [test-writer, holdout-evaluator]
 | TV-113 | EC-113 | Link inside a GFM table cell | 1 | broken (if target missing) | Tables scanned |
 | TV-114 | EC-114 | Table cell with escaped pipe in dest: `[x](a\|b.md)` | 1 | broken | Correct dest extraction |
 | TV-115 | EC-115 | Link inside blockquote, and inside nested list | 1 | broken (if target missing) | Both scanned |
-| TV-116 | EC-116 | `<https://example.com>` CommonMark autolink | 0 (offline) | clean (syntax-valid) | In scope; syntax-valid |
+| TV-116 | EC-116 | `<https://example.com>` CommonMark autolink | 0 (offline) | clean | In scope; syntax-valid offline verdict |
 | TV-117 | EC-117 | Bare `https://example.com` in prose (GFM literal autolink) | 0 | none | Out of scope; not extracted |
 | TV-118 | EC-118 | `<a href="missing.md">x</a>` raw HTML | 0 | none | Out of scope (non-goal); documented false-negative |
 | TV-119 | EC-119 | `<img src="missing.png">` raw HTML | 0 | none | Out of scope |
@@ -433,7 +433,7 @@ replacing a previously colliding ID in the referencing BC.
 | TV-194 | EC-194 | `[x](#)` empty anchor (bare hash) | BC-2.08.001 | (none) | 0 | clean (top-of-page convention) | Formerly EC-075 in BC-2.08.001; EC-075 owned by TV-075 (three equivalent anchor forms); bare `#` is clean per BC-2.08.001 PC5 |
 | TV-195 | EC-195 | `a.md` links `[x](b.md#intro)` and `b.md` has `## Intro` | BC-2.05.001 | (none) | 0 | clean | Formerly EC-075 in BC-2.05.001; cross-file anchor found |
 | TV-196 | EC-196 | `a.md` links `[x](b.md#intro)` but `b.md` has no `## Intro` heading | BC-2.05.001 | (none) | 1 | broken (anchor-not-found) | Formerly EC-076 in BC-2.05.001; EC-076 owned by TV-076 (outside scan root); cross-file anchor not found |
-| TV-197 | EC-197 | `[x](a.md##double-hash)` — malformed fragment with double `#` | BC-2.08.003 | (none) | 1 | broken (malformed-fragment) | Formerly EC-076 in BC-2.08.003; double-`#` is syntactically malformed |
+| TV-197 | EC-197 | `[x](a.md##double-hash)` — malformed fragment with double `#` | BC-2.08.003 | (none) | 1 | broken (anchor-not-found) | Formerly EC-076 in BC-2.08.003; double-`#` splits to fragment `#double-hash` per BC-2.08.003; anchor lookup fails → anchor-not-found (D-164) |
 | TV-198 | EC-198 | HTTP 429 response (server rate-limits request) | BC-2.10.002 | `--online` | 0 | indeterminate (http-indeterminate) | Formerly EC-087 in BC-2.10.002; EC-087 owned by TV-087 (self-signed TLS); 429 → indeterminate per DI-010 |
 | TV-199 | EC-199 | 429 response with `Retry-After: 30` (delta-seconds) | BC-2.10.004 | `--online` | 0 | indeterminate; host paused 30s | Formerly EC-087 in BC-2.10.004; delta-seconds form per RFC 9110 §10.2.3 |
 | TV-200 | EC-200 | `--allow https://example.com`; URL `https://example.com/page` (prefix match) | BC-2.09.002 | `--allow https://example.com` | 0 | exempt (not checked online) | Formerly EC-090 in BC-2.09.002; EC-090 owned by TV-090 (50x same URL deduplication) |
@@ -477,6 +477,7 @@ replacing a previously colliding ID in the referencing BC.
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.12 | 2026-08-10 | GATE-58 CLOSED-WORLD remediation (D-117 phantom codes): TV-116 verdict column corrected — parenthetical descriptor stripped, bare `clean` retained; TV-197 verdict corrected from phantom code to `anchor-not-found` (##double-hash splits to fragment #double-hash per BC-2.08.003; anchor lookup fails per D-164 precedent). |
 | 1.11 | 2026-08-10 | EC-151 burned per D-122: holdout designation retired; TV-151 added to §3 (heading inside `<details>` HTML block × same-file anchor). EC-214 (HS-008) allocated as replacement holdout in same risk cluster (cross-file variant, `<div>` element). Holdout WARNING updated: EC-151 removed, EC-214 added; burned-list sentence updated. Intro range updated: EC-001..EC-213 → EC-001..EC-214; 212 → 213 edge cases registered; 213 → 214 IDs allocated. |
 | 1.10 | 2026-08-07 | EC-205..EC-213 allocated (§10.7..§10.10): SS-07 EC-205..EC-206 (non-MD target resolution, BC-2.07.006), SS-11 EC-207..EC-208 (invalid --ignore glob, BC-2.11.004), SS-12 EC-209..EC-210 (text stream separation, BC-2.12.005), SS-14 EC-211..EC-213 (--help/--version, BC-2.14.004). §10 range updated to EC-159..EC-213. Intro range updated to EC-001..EC-213. input-hash corrected to 07d983a. |
 | 1.9 | 2026-08-06 | D-043 (macOS-only platform directive): T13 retired as platform-obsolete (kept with note; TV-042 macOS-scoped residual retained); TV-036 description updated (removed Linux CI cross-platform framing; restated per D-043 determinism rationale); TV-041 fixture description updated ("Linux/macOS" → "macOS"); TV-042 fixture description updated ("Linux FS" → "macOS FS"); TV-187 description updated (removed "Linux NFC" reference; macOS APFS NFD context only) |

@@ -2,17 +2,17 @@
 document_type: prd-supplement
 supplement_type: interface-definitions
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
   - .factory/specs/domain-spec/L2-INDEX.md
   - .factory/planning/brief-validation.md
   - .factory/planning/market-intelligence.md
-input-hash: "2860da8"
+input-hash: "07d983a"
 traces_to: .factory/specs/prd.md
 primary_consumers: [implementer, test-writer]
 ---
@@ -234,7 +234,7 @@ No other environment variables are recognized. Config via env vars beyond these 
 | `--ignore GLOB` on an explicitly-passed PATH | `--ignore` wins — the file is excluded as a link source even if passed explicitly (BC-2.11.003) |
 | `--allow PREFIX` in offline mode | Suppresses syntax validation for matching URLs (BC-2.11.002) |
 | `--` | Ends option parsing; all subsequent tokens treated as PATH arguments |
-| Nonexistent PATH argument | Error recorded (E-IO-002); scanning continues for remaining valid PATH arguments; exit 2 after all scanning completes (DD-007 no-fail-fast) |
+| Nonexistent PATH argument | Error recorded (`target-unreadable`); scanning continues for remaining valid PATH arguments; exit 2 after all scanning completes (DD-007 no-fail-fast) |
 | Unknown flag | Exit 2 immediately with usage message |
 
 ---

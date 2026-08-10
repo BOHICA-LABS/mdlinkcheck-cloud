@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T22:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -25,6 +25,7 @@ modified:
   - "v1.3: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
   - "v1.4: (EC-collision) EC-014 renamed to EC-185 (EC-014 canonical owner is BC-2.02.003 per test-vectors.md registry)."
   - "v1.5: (WS-4/POLICY-5) Proof-method join repair — VP-005 Proof Method corrected from 'unit/integration test' to 'kani' per VP-INDEX authority."
+  - "v1.6: (GATE-58/CLOSED-WORLD) E-IO-002 phantom code retired (D-117); all citations corrected to target-unreadable per error-taxonomy.md §6.1 three-condition conflation."
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -41,7 +42,7 @@ runtime I/O errors. Both are recorded into `Vec<IoError>` and neither causes an 
 Scanning continues for all remaining valid paths (DD-007 no-fail-fast); exit code 2 is produced
 after ALL scanning completes. A nonexistent PATH argument is NOT a startup configuration error —
 it does not exit before traversal begins. The distinguishing behavior: `mdlinkcheck good_dir/
-nonexistent_dir/` fully scans `good_dir/`, emits its broken-link findings, emits an E-IO-002 error
+nonexistent_dir/` fully scans `good_dir/`, emits its broken-link findings, emits a `target-unreadable` error
 for `nonexistent_dir/`, and exits 2 (exit 2 beats exit 1 per DI-011).
 
 ## Preconditions
@@ -49,7 +50,7 @@ for `nonexistent_dir/`, and exits 2 (exit 2 beats exit 1 per DI-011).
 2. The path does not exist, OR exists but cannot be read.
 
 ## Postconditions
-1. For a nonexistent PATH argument: an `E-IO-002` error is recorded; an error message is emitted on stderr; scanning continues for all remaining valid PATH arguments (DD-007 no-fail-fast); exit code is 2 after all scanning completes.
+1. For a nonexistent PATH argument: a `target-unreadable` error is recorded; an error message is emitted on stderr; scanning continues for all remaining valid PATH arguments (DD-007 no-fail-fast); exit code is 2 after all scanning completes.
 2. For an unreadable file encountered during scan: a `target-unreadable` I/O error is recorded; scan continues for all other files; final exit code is 2 (regardless of whether broken links were also found — exit 2 takes precedence per DI-011).
 3. Findings from successfully scanned files are still emitted in output.
 
@@ -68,9 +69,9 @@ for `nonexistent_dir/`, and exits 2 (exit 2 beats exit 1 per DI-011).
 ## Canonical Test Vectors
 | Input | Expected Output | Category |
 |-------|----------------|----------|
-| `mdlinkcheck /nonexistent` | Exit 2; E-IO-002 on stderr; no findings on stdout | happy-path |
+| `mdlinkcheck /nonexistent` | Exit 2; `target-unreadable` on stderr; no findings on stdout | happy-path |
 | Scan with 3 .md files; 1 unreadable (mode 000); 1 has broken link | Exit 2; broken finding + unreadable finding on stdout/stderr | edge-case |
-| `mdlinkcheck good_dir/ nonexistent_dir/` (good_dir has 1 broken link; nonexistent_dir absent) | Exit 2; broken finding from good_dir on stdout; E-IO-002 for nonexistent_dir on stderr; good_dir fully scanned (EC-185 distinguishing vector) | distinguishing |
+| `mdlinkcheck good_dir/ nonexistent_dir/` (good_dir has 1 broken link; nonexistent_dir absent) | Exit 2; broken finding from good_dir on stdout; `target-unreadable` for nonexistent_dir on stderr; good_dir fully scanned (EC-185 distinguishing vector) | distinguishing |
 
 ## Verification Properties
 | VP-NNN | Property | Proof Method |

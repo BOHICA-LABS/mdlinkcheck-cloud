@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -20,6 +20,7 @@ capability: "CAP-008"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
+  - "v1.6: (BI-052 remediation P7-S4-001/BI-053-D) VP table corrected. Rows 1-2 cited VP-015 for same-file-table and case-mismatch. VP-025 vp025_case_sensitive_lookup explicitly tests case sensitivity; VP-025 totality covers the same-file table property. Both rows re-attributed to VP-025. VP-004 P6 row added for fragment percent-decode before anchor lookup (decode-ordering integration test)."
   - "v1.5: (BI-053 follow-up) Undecodable-fragment boundary case specified: Invariant 4 added — invalid percent sequences in the anchor-only fragment (e.g., `#caf%GG`) are passed through undecoded; raw fragment used for anchor-table lookup → anchor-not-found (symmetric with BC-2.07.004 Invariant 3 path-and-fragment pass-through rule; no new reason code: anchor-not-found is in the 13-code closed set). All five authoritative sources silent on this case. Test vector added."
   - "v1.4: (BI-053/P7-S4-002) Fragment percent-decode inversion corrected: PC1 stated 'verbatim (no additional decoding)' and Invariant 3 stated 'verbatim from source (not decoded)'. Both inverted DI-003/CAP-008/events.md/DEC-005/prd.md — all five authoritative sources require the fragment to be percent-decoded after the split. PC1 corrected to 'percent-decoded; no case-folding'. Invariant 3 rewritten to require decode before lookup. Added test vector for percent-encoded fragment (DEC-005 anchor-only scenario). Resolves P7-S4-002."
   - "v1.3: (WS-4/Shard-C) POLICY-5 citation repair: L2 Capability quoted string was fabricated description; corrected to verbatim section title 'Anchor Resolution' per capabilities.md §CAP-008; gloss moved outside quotes. VP-015 proof method corrected from 'unit test' to 'integration' per VP-INDEX authority. VP-025 proof method corrected from 'Kani/proptest' to 'proptest' per VP-INDEX authority."
@@ -78,9 +79,9 @@ and looked up in the anchor table. If found, verdict is clean; if not, verdict i
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-015 | Anchor-only links resolved in same-file table | integration |
-| VP-015 | Case mismatch → anchor-not-found | integration |
-| VP-025 | Anchor-resolver totality (every input resolves to Hit or non-panic outcome) | proptest |
+| VP-025 | Anchor-only links resolved in same-file anchor table (totality: every input resolves without panic) | proptest |
+| VP-025 | Case mismatch → anchor-not-found (vp025_case_sensitive_lookup) | proptest |
+| VP-004 | Fragment percent-decoded before anchor lookup — see VP-004 P6 decode-ordering integration test (vp004_fragment_percent_decode_before_anchor_lookup) | integration |
 
 ## Traceability
 | Field | Value |

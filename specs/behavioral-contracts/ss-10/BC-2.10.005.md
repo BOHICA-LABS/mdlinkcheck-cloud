@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -22,6 +22,8 @@ introduced: v1.0.0
 modified:
   - "v1.1: (F-007) VP-TBD backfill from VP-INDEX v1.1"
   - "v1.2: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.5: (GATE-58/POL-14) VP-NNN column bare em-dash is non-conforming per POL-14; replaced with VP-NONE (D-078) — proof method is pending, so VP-NONE is accepted."
+  - "v1.4: (BI-052 remediation P7-S7-003) VP-007 row corrected: dns-failure harness (verify_vp007_correctness_dns_tls_broken) references classify_response_with_error(HttpError::DnsFailure) which does not exist in the declared API (api-surface.md exposes only classify_response(status: u16, attempt: HttpAttempt)). Row changed to pending with explanation."
   - "v1.3: (WS-4/POLICY-5) L2 Capability fabricated quotation repaired: replaced invented excerpt with verbatim CAP-010 heading per capabilities.md §CAP-010; gloss moved outside quotes. VP-007 proof method corrected from 'unit test with mock DNS resolver' to 'kani (P0)' per VP-INDEX authority"
 deprecated: null
 deprecated_by: null
@@ -66,7 +68,7 @@ a non-existent hostname is unlikely to be transient.
 ## Verification Properties
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
-| VP-007 | DNS failure → broken (dns-failure) | kani (P0) |
+| VP-NONE | DNS failure → broken (dns-failure) — pending HttpAttempt transport-error API extension; no classify_response_with_error or HttpError enum in declared API; see VP-007 pending harness note | pending |
 
 ## Traceability
 | Field | Value |

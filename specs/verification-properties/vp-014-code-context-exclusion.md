@@ -1,15 +1,15 @@
 ---
 document_type: verification-property
 level: L4
-version: "1.2"
+version: "1.3"
 status: draft
 producer: architect
-timestamp: 2026-08-05T20:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1b
 inputs:
   - .factory/specs/domain-spec/invariants.md
   - .factory/specs/architecture/module-decomposition.md
-input-hash: "9c1a1a8"
+input-hash: "3efc65a"
 traces_to: .factory/specs/architecture/ARCH-INDEX.md
 source_bc: BC-2.04.001
 module: link_extractor
@@ -21,6 +21,9 @@ proof_file_hash: null
 lifecycle_status: active
 introduced: v0.1.0
 modified:
+  - version: "1.3"
+    date: 2026-08-10
+    change: "BI-052 remediation (P7-S3-002): added vp014_indented_code_no_links fixture. Property Statement listed indented code blocks as excluded context #3 and proof method table claimed 'indented code' coverage, but no harness fixture existed for this case. Fixture verifies that a 4-space-indented paragraph containing a Markdown link-like string produces zero ExtractedLink entries."
   - version: "1.2"
     date: 2026-08-06
     change: "(P4-014) test file path corrected: tests/integration/link_extractor_code_exclusion.rs → tests/integration_link_extractor_code_exclusion.rs (flat Cargo-discoverable layout per tooling-selection.md §Test Target Layout)."
@@ -92,6 +95,21 @@ fn vp014_inline_code_no_links() {
     let events = parse_to_events(md);
     let links = extract_links(&events);
     assert!(links.is_empty(), "Inline code link must not be extracted");
+}
+
+#[test]
+fn vp014_indented_code_no_links() {
+    // Indented code blocks: 4-space indentation signals a code block in CommonMark.
+    // pulldown-cmark emits Event::Start(Tag::CodeBlock(CodeBlockKind::Indented)) —
+    // the same variant as fenced blocks, so it is excluded by the same gate.
+    // Falsified by: an implementation that only suppresses fenced blocks and forgets
+    // that CodeBlockKind::Indented shares the same Tag::CodeBlock variant.
+    let md = "Normal [link](./normal.md) here.\n\n    [not a link](./indented-code.md)\n";
+    let events = parse_to_events(md);
+    let links = extract_links(&events);
+    assert_eq!(links.len(), 1, "Should extract exactly 1 link (the normal one)");
+    assert!(!links.iter().any(|l| l.dest.contains("indented-code")),
+        "Indented code block link must not be extracted");
 }
 
 #[test]

@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.5"
+version: "1.6"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -20,11 +20,12 @@ capability: "CAP-006"
 lifecycle_status: active
 introduced: v1.0.0
 modified:
-  - "v1.1: clarified Invariant 2 — code-span TEXT is included in rendered text; HTML element text is NOT included; disambiguates heading title vs rendered text content per NOTE-4 in feasibility-review.md"
-  - "v1.2: (F-029) fixed PC2 self-contradiction (split into non-empty and empty-heading cases); added PC3 stating counter is keyed on computed slug; added emoji-collision edge cases EC-059/EC-060"
-  - "v1.3: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
-  - "v1.4: (P4-001) Corrected Invariant 2: HTML element visible text IS retained (ADR-008 §HTML-Text Rendering Adjudication, DI-012 rule 1). Supersedes v1.1 Invariant-2 entry which stated the opposite. (EC-collision) EC-060→EC-190 (EC-060 canonical owner is BC-2.08.001 per test-vectors.md registry). (C4-003/C4-006) L2 Domain Invariants DI-008→DI-012; VP-026 added to Verification Properties."
+  - "v1.6: (BI-052 remediation P7-S7-001/P7-S7-002) VP-002 rows corrected. VP-002 proves determinism (same input same output), not algorithm-correctness properties. The two prior VP-002 rows ('Space-to-hyphen is 1:1 trap T1' and 'Unicode word chars preserved trap T2') attributed algorithm-correctness claims to VP-002 which VP-002 cannot verify. Those claims are now attributed to VP-026 (differential oracle). An explicit VP-002 row added for the determinism property that VP-002 actually proves."
   - "v1.5: (WS-4-B) Citation-authority repair: L2 Capability row — fabricated excerpt 'Compute heading anchor slugs using the pinned github-slugger v2 algorithm' (invented paraphrase, not in capabilities.md) replaced with verbatim title 'Heading Slug Computation'; gloss moved outside quotes. Proof-method join: split combined VP-001/VP-018 row into two rows (VP-001 'unit test' → 'kani'; VP-018 'unit test' → 'unit'); VP-002 rows 'unit test' → 'kani'; VP-026 'differential oracle' → 'proptest' (all per VP-INDEX authority)."
+  - "v1.4: (P4-001) Corrected Invariant 2: HTML element visible text IS retained (ADR-008 §HTML-Text Rendering Adjudication, DI-012 rule 1). Supersedes v1.1 Invariant-2 entry which stated the opposite. (EC-collision) EC-060→EC-190 (EC-060 canonical owner is BC-2.08.001 per test-vectors.md registry). (C4-003/C4-006) L2 Domain Invariants DI-008→DI-012; VP-026 added to Verification Properties."
+  - "v1.3: (INC-MAP) Architecture Module field added per bc-module-map.md (architect, Phase 1b)"
+  - "v1.2: (F-029) fixed PC2 self-contradiction (split into non-empty and empty-heading cases); added PC3 stating counter is keyed on computed slug; added emoji-collision edge cases EC-059/EC-060"
+  - "v1.1: clarified Invariant 2 — code-span TEXT is included in rendered text; HTML element text is NOT included; disambiguates heading title vs rendered text content per NOTE-4 in feasibility-review.md"
 deprecated: null
 deprecated_by: null
 replacement: null
@@ -108,10 +109,9 @@ v2 output for all inputs in the test vector corpus.
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | VP-001 | Slug function is total — terminates without panic for any input | kani |
-| VP-002 | Space→hyphen is 1:1 (trap T1) | kani |
-| VP-002 | Unicode word chars preserved (trap T2) | kani |
+| VP-002 | compute_slug is deterministic — same input with same counter initial state produces identical output | kani |
 | VP-018 | All DD-015 worked examples produce correct slugs | unit |
-| VP-026 | Differential oracle against github-slugger@2.0.0 | proptest |
+| VP-026 | Space-to-hyphen is 1:1 (trap T1); Unicode word chars preserved (trap T2); differential oracle against github-slugger@2.0.0 | proptest |
 
 ## Traceability
 | Field | Value |

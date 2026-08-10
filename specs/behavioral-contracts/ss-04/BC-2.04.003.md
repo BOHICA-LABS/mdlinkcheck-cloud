@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.3"
+version: "1.5"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -22,6 +22,8 @@ introduced: v1.0.0
 modified:
   - "v1.1: added explicit acceptance criteria for both link_extractor.rs and anchor_table.rs per SF-003 in architecture feasibility-review.md; clarified cross-module testing obligation"
   - "v1.2: (F-007) VP-TBD backfill from VP-INDEX v1.1"
+  - "v1.4: (BI-052 remediation P7-S3-002) VP table row 2 corrected: anchor_table.rs side was attributed to VP-014 but VP-014 only covers link_extractor.rs code-context exclusion. The anchor_table::build property has no current VP; integration test required in story. Row 2 changed from VP-014 to bare dash."
+  - "v1.5: (GATE-58/POL-14) VP-NNN column bare em-dash is non-conforming per POL-14; replaced with VP-NONE (D-078) — proof method is integration, so VP-NONE is accepted."
   - "v1.3: (WS-4-B) Proof-method join repair: both VP-014 rows 'unit test (...)' → 'integration' (VP-INDEX authority); contextual annotations preserved."
 deprecated: null
 deprecated_by: null
@@ -93,7 +95,7 @@ heading-like lines inside fenced code.
 | VP-NNN | Property | Proof Method |
 |--------|----------|-------------|
 | VP-014 | Heading-like lines in code blocks not extracted as links | integration (link_extractor.rs) |
-| VP-014 | `anchor_table::build` produces no entry for heading-like lines inside fenced code | integration (anchor_table.rs) — new test required in this story |
+| VP-NONE | anchor_table::build produces no entry for heading-like lines inside fenced code — no current VP; integration test required in story | integration |
 
 ## Traceability
 | Field | Value |

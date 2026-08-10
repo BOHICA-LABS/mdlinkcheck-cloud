@@ -1,10 +1,10 @@
 ---
 document_type: behavioral-contract
 level: L3
-version: "1.8"
+version: "1.9"
 status: draft
 producer: vsdd-factory:product-owner
-timestamp: 2026-08-05T00:00:00Z
+timestamp: 2026-08-10T00:00:00Z
 phase: 1a
 inputs:
   - .factory/specs/product-brief.md
@@ -21,6 +21,7 @@ lifecycle_status: active
 introduced: v1.3.0
 modified:
   - "v1.7: EC-NEW-10 and EC-NEW-11 allocated as EC-207 and EC-208; placeholders replaced with real IDs in Edge Cases table."
+  - "v1.9: (GATE-58/CLOSED-WORLD) E-CLI-001 phantom code reference removed from Invariant 3 (D-117); invariant now states the behavior without the undefined code cross-reference."
   - v1.6: "WS-4 Shard E: POLICY-5 repair — L2 Capability fabricated quote replaced with verbatim CAP-011 title ('Filter Application')."
   - "v1.4: (INC-MAP) Architecture Module field filled per bc-module-map.md (architect, Phase 1b)"
   - "v1.5: (Task-8) Removed incorrect SS-11 subsystem label from cli.rs (cli.rs is not an SS-11 module); fixed pre-existing Edge Cases table header cell count."
@@ -58,7 +59,7 @@ rejects, or empty patterns (implementation must define empty-glob behavior).
 ## Invariants
 1. Glob validation occurs at startup, before any traversal.
 2. The error message includes the offending pattern and the reason from globset.
-3. Exit code 2 is used for all configuration errors (consistent with E-CLI-001 taxonomy).
+3. Exit code 2 is used for all configuration errors.
 
 ## Edge Cases
 | EC | Description | Expected |
