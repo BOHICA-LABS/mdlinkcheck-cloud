@@ -56,4 +56,4 @@ test-vef.py -- verify-evidence-figures.py selftest suite
   PASS  T50 pr-stripped-cell-content-modified [M-2/Case-G-pr]
 ============================================================
 PASS  52/52 tests verified (each proved clean-pass + defect-fail)
-Captured at: PLACEHOLDER_52
+Captured at: f4e56d64fb605c4d96ef563972f9e437eb6f57db
