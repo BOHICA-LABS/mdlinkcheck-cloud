@@ -23,7 +23,7 @@ closes the audit cycle opened after GATE35.  No changes to `scripts/spec-lint/` 
 ```mermaid
 graph TD
     VEF["verify-evidence-figures.py<br/>(B-4: SHA set from git; check9 redesign;<br/>parameterised entry; headRefOid guard)"]
-    TVEF["test-vef.py<br/>(50 tests — was 18; T19-T48 + T38a/T38b + T44a/T44b new)"]
+    TVEF["test-vef.py<br/>(51 tests — was 18; T19-T49 + T38a/T38b + T44a/T44b new)"]
     EV["docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/<br/>(new evidence directory)"]
 
     TVEF -->|"tests"| VEF
@@ -176,7 +176,7 @@ This is a CLI tooling PR (Python verifier script).  Evidence is captured as term
 | AC-2 | Full selftest suite: 99/99 pass | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-002-selftest-99of99.txt` | PASS |
 | AC-5 | check-adr-consistency on live corpus: 9 violations (79 reason-code + 6 E-class code occ) from 134 files | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-005-adr-consistency-live.txt` | PASS |
 | AC-6 | check-ec-injectivity on live corpus: 174 citations compared, 42 divergent, 22 adjudication | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-006-ec-injectivity-live.txt` | PASS |
-| AC-7 | VEF selftest suite: 50/50 pass (T01-T48 + T38a/T38b + T44a/T44b; each proved clean-pass + defect-fail) | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-007-vef-selftest.txt` | PASS |
+| AC-7 | VEF selftest suite: 51/51 pass (T01-T49 + T38a/T38b + T44a/T44b; each proved clean-pass + defect-fail) | `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/AC-007-vef-selftest.txt` | PASS |
 
 Full evidence report: `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/evidence-report.md`
 
@@ -188,9 +188,10 @@ Full evidence report: `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/evidenc
 |------|----------|----------|------|--------|
 | Cycle-1 | B-1..B-5, S-4, S-5, S-7, S-8, NIT-C | 5 | 3 | All 5 blocking findings resolved |
 | Cycle-2 | B2-1..B2-5, S2-1..S2-5, N2-1, N2-2 | 5 | 5 | All 5 blocking findings resolved |
-| Cycle-3 | M-1..M-5 | 5 | 0 | M-1 false claim fixed (inversion DEFERRED); M-2..M-5 fully resolved |
+| Cycle-3 | M-1..M-5 | 5 | 0 | M-1 false claim fixed (inversion DEFERRED); M-3..M-5 fully resolved; M-2 partially resolved (live-figure-hidden direction closed; wrong-value-hidden direction closed in cycle-4) |
+| Cycle-4 | M4-1, M4-2 | 2 | 0 | M4-1: M-2 wrong-value-hidden gap closed via positive-pinning (T49); M4-2: false structural-guarantee comment corrected at :168-177 |
 
-**All blocking findings resolved in this PR (cycle-1 + cycle-2 + cycle-3):**
+**All blocking findings resolved in this PR (cycle-1 + cycle-2 + cycle-3 + cycle-4):**
 - B-1: novel-spelling scan inverted to key on context words (not live figure value); T22-T24 prove detection
 - B-2: headRefOid guard — REFUSED if resolved PR head ≠ local HEAD
 - B-3: structural separation — entry guard (`anchor_check`) never registers key; only `record_comparison()` does; T25-T26 prove detection
@@ -202,7 +203,7 @@ Full evidence report: `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/evidenc
 - B2-4: `**Captured at SHA:**` must equal AC stamp SHA verified by check7; T30 proves wrong-but-on-branch SHA is caught
 - B2-5: Risk Assessment corrected — `.github/workflows/ci.yml` added to Systems affected; "no CI workflow changes" claim removed
 - M-1: false claim in `novel_spelling` fixed — verifier no longer misreports absence as detection; **inversion DEFERRED** (full fix requires flagging any integer in an EI/ADR context window that is not a live value, a covered-span value, or a whitelisted metric+value pair)
-- M-2: content assertion added — no live EI/ADR figure value may appear in filter-removed (`Previous (post-gate34)`) column text; verifier now fails if a live value is found in stripped text
+- M-2: positive-pinning assertion — each filter-stripped span (ev prev_lines and pr baseline cells) must equal the expected historical text exactly; closes the wrong-value-hidden direction (Case G) together with Cases A, B, E, F2; covers EI figures only (ADR scans read un-filtered `docs`)
 - M-3: `expect_label=` added on all `run_test` calls; T38 and T44 split into T38a/T38b + T44a/T44b (single-metric probes); T45 defect no longer leaks historical figures; mutants M5/M18/M21 now killed
 - M-4: three false structural-guarantee comments replaced with accurate text; explicit disclosure added that the completeness gate does NOT verify a comparison occurred (any non-`None` `doc_value` satisfies the gate)
 - M-5: `test-vef.py` moved out of `Spec lint` job into its own ungated `vef-selftest` job with no `continue-on-error`
@@ -239,7 +240,7 @@ Rollback reverts all 35 commits.
 ## Pre-Merge Checklist
 
 - [x] Nine-checker selftests 99/99 pass (each proves clean-pass AND defect-fail)
-- [x] VEF selftest suite 50/50 pass (T01-T48 + T38a/T38b + T44a/T44b; B-1/B-3/B-5 + B2-1..B2-5 + M-1..M-5 cycle-3 fixes verified)
+- [x] VEF selftest suite 51/51 pass (T01-T49 + T38a/T38b + T44a/T44b; B-1/B-3/B-5 + B2-1..B2-5 + M-1..M-5 cycle-3 + M4-1/M4-2 cycle-4 fixes verified)
 - [x] Pre-flight guard: 0 unproven scope reductions across 15 checkers
 - [x] Primitive unit tests 10/10 pass
 - [x] `.factory/specs/` untouched — no spec-corpus changes
