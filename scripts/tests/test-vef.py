@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-51 test cases (T01-T49 + T38a/T38b + T44a/T44b replacing T38/T44,
+52 test cases (T01-T50 + T38a/T38b + T44a/T44b replacing T38/T44,
 non-sequential numbering).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
@@ -1584,6 +1584,45 @@ def t49_ev_prev_line_content_appended():
         expect_label="filter-strip/ev-prev-line-content")
 
 
+def t50_pr_stripped_cell_content_modified():
+    """M-2 fix (Case G — PR side): wrong figure hidden inside a stripped PR baseline cell.
+
+    The attack appends wrong current-figure text to the Previous (post-gate34) column
+    cell in the PR baseline table.  _strip_prev_col blanks the entire cell so all
+    downstream EI scans (novel-spelling, patterns A-E) miss the appended wrong figures.
+    The ev side (T49) is already covered by ev-prev-line-content.  This test covers
+    the PR description side: each stripped cell must equal one of _PR_CELL_HISTORICAL.
+
+    Before the M-2 positive-pinning fix (pr-stripped-cell-content assertion absent):
+    verifier exits 0 — false green (RED step proved by temporarily neutralising the
+    pr-stripped-cell-content branch and confirming rc=0 for this defect shape).
+    After the fix: filter-strip/pr-stripped-cell-content fires.
+
+    Non-tautology (D-141): the defect-fail direction is catchable ONLY because the
+    pr-stripped-cell-content equality-pin exists.  Removing it while leaving all
+    other guards (ev-prev-line-content and all novel-spelling scans) restores rc=0 —
+    confirmed in the RED step before this test was admitted.
+
+    Defect: append wrong-value text to the PR baseline cell for check-ec-injectivity
+            so it no longer equals the expected historical string.
+    Clean:  unmodified PR_FIXTURE has exactly the expected historical cell values.
+    """
+    _ORIG_CELL = "9 divergent, 5 adjudication; 110 of 190 TV rows (80 skipped)"
+    _MOD_CELL = _ORIG_CELL + " -> now **41 divergent** and 19 adjudication"
+
+    def defect(env):
+        # Replace only the cell occurrence — the string appears once in the table.
+        text = env.pr_path.read_text().replace(
+            f"| {_ORIG_CELL} |",
+            f"| {_MOD_CELL} |"
+        )
+        env.pr_path.write_text(text)
+        env.gh_file.write_text(text)
+    return run_test(
+        "T50 pr-stripped-cell-content-modified [M-2/Case-G-pr]", defect,
+        expect_label="filter-strip/pr-stripped-cell-content")
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 TESTS = [
     t01_post_merge_context,
@@ -1640,6 +1679,7 @@ TESTS = [
     t47_adr_no_declaration_channel,        # ADR: uncovered site fails unconditionally
     t48_ei_no_declaration_channel,         # EI: uncovered site fails unconditionally
     t49_ev_prev_line_content_appended,     # M-2 Case-G: positive-pin ev prev_line content
+    t50_pr_stripped_cell_content_modified, # M-2 Case-G-pr: positive-pin PR baseline cell
 ]
 
 
