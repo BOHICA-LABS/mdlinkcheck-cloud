@@ -590,6 +590,9 @@ if am:  # only run if live figures were parseable
     _NUM = re.compile(r'\b(\d+)\b')
     _novel_rc_count = 0
     _adr_decl_seen: set = set()
+    # Build covered spans from structured RC_EC_PAT matches.
+    # Used by the per-metric scans below (B2-3 fix: P-A, P-A2, P-B).
+    _adr_covered = [(m.start(), m.end()) for m in rc_matches]
     for _line in docs.splitlines():
         # B-1 fix: key on context words, not on the live figure value.
         # Old code gated on `live_rc in _line`, so a wrong-value restatement
@@ -637,6 +640,37 @@ if am:  # only run if live figures were parseable
             fail("adr-consistency/stale-novel-declaration",
                  f"declared exemption {_de[0]!r} must match >= 1 uncovered site",
                  "no matching uncovered combined rc+ec line found — declaration is stale")
+    # Per-metric ADR scans (B2-3 fix: P-A, P-A2).
+    # The combined scan above requires BOTH 'reason-code' AND 'E-class' on the same
+    # line — a standalone 'reason-code' mention with a wrong rc figure (P-A shape)
+    # and a standalone 'E-class' mention with a wrong ec figure (P-A2 shape) were
+    # never examined.  These per-metric scans close that gap (analogue of the EI
+    # per-metric scan on the EI side).
+    _ADR_RC_NOVEL_PAT = re.compile(r'\b(\d+)\s+reason-code\b', re.IGNORECASE)
+    _ADR_EC_NOVEL_PAT = re.compile(
+        r'\b(\d+)\s+E-class(?:\s+code)?\s+occ(?:urrences?)?\b', re.IGNORECASE
+    )
+    for _adr_live, _adr_metric, _adr_pat in [
+        (live_rc, "rc", _ADR_RC_NOVEL_PAT),
+        (live_ec, "ec", _ADR_EC_NOVEL_PAT),
+    ]:
+        for _nm in _adr_pat.finditer(docs):
+            if any(_s <= _nm.start() < _e for _s, _e in _adr_covered):
+                continue  # within a structured RC_EC_PAT span — already validated
+            if _nm.group(1) == _adr_live:
+                continue  # correct value
+            _site_ctx = docs[max(0, _nm.start()-40):_nm.end()+40].strip()
+            _decl = next((d for d in ADR_NOVEL_DECLARED if d[0] in _site_ctx), None)
+            if _decl:
+                _novel_rc_count += 1
+                print(f"  DECLARED novel-spelling [adr/{_adr_metric}]: {_decl[1]!r}",
+                      flush=True)
+                print(f"    context: ...{_site_ctx}...", flush=True)
+            else:
+                fail(f"adr-consistency/novel-spelling/{_adr_metric}",
+                     f"{_adr_metric}={_adr_live} (or a declared exemption)",
+                     f"uncovered wrong {_adr_metric} figure {_nm.group(1)!r} "
+                     f"near: ...{_site_ctx!r}...")
 
 # ── Check 3: E-class ledger triple + invariant (SUGGESTION-11) ────────────────
 # BLOCKING-D fix: else-branch required; unparseable ledger line is a failure.
@@ -809,27 +843,28 @@ else:
     #
     # D-039 disclosure: every declared entry is printed in the output.
     EI_NOVEL_DECLARED: list = [
-        # (identifying_fragment, justification)
-        # Every declared entry is enumerated in the output per D-039.
-        # S-7 stale-detection: if a declared fragment no longer matches any
-        # uncovered EI-context site, ec-injectivity/stale-novel-declaration fires.
+        # (identifying_fragment, metric, expected_wrong_value, exact_site_count)
+        # B2-3 fix (option 2): 4-tuple replaces 2-tuple so the exemption is bound
+        # to a specific metric, a specific wrong value, and a required occurrence
+        # count.  The old 2-tuple matched ANY figure near the fragment by ±40-char
+        # proximity — wrong figures with any value were silently exempted (P-D shape).
+        # The 4-tuple only exempts the exact declared (fragment, metric, value) triple
+        # and enforces that it appears exactly exact_site_count times (multiplicity
+        # check prevents both stale declarations and uncounted extra sites).
         #
-        # B-1 residual fix: the pr-description.md comparison table has a
-        # "Previous (post-gate34)" column whose historical figures (9 divergent,
-        # 5 adjudication) are not covered by any structured EI pattern.  They
-        # are positionally identified by the unique column cell text that only
-        # appears in that historical row.  Declared rather than filtered so the
-        # exemption is explicit, auditable, and stale-detectable — not a prose
-        # keyword exemption (lesson-60 anti-pattern).
-        ("110 of 190 TV rows",
-         "Historical baseline table row in pr-description.md: gate34 figures "
-         "(9 divergent, 5 adjudication) from the 'Previous (post-gate34)' "
-         "column — not current live values; positionally identified by unique "
-         "cell text '110 of 190 TV rows'"),
+        # Historical baseline table row in pr-description.md: gate34 figures
+        # (9 divergent, 5 adjudication) from the "Previous (post-gate34)" column —
+        # not current live values; positionally identified by unique cell text
+        # "110 of 190 TV rows".  Two separate declarations (one per metric).
+        ("110 of 190 TV rows", "div", "9", 1),
+        ("110 of 190 TV rows", "adj", "5", 1),
     ]
     _EI_CTX = re.compile(
-        r'\b(?:citations?\s+(?:compared|with)|divergent|adjudication|'
-        r'injectivity|EC\s+citations?)\b',
+        r'\b(?:citations?\s+(?:compared|with|examined|analyzed)'
+        r'|divergen(?:t|ces?)'
+        r'|adjudications?'
+        r'|injectivity'
+        r'|EC\s+citations?)\b',
         re.IGNORECASE,
     )
     # Build covered-spans: character ranges in docs_no_prev covered by any pattern.
@@ -852,10 +887,19 @@ else:
             if any(_s <= _fm.start() < _e for _s, _e in _ei_covered):
                 continue  # already covered by an existing pattern
             _site_ctx = docs_no_prev[max(0, _fm.start()-40):_fm.end()+40].strip()
-            _decl = next((d for d in EI_NOVEL_DECLARED if d[0] in _site_ctx), None)
+            # B2-3 fix: 4-tuple — also require metric and value to match.
+            # In the first scan _fig is the CORRECT live value; d[2] is the declared
+            # wrong value.  They will never be equal, so the first scan's exemption
+            # now correctly never fires for the historical wrong-value declarations.
+            _decl = next(
+                (d for d in EI_NOVEL_DECLARED
+                 if d[0] in _site_ctx and d[1] == _fig_label and d[2] == _fig),
+                None
+            )
             if _decl:
                 _novel_ei_count += 1
-                print(f"  DECLARED novel-spelling [ei/{_fig_label}]: {_decl[1]!r}", flush=True)
+                print(f"  DECLARED novel-spelling [ei/{_fig_label}]: "
+                      f"fragment={_decl[0]!r} expected={_decl[2]!r}", flush=True)
                 print(f"    context: ...{_site_ctx}...", flush=True)
             else:
                 fail(f"ec-injectivity/novel-spelling/{_fig_label}",
@@ -872,17 +916,41 @@ else:
     # Structural guarantee: a wrong figure adjacent to a metric context word cannot
     # silently pass — it is unrepresentable as "correct" because the scan compares
     # to the live value, not to a pattern keyed on the correct answer.
-    _EI_DIV_NOVEL_PAT = re.compile(r'(\d+)\s+divergent\b', re.IGNORECASE)
-    _EI_ADJ_NOVEL_PAT = re.compile(r'(\d+)\s+(?:require\s+)?adjudication\b',
+    # B2-3 fix (P-C, P-C2, P-D): expanded per-metric patterns.
+    # P-C: old DIV pattern only matched 'N divergent'; 'divergence count came to N'
+    #       (context-first form) was never examined.  Add a context-first pattern.
+    # P-C2: old CMP pattern only matched 'compared'; 'examined'/'analyzed' synonyms
+    #        were never examined.  Expand the alternation.
+    # P-D: old 2-tuple exempted ANY figure near the fragment; new 4-tuple only
+    #       exempts the declared (metric, value) pair — handled in the match logic.
+    _EI_DIV_NOVEL_PAT = re.compile(r'(\d+)\s+diverg(?:ent|ences?)\b', re.IGNORECASE)
+    _EI_DIV_CTX_FIRST_PAT = re.compile(
+        r'\bdiverg(?:ent|ences?)\b'        # context word (divergent/divergence/s)
+        r'(?:\s+\w+){0,4}'                 # 0-4 intervening qualifier words
+        r'\s+(?:is|was|were|came\s+to|=|:)\s*'  # linking verb or separator
+        r'(\d+)',                           # captured figure (group 1)
+        re.IGNORECASE,
+    )
+    _EI_ADJ_NOVEL_PAT = re.compile(r'(\d+)\s+(?:require\s+)?adjudications?\b',
                                     re.IGNORECASE)
-    _EI_CMP_NOVEL_PAT = re.compile(r'(\d+)\s+(?:EC\s+)?citations?\s+compared\b',
-                                    re.IGNORECASE)
+    _EI_CMP_NOVEL_PAT = re.compile(
+        r'(\d+)\s+(?:EC\s+)?citations?\s+(?:compared|examined|analyzed)\b',
+        re.IGNORECASE,
+    )
     _ei_metric_scans = [
         (ldiv, "div", _EI_DIV_NOVEL_PAT),
+        (ldiv, "div", _EI_DIV_CTX_FIRST_PAT),   # context-before-number form (P-C)
         (ladj, "adj", _EI_ADJ_NOVEL_PAT),
         (lcmp, "cmp", _EI_CMP_NOVEL_PAT),
     ]
     _ei_novel_wrong_seen: set = set()
+    # B2-3 fix (P-D): per-declaration site counter for 4-tuple multiplicity check.
+    # The old 2-tuple only checked presence (stale if 0 sites); the 4-tuple also
+    # checks that exactly exact_site_count sites were found (P-D: wrong value near
+    # the fragment was exempt because the fragment was found; now the count must
+    # equal the declared count, and a wrong value like "7" doesn't increment any
+    # counter, so the real declaration count stays 1 but the wrong site fails first).
+    _ei_decl_site_counts: dict = {id(d): 0 for d in EI_NOVEL_DECLARED}
     for _live_val, _fig_label, _novel_pat in _ei_metric_scans:
         for _nm in _novel_pat.finditer(docs_no_prev):
             if any(_s <= _nm.start() < _e for _s, _e in _ei_covered):
@@ -891,19 +959,38 @@ else:
                 continue  # correct value — existing per-figure scan handles it
             # Wrong integer in metric context, not covered by any structured pattern.
             _site_ctx = docs_no_prev[max(0, _nm.start()-40):_nm.end()+40].strip()
-            _decl = next((d for d in EI_NOVEL_DECLARED if d[0] in _site_ctx), None)
+            # B2-3 fix: 4-tuple — require fragment, metric, AND value to match.
+            # Old code: fragment only — any wrong figure near the fragment was exempt.
+            # New code: all three must match; a wrong value (e.g. "7" vs declared "9")
+            # will not find a matching declaration and will fail the check.
+            _decl = next(
+                (d for d in EI_NOVEL_DECLARED
+                 if d[0] in _site_ctx and d[1] == _fig_label
+                 and d[2] == _nm.group(1)),
+                None
+            )
             _key = (_fig_label, _nm.start())
             if _decl:
                 if _key not in _ei_novel_wrong_seen:
                     _ei_novel_wrong_seen.add(_key)
                     _novel_ei_count += 1
-                    print(f"  DECLARED novel-spelling [ei/{_fig_label}]: {_decl[1]!r}",
-                          flush=True)
+                    _ei_decl_site_counts[id(_decl)] += 1
+                    print(f"  DECLARED novel-spelling [ei/{_fig_label}]: "
+                          f"fragment={_decl[0]!r} expected={_decl[2]!r}", flush=True)
                     print(f"    context: ...{_site_ctx}...", flush=True)
             else:
                 fail(f"ec-injectivity/novel-spelling/{_fig_label}",
                      f"{_fig_label}={_live_val} (or a declared exemption)",
                      f"uncovered wrong figure {_nm.group(1)!r} near: ...{_site_ctx!r}...")
+    # B2-3 multiplicity check: every declaration must match exactly its declared count.
+    for _dec in EI_NOVEL_DECLARED:
+        _exp_cnt = _dec[3]
+        _act_cnt = _ei_decl_site_counts[id(_dec)]
+        if _act_cnt != _exp_cnt:
+            fail("ec-injectivity/novel-declaration-count",
+                 f"exactly {_exp_cnt} site(s) for declaration "
+                 f"({_dec[0]!r}, {_dec[1]}, {_dec[2]!r})",
+                 f"found {_act_cnt} site(s) — declaration count has drifted")
     if _novel_ei_count:
         print(f"  ec-injectivity: {_novel_ei_count} declared novel-spelling site(s) "
               "(enumerated above per D-039)", flush=True)

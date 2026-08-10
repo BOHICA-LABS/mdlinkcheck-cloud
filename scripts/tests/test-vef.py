@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Mutation-verified selftest suite for scripts/verify-evidence-figures.py.
 
-32 test cases (T01-T32, non-sequential numbering).  Each proves:
+44 test cases (T01-T44, non-sequential numbering).  Each proves:
   DEFECT PRESENT  -- verifier exits non-zero (failure / refused)
   DEFECT ABSENT   -- verifier exits 0 (clean default fixture passes)
 
@@ -1172,6 +1172,210 @@ def t32_check9_ev_sha_disagrees_with_check7_stamp():
         shutil.rmtree(str(git_dir), ignore_errors=True)
 
 
+# ── B2-3 probe suite: novel-spelling suppression shapes (T33-T44) ─────────────
+# Six probe shapes (P-A through P-D) from the cycle-2 B2-3 finding, each paired
+# with a relocated variant (L-65 discipline: detector must be wider than the
+# specific example).  All 12 tests use run_test() with a single defect function;
+# the default clean fixture is the clean control.
+
+def t33_adr_wrong_rc_single_metric():
+    """P-A (B2-3): wrong rc figure in standalone 'reason-code' context.
+
+    The ADR combined scan requires BOTH 'reason-code' AND 'E-class' on the same
+    line — a line with only 'reason-code' context was never examined (P-A shape).
+    Fix: per-metric RC scan flags a wrong rc figure even without E-class context.
+
+    live_rc=78; injecting 77 (wrong), no E-class on the same line.
+    """
+    def defect(env):
+        novel = "77 reason-code occurrences were observed in the codebase.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T33 adr-wrong-rc-single-metric [B2-3/P-A]", defect)
+
+
+def t34_adr_wrong_ec_single_metric():
+    """P-A2 (B2-3): wrong ec figure in standalone 'E-class' context.
+
+    Symmetric to P-A: a line with only E-class context (no 'reason-code') was
+    never examined by the combined scan.  Fix: per-metric EC scan.
+
+    live_ec=6; injecting 9 (wrong), no reason-code on the same line.
+    """
+    def defect(env):
+        novel = "9 E-class code occurrences were observed.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T34 adr-wrong-ec-single-metric [B2-3/P-A2]", defect)
+
+
+def t35_adr_wrong_rc_line_with_correct_match():
+    """P-B (B2-3): wrong rc figure on a line that also carries a correct RC_EC_PAT.
+
+    The old line-granular guard 'if RC_EC_PAT.search(_line): continue' discards
+    the WHOLE line once any structured match lands on it, so a wrong rc figure
+    on the same line as a correct match was invisible.
+    Fix: per-metric RC scan checks individual match positions against covered spans;
+    '77 reason-code' in the 'up from' clause is outside any covered span.
+
+    Line has BOTH a correct '78 reason-code + 6 E-class code occ' AND wrong '77'.
+    """
+    def defect(env):
+        novel = (
+            "Confirmed: 78 reason-code + 6 E-class code occ "
+            "(up from 77 reason-code + 6 E-class)\n"
+        )
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T35 adr-wrong-rc-line-with-correct-match [B2-3/P-B]", defect)
+
+
+def t36_ei_wrong_div_divergence_spelling():
+    """P-C (B2-3): wrong divergent figure in 'divergence count came to N' form.
+
+    The EI per-metric div scan matched '(\\d+)\\s+divergent' (number before context);
+    'divergence count came to 99' has the figure AFTER the context word and uses
+    'divergence' (not 'divergent').  Fix: _EI_DIV_CTX_FIRST_PAT catches this form.
+
+    live ldiv=42; injecting 99 (wrong) in context-first 'divergence ... came to N'.
+    """
+    def defect(env):
+        novel = "divergence count came to 99 in the final run.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T36 ei-wrong-div-divergence-spelling [B2-3/P-C]", defect)
+
+
+def t37_ei_wrong_cmp_examined_spelling():
+    """P-C2 (B2-3): wrong citations figure using 'examined' instead of 'compared'.
+
+    The EI CMP pattern matched 'N citations compared' but not 'N citations examined'.
+    Fix: expand _EI_CMP_NOVEL_PAT to include 'examined' and 'analyzed'.
+
+    live lcmp=174; injecting 99 (wrong) in 'N citations examined' form.
+    """
+    def defect(env):
+        novel = "99 citations examined, adjudication complete.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T37 ei-wrong-cmp-examined-spelling [B2-3/P-C2]", defect)
+
+
+def t38_ei_wrong_div_inside_4tuple_bound():
+    """P-D (B2-3): wrong div/adj figures near EI_NOVEL_DECLARED fragment.
+
+    The old 2-tuple exempted ANY wrong figure near '110 of 190 TV rows' by
+    ±40-char fragment proximity — including wrong values like 7 (not 9) and
+    3 (not 5) that should not be exempt.
+    Fix: 4-tuple ('frag', 'metric', 'expected_wrong_val', count) only exempts
+    the exact declared (metric, value) pair; 7 does not match declared '9'.
+
+    Injects '7 divergent; 110 of 190 TV rows; 3 adjudication' (wrong values
+    7 and 3 near the fragment; declared values are 9 and 5).
+    Clean: default fixture has '9 divergent, 5 adjudication; 110 of 190 TV rows'
+    which matches the 4-tuple declarations exactly (count=1 each).
+    """
+    def defect(env):
+        novel = "Baseline note: 7 divergent; 110 of 190 TV rows; 3 adjudication.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T38 ei-wrong-div-inside-4tuple-bound [B2-3/P-D]", defect)
+
+
+# ── L-65 relocated variants (T39-T44) ─────────────────────────────────────────
+
+def t39_adr_wrong_rc_relocated():
+    """P-A-R (B2-3/L-65): relocated — different phrasing for standalone rc mention.
+
+    Pattern catches 'N reason-code' regardless of trailing word.
+    '77 reason-code violations' differs from P-A's '77 reason-code occurrences'.
+    """
+    def defect(env):
+        novel = "Audit found 77 reason-code violations detected in files.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T39 adr-wrong-rc-relocated [B2-3/P-A-R/L-65]", defect)
+
+
+def t40_adr_wrong_ec_relocated():
+    """P-A2-R (B2-3/L-65): relocated — 'E-class occ' without 'code' qualifier.
+
+    Pattern matches '(\\d+) E-class(?:\\s+code)?\\s+occ'; without 'code' is also caught.
+    """
+    def defect(env):
+        novel = "Total: 9 E-class occ observed across spec files.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T40 adr-wrong-ec-relocated [B2-3/P-A2-R/L-65]", defect)
+
+
+def t41_adr_wrong_rc_relocated_span():
+    """P-B-R (B2-3/L-65): relocated span shape — different qualifying clause.
+
+    Same span structure as P-B: correct '78 reason-code + 6 E-class code occ'
+    (covered) on the same line as wrong '77 reason-code hits' (uncovered).
+    """
+    def defect(env):
+        novel = (
+            "Status: 78 reason-code occurrences + 6 E-class code occ; "
+            "previously 77 reason-code hits and 6 E-class issues.\n"
+        )
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T41 adr-wrong-rc-relocated-span [B2-3/P-B-R/L-65]", defect)
+
+
+def t42_ei_wrong_div_divergence_relocated():
+    """P-C-R (B2-3/L-65): relocated — 'divergence figure is N' form.
+
+    _EI_DIV_CTX_FIRST_PAT also catches 'divergence figure is N' (linking verb 'is').
+    """
+    def defect(env):
+        novel = "Review note: divergence figure is 99 for this cycle.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T42 ei-wrong-div-divergence-relocated [B2-3/P-C-R/L-65]", defect)
+
+
+def t43_ei_wrong_cmp_analyzed_relocated():
+    """P-C2-R (B2-3/L-65): relocated — 'N citations analyzed' synonym form.
+
+    _EI_CMP_NOVEL_PAT extended to include 'analyzed' in addition to 'examined'.
+    Uses wrong value 97 (not 174) to be independent of P-C2's 99.
+    """
+    def defect(env):
+        novel = "Run summary: 97 citations analyzed for this batch.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T43 ei-wrong-cmp-analyzed-relocated [B2-3/P-C2-R/L-65]", defect)
+
+
+def t44_ei_wrong_div_plural_relocated():
+    """P-D-R (B2-3/L-65): relocated — plural 'divergences'/'adjudications' forms.
+
+    _EI_DIV_NOVEL_PAT updated to match plural 'divergences'; _EI_ADJ_NOVEL_PAT
+    updated to match plural 'adjudications'.  Wrong values 7/3 are near the
+    declared fragment '110 of 190 TV rows' but don't match declared 9/5.
+    """
+    def defect(env):
+        novel = "Baseline note: 7 divergences; 110 of 190 TV rows; 3 adjudications.\n"
+        new_pr = env.pr_path.read_text() + novel
+        env.pr_path.write_text(new_pr)
+        env.gh_file.write_text(new_pr)
+    return run_test("T44 ei-wrong-div-plural-relocated [B2-3/P-D-R/L-65]", defect)
+
+
 # ── Runner ────────────────────────────────────────────────────────────────────
 TESTS = [
     t01_post_merge_context,
@@ -1206,6 +1410,19 @@ TESTS = [
     t30_captured_sha_wrong_but_on_branch,  # B2-4 stamp-equality (on-branch not sufficient)
     t31_check7_provenance_stamps,          # S2-1 check7 real git-show coverage
     t32_check9_ev_sha_disagrees_with_check7_stamp,  # R2/L-65 production shape of B2-4
+    # B2-3 novel-spelling suppression shapes (T33-T44)
+    t33_adr_wrong_rc_single_metric,        # P-A
+    t34_adr_wrong_ec_single_metric,        # P-A2
+    t35_adr_wrong_rc_line_with_correct_match,  # P-B
+    t36_ei_wrong_div_divergence_spelling,  # P-C
+    t37_ei_wrong_cmp_examined_spelling,    # P-C2
+    t38_ei_wrong_div_inside_4tuple_bound,  # P-D
+    t39_adr_wrong_rc_relocated,            # P-A-R/L-65
+    t40_adr_wrong_ec_relocated,            # P-A2-R/L-65
+    t41_adr_wrong_rc_relocated_span,       # P-B-R/L-65
+    t42_ei_wrong_div_divergence_relocated, # P-C-R/L-65
+    t43_ei_wrong_cmp_analyzed_relocated,   # P-C2-R/L-65
+    t44_ei_wrong_div_plural_relocated,     # P-D-R/L-65
 ]
 
 
