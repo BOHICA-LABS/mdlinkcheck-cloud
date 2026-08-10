@@ -3,7 +3,7 @@
 **Epic:** Spec-Lint Integrity — Verifier Hardening Sweep
 **Mode:** maintenance
 **Branch:** fix/verifier-hardening-sweep-step0
-**Head SHA:** f4c036e21fceb71fd261496aaa9a5571e8ddbb6d
+**Head SHA:** 4b9a622ef381f33d41060b99c419a5aea492d78a
 **Base:** develop
 
 ![Tests](https://img.shields.io/badge/selftests-99%2F99-brightgreen)
@@ -190,8 +190,9 @@ Full evidence report: `docs/demo-evidence/VERIFIER-HARDENING-SWEEP-STEP0/evidenc
 | Cycle-2 | B2-1..B2-5, S2-1..S2-5, N2-1, N2-2 | 5 | 5 | All 5 blocking findings resolved |
 | Cycle-3 | M-1..M-5 | 5 | 0 | M-1 false claim fixed (inversion DEFERRED); M-3..M-5 fully resolved; M-2 partially resolved (live-figure-hidden direction closed; wrong-value-hidden direction closed in cycle-4) |
 | Cycle-4 | M4-1, M4-2 | 2 | 0 | M4-1: M-2 wrong-value-hidden gap closed via positive-pinning (T49); M4-2: false structural-guarantee comment corrected at :168-177 |
+| Cycle-5 | C5-1 | 0 | 1 | C5-1: overbroad claim at :583 corrected — pin scope bounded to mutation of existing spans; new-span hole disclosed |
 
-**All blocking findings resolved in this PR (cycle-1 + cycle-2 + cycle-3 + cycle-4):**
+**All blocking findings resolved in this PR (cycle-1 + cycle-2 + cycle-3 + cycle-4 + cycle-5):**
 - B-1: novel-spelling scan inverted to key on context words (not live figure value); T22-T24 prove detection
 - B-2: headRefOid guard — REFUSED if resolved PR head ≠ local HEAD
 - B-3: structural separation — entry guard (`anchor_check`) never registers key; only `record_comparison()` does; T25-T26 prove detection
@@ -230,10 +231,10 @@ All new regex patterns use bounded quantifiers (ReDoS-safe).
 To revert this PR completely:
 
 ```
-git revert f4c036e 3f48f24 f4e56d6 95e9f21 666694e 2cf0ce4 280bcd3 b79f909 7944201 08702a9 3d2e3ea 7915c18 68462e0 eae146a c1ccc39 b9751c0 eb1d5e8 ebb1a78 7e9cc16 5f69ad3 b7e95d0 9d8e1b2 7521152 a31227f a9e2e3b aede571 0593be3 f4c43e6 00ec082 0d730a5 7739995 04f5ec9 8593f4e 8499a67 f3bdf2f 16b3513 3dc681b 09be233 27688e3 5bf4c45 831b72b
+git revert 4b9a622 01fc328 f4c036e 3f48f24 f4e56d6 95e9f21 666694e 2cf0ce4 280bcd3 b79f909 7944201 08702a9 3d2e3ea 7915c18 68462e0 eae146a c1ccc39 b9751c0 eb1d5e8 ebb1a78 7e9cc16 5f69ad3 b7e95d0 9d8e1b2 7521152 a31227f a9e2e3b aede571 0593be3 f4c43e6 00ec082 0d730a5 7739995 04f5ec9 8593f4e 8499a67 f3bdf2f 16b3513 3dc681b 09be233 27688e3 5bf4c45 831b72b
 ```
 
-Rollback reverts all 41 commits.
+Rollback reverts all 43 commits.
 
 ---
 
