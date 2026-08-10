@@ -4,7 +4,7 @@ level: ops
 version: "3.7"
 status: draft
 producer: state-manager
-timestamp: 2026-08-10T14:05:00Z
+timestamp: 2026-08-10T14:17:00Z
 phase: phase-1d
 inputs: []
 input-hash: "[live-state]"
@@ -19,7 +19,7 @@ dtu_required: false
 <!--
   STATE.md SIZE BUDGET:
   Soft target: ≤200 lines; hard cap: 500 lines.
-  286 lines (wc-l); margin from soft-target: 86 lines over 200; margin from actual: 214 lines to 500 hard cap.
+  293 lines (wc-l); margin from soft-target: 93 lines over 200; margin from actual: 207 lines to 500 hard cap.
   Burst-42: Decisions Log D-001..D-213 (exhaustive) extracted to cycles/phase-1d/decisions-log.md;
   33 load-bearing rows retained inline. Next growth will come from new decisions (append inline,
   archive at next compaction).
