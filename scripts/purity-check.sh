@@ -63,12 +63,31 @@ CORE_SRC="${1:-crates/mdlinkcheck-core/src}"
 # `io::stdout` has no leading \b so that intermediate-module aliasing is caught:
 # `use std::io as _i; _i::stdout()` — a leading \b would fail after the word
 # character in `_i`.  Same reasoning omits a leading \b nowhere else.
-LINE_RE='(\bfs::|\bnet::|io::stdout|\bstdout[[:space:]]*\(|\bInstant::|time::Instant|\buse rand\b|rand::|extern crate rand)'
+#
+# BI-096 (A1): `use[[:space:]]+(::)?rand\b` replaces the former `\buse rand\b`.
+# The leading-:: form (`use ::rand as r`) escaped the old word-boundary anchor;
+# the new pattern tolerates an optional :: prefix before the crate name.
+# Import-side detection is load-bearing for the alias form: the aliased call site
+# (`r::random()`) is by construction unpredictable and cannot be caught by name.
+#
+# BI-098 (A3): adds getrandom, fastrand, oorandom, rand_chacha — call-site (::)
+# and import (`use[[:space:]]+(::)?<crate>`) forms.  ADR-001 forbids RNG generally;
+# prior coverage was rand-only.  `extern crate <crate>` forms are also covered.
+#
+# BI-097 (A2): `\.(metadata|try_exists|symlink_metadata|read_dir|canonicalize)
+# [[:space:]]*\(` adds std::path::Path/PathBuf inherent methods that perform real
+# syscalls.  NOT added: .exists(), .is_dir(), .is_file() — false-positive risk on
+# expected future domain methods (EntryKind::is_dir/is_file, AnchorTable::exists);
+# see NOT-COVERED.
+LINE_RE='(\bfs::|\bnet::|io::stdout|\bstdout[[:space:]]*\(|\bInstant::|time::Instant|use[[:space:]]+(::)?rand\b|rand::|extern crate rand|(getrandom|fastrand|oorandom|rand_chacha)::|use[[:space:]]+(::)?(getrandom|fastrand|oorandom|rand_chacha)\b|extern crate (getrandom|fastrand|oorandom|rand_chacha)\b|\.(metadata|try_exists|symlink_metadata|read_dir|canonicalize)[[:space:]]*\()'
 
 # ── Phase B: `use std::...` import statements of ANY shape ────────────────────
 # Statement-scoped, applied to a newline-collapsed stream: single-line, grouped,
 # nested, and multi-line forms all reduce to the same match.
-STMT_RE='use[[:space:]]+std::(\{[^;]*\b(fs|net|stdout|Instant)\b|fs\b|net\b|io::\{[^;]*\bstdout\b|io::stdout\b|time::\{[^;]*\bInstant\b|time::Instant\b)'
+# BI-096 (A1): `(::)?` before `std::` closes the leading-:: absolute-path escape.
+# The old anchor `use[[:space:]]+std::` was blind to `use ::std::fs as f` because
+# the `::` interposes between the spaces and `std`.
+STMT_RE='use[[:space:]]+(::)?std::(\{[^;]*\b(fs|net|stdout|Instant)\b|fs\b|net\b|io::\{[^;]*\bstdout\b|io::stdout\b|time::\{[^;]*\bInstant\b|time::Instant\b)'
 
 # Comment-only lines (// and //!) are excluded: they describe the rule rather
 # than executing it (mdlinkcheck-core/src/types.rs has such a doc block naming
@@ -159,6 +178,11 @@ CLEAN=(
     'fn _n4() { use std::path::Path; let _ = Path::new("x"); }'
     'use std::{\n    collections::{HashMap, HashSet},\n    ffi::OsString,\n    path::PathBuf,\n};\nfn _n5() { let _ = 1; }'
     'fn _n6() { fn randomize() {} randomize(); }'
+    # ── A1/A2 broadening negative controls ─────────────────────────────────────
+    # _n7: non-I/O Path method (.extension) must not trigger the A2 arm.
+    'fn _n7() { use std::path::Path; let p = Path::new("x"); let _ = p.extension(); }'
+    # _n8: clean ::std:: import (no forbidden fragment) must not trigger A1 fix.
+    'fn _n8() { use ::std::collections::BTreeMap; let _: BTreeMap<u8, u8> = BTreeMap::new(); }'
 )
 
 # Trailing X's are REQUIRED.  BSD/macOS mktemp only substitutes TRAILING X's; a
@@ -226,14 +250,31 @@ echo "PASS: ${file_count} .rs file(s) checked; no forbidden I/O or RNG path-frag
 # This block must never assert coverage broader than the detector provides, and
 # must never attribute its own scope limits to ADR-001. Both errors have shipped
 # here before (BI-081, then P23-02/P24-03).
-echo "  COVERED, for all four forbidden std paths, in any import shape:"
+# Every shape named as COVERED below is traceable to at least one plant (L-100).
+echo "  COVERED — for all four forbidden std paths (std::fs, std::net,"
+echo "    std::io::stdout, std::time::Instant) and RNG crates (rand, getrandom,"
+echo "    fastrand, oorandom, rand_chacha), in any import shape:"
 echo "    non-grouped, grouped (brace after std:: or after the submodule),"
 echo "    sibling-nested, MULTI-LINE (rustfmt-split), leaf-aliased (as _x),"
-echo "    intermediate-module-aliased (use std::io as _i), and call sites."
+echo "    intermediate-module-aliased (use std::io as _i), ABSOLUTE-PATH PREFIX"
+echo "    (leading ::, e.g. use ::std::fs as f — BI-096), and call sites."
+echo "  COVERED — std::path::Path/PathBuf inherent I/O methods (BI-097):"
+echo "    .metadata(), .try_exists(), .symlink_metadata(), .read_dir(),"
+echo "    .canonicalize()."
 echo "  NOT COVERED — grep cannot enforce these, and ADR-001 DOES forbid them:"
-echo "    macro-generated I/O (println!/print!/eprintln!/write!) and other"
-echo "    I/O primitives not in ADR-001's explicit four (io::stdin, io::stderr,"
-echo "    std::process, std::env, SystemTime::now)."
+echo "    * macro-generated I/O (println!/print!/eprintln!/write!) and other"
+echo "      std I/O primitives: io::stdin, io::stderr, std::process, std::env,"
+echo "      SystemTime::now."
+echo "    * Path::exists(), Path::is_dir(), Path::is_file() — NOT ADDED: these"
+echo "      names overlap expected future domain-type methods (EntryKind::is_dir,"
+echo "      EntryKind::is_file, AnchorTable::exists); adding them now causes"
+echo "      unacceptable false positives in stories beyond S-1.01. ADR-001"
+echo "      forbids these calls. This is a limit of THIS CHECK, not a permission."
+echo "    * Path inherent I/O via UFCS form: Path::metadata(&p) has no dot, so"
+echo "      the .method() arm cannot catch it."
+echo "    * Aliased RNG call sites (use getrandom as g; g::getrandom(...)): the"
+echo "      import IS caught; the aliased call site cannot be detected by name."
+echo "    * RNG crates beyond the five named above (rand_core, nanorand, etc.)."
 echo "    ADR-001 enumerates four paths and then generalises: 'or any other I/O"
-echo "    primitive'. The gap above is a limit of THIS CHECK, not a permission"
-echo "    granted by ADR-001. Extending it is an operator decision."
+echo "    primitive'. The gaps above are limits of THIS CHECK, not permissions"
+echo "    granted by ADR-001. Extending coverage is an operator decision."
