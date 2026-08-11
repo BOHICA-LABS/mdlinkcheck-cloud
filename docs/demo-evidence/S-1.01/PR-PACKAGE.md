@@ -232,6 +232,14 @@ carries to the current branch HEAD.
 Branch protection on `develop`: `strict: true`; required contexts exactly the four above;
 `required_approving_review_count: 0`; `enforce_admins: false`.
 
+**The workflow-level run conclusion is `failure` — this is expected and does not
+indicate the required gates failed.** The GitHub Actions run reports `failure` because
+`Spec lint` fails by design (D-246; see below). Branch protection evaluates the four
+required contexts **individually**, not the run-level conclusion. An operator who runs
+`gh run view` and sees `conclusion: failure` must read the per-check results to determine
+merge readiness — the run summary alone is not sufficient. The per-check results above
+are authoritative; the run-level failure is the advisory red, not a gate.
+
 ### Expected non-blocking red: `Spec lint`
 
 Operator ruling **D-246**: advisory, NOT a required check.
@@ -476,30 +484,34 @@ command in Step 4 should not be run again — update the existing PR body instea
 
 ---
 
-## Step 3: Confirm CI status on the last completed run
+## Step 3: Confirm CI status on the evidence SHA
 
 **[READ-ONLY]**
 
 ```sh
-# List recent CI runs on the feature branch
-gh run list \
-  --repo BOHICA-LABS/mdlinkcheck-cloud \
-  --branch feature/S-1.01-workspace-scaffold-and-core-discovery \
-  --limit 5
+# Query the four required check-run conclusions for the evidence SHA directly.
+# No run ID is needed — the check-runs API resolves by commit SHA.
+gh api repos/BOHICA-LABS/mdlinkcheck-cloud/commits/9a9b46c/check-runs \
+  --paginate \
+  --jq '.check_runs[] | select(.name | test("Format check|Clippy \\(deny warnings\\)|Test \\(macos-latest\\)|Build release \\(macos-latest\\)")) | {name, conclusion}'
 ```
 
-Expected result: run `31482829662` near the top with status `completed`. Rows for commits
-after `9a9b46c` may show as `skipped` (documentation-only commits do not trigger CI).
+Expected result: four objects, each with `"conclusion": "success"`:
 
-```sh
-# View the four required checks specifically on run 31482829662
-gh run view 31482829662 \
-  --repo BOHICA-LABS/mdlinkcheck-cloud \
-  --json jobs \
-  --jq '.jobs[] | select(.name | test("Format check|Clippy|Test \\(macos|Build release")) | {name, conclusion}'
+```json
+{"name": "Build release (macos-latest)", "conclusion": "success"}
+{"name": "Clippy (deny warnings)", "conclusion": "success"}
+{"name": "Format check", "conclusion": "success"}
+{"name": "Test (macos-latest)", "conclusion": "success"}
 ```
 
-Expected result: four objects, each `"conclusion": "success"`.
+**Important — workflow-level conclusion is `failure` and that is expected.** The
+GitHub Actions run that contains these checks reports a run-level `conclusion: failure`
+because `Spec lint` fails by design (D-246; 39 SCENARIO-MISMATCH, sole failing checker
+`check-ec-injectivity`, zero in `BC-2.01.*`). Do not interpret a `failure` workflow
+conclusion as evidence the required gates failed. Branch protection evaluates the four
+required checks individually — not the run-level conclusion. The `gh api` query above
+reads per-check data directly, which is the authoritative signal.
 
 ---
 
