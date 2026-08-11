@@ -41,8 +41,7 @@ fn create_file(root: &Path, rel: &str) {
         fs::create_dir_all(parent)
             .unwrap_or_else(|e| panic!("create_dir_all for '{}': {}", rel, e));
     }
-    fs::write(&full, "# Placeholder\n")
-        .unwrap_or_else(|e| panic!("write '{}': {}", rel, e));
+    fs::write(&full, "# Placeholder\n").unwrap_or_else(|e| panic!("write '{}': {}", rel, e));
 }
 
 /// Run `git init -q` in `dir`.
@@ -91,7 +90,11 @@ fn test_BC_2_01_001_default_cwd_scan_includes_all_md_files() {
         result_set.contains(&root.join("docs/api/reference.md")),
         "docs/api/reference.md must be in the scan set"
     );
-    assert_eq!(result_set.len(), 3, "only .md files must appear; .txt/.png must be excluded");
+    assert_eq!(
+        result_set.len(),
+        3,
+        "only .md files must appear; .txt/.png must be excluded"
+    );
 }
 
 // ─── AC-002 (traces to BC-2.01.001 postcondition 2) ──────────────────────────
@@ -149,7 +152,7 @@ fn test_BC_2_01_003_gitignore_excludes_from_scan_set() {
     git_init(root); // required: ignore crate only reads .gitignore inside a git repo
     fs::write(root.join(".gitignore"), "node_modules/\n").expect("write .gitignore");
     create_file(root, "node_modules/foo.md"); // must be excluded
-    create_file(root, "README.md");           // must be included
+    create_file(root, "README.md"); // must be included
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     let result = scanner::collect_md_files(root);
@@ -176,7 +179,7 @@ fn test_BC_2_01_003_gitignored_file_not_scanned_as_source() {
 
     // No git init: .ignore is always honoured, making this fixture git-independent
     fs::write(root.join(".ignore"), "secret.md\n").expect("write .ignore");
-    create_file(root, "secret.md");  // excluded by .ignore
+    create_file(root, "secret.md"); // excluded by .ignore
     create_file(root, "visible.md"); // included
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
@@ -213,7 +216,7 @@ fn test_BC_2_01_003_gitignored_file_anchor_table_built_as_target() {
     // .ignore excludes "ignored_target.md" from the scan set (clause i only)
     fs::write(root.join(".ignore"), "ignored_target.md\n").expect("write .ignore");
     create_file(root, "ignored_target.md"); // excluded by .ignore
-    create_file(root, "source.md");         // in scan set
+    create_file(root, "source.md"); // in scan set
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     // Clause (i): the .ignore-excluded file must NOT appear in the scan set.
@@ -235,9 +238,9 @@ fn test_BC_2_01_004_dot_directories_unconditionally_skipped() {
     let root = dir.path();
 
     create_file(root, ".github/PULL_REQUEST_TEMPLATE.md"); // dot-dir — must be skipped
-    create_file(root, ".git_backup/notes.md");             // dot-dir — must be skipped
-    create_file(root, ".vitepress/config.md");             // dot-dir — must be skipped
-    create_file(root, "README.md");                        // not in dot-dir — must appear
+    create_file(root, ".git_backup/notes.md"); // dot-dir — must be skipped
+    create_file(root, ".vitepress/config.md"); // dot-dir — must be skipped
+    create_file(root, "README.md"); // not in dot-dir — must appear
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     let result = scanner::collect_md_files(root);
@@ -334,7 +337,9 @@ fn test_BC_2_01_004_directory_symlinks_not_followed() {
     let result = scanner::collect_md_files(root);
 
     assert!(
-        !result.iter().any(|p| p.to_string_lossy().contains("cycle_link")),
+        !result
+            .iter()
+            .any(|p| p.to_string_lossy().contains("cycle_link")),
         "directory symlinks must not be traversed; cycle_link must not appear in scan set"
     );
     // dir_a/real.md is a real file (not behind a symlink) and must appear

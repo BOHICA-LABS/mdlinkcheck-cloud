@@ -135,7 +135,9 @@ fn test_dir_index_insert_and_lookup() {
 
     index.insert(dir_path.clone(), entries);
 
-    let retrieved = index.get(&dir_path).expect("dir_path must be in index after insert");
+    let retrieved = index
+        .get(&dir_path)
+        .expect("dir_path must be in index after insert");
     assert_eq!(retrieved.len(), 2, "both entries must be retrieved");
     assert_eq!(retrieved[0].name, OsString::from("guide.md"));
     assert_eq!(retrieved[0].kind, EntryKind::File);
@@ -158,13 +160,22 @@ fn test_dir_index_multiple_directories() {
 
     index.insert(
         PathBuf::from("/a"),
-        vec![DirEntryInfo { name: OsString::from("x.md"), kind: EntryKind::File }],
+        vec![DirEntryInfo {
+            name: OsString::from("x.md"),
+            kind: EntryKind::File,
+        }],
     );
     index.insert(
         PathBuf::from("/b"),
         vec![
-            DirEntryInfo { name: OsString::from("y.md"),  kind: EntryKind::File },
-            DirEntryInfo { name: OsString::from("link"), kind: EntryKind::Symlink { dangling: false } },
+            DirEntryInfo {
+                name: OsString::from("y.md"),
+                kind: EntryKind::File,
+            },
+            DirEntryInfo {
+                name: OsString::from("link"),
+                kind: EntryKind::Symlink { dangling: false },
+            },
         ],
     );
 
@@ -183,10 +194,22 @@ fn test_anchor_table_construction_with_entries() {
     set.insert("api-reference".to_string());
 
     let table = AnchorTable(set);
-    assert!(table.0.contains("section-one"), "section-one must be present");
-    assert!(table.0.contains("section-two"), "section-two must be present");
-    assert!(table.0.contains("api-reference"), "api-reference must be present");
-    assert!(!table.0.contains("nonexistent"), "absent anchor must not match");
+    assert!(
+        table.0.contains("section-one"),
+        "section-one must be present"
+    );
+    assert!(
+        table.0.contains("section-two"),
+        "section-two must be present"
+    );
+    assert!(
+        table.0.contains("api-reference"),
+        "api-reference must be present"
+    );
+    assert!(
+        !table.0.contains("nonexistent"),
+        "absent anchor must not match"
+    );
     assert_eq!(table.0.len(), 3);
 }
 
@@ -194,7 +217,10 @@ fn test_anchor_table_construction_with_entries() {
 fn test_anchor_table_empty() {
     let table = AnchorTable(HashSet::new());
     assert!(table.0.is_empty(), "empty AnchorTable must have no entries");
-    assert!(!table.0.contains("anything"), "empty table must not match any anchor");
+    assert!(
+        !table.0.contains("anything"),
+        "empty table must not match any anchor"
+    );
 }
 
 #[test]
@@ -205,7 +231,11 @@ fn test_anchor_table_deduplication() {
     set.insert("heading".to_string());
 
     let table = AnchorTable(set);
-    assert_eq!(table.0.len(), 1, "duplicate anchor insertions must be deduplicated");
+    assert_eq!(
+        table.0.len(),
+        1,
+        "duplicate anchor insertions must be deduplicated"
+    );
 }
 
 // ─── Verdict::Clean ───────────────────────────────────────────────────────────
