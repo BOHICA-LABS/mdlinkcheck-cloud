@@ -153,10 +153,20 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # COUPLING: POL11_TEST_FLOOR and POL11_BIN_FLOOR are defined here and also
+          # in the `test` recipe in justfile — both files must be updated together.
           POL11_TEST_FLOOR=44
           POL11_BIN_FLOOR=6
-          test_count=$(cargo nextest list --locked --all-targets 2>/dev/null | { grep -cE '[[:space:]]+test_' || true; })
-          bin_count=$(cargo nextest list --locked --all-targets --list-type binaries-only 2>/dev/null | wc -l | tr -d ' ')
+          # --color never: this workflow sets CARGO_TERM_COLOR=always in its top-level
+          # env (line 47).  That causes `cargo nextest list` to inject ANSI escape
+          # sequences between the leading whitespace and the test name, for example:
+          #   "    \e[34;1mtest_foo\e[0m"
+          # The pattern [[:space:]]+test_ then matches nothing and silently returns 0.
+          # --color never overrides CARGO_TERM_COLOR in the subprocess, producing plain
+          # text regardless of the outer env.  Applied to bin_count as well for
+          # consistency and to guard against future format changes.
+          test_count=$(cargo nextest list --locked --all-targets --color never 2>/dev/null | { grep -cE '[[:space:]]+test_' || true; })
+          bin_count=$(cargo nextest list --locked --all-targets --list-type binaries-only --color never 2>/dev/null | wc -l | tr -d ' ')
           if [ "${test_count}" -lt "${POL11_TEST_FLOOR}" ]; then
             echo "POL-11 FAIL: test count ${test_count} is below floor ${POL11_TEST_FLOOR}"
             echo "  A test binary may have silently dropped out of the run."

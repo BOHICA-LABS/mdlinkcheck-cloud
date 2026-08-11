@@ -76,10 +76,20 @@ test:
     # nextest output formats.
     # Raise POL11_TEST_FLOOR / POL11_BIN_FLOOR when new tests or binaries are added.
     # Verified baseline: 44 tests across 6 binaries (2026-08-11).
+    # COUPLING: POL11_TEST_FLOOR and POL11_BIN_FLOOR are defined here and also in the
+    # POL-11 step of the `test` job in .github/workflows/ci.yml — both files must
+    # be updated together when tests or binaries are added.
     POL11_TEST_FLOOR=44
     POL11_BIN_FLOOR=6
-    test_count=$(cargo nextest list --locked --all-targets 2>/dev/null | { grep -cE '[[:space:]]+test_' || true; })
-    bin_count=$(cargo nextest list --locked --all-targets --list-type binaries-only 2>/dev/null | wc -l | tr -d ' ')
+    # --color never: CI sets CARGO_TERM_COLOR=always in its top-level env
+    # (.github/workflows/ci.yml line 47).  That causes `cargo nextest list` to inject
+    # ANSI escape sequences between the leading whitespace and the test name, e.g.:
+    #   "    \e[34;1mtest_foo\e[0m"
+    # The pattern [[:space:]]+test_ then returns 0 instead of the real count.
+    # Remove --color never only if you also remove CARGO_TERM_COLOR=always from ci.yml.
+    # Applied to both invocations for consistency.
+    test_count=$(cargo nextest list --locked --all-targets --color never 2>/dev/null | { grep -cE '[[:space:]]+test_' || true; })
+    bin_count=$(cargo nextest list --locked --all-targets --list-type binaries-only --color never 2>/dev/null | wc -l | tr -d ' ')
     if [ "${test_count}" -lt "${POL11_TEST_FLOOR}" ]; then
         echo "POL-11 FAIL: test count ${test_count} is below floor ${POL11_TEST_FLOOR}"
         echo "  A test binary may have silently dropped out of the run."
