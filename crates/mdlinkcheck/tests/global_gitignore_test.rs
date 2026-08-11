@@ -163,8 +163,12 @@ fn test_BC_2_01_003_post3_global_gitignore_respected_when_available() {
     let _guard_global = EnvRestoreGuard::set("GIT_CONFIG_GLOBAL", &hermetic_cfg);
     let _guard_nosys = EnvRestoreGuard::set("GIT_CONFIG_NOSYSTEM", "1");
 
-    // git init is required: `ignore` crate's `require_git=true` default only
-    // honours `.gitignore` files (and git_global) inside a real git repository.
+    // git_init is retained here for belt-and-suspenders assurance.
+    // Under `require_git(false)` — set in `build_walk` — `.gitignore` and global
+    // gitignore (core.excludesFile) are honoured even outside a git repository
+    // (`ignore-0.4.33/src/dir.rs:560`: `let any_git = !require_git || ...`).
+    // A real git repository is therefore NOT required for these to work with our
+    // scanner; git_init is kept here for belt-and-suspenders correctness.
     git_init(root, &hermetic_cfg);
 
     // File that must be excluded via the global gitignore (core.excludesFile):
@@ -228,49 +232,145 @@ fn main() {
 
     const TEST_NAME: &str = "test_BC_2_01_003_post3_global_gitignore_respected_when_available";
 
-    // `cargo nextest list` (and `cargo test -- --list --format terse`) enumerate
-    // tests by invoking `<bin> --list [--format terse]`.  Respond with the
-    // canonical libtest terse line and exit 0 without running the body.
-    //
-    // This was the root cause of the CI regression (P10-01 / P12-01): the
-    // previous `fn main()` ignored argv entirely, ran the test body, and printed
-    // "... ok" — which nextest could not parse as a `--list` response, causing
-    // EXIT=104 ("did not end with ': test'").
+    // --list / --list --ignored: enumerate tests for nextest/cargo test discovery.
+    // Respond with the canonical libtest terse line for the non-ignored pass;
+    // emit nothing for the --ignored-only pass (this test has no #[ignore]).
     //
     // nextest calls us TWICE during listing:
     //   1. `--list [--format terse]`          → list non-ignored tests
     //   2. `--list --ignored [--format terse]` → list only `#[ignore]`-marked tests
     // Our test has no `#[ignore]` attribute, so it must appear in call (1) only.
     // If we also output it for call (2), nextest marks the test as `ignored: true`
-    // and excludes it from the default run — which is a false green (it would look
-    // listed but would never execute).
+    // and excludes it from the default run — a false green.
     if args.iter().any(|a| a == "--list") {
         let listing_ignored_only = args.iter().any(|a| a == "--ignored");
         if !listing_ignored_only {
             println!("{}: test", TEST_NAME);
         }
-        // Exit 0 for both the normal-list and the ignored-only-list invocations.
         std::process::exit(0);
     }
 
-    // `cargo nextest run` runs individual tests as
-    //   `<bin> <test_name> --exact [--nocapture ...]`.
-    // A positional arg (non-flag) is treated as a name filter; `--exact` requires
-    // a full-name match, otherwise it is a substring match.
-    let exact = args.iter().any(|a| a == "--exact");
-    let filters: Vec<&str> = args
-        .iter()
-        .skip(1)
-        .filter(|a| !a.starts_with('-'))
-        .map(String::as_str)
-        .collect();
+    // Parse remaining arguments fail-closed.
+    //
+    // PROBLEM WITH THE PREVIOUS PARSER (latent false-green shape):
+    //   The old parser collected every token that did NOT start with '-' as a name
+    //   filter.  Value-taking flags like `--test-threads 4`, `--format terse`,
+    //   `--color never`, and `--skip some_other_test` caused their VALUE tokens
+    //   ("4", "terse", "never", "some_other_test") to be treated as name filters.
+    //   A non-matching filter triggered exit(0) without running the test body —
+    //   a false green identical in shape to the P10-01/P12-01 incident.
+    //   `--skip some_other_test` was semantically inverted: skipping a DIFFERENT
+    //   test should make this one run, but the old parser silently skipped it.
+    //
+    // NEW PARSER (fail-closed):
+    //   Known boolean flags (consume the token, no value):
+    //     --exact, --nocapture, --show-output, --include-ignored, --ignored,
+    //     --quiet, -q
+    //   Known value-taking flags (consume flag + next token, or --flag=value):
+    //     --skip, --test-threads, --format, --color, --logfile, --shuffle-seed
+    //   Genuine positionals (no '-' prefix): name-filter arguments.
+    //   Unrecognized '-'-prefixed flags: print to stderr and exit non-zero.
+    //
+    //   --skip semantics: exit 0 (skip this test) only when the --skip value
+    //     MATCHES our test name.  A non-matching --skip lets the test run.
+    //   Inclusion filters: run only when a positional filter MATCHES our test name.
 
+    const VALUE_FLAGS: &[&str] = &[
+        "--skip",
+        "--test-threads",
+        "--format",
+        "--color",
+        "--logfile",
+        "--shuffle-seed",
+    ];
+    const BOOL_FLAGS: &[&str] = &[
+        "--nocapture",
+        "--show-output",
+        "--include-ignored",
+        "--ignored",
+        "--quiet",
+        "-q",
+    ];
+
+    let mut exact = false;
+    let mut filters: Vec<String> = Vec::new();
+    let mut skip_patterns: Vec<String> = Vec::new();
+
+    let mut i = 1usize;
+    while i < args.len() {
+        let arg = args[i].as_str();
+
+        if arg == "--exact" {
+            exact = true;
+            i += 1;
+        } else if BOOL_FLAGS.contains(&arg) {
+            // Recognized boolean flag; consume without value.
+            i += 1;
+        } else if VALUE_FLAGS.contains(&arg) {
+            // Recognized value-taking flag (--flag value form): consume value.
+            let flag = arg.to_owned();
+            i += 1;
+            if i >= args.len() {
+                eprintln!("error: flag '{}' requires an argument", flag);
+                std::process::exit(1);
+            }
+            let value = args[i].clone();
+            if flag == "--skip" {
+                skip_patterns.push(value);
+            }
+            // Other value-taking flags: discard (not relevant to us).
+            i += 1;
+        } else if arg.contains('=') && arg.starts_with("--") {
+            // Handle --flag=value form.
+            let eq = arg.find('=').unwrap();
+            let flag_part = &arg[..eq];
+            let value_part = args[i][eq + 1..].to_owned();
+            if VALUE_FLAGS.contains(&flag_part) {
+                if flag_part == "--skip" {
+                    skip_patterns.push(value_part);
+                }
+                i += 1;
+            } else if BOOL_FLAGS.contains(&flag_part) || flag_part == "--exact" {
+                // Boolean flags don't take values; --bool=value is unrecognized.
+                eprintln!("error: unrecognized flag: {}", arg);
+                std::process::exit(1);
+            } else {
+                eprintln!("error: unrecognized flag: {}", arg);
+                std::process::exit(1);
+            }
+        } else if arg.starts_with('-') {
+            // Unrecognized '-'-prefixed flag.
+            eprintln!("error: unrecognized flag: {}", arg);
+            std::process::exit(1);
+        } else {
+            // Genuine positional: inclusion name-filter argument.
+            filters.push(arg.to_owned());
+            i += 1;
+        }
+    }
+
+    // Apply --skip semantics: skip this test if any skip pattern matches its name.
+    // Real semantics: --skip X means "skip tests whose name matches X".
+    // A non-matching pattern does NOT suppress the test.
+    for skip in &skip_patterns {
+        let skipped = if exact {
+            TEST_NAME == skip.as_str()
+        } else {
+            TEST_NAME.contains(skip.as_str())
+        };
+        if skipped {
+            std::process::exit(0);
+        }
+    }
+
+    // Apply inclusion filters: if any positional filters given, run only when
+    // at least one filter matches our test name.
     if !filters.is_empty() {
         let matches = filters.iter().any(|f| {
             if exact {
-                TEST_NAME == *f
+                TEST_NAME == f.as_str()
             } else {
-                TEST_NAME.contains(f)
+                TEST_NAME.contains(f.as_str())
             }
         });
         if !matches {

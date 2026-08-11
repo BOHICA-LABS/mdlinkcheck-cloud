@@ -67,10 +67,12 @@ fn create_file(root: &Path, rel: &str) {
 /// This function only affects the child subprocess environment — it performs
 /// no process-env mutation on the current process.
 ///
-/// Required for `.gitignore` exclusion tests because the `ignore` crate's
-/// `WalkBuilder` default (`require_git = true`) only honours `.gitignore` files
-/// inside a git repository.  Without this, `.gitignore` patterns are silently
-/// skipped.  See Scope Ruling 4.
+/// **`git init` is NOT required for `.gitignore` to work with our scanner.**
+/// `build_walk` calls `require_git(false)`, which causes the `ignore` crate to
+/// honour `.gitignore` files in ALL directories regardless of whether a real git
+/// repository is present (`ignore-0.4.33/src/dir.rs:560`:
+/// `let any_git = !require_git || ...`).  Tests that call `git_init` do so for
+/// belt-and-suspenders assurance or to align with Scope Ruling 4 fixture semantics.
 fn git_init(dir: &Path, hermetic_config: &Path) {
     let status = std::process::Command::new("git")
         .args(["-C", dir.to_str().expect("UTF-8 path"), "init", "-q"])
@@ -101,6 +103,18 @@ fn test_BC_2_01_001_default_cwd_scan_includes_all_md_files() {
 
     // ── Red Gate: collect_md_files panics at todo!() ──────────────────────────
     let result = scanner::collect_md_files(root);
+
+    // "Exactly once" guard: assert Vec length BEFORE set conversion so that a
+    // walker yielding a path multiple times is caught here.  The HashSet below
+    // would silently deduplicate duplicates, making the len()==3 assertion vacuous
+    // with respect to BC-2.01.001 postcondition 1 ("each file appears exactly once").
+    assert_eq!(
+        result.len(),
+        3,
+        "scan set must contain exactly 3 paths before deduplication; \
+         a len > 3 means the walker yielded a path more than once \
+         (BC-2.01.001 postcondition 1 'exactly once')"
+    );
 
     // After implementation: every .md file under root must appear in the result.
     let result_set: HashSet<PathBuf> = result.into_iter().collect();
@@ -618,8 +632,10 @@ fn test_BC_2_01_005_exact_md_extension_included() {
 #[test]
 fn test_BC_2_01_005_non_md_extensions_excluded() {
     // Canonical non-goal extensions from BC-2.01.005 and D-012.
+    // `.Md` is explicitly named in the AC text and must be present here.
     let excluded = [
         "README.MD",
+        "notes.Md", // AC text names .Md explicitly (mixed-case, BC-2.01.005 invariant 1)
         "notes.markdown",
         "notes.mdx",
         "notes.mdown",
@@ -1033,24 +1049,24 @@ fn test_BC_2_01_005_post1_directory_with_md_name_not_in_scan_set() {
     );
 }
 
-// ─── TEST 1 (INTENTIONALLY RED — F-B2 defect exposure) ───────────────────────
+// ─── Regression lock: BC-2.01.003 postcondition 1 / EC-002 (defect F-B2, fixed) ────
 //
-// .gitignore is NOT honored outside a git repository because `build_walk` does
-// not call `require_git(false)`.  The `ignore` crate defaults `require_git` to
-// `true`, which means `.gitignore` files are honoured ONLY inside a real git
-// repository.  In a non-git directory containing a `.gitignore` with
-// `node_modules/`, the file `node_modules/mdlc_fixture_foo.md` IS returned by
-// `collect_md_files` — it should be excluded.
+// HISTORICAL DEFECT F-B2 (fixed in scanner.rs): `.gitignore` was NOT honored
+// outside a git repository because `build_walk` did not call `require_git(false)`.
+// The `ignore` crate defaults `require_git` to `true`; without `require_git(false)`,
+// `.gitignore` files were honoured ONLY inside a real git repository.  In a
+// non-git directory containing a `.gitignore` with `node_modules/`, the file
+// `node_modules/mdlc_fixture_foo.md` WAS returned by `collect_md_files`.
+//
+// FIX APPLIED (scanner.rs:59): `require_git(false)` is now set in `build_walk`,
+// so `.gitignore` is honoured even in non-git directories.  This test is the
+// GREEN regression lock that must stay green.
 //
 // BC-2.01.003 postcondition 1: "Every file that matches a pattern in any
 //   applicable .gitignore or .ignore file is excluded from the scan set."
 //
 // EC-002: `node_modules/**/*.md` (5000 files); `node_modules/` in `.gitignore`
 //         → All 5000 files excluded; no performance blowout.
-//
-// Fix: add `require_git(false)` to `build_walk` in scanner.rs — another
-// agent's responsibility (defect F-B2, story S-1.01).  Do NOT weaken this
-// test, do NOT add #[ignore], and do NOT modify scanner.rs here.
 
 #[test]
 fn test_BC_2_01_003_post1_gitignore_honored_outside_git_repo() {
@@ -1089,8 +1105,9 @@ fn test_BC_2_01_003_post1_gitignore_honored_outside_git_repo() {
         !result.contains(&root.join("node_modules/mdlc_fixture_foo.md")),
         "node_modules/mdlc_fixture_foo.md must not appear in the scan set \
          (excluded by .gitignore per BC-2.01.003 postcondition 1 / EC-002). \
-         FAILS because build_walk does not call require_git(false): \
-         .gitignore is silently skipped in non-git directories (defect F-B2)."
+         Regression lock for defect F-B2: `require_git(false)` MUST remain set \
+         in build_walk (scanner.rs) — removing it drops .gitignore support in \
+         non-git directories and this assertion fails."
     );
 }
 
@@ -1256,29 +1273,29 @@ fn test_BC_2_01_003_inv1_gitignored_source_not_scanned_real_gitignore() {
     // No exact-count assertion: host global gitignore may exclude unrelated files.
 }
 
-// ─── TEST 1 — INTENTIONALLY RED (exposes confirmed HIGH defect F-A1) ─────────
+// ─── Regression lock: BC-2.01.004 invariant 1 / EC-003 (defect F-A1, fixed) ──────
 //
 // BC-2.01.004 invariant 1: "ALL dot-directories are unconditionally excluded.
 //   No flag overrides this (D-011)."
 // EC-003: ".github/PULL_REQUEST_TEMPLATE.md … unconditionally skipped."
 //
-// Confirmed empirically: `ignore` 0.4.33's hidden filter (hidden(true)) is
-// SUBORDINATE to ignore-rule matches.  A .gitignore containing:
+// HISTORICAL DEFECT F-A1 (fixed in scanner.rs): `ignore` 0.4.33's hidden filter
+// (hidden(true)) is SUBORDINATE to ignore-rule matches.  A .gitignore containing:
 //   .*
 //   !.github
-// re-enables traversal into .github/ via the negation/whitelist pattern.
+// re-enabled traversal into .github/ via the negation/whitelist pattern.
 // With require_git(false) set (so .gitignore is honoured outside git repos),
 // a plain-tempdir fixture with these two files:
 //   .github/PULL_REQUEST_TEMPLATE.md  (inside a dot-directory)
 //   mdlc_fixture_README.md             (normal .md outside dot-dir)
 // produced scan set [".github/PULL_REQUEST_TEMPLATE.md", "mdlc_fixture_README.md"].
-// The dot-directory file IS incorrectly included — defect F-A1.
+// The dot-directory file WAS incorrectly included.
 //
-// Fix belongs to scanner.rs (another agent's responsibility):
-//   add an explicit post-filter in collect_md_files that rejects any path whose
-//   relative components contain a dot-prefixed segment, overriding the ignore crate's
-//   whitelist behaviour.
-// Do NOT weaken this test, do NOT add #[ignore], and do NOT modify scanner.rs.
+// FIX APPLIED (scanner.rs): `collect_md_files` now post-filters every path,
+// rejecting any path whose relative components contain a dot-prefixed segment
+// (reuses is_dot_dir_name for byte-wise comparison).  This overrides the ignore
+// crate's whitelist behaviour and is the structural backstop for BC-2.01.004
+// invariant 1.  This test is the GREEN regression lock that must stay green.
 
 #[test]
 fn test_BC_2_01_004_inv1_dot_dir_skip_not_defeatable_by_ignore_whitelist() {
@@ -1308,9 +1325,9 @@ fn test_BC_2_01_004_inv1_dot_dir_skip_not_defeatable_by_ignore_whitelist() {
     // BC-2.01.004 invariant 1 / EC-003: NOTHING under .github/ may appear, even
     // when a .gitignore whitelist pattern (!.github) re-enables traversal.
     //
-    // THIS ASSERTION FAILS with the current implementation (defect F-A1):
-    // hidden(true) is defeated by the !.github negation rule, so
-    // .github/PULL_REQUEST_TEMPLATE.md is incorrectly included in the scan set.
+    // Regression lock for defect F-A1 (fixed): this assertion was red when
+    // collect_md_files had no post-filter.  The post-filter now makes the
+    // dot-dir exclusion unconditional regardless of ignore-rule whitelists.
     assert!(
         !result.contains(&root.join(".github/PULL_REQUEST_TEMPLATE.md")),
         ".github/PULL_REQUEST_TEMPLATE.md must NOT appear — .github is a dot-directory \
@@ -1321,21 +1338,25 @@ fn test_BC_2_01_004_inv1_dot_dir_skip_not_defeatable_by_ignore_whitelist() {
     );
 }
 
-// ─── TEST 1 (INTENTIONALLY RED — F-P2-01 defect exposure) ────────────────────
+// ─── Regression lock: BC-2.01.004 postcondition 1 / invariant 1 (defect F-P2-01, fixed) ─
 //
 // BC-2.01.004 postcondition 1 / invariant 1 / BC-2.01.001 invariant 1:
 //   "ALL dot-directories are unconditionally excluded. No flag overrides this."
 //
-// Confirmed defect F-P2-01 (found independently by two separate reviewers):
-//   The `filter_entry` dot-directory guard in scanner.rs is UTF-8-only:
-//     `e.file_name().to_str().is_some_and(|n| n.starts_with('.'))`
-//   For a directory whose name is not valid UTF-8, `to_str()` returns `None`,
-//   so `is_some_and` evaluates to `false`, `is_dot_dir` is `false`, and the
-//   directory is ACCEPTED.  The guard fails OPEN on exactly the input class it
-//   was added to protect.
+// HISTORICAL DEFECT F-P2-01 (fixed in scanner.rs): the `filter_entry` dot-directory
+// guard was UTF-8-only:
+//   `e.file_name().to_str().is_some_and(|n| n.starts_with('.'))`
+// For a directory whose name is not valid UTF-8, `to_str()` returned `None`,
+// `is_some_and` evaluated to `false`, `is_dot_dir` was `false`, and the directory
+// was ACCEPTED — failing OPEN on exactly the input class it was added to protect.
 //
-//   The `ignore` crate itself does this correctly byte-wise (pathutil.rs):
-//     `name.as_encoded_bytes().starts_with(b".")`
+// FIX APPLIED (scanner.rs): the guard now uses byte-wise comparison via
+// `is_dot_dir_name` (scanner.rs:103-104), which calls
+// `name.as_encoded_bytes().starts_with(b".")` — matching the `ignore` crate's
+// own byte-wise check in `pathutil.rs`.  Any dot-prefixed name, including
+// non-UTF-8 names, is correctly identified and rejected.
+// `collect_md_files` also applies the same guard as a post-filter backstop.
+// This test is the GREEN regression lock that must stay green.
 //
 // FIXTURE DESIGN (two-path, platform-adaptive):
 //
@@ -1343,22 +1364,15 @@ fn test_BC_2_01_004_inv1_dot_dir_skip_not_defeatable_by_ignore_whitelist() {
 //   - Creates a dot-prefixed directory with INVALID UTF-8 name b".caf\xe9".
 //   - Places an .md file inside it (must NOT be discovered).
 //   - A .gitignore with ".*\n!.*\n" defeats hidden(true), leaving filter_entry
-//     as the SOLE defense.  require_git(false) honours .gitignore without git init.
+//     and the collect_md_files post-filter as the defences.
+//     require_git(false) honours .gitignore without git init.
 //   - Asserts the file inside does NOT appear in the scan set.
-//     FAILS on current scanner.rs: filter_entry admits the non-UTF-8 dot-dir.
 //
 //   macOS path (APFS/HFS+ enforces UTF-8; mkdir returns EILSEQ for non-UTF-8 bytes;
 //   the end-to-end path is not reachable on this OS):
-//   - Falls back to asserting the guard logic directly:
-//     `to_str().is_some_and(|n| n.starts_with('.'))` returns false for b".caf\xe9"
-//     because to_str() returns None for non-UTF-8.
-//   - Asserts the result is true — FAILS: the current guard returns false (F-P2-01).
-//   NOTE: The macOS fallback assertion is permanently red until scanner.rs is fixed
-//   AND this test is updated (or gated to #[cfg(target_os = "linux")]) to use the
-//   corrected guard logic.
-//
-// Fix (another agent's responsibility): use byte-wise comparison in scanner.rs:
-//   `e.file_name().as_encoded_bytes().starts_with(b".")`
+//   - Falls back to asserting the production guard helper directly:
+//     `scanner::is_dot_dir_name(non_utf8_name)` must return true (byte-wise check).
+//   - Reverting `is_dot_dir_name` to the UTF-8-only form would make this fail.
 //
 // Traceability: BC-2.01.004 postcondition 1, invariant 1 / BC-2.01.001 invariant 1
 //               / F-P2-01
@@ -1445,4 +1459,100 @@ fn test_BC_2_01_004_inv1_dot_dir_skip_handles_non_utf8_dir_name() {
             );
         }
     }
+}
+
+// ─── build_walk direct: filter_entry replaceability + collect_md_files backstop ─
+//
+// BACKGROUND (ignore 0.4.33 walk.rs:1043):
+//   `WalkBuilder::filter_entry` stores ONE predicate.  A subsequent call on the
+//   returned builder REPLACES the first, silently removing the dot-dir guard
+//   registered inside `build_walk`.
+//
+// THIS TEST DOCUMENTS TWO THINGS:
+//   (1) A raw `build_walk` consumer who calls `.filter_entry(|_| true)` LOSES the
+//       subtree-pruning dot-dir defence — dot-dir content LEAKS when a .gitignore
+//       negation pattern defeats hidden(true).
+//   (2) `collect_md_files`, which builds its own walker and post-filters every path
+//       via `is_dot_dir_name`, still excludes dot-dir content REGARDLESS of any
+//       builder mutation — the backstop is structural.
+//
+// Practical risk: S-1.02 implements `--ignore <glob>` via `.filter_entry` on a
+//   builder derived from `build_walk`.  The idiomatic approach replaces the
+//   predicate, silently removing the dot-dir guard.  The post-filter backstop in
+//   `collect_md_files` is what keeps the invariant structural for all callers of
+//   that function.
+//
+// Traceability: BC-2.01.004 invariant 1 / ignore 0.4.33 walk.rs:1043
+//               / collect_md_files post-filter backstop
+
+#[test]
+fn test_build_walk_filter_entry_replaceable_but_collect_md_files_backstop_holds() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // .gitignore: ".*" excludes all dot-entries; "!.github" re-enables .github/
+    // via negation.  With require_git(false) active in build_walk, this is
+    // honoured without a git init, defeating hidden(true) for .github/.
+    fs::write(root.join(".gitignore"), ".*\n!.github\n")
+        .expect("write .gitignore with negation pattern that defeats hidden(true)");
+
+    create_file(root, ".github/PULL_REQUEST_TEMPLATE.md"); // dot-dir — must be excluded
+    create_file(root, "mdlc_fixture_visible.md"); // normal file — must be included
+
+    // ── Part 1: raw build_walk consumer who replaces filter_entry ────────────
+    // Calling filter_entry again REPLACES the predicate registered by build_walk
+    // (ignore 0.4.33 walk.rs:1043).  Once replaced, the .gitignore negation
+    // pattern defeats hidden(true) and .github/ is traversed — dot-dir leaks.
+    let mut builder = scanner::build_walk(root);
+    // This replaces the dot-dir guard predicate registered inside build_walk.
+    builder.filter_entry(|_| true);
+    let leaked: Vec<PathBuf> = builder
+        .build()
+        .filter_map(|r| r.ok())
+        .filter(|e| e.file_type().is_some_and(|ft| ft.is_file()))
+        .filter(|e| scanner::is_md_extension(e.path()))
+        .map(|e| e.path().to_path_buf())
+        .collect();
+
+    // The replacing predicate removes the dot-dir guard: .github/ is traversed.
+    // This assertion PROVES the vulnerability exists.  If it ever starts failing
+    // (the leak stops), ignore's filter_entry semantics may have changed from
+    // single-replace to chain — update the build_walk doc comment if so
+    // (cite ignore 0.4.33 walk.rs:1043).
+    let leaked_dot_dir_content = leaked.iter().any(|p| {
+        p.strip_prefix(root)
+            .unwrap_or(p.as_path())
+            .components()
+            .any(|c| c.as_os_str().as_encoded_bytes().starts_with(b"."))
+    });
+    assert!(
+        leaked_dot_dir_content,
+        "build_walk with a replacing filter_entry(|_| true) must LEAK dot-dir \
+         content when a .gitignore negation defeats hidden(true); if this fails, \
+         ignore's filter_entry semantics may have changed from replace to compose — \
+         update the build_walk doc (cite ignore 0.4.33 walk.rs:1043). \
+         leaked set: {leaked:?}"
+    );
+
+    // ── Part 2: collect_md_files backstop holds ───────────────────────────────
+    // collect_md_files builds its OWN walker and post-filters every path through
+    // is_dot_dir_name.  The dot-dir exclusion is structural here — it does not
+    // depend on filter_entry surviving caller mutation.
+    let result = scanner::collect_md_files(root);
+
+    assert!(
+        result.contains(&root.join("mdlc_fixture_visible.md")),
+        "mdlc_fixture_visible.md must be in the scan set (positive gate)"
+    );
+    assert!(
+        !result.iter().any(|p| {
+            p.strip_prefix(root)
+                .unwrap_or(p.as_path())
+                .components()
+                .any(|c| c.as_os_str().as_encoded_bytes().starts_with(b"."))
+        }),
+        "collect_md_files must exclude all dot-dir content regardless of any \
+         builder mutation — the post-filter backstop is structural for all callers \
+         (BC-2.01.004 invariant 1 / ignore 0.4.33 walk.rs:1043)"
+    );
 }
