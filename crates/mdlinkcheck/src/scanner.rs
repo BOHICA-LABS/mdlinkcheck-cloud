@@ -12,6 +12,7 @@
 //! The `--hidden` flag for overriding dot-directory skipping is an explicit non-goal.
 //! Dot-directory skipping is unconditional and cannot be overridden by any flag.
 
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 /// Build a configured [`ignore::WalkBuilder`] rooted at `root`.
@@ -76,11 +77,31 @@ pub fn build_walk(root: &Path) -> ignore::WalkBuilder {
             return true; // never reject the scan root itself
         }
         // Reject any directory whose own name begins with `.`
-        let is_dot_dir = e.file_type().is_some_and(|ft| ft.is_dir())
-            && e.file_name().to_str().is_some_and(|n| n.starts_with('.'));
+        let is_dot_dir =
+            e.file_type().is_some_and(|ft| ft.is_dir()) && is_dot_dir_name(e.file_name());
         !is_dot_dir
     });
     builder
+}
+
+/// Return `true` if `name` is a dot-directory name, i.e. its first byte is `b'.'`.
+///
+/// Uses a byte-wise comparison (`OsStr::as_encoded_bytes().starts_with(b".")`) so
+/// that directory names that are not valid UTF-8 are correctly identified as
+/// dot-directories and rejected.  A UTF-8-only check
+/// (`to_str().is_some_and(|n| n.starts_with('.'))`) fails open for non-UTF-8 names
+/// because `to_str()` returns `None`, causing the dot-directory to be admitted —
+/// a violation of BC-2.01.004 invariant 1 (defect F-P2-01).
+///
+/// The `ignore` crate uses the equivalent byte-wise check in `pathutil.rs`:
+/// `name.as_encoded_bytes().starts_with(b".")`.
+///
+/// # BC traceability
+/// - BC-2.01.004 invariant 1: "ALL dot-directories are unconditionally excluded.
+///   No flag overrides this (D-011)."
+/// - BC-2.01.001 invariant 1: scope restricted to files not inside dot-directories.
+pub fn is_dot_dir_name(name: &OsStr) -> bool {
+    name.as_encoded_bytes().starts_with(b".")
 }
 
 /// Collect all `.md` files reachable from `root` into a deduplicated `Vec<PathBuf>`.

@@ -1394,28 +1394,27 @@ fn test_BC_2_01_004_inv1_dot_dir_skip_handles_non_utf8_dir_name() {
             );
         }
         Err(_) => {
-            // ── macOS path: direct guard assertion ────────────────────────────
-            // macOS cannot create non-UTF-8 dirs; test the guard logic directly.
+            // ── macOS path: direct guard assertion via production helper ──────
+            // macOS APFS/HFS+ cannot create non-UTF-8 dirs (EILSEQ); the
+            // end-to-end path is unavailable.  Assert the production guard logic
+            // directly via the public helper so this branch exercises the real
+            // implementation rather than an inline copy.
             // BC-2.01.004 invariant 1 requires ANY dot-prefixed name — including
             // non-UTF-8 names — to be recognised as a dot-directory.
             //
-            // Replicate the current (buggy) guard from scanner.rs:
-            let current_guard_result = non_utf8_name.to_str().is_some_and(|n| n.starts_with('.'));
+            // Calls the real production guard (not a replicated copy):
+            let guard_result = scanner::is_dot_dir_name(non_utf8_name);
 
-            // THIS ASSERTION FAILS (defect F-P2-01):
-            // current_guard_result is false because to_str() returns None for
-            // b".caf\xe9".  The guard fails OPEN for non-UTF-8 dot-dir names.
-            // Fix: use `as_encoded_bytes().starts_with(b".")` in scanner.rs.
-            // NOTE: this fallback is permanently red until scanner.rs is fixed
-            // AND this branch is updated to use the corrected guard (or the test
-            // is changed to #[cfg(target_os = "linux")] after the fix).
+            // Discriminates F-P2-01: if is_dot_dir_name is reverted to
+            // `to_str().is_some_and(|n| n.starts_with('.'))`, guard_result
+            // returns false for non-UTF-8 names and this assertion FAILS.
             assert!(
-                current_guard_result,
-                "F-P2-01: filter_entry guard `to_str().is_some_and(|n| n.starts_with('.'))`\
-                 returns {current_guard_result} for non-UTF-8 dot name {non_utf8_name:?}. \
-                 Expected true — dot-dirs must be rejected regardless of name encoding. \
-                 macOS APFS cannot create non-UTF-8 dirs; guard logic asserted directly. \
-                 Fix in scanner.rs: use `as_encoded_bytes().starts_with(b\".\")`."
+                guard_result,
+                "F-P2-01: scanner::is_dot_dir_name({non_utf8_name:?}) returned \
+                 {guard_result}. Expected true — dot-dirs must be rejected regardless \
+                 of name encoding (BC-2.01.004 invariant 1 / F-P2-01). \
+                 macOS APFS cannot create non-UTF-8 dirs; guard logic asserted \
+                 directly via the production helper."
             );
         }
     }
