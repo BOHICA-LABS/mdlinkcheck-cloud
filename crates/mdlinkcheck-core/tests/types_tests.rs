@@ -149,7 +149,7 @@ fn test_dir_index_insert_and_lookup() {
 fn test_dir_index_absent_key_returns_none() {
     let index: DirIndex = HashMap::new();
     assert!(
-        index.get(&PathBuf::from("/nonexistent")).is_none(),
+        !index.contains_key(&PathBuf::from("/nonexistent")),
         "lookup of absent key must return None"
     );
 }
@@ -181,7 +181,7 @@ fn test_dir_index_multiple_directories() {
 
     assert_eq!(index.get(&PathBuf::from("/a")).unwrap().len(), 1);
     assert_eq!(index.get(&PathBuf::from("/b")).unwrap().len(), 2);
-    assert!(index.get(&PathBuf::from("/c")).is_none());
+    assert!(!index.contains_key(&PathBuf::from("/c")));
 }
 
 // ─── AnchorTable construction and membership ──────────────────────────────────

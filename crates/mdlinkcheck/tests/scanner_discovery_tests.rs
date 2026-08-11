@@ -502,7 +502,7 @@ fn test_BC_2_01_004_ec009_directory_symlink_to_outside_not_followed() {
     assert!(
         !result
             .iter()
-            .any(|p| p.file_name().map_or(false, |n| n == "external.md")),
+            .any(|p| p.file_name().is_some_and(|n| n == "external.md")),
         "external.md lives outside the scan root and is reachable only via the docs \
          directory symlink; it must not be discovered when follow_links(false) is set \
          (EC-009 / BC-2.01.004 postcondition 2)"
@@ -874,7 +874,7 @@ proptest! {
         // not appear (mutation-discriminating for follow_links(false)).
         #[cfg(unix)]
         prop_assert!(
-            !result.iter().any(|p| p.file_name().map_or(false, |n| n == "outside.md")),
+            !result.iter().any(|p| p.file_name().is_some_and(|n| n == "outside.md")),
             "files in out-of-root directories reachable only via a non-cyclic \
              directory symlink must not appear in scan results \
              (EC-009, mutation-discriminating for follow_links(false))"
