@@ -27,8 +27,10 @@
 //! env on the `Command` object — that is safe because it is not process-env
 //! mutation.  For `collect_md_files` (which runs in-process),
 //! fixture file names use a distinctive `mdlc_fixture_` prefix so that no plausible
-//! host-global gitignore pattern can accidentally exclude them, and count assertions
-//! are relaxed to `contains`/`!contains` style.  The one test that genuinely needs
+//! host-global gitignore pattern can accidentally exclude them.  Count assertions,
+//! where present, are scoped exclusively to `mdlc_fixture_`-prefixed fixture files
+//! so that ambient host ignores cannot skew them; purely negative or structural
+//! assertions use `contains`/`!contains` style.  The one test that genuinely needs
 //! a controlled global gitignore (`test_BC_2_01_003_post3_global_gitignore_respected_when_available`)
 //! lives in its own integration-test file (`global_gitignore_test.rs`) which
 //! compiles to a separate binary with no concurrent libtest threads.
@@ -88,9 +90,9 @@ fn test_BC_2_01_001_default_cwd_scan_includes_all_md_files() {
     let dir = TempDir::new().expect("tempdir");
     let root = dir.path();
 
-    create_file(root, "README.md");
-    create_file(root, "docs/guide.md");
-    create_file(root, "docs/api/reference.md");
+    create_file(root, "mdlc_fixture_README.md");
+    create_file(root, "docs/mdlc_fixture_guide.md");
+    create_file(root, "docs/api/mdlc_fixture_reference.md");
     create_file(root, "not_a_md.txt");
     create_file(root, "image.png");
 
@@ -100,16 +102,16 @@ fn test_BC_2_01_001_default_cwd_scan_includes_all_md_files() {
     // After implementation: every .md file under root must appear in the result.
     let result_set: HashSet<PathBuf> = result.into_iter().collect();
     assert!(
-        result_set.contains(&root.join("README.md")),
-        "README.md must be in the scan set"
+        result_set.contains(&root.join("mdlc_fixture_README.md")),
+        "mdlc_fixture_README.md must be in the scan set"
     );
     assert!(
-        result_set.contains(&root.join("docs/guide.md")),
-        "docs/guide.md must be in the scan set"
+        result_set.contains(&root.join("docs/mdlc_fixture_guide.md")),
+        "docs/mdlc_fixture_guide.md must be in the scan set"
     );
     assert!(
-        result_set.contains(&root.join("docs/api/reference.md")),
-        "docs/api/reference.md must be in the scan set"
+        result_set.contains(&root.join("docs/api/mdlc_fixture_reference.md")),
+        "docs/api/mdlc_fixture_reference.md must be in the scan set"
     );
     assert_eq!(
         result_set.len(),
@@ -126,9 +128,9 @@ fn test_BC_2_01_001_no_duplicate_in_scan_set() {
     let dir = TempDir::new().expect("tempdir");
     let root = dir.path();
 
-    create_file(root, "a.md");
-    create_file(root, "sub/b.md");
-    create_file(root, "sub/nested/c.md");
+    create_file(root, "mdlc_fixture_a.md");
+    create_file(root, "sub/mdlc_fixture_b.md");
+    create_file(root, "sub/nested/mdlc_fixture_c.md");
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     let result = scanner::collect_md_files(root);
@@ -142,16 +144,16 @@ fn test_BC_2_01_001_no_duplicate_in_scan_set() {
     // Positive gate: all three fixture files must be present (F-04 vacuous-pass
     // prevention — an empty Vec passes the dedup assertion above vacuously).
     assert!(
-        unique.contains(&root.join("a.md")),
-        "a.md must appear in the scan set"
+        unique.contains(&root.join("mdlc_fixture_a.md")),
+        "mdlc_fixture_a.md must appear in the scan set"
     );
     assert!(
-        unique.contains(&root.join("sub/b.md")),
-        "sub/b.md must appear in the scan set"
+        unique.contains(&root.join("sub/mdlc_fixture_b.md")),
+        "sub/mdlc_fixture_b.md must appear in the scan set"
     );
     assert!(
-        unique.contains(&root.join("sub/nested/c.md")),
-        "sub/nested/c.md must appear in the scan set"
+        unique.contains(&root.join("sub/nested/mdlc_fixture_c.md")),
+        "sub/nested/mdlc_fixture_c.md must appear in the scan set"
     );
 }
 
@@ -164,9 +166,9 @@ fn test_BC_2_01_001_scan_terminates_for_finite_tree() {
     let dir = TempDir::new().expect("tempdir");
     let root = dir.path();
 
-    create_file(root, "a.md");
-    create_file(root, "b/c.md");
-    create_file(root, "b/d/e.md");
+    create_file(root, "mdlc_fixture_a.md");
+    create_file(root, "b/mdlc_fixture_c.md");
+    create_file(root, "b/d/mdlc_fixture_e.md");
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     // After implementation: must return without looping.
@@ -227,22 +229,22 @@ fn test_BC_2_01_003_gitignored_file_not_scanned_as_source() {
     let root = dir.path();
 
     // No git init: .ignore is always honoured, making this fixture git-independent
-    fs::write(root.join(".ignore"), "secret.md\n").expect("write .ignore");
-    create_file(root, "secret.md"); // excluded by .ignore
-    create_file(root, "visible.md"); // included
+    fs::write(root.join(".ignore"), "mdlc_fixture_secret.md\n").expect("write .ignore");
+    create_file(root, "mdlc_fixture_secret.md"); // excluded by .ignore
+    create_file(root, "mdlc_fixture_visible.md"); // included
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
-    // After implementation: secret.md must NOT appear in the scan set;
-    // it must never be scanned as a link source.
+    // After implementation: mdlc_fixture_secret.md must NOT appear in the scan
+    // set; it must never be scanned as a link source.
     let result = scanner::collect_md_files(root);
 
     assert!(
-        !result.contains(&root.join("secret.md")),
-        "secret.md must not be scanned as a link source (excluded by .ignore)"
+        !result.contains(&root.join("mdlc_fixture_secret.md")),
+        "mdlc_fixture_secret.md must not be scanned as a link source (excluded by .ignore)"
     );
     assert!(
-        result.contains(&root.join("visible.md")),
-        "visible.md must be in the scan set"
+        result.contains(&root.join("mdlc_fixture_visible.md")),
+        "mdlc_fixture_visible.md must be in the scan set"
     );
 }
 
@@ -262,25 +264,25 @@ fn test_BC_2_01_003_gitignored_file_anchor_table_built_as_target() {
     let dir = TempDir::new().expect("tempdir");
     let root = dir.path();
 
-    // .ignore excludes "ignored_target.md" from the scan set (clause i only)
-    fs::write(root.join(".ignore"), "ignored_target.md\n").expect("write .ignore");
-    create_file(root, "ignored_target.md"); // excluded by .ignore
-    create_file(root, "source.md"); // in scan set
+    // .ignore excludes "mdlc_fixture_ignored_target.md" from the scan set (clause i only)
+    fs::write(root.join(".ignore"), "mdlc_fixture_ignored_target.md\n").expect("write .ignore");
+    create_file(root, "mdlc_fixture_ignored_target.md"); // excluded by .ignore
+    create_file(root, "mdlc_fixture_source.md"); // in scan set
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     // Clause (i): the .ignore-excluded file must NOT appear in the scan set.
     let result = scanner::collect_md_files(root);
 
     assert!(
-        !result.contains(&root.join("ignored_target.md")),
-        "ignored_target.md must not appear in the scan set (excluded by .ignore) \
+        !result.contains(&root.join("mdlc_fixture_ignored_target.md")),
+        "mdlc_fixture_ignored_target.md must not appear in the scan set (excluded by .ignore) \
          — clause (i) of BC-2.01.003 invariant 2"
     );
-    // Positive gate: source.md must be present (F-04 vacuous-pass prevention —
-    // an empty Vec passes the negative assertion above vacuously).
+    // Positive gate: mdlc_fixture_source.md must be present (F-04 vacuous-pass
+    // prevention — an empty Vec passes the negative assertion above vacuously).
     assert!(
-        result.contains(&root.join("source.md")),
-        "source.md must appear in the scan set (F-04 vacuous-pass prevention)"
+        result.contains(&root.join("mdlc_fixture_source.md")),
+        "mdlc_fixture_source.md must appear in the scan set (F-04 vacuous-pass prevention)"
     );
 }
 
@@ -295,7 +297,7 @@ fn test_BC_2_01_004_dot_directories_unconditionally_skipped() {
     create_file(root, ".github/PULL_REQUEST_TEMPLATE.md"); // dot-dir — must be skipped
     create_file(root, ".git_backup/notes.md"); // dot-dir — must be skipped
     create_file(root, ".vitepress/config.md"); // dot-dir — must be skipped
-    create_file(root, "README.md"); // not in dot-dir — must appear
+    create_file(root, "mdlc_fixture_README.md"); // not in dot-dir — must appear
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     let result = scanner::collect_md_files(root);
@@ -314,10 +316,14 @@ fn test_BC_2_01_004_dot_directories_unconditionally_skipped() {
         ".vitepress/ is a dot-dir and must be unconditionally skipped"
     );
     assert!(
-        result_set.contains(&root.join("README.md")),
-        "README.md (not in any dot-dir) must be in the scan set"
+        result_set.contains(&root.join("mdlc_fixture_README.md")),
+        "mdlc_fixture_README.md (not in any dot-dir) must be in the scan set"
     );
-    assert_eq!(result_set.len(), 1, "only README.md should be discovered");
+    assert_eq!(
+        result_set.len(),
+        1,
+        "only mdlc_fixture_README.md should be discovered"
+    );
 }
 
 // ─── AC-008 (traces to BC-2.01.004 invariant 1) ──────────────────────────────
@@ -341,7 +347,7 @@ fn test_BC_2_01_004_no_override_flag_for_dot_dir_skip() {
     let root = dir.path();
 
     create_file(root, ".hidden_dir/secret.md");
-    create_file(root, "visible.md");
+    create_file(root, "mdlc_fixture_visible.md");
 
     // The call below compiles with EXACTLY ONE argument, asserting the API surface:
     // no `hidden: bool`, no override config, no builder knob for dot-dir traversal.
@@ -350,12 +356,12 @@ fn test_BC_2_01_004_no_override_flag_for_dot_dir_skip() {
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     let result = scanner::collect_md_files(root);
 
-    // Positive assertion: visible.md MUST appear in the scan set.
+    // Positive assertion: mdlc_fixture_visible.md MUST appear in the scan set.
     // Without this, the invariant below would pass vacuously on an empty Vec —
     // an empty result is not a correct implementation.
     assert!(
-        result.contains(&root.join("visible.md")),
-        "visible.md must appear in the scan set"
+        result.contains(&root.join("mdlc_fixture_visible.md")),
+        "mdlc_fixture_visible.md must appear in the scan set"
     );
 
     // Negative assertion: the file inside the dot-directory must NOT appear.
@@ -465,17 +471,17 @@ fn test_BC_2_01_004_ec009_directory_symlink_to_outside_not_followed() {
         .expect("create non-cyclic out-of-root directory symlink (EC-009)");
 
     // A real in-root .md file: prevents vacuous pass on an empty result.
-    create_file(root, "README.md");
+    create_file(root, "mdlc_fixture_README.md");
 
     let result = scanner::collect_md_files(root);
 
-    // Positive gate: README.md MUST appear.
+    // Positive gate: mdlc_fixture_README.md MUST appear.
     // If the implementation returns an empty Vec, the negative assertions below
     // would pass vacuously, so this guard is mandatory.
     assert!(
-        result.contains(&root.join("README.md")),
-        "README.md must be discovered; empty scan set is not a correct implementation \
-         (EC-009 vacuous-pass prevention)"
+        result.contains(&root.join("mdlc_fixture_README.md")),
+        "mdlc_fixture_README.md must be discovered; empty scan set is not a correct \
+         implementation (EC-009 vacuous-pass prevention)"
     );
 
     // Negative assertion 1: no discovered path traverses the docs symlink.
@@ -506,7 +512,7 @@ fn test_BC_2_01_004_ec009_directory_symlink_to_outside_not_followed() {
     assert_eq!(
         result.len(),
         1,
-        "only README.md should be in the scan set; \
+        "only mdlc_fixture_README.md should be in the scan set; \
          external.md behind the docs symlink must be excluded (EC-009)"
     );
 }
@@ -529,7 +535,7 @@ fn test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target() {
 
     // .vitepress/api.md is inside a dot-directory (should be excluded from scan set)
     create_file(root, ".vitepress/api.md");
-    create_file(root, "source.md");
+    create_file(root, "mdlc_fixture_source.md");
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     // Clause (i): dot-dir .md must NOT appear in the scan set as a link source.
@@ -540,11 +546,11 @@ fn test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target() {
         ".vitepress/api.md is in a dot-directory and must not appear in the scan set \
          — clause (i) of BC-2.01.004 invariant 3"
     );
-    // Positive gate: source.md must be present (F-04 vacuous-pass prevention —
-    // an empty Vec passes the negative assertion above vacuously).
+    // Positive gate: mdlc_fixture_source.md must be present (F-04 vacuous-pass
+    // prevention — an empty Vec passes the negative assertion above vacuously).
     assert!(
-        result.contains(&root.join("source.md")),
-        "source.md must appear in the scan set (F-04 vacuous-pass prevention)"
+        result.contains(&root.join("mdlc_fixture_source.md")),
+        "mdlc_fixture_source.md must appear in the scan set (F-04 vacuous-pass prevention)"
     );
 }
 
@@ -644,62 +650,62 @@ fn test_BC_2_01_005_ec005_ec006a_ec006b_traversal_excludes_non_md_extensions() {
     let root = dir.path();
 
     // Non-.md files that must be absent from the scan set when traversed:
-    create_file(root, "README.MD"); // EC-005: uppercase .MD
-    create_file(root, "notes.markdown"); // EC-006a
-    create_file(root, "notes.mdx"); // EC-006b
-    create_file(root, "notes.mdown"); // D-012 non-goal
-    create_file(root, "notes.mkd"); // D-012 non-goal
-    create_file(root, "notes.txt"); // D-012 non-goal
-    create_file(root, "page.html"); // D-012 non-goal
+    create_file(root, "mdlc_fixture_README.MD"); // EC-005: uppercase .MD
+    create_file(root, "mdlc_fixture_notes.markdown"); // EC-006a
+    create_file(root, "mdlc_fixture_notes.mdx"); // EC-006b
+    create_file(root, "mdlc_fixture_notes.mdown"); // D-012 non-goal
+    create_file(root, "mdlc_fixture_notes.mkd"); // D-012 non-goal
+    create_file(root, "mdlc_fixture_notes.txt"); // D-012 non-goal
+    create_file(root, "mdlc_fixture_page.html"); // D-012 non-goal
 
     // The only file that MUST appear — mandatory positive gate (vacuous-pass
     // prevention: without it, an empty Vec passes every negative assertion).
-    create_file(root, "good.md");
+    create_file(root, "mdlc_fixture_good.md");
 
     let result = scanner::collect_md_files(root);
 
-    // Positive gate: good.md must be discovered via traversal.
+    // Positive gate: mdlc_fixture_good.md must be discovered via traversal.
     assert!(
-        result.contains(&root.join("good.md")),
-        "good.md must be in the scan set \
+        result.contains(&root.join("mdlc_fixture_good.md")),
+        "mdlc_fixture_good.md must be in the scan set \
          (EC-005/EC-006a/EC-006b traversal test, vacuous-pass prevention)"
     );
 
     // Negative assertions: every non-.md file must be absent from the scan set.
     assert!(
-        !result.contains(&root.join("README.MD")),
-        "README.MD (uppercase) must not appear in scan set via traversal (EC-005)"
+        !result.contains(&root.join("mdlc_fixture_README.MD")),
+        "mdlc_fixture_README.MD (uppercase) must not appear in scan set via traversal (EC-005)"
     );
     assert!(
-        !result.contains(&root.join("notes.markdown")),
-        "notes.markdown must not appear in scan set via traversal (EC-006a)"
+        !result.contains(&root.join("mdlc_fixture_notes.markdown")),
+        "mdlc_fixture_notes.markdown must not appear in scan set via traversal (EC-006a)"
     );
     assert!(
-        !result.contains(&root.join("notes.mdx")),
-        "notes.mdx must not appear in scan set via traversal (EC-006b)"
+        !result.contains(&root.join("mdlc_fixture_notes.mdx")),
+        "mdlc_fixture_notes.mdx must not appear in scan set via traversal (EC-006b)"
     );
     assert!(
-        !result.contains(&root.join("notes.mdown")),
-        "notes.mdown must not appear in scan set via traversal (D-012)"
+        !result.contains(&root.join("mdlc_fixture_notes.mdown")),
+        "mdlc_fixture_notes.mdown must not appear in scan set via traversal (D-012)"
     );
     assert!(
-        !result.contains(&root.join("notes.mkd")),
-        "notes.mkd must not appear in scan set via traversal (D-012)"
+        !result.contains(&root.join("mdlc_fixture_notes.mkd")),
+        "mdlc_fixture_notes.mkd must not appear in scan set via traversal (D-012)"
     );
     assert!(
-        !result.contains(&root.join("notes.txt")),
-        "notes.txt must not appear in scan set via traversal (D-012)"
+        !result.contains(&root.join("mdlc_fixture_notes.txt")),
+        "mdlc_fixture_notes.txt must not appear in scan set via traversal (D-012)"
     );
     assert!(
-        !result.contains(&root.join("page.html")),
-        "page.html must not appear in scan set via traversal (D-012)"
+        !result.contains(&root.join("mdlc_fixture_page.html")),
+        "mdlc_fixture_page.html must not appear in scan set via traversal (D-012)"
     );
 
-    // Exactly one file: only good.md.
+    // Exactly one file: only mdlc_fixture_good.md.
     assert_eq!(
         result.len(),
         1,
-        "exactly one file (good.md) must be in the scan set; \
+        "exactly one file (mdlc_fixture_good.md) must be in the scan set; \
          all non-.md files must be excluded via traversal \
          (EC-005 / EC-006a / EC-006b / D-012)"
     );
@@ -759,7 +765,7 @@ fn test_vp016_gitignored_files_never_in_scan_set() {
         // No git init — .ignore is honoured unconditionally
         fs::write(root.join(".ignore"), "excluded/\n").expect("write .ignore");
         create_file(root, "excluded/hidden.md");
-        create_file(root, "visible.md");
+        create_file(root, "mdlc_fixture_visible.md");
 
         let result = scanner::collect_md_files(root);
 
@@ -767,7 +773,15 @@ fn test_vp016_gitignored_files_never_in_scan_set() {
             !result.iter().any(|p| p.starts_with(root.join("excluded"))),
             "VP-016 form B: .ignore-excluded files must never appear in scan set"
         );
-        assert_eq!(result.len(), 1);
+        assert!(
+            result.contains(&root.join("mdlc_fixture_visible.md")),
+            "VP-016 form B: mdlc_fixture_visible.md must appear in scan set (positive gate)"
+        );
+        assert_eq!(
+            result.len(),
+            1,
+            "VP-016 form B: exactly one file (mdlc_fixture_visible.md) must be in the scan set"
+        );
     }
 }
 
@@ -845,7 +859,12 @@ proptest! {
             );
         }
 
-        // EC-008: symlink-cycle components must never appear in scan results
+        // EC-008: symlink-cycle components must never appear in scan results.
+        // Gated on unix: symlinks are only created on unix (see #[cfg(unix)] in the
+        // fixture setup above), so on non-unix these assertions would be vacuously
+        // true — gate them to make the conditional explicit and prevent misleading
+        // green results on non-unix platforms.
+        #[cfg(unix)]
         prop_assert!(
             !result.iter().any(|p| p.to_string_lossy().contains("self_link")),
             "directory symlink components must not appear in scan results"
@@ -853,6 +872,7 @@ proptest! {
 
         // EC-009: files behind a non-cyclic out-of-root directory symlink must
         // not appear (mutation-discriminating for follow_links(false)).
+        #[cfg(unix)]
         prop_assert!(
             !result.iter().any(|p| p.file_name().map_or(false, |n| n == "outside.md")),
             "files in out-of-root directories reachable only via a non-cyclic \
@@ -860,7 +880,8 @@ proptest! {
              (EC-009, mutation-discriminating for follow_links(false))"
         );
 
-        // EC-009: the outlink symlink component itself must not appear in any path
+        // EC-009: the outlink symlink component itself must not appear in any path.
+        #[cfg(unix)]
         prop_assert!(
             !result.iter().any(|p| p.to_string_lossy().contains("outlink")),
             "outlink directory symlink must not be traversed; \
@@ -910,26 +931,26 @@ fn test_BC_2_01_005_post1_directory_with_md_name_not_in_scan_set() {
     // Put a real .md file inside it so the tree is realistic and proves the
     // walker still descends into the directory (it must — it is not a symlink,
     // not a dot-dir, and not gitignored).
-    create_file(root, "notes.md/inner.md");
+    create_file(root, "notes.md/mdlc_fixture_inner.md");
 
     // A normal .md file — mandatory positive gate (F-04 vacuous-pass prevention:
     // without it, an empty Vec passes every negative assertion vacuously).
-    create_file(root, "good.md");
+    create_file(root, "mdlc_fixture_good.md");
 
     let result = scanner::collect_md_files(root);
 
-    // ── Positive gate 1: good.md must be discovered. ──────────────────────────
+    // ── Positive gate 1: mdlc_fixture_good.md must be discovered. ─────────────
     assert!(
-        result.contains(&root.join("good.md")),
-        "good.md must be in the scan set \
+        result.contains(&root.join("mdlc_fixture_good.md")),
+        "mdlc_fixture_good.md must be in the scan set \
          (positive gate, BC-2.01.005 postcondition 1)"
     );
 
-    // ── Positive gate 2: notes.md/inner.md is a real file and must be discovered.
-    // It must not be lost because its parent directory has a .md-like name.
+    // ── Positive gate 2: notes.md/mdlc_fixture_inner.md is a real file and must
+    // be discovered.  It must not be lost because its parent dir has a .md name.
     assert!(
-        result.contains(&root.join("notes.md").join("inner.md")),
-        "notes.md/inner.md is a real .md file and must be in the scan set \
+        result.contains(&root.join("notes.md").join("mdlc_fixture_inner.md")),
+        "notes.md/mdlc_fixture_inner.md is a real .md file and must be in the scan set \
          (BC-2.01.005 postcondition 1 — files inside a .md-named directory are still files)"
     );
 
@@ -944,12 +965,13 @@ fn test_BC_2_01_005_post1_directory_with_md_name_not_in_scan_set() {
     );
 
     // ── Count assertion — secondary discriminator. ────────────────────────────
-    // Exactly two files: good.md and notes.md/inner.md.
+    // Exactly two files: mdlc_fixture_good.md and notes.md/mdlc_fixture_inner.md.
     // Under the mutant, notes.md (directory) would be a third entry.
     assert_eq!(
         result.len(),
         2,
-        "exactly two files must be in the scan set (good.md and notes.md/inner.md); \
+        "exactly two files must be in the scan set \
+         (mdlc_fixture_good.md and notes.md/mdlc_fixture_inner.md); \
          the notes.md directory must not be counted \
          (BC-2.01.005 postcondition 1)"
     );
@@ -1176,4 +1198,69 @@ fn test_BC_2_01_003_inv1_gitignored_source_not_scanned_real_gitignore() {
          BC-2.01.003 invariant 1 / AC-005 companion)"
     );
     // No exact-count assertion: host global gitignore may exclude unrelated files.
+}
+
+// ─── TEST 1 — INTENTIONALLY RED (exposes confirmed HIGH defect F-A1) ─────────
+//
+// BC-2.01.004 invariant 1: "ALL dot-directories are unconditionally excluded.
+//   No flag overrides this (D-011)."
+// EC-003: ".github/PULL_REQUEST_TEMPLATE.md … unconditionally skipped."
+//
+// Confirmed empirically: `ignore` 0.4.33's hidden filter (hidden(true)) is
+// SUBORDINATE to ignore-rule matches.  A .gitignore containing:
+//   .*
+//   !.github
+// re-enables traversal into .github/ via the negation/whitelist pattern.
+// With require_git(false) set (so .gitignore is honoured outside git repos),
+// a plain-tempdir fixture with these two files:
+//   .github/PULL_REQUEST_TEMPLATE.md  (inside a dot-directory)
+//   mdlc_fixture_README.md             (normal .md outside dot-dir)
+// produced scan set [".github/PULL_REQUEST_TEMPLATE.md", "mdlc_fixture_README.md"].
+// The dot-directory file IS incorrectly included — defect F-A1.
+//
+// Fix belongs to scanner.rs (another agent's responsibility):
+//   add an explicit post-filter in collect_md_files that rejects any path whose
+//   relative components contain a dot-prefixed segment, overriding the ignore crate's
+//   whitelist behaviour.
+// Do NOT weaken this test, do NOT add #[ignore], and do NOT modify scanner.rs.
+
+#[test]
+fn test_BC_2_01_004_inv1_dot_dir_skip_not_defeatable_by_ignore_whitelist() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // .gitignore: ".*" excludes all dot-entries; "!.github" whitelists .github
+    // via negation.  This is the exact two-line pattern confirmed by the probe
+    // to defeat hidden(true) in ignore 0.4.33.  require_git(false) is active in
+    // build_walk, so this .gitignore is honoured without a git init.
+    fs::write(root.join(".gitignore"), ".*\n!.github\n").expect("write .gitignore");
+
+    // File inside the whitelisted dot-directory — MUST be unconditionally skipped.
+    create_file(root, ".github/PULL_REQUEST_TEMPLATE.md");
+
+    // Normal .md file outside any dot-directory — MUST appear in the scan set.
+    create_file(root, "mdlc_fixture_README.md");
+
+    let result = scanner::collect_md_files(root);
+
+    // Positive gate (F-04 vacuous-pass prevention): the non-dot-dir file MUST appear.
+    assert!(
+        result.contains(&root.join("mdlc_fixture_README.md")),
+        "mdlc_fixture_README.md must appear in the scan set (F-04 positive gate)"
+    );
+
+    // BC-2.01.004 invariant 1 / EC-003: NOTHING under .github/ may appear, even
+    // when a .gitignore whitelist pattern (!.github) re-enables traversal.
+    //
+    // THIS ASSERTION FAILS with the current implementation (defect F-A1):
+    // hidden(true) is defeated by the !.github negation rule, so
+    // .github/PULL_REQUEST_TEMPLATE.md is incorrectly included in the scan set.
+    assert!(
+        !result.contains(&root.join(".github/PULL_REQUEST_TEMPLATE.md")),
+        ".github/PULL_REQUEST_TEMPLATE.md must NOT appear — .github is a dot-directory \
+         and must be unconditionally skipped regardless of any .gitignore whitelist \
+         pattern (BC-2.01.004 invariant 1 / EC-003 / defect F-A1). \
+         Got scan set: {:?}",
+        result
+    );
 }
