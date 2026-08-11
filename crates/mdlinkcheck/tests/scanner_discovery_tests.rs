@@ -295,15 +295,36 @@ fn test_BC_2_01_004_no_override_flag_for_dot_dir_skip() {
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     let result = scanner::collect_md_files(root);
 
-    // After implementation: no file inside any dot-directory component must appear.
+    // Positive assertion: visible.md MUST appear in the scan set.
+    // Without this, the invariant below would pass vacuously on an empty Vec —
+    // an empty result is not a correct implementation.
+    assert!(
+        result.contains(&root.join("visible.md")),
+        "visible.md must appear in the scan set"
+    );
+
+    // Negative assertion: the file inside the dot-directory must NOT appear.
+    assert!(
+        !result.contains(&root.join(".hidden_dir").join("secret.md")),
+        ".hidden_dir/secret.md must not appear — dot-dir skip is unconditional (D-011)"
+    );
+
+    // Invariant: no path whose RELATIVE components (relative to root) contain a
+    // dot-prefixed segment may appear.  We strip the absolute root prefix first so
+    // that a dot-prefixed OS tempdir name (e.g. `/tmp/.tmpXXXXX` — tempfile's
+    // default prefix on all platforms) in the absolute path does not trigger a
+    // false failure.  Only the relative path components count for D-011.
     assert!(
         !result.iter().any(|p| {
-            p.components().any(|c| {
-                c.as_os_str()
-                    .to_str()
-                    .map(|s| s.starts_with('.'))
-                    .unwrap_or(false)
-            })
+            p.strip_prefix(root)
+                .unwrap_or(p.as_path())
+                .components()
+                .any(|c| {
+                    c.as_os_str()
+                        .to_str()
+                        .map(|s| s.starts_with('.'))
+                        .unwrap_or(false)
+                })
         }),
         "no file inside a dot-directory component must ever appear in the scan set \
          regardless of invocation — dot-dir skip is unconditional (D-011)"
