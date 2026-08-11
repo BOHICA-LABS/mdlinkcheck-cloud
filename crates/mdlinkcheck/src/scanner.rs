@@ -61,6 +61,16 @@ use std::path::{Path, PathBuf};
 /// ("every file matching a pattern in **any applicable** `.gitignore` or
 /// `.ignore` file is excluded") and EC-002 ("`node_modules/` in `.gitignore`
 /// → excluded, no performance blowout") which impose no git-repo requirement.
+///
+/// **Ancestor ascent (`parents(true)`):** ignore files in ancestor directories
+/// of the scan root ARE consulted. Combined with `require_git(false)` there is
+/// no repository-root boundary on that ascent, so an ignore file located above
+/// the scan root — even with no git repository present anywhere — DOES affect
+/// the scan set. This is operator-ruled intended behaviour (D-259): it matches
+/// git semantics when scanning a subdirectory of a repository. Known consequence:
+/// a user with a `$HOME/.gitignore` will have it apply to scans beneath it;
+/// `collect_md_files` has no diagnostic channel to report such silent exclusions
+/// (deferred finding F-A3).
 pub fn build_walk(root: &Path) -> ignore::WalkBuilder {
     let mut builder = ignore::WalkBuilder::new(root);
     builder
@@ -76,7 +86,19 @@ pub fn build_walk(root: &Path) -> ignore::WalkBuilder {
         .ignore(true) // respect .ignore files (BC-2.01.003)
         .git_global(true) // respect global gitignore
         .git_exclude(true) // respect .git/info/exclude
-        .require_git(false); // honour .gitignore outside git repos (BC-2.01.003 post1, EC-002)
+        .require_git(false) // honour .gitignore outside git repos (BC-2.01.003 post1, EC-002)
+        // parents(true): consult ignore files in ancestor directories of the scan
+        // root (the `ignore` 0.4.33 default — set explicitly so cargo-mutants can
+        // generate a kill-able mutant for this line; an implicit default produces
+        // no mutant and can never be covered by a kill-rate metric — lesson L-88).
+        // Combined with require_git(false) there is no repository-root boundary on
+        // that ascent: an ignore file above the scan root, even with no git repo
+        // present, DOES affect the scan set. This is operator-ruled intended
+        // behaviour (D-259) — it matches git semantics when scanning a subdirectory
+        // of a repository. Known consequence: a $HOME/.gitignore applies to any scan
+        // beneath it; collect_md_files has no diagnostic channel to report such
+        // silent exclusions (deferred finding F-A3).
+        .parents(true);
 
     // Unconditional dot-directory guard (BC-2.01.004 invariant 1 / D-011 / EC-003).
     //
@@ -130,9 +152,18 @@ pub fn is_dot_dir_name(name: &OsStr) -> bool {
 /// - `.gitignore`/`.ignore` exclusion (BC-2.01.003)
 /// - Dot-**directory** skip: unconditional, BC-anchored (BC-2.01.004, enforced by
 ///   both `filter_entry` in [`build_walk`] and the post-filter backstop below)
-/// - Dot-**file** skip: best-effort via `hidden(true)`, NOT unconditional, NOT
-///   specified by any BC; subject to override by ignore-rule negation patterns;
-///   under operator adjudication (defer-and-disclose)
+/// - Dot-**file** skip: **structural and unconditional** in this function — the
+///   post-filter below applies [`is_dot_dir_name`] to every path component
+///   relative to `root`, including the file-name component, so a dot-file such
+///   as `docs/.template.md` is always rejected regardless of ignore-rule negation
+///   patterns. This is NOT overridable via `.gitignore` negation because the
+///   post-filter runs outside the `ignore`-rule system. This behaviour is NOT
+///   specified by any BC (BC-2.01.004 invariant 1 covers dot-directories only;
+///   no BC authorizes excluding dot-files) and remains under operator adjudication
+///   per D-252a (defer-and-disclose). The corresponding note in [`build_walk`]
+///   remains accurate for that function in isolation — `hidden(true)` there is
+///   genuinely best-effort — but `collect_md_files` adds the structural post-filter
+///   that makes the end-to-end behaviour unconditional.
 /// - Dir-symlink non-following (BC-2.01.004, DI-009)
 /// - Case-sensitive `.md`-only extension filter via [`is_md_extension`] (BC-2.01.005)
 /// - Post-filter backstop: any path whose components (relative to `root`) contain a
@@ -162,7 +193,12 @@ pub fn collect_md_files(root: &Path) -> Vec<PathBuf> {
             // post-filter restores the correctness guarantee structurally for all
             // collect_md_files consumers, regardless of builder mutation.
             // Reuses is_dot_dir_name for byte-wise, UTF-8-agnostic comparison
-            // (BC-2.01.004 invariant 1 / F-P2-01 backstop).
+            // (F-P2-01 backstop). Authority is split: the dot-directory arm of
+            // this filter is BC-anchored (BC-2.01.004 invariant 1 — "ALL
+            // dot-directories are unconditionally excluded"). The dot-file arm
+            // (a file-name component starting with '.') has NO BC authority —
+            // no BC authorizes excluding dot-files; that is a disclosed,
+            // unadjudicated behaviour under operator adjudication (D-252a).
             let rel = path.strip_prefix(root).unwrap_or(path.as_path());
             if rel.components().any(|c| is_dot_dir_name(c.as_os_str())) {
                 return None;
