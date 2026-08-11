@@ -904,3 +904,204 @@ proptest! {
         );
     }
 }
+
+// ─── BC-2.01.003 postcondition 3: global gitignore respected when available ───
+//
+// Mutation target: `git_global(true)` → `git_global(false)` in `build_walk`.
+//
+// WHY THIS TEST IS NEEDED:
+//   All other git-fixture tests (AC-004, VP-016 Form A) write an EMPTY hermetic
+//   gitconfig so the developer's real global gitignore cannot interfere.  That
+//   hermeticity fix (F-09 from the previous round) was correct, but it created a
+//   blind spot: if `git_global(true)` is mutated to `git_global(false)` the
+//   behaviour is now identical (no global ignore in either case) and the mutant
+//   survives.
+//
+// FIX: this test writes a hermetic gitconfig with a real `core.excludesFile`
+//   entry pointing at a separate file inside the same TempDir.  That file lists
+//   `globally-ignored.md` as a pattern.  If `git_global(true)` is in effect, the
+//   `ignore` crate reads the config, resolves the `core.excludesFile` path, and
+//   excludes the matching file.  If `git_global(false)` is in effect, the global
+//   gitignore is never consulted and `globally-ignored.md` appears in the scan
+//   set — killing the mutant via the negative assertion below.
+//
+// NESTED-.GITIGNORE SUB-CASE (BC-2.01.003 postcondition 2):
+//   A `.gitignore` inside `subdir/` excludes `subdir/nested-excluded.md` but
+//   not files outside that subdirectory.  This is cheap to add in the same
+//   git-init'd fixture and closes the postcondition 2 coverage gap.
+//
+// Isolation: uses the same `GIT_FIXTURE_LOCK` / `EnvRestoreGuard` machinery as
+//   all other git-fixture tests — no second locking mechanism is introduced.
+//
+// Traceability: BC-2.01.003 postcondition 3 (global gitignore respected)
+//              BC-2.01.003 postcondition 2 (nested .gitignore respected)
+
+#[test]
+fn test_BC_2_01_003_post3_global_gitignore_respected_when_available() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // Create the global gitignore file with a distinctive pattern.
+    let global_gitignore = root.join("global.gitignore");
+    fs::write(&global_gitignore, "globally-ignored.md\n").expect("write global.gitignore");
+
+    // Write a hermetic gitconfig whose `core.excludesFile` points at the global
+    // gitignore above.  Unlike the empty configs used in AC-004 / VP-016, this
+    // config provides REAL global-gitignore coverage while remaining
+    // machine-independent (the path is inside the same TempDir).
+    let hermetic_cfg = root.join(".hermetic_gitconfig");
+    fs::write(
+        &hermetic_cfg,
+        format!(
+            "[core]\n\texcludesFile = {}\n",
+            global_gitignore.to_str().expect("UTF-8 path")
+        ),
+    )
+    .expect("write hermetic gitconfig with core.excludesFile");
+
+    let _git_lock = GIT_FIXTURE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let _guard_global = EnvRestoreGuard::set("GIT_CONFIG_GLOBAL", &hermetic_cfg);
+    let _guard_nosys = EnvRestoreGuard::set("GIT_CONFIG_NOSYSTEM", "1");
+
+    // git init is required: `ignore` crate's `require_git=true` default only
+    // honours `.gitignore` files (and git_global) inside a real git repository.
+    git_init(root, &hermetic_cfg);
+
+    // File that must be excluded via the global gitignore (core.excludesFile):
+    create_file(root, "globally-ignored.md");
+
+    // Normal file that must be included (positive gate — F-04 vacuous-pass
+    // prevention: an empty result passes every negative assertion vacuously).
+    create_file(root, "normal.md");
+
+    // ── Nested-.gitignore sub-case (BC-2.01.003 postcondition 2) ─────────────
+    // A .gitignore inside subdir/ excludes subdir/nested-excluded.md but must
+    // NOT affect files outside that subdirectory.
+    fs::create_dir_all(root.join("subdir")).expect("create subdir");
+    fs::write(
+        root.join("subdir").join(".gitignore"),
+        "nested-excluded.md\n",
+    )
+    .expect("write subdir/.gitignore");
+    create_file(root, "subdir/nested-excluded.md"); // must be excluded
+    create_file(root, "subdir/nested-included.md"); // must be included
+
+    let result = scanner::collect_md_files(root);
+
+    // ── Positive gates (F-04 vacuous-pass prevention) ─────────────────────────
+    assert!(
+        result.contains(&root.join("normal.md")),
+        "normal.md must be in the scan set \
+         (positive gate, BC-2.01.003 postcondition 3)"
+    );
+    assert!(
+        result.contains(&root.join("subdir/nested-included.md")),
+        "subdir/nested-included.md must be in the scan set \
+         (nested-.gitignore positive gate, BC-2.01.003 postcondition 2)"
+    );
+
+    // ── Negative assertion — MUTATION TARGET: git_global(true) → git_global(false)
+    // Under git_global(false) the `core.excludesFile` is NOT read; the pattern
+    // `globally-ignored.md` is never loaded, so the file appears in the scan
+    // set and this assertion FAILS — killing the mutant.
+    assert!(
+        !result.contains(&root.join("globally-ignored.md")),
+        "globally-ignored.md must be excluded via the global gitignore \
+         (core.excludesFile in hermetic gitconfig) — \
+         BC-2.01.003 postcondition 3. \
+         If git_global(false) is used, this file incorrectly appears in the scan set."
+    );
+
+    // ── Negative assertion — nested .gitignore (BC-2.01.003 postcondition 2) ──
+    assert!(
+        !result.contains(&root.join("subdir/nested-excluded.md")),
+        "subdir/nested-excluded.md must be excluded by subdir/.gitignore \
+         (BC-2.01.003 postcondition 2 — nested .gitignore files are respected)"
+    );
+}
+
+// ─── BC-2.01.005 postcondition 1: directories with .md names excluded ─────────
+//
+// Mutation target: `if !file_type.is_file() { return None; }` → `if false { ... }`
+//   in `collect_md_files`.
+//
+// WHY THIS TEST IS NEEDED:
+//   `ignore::WalkBuilder` yields both files and directories during traversal.
+//   The `is_file()` guard ensures only regular files are considered.  If that
+//   guard is neutered, a DIRECTORY whose name ends in `.md` (e.g. `notes.md/`)
+//   passes the `is_md_extension` check and is incorrectly returned as a
+//   scannable Markdown file.  No existing test creates such a directory, so the
+//   mutant survives.
+//
+// BC CONTRACT:
+//   BC-2.01.005 postcondition 1: "Files with extension `.md` (exact lowercase
+//   match) are included."  A directory is not a file; the directory `notes.md`
+//   therefore must NOT appear in the scan set.
+//   BC-2.01.001 postcondition 1 likewise scopes the scan set to files.
+//
+// FIXTURE:
+//   - `notes.md/`          — a DIRECTORY (must NOT appear in scan set)
+//   - `notes.md/inner.md`  — a real file inside that directory (MUST appear)
+//   - `good.md`            — a normal file (MUST appear; positive gate)
+//
+// Under the mutant (is_file() removed): `notes.md` (directory) passes the
+//   extension check and is added → result.len() == 3, both the direct
+//   contains-check and the len-check fail, killing the mutant.
+//
+// Traceability: BC-2.01.005 postcondition 1 / BC-2.01.001 postcondition 1
+
+#[test]
+fn test_BC_2_01_005_post1_directory_with_md_name_not_in_scan_set() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // Create a DIRECTORY named notes.md (not a file).
+    fs::create_dir_all(root.join("notes.md")).expect("create directory named notes.md");
+
+    // Put a real .md file inside it so the tree is realistic and proves the
+    // walker still descends into the directory (it must — it is not a symlink,
+    // not a dot-dir, and not gitignored).
+    create_file(root, "notes.md/inner.md");
+
+    // A normal .md file — mandatory positive gate (F-04 vacuous-pass prevention:
+    // without it, an empty Vec passes every negative assertion vacuously).
+    create_file(root, "good.md");
+
+    let result = scanner::collect_md_files(root);
+
+    // ── Positive gate 1: good.md must be discovered. ──────────────────────────
+    assert!(
+        result.contains(&root.join("good.md")),
+        "good.md must be in the scan set \
+         (positive gate, BC-2.01.005 postcondition 1)"
+    );
+
+    // ── Positive gate 2: notes.md/inner.md is a real file and must be discovered.
+    // It must not be lost because its parent directory has a .md-like name.
+    assert!(
+        result.contains(&root.join("notes.md").join("inner.md")),
+        "notes.md/inner.md is a real .md file and must be in the scan set \
+         (BC-2.01.005 postcondition 1 — files inside a .md-named directory are still files)"
+    );
+
+    // ── Negative assertion — MUTATION TARGET: is_file() guard removed. ────────
+    // Under the mutant the directory `notes.md` passes the extension check and
+    // is included; this assertion FAILS — killing the mutant.
+    assert!(
+        !result.contains(&root.join("notes.md")),
+        "the directory named notes.md must NOT appear in the scan set — \
+         only regular files with .md extension are included, not directories \
+         (BC-2.01.005 postcondition 1)"
+    );
+
+    // ── Count assertion — secondary discriminator. ────────────────────────────
+    // Exactly two files: good.md and notes.md/inner.md.
+    // Under the mutant, notes.md (directory) would be a third entry.
+    assert_eq!(
+        result.len(),
+        2,
+        "exactly two files must be in the scan set (good.md and notes.md/inner.md); \
+         the notes.md directory must not be counted \
+         (BC-2.01.005 postcondition 1)"
+    );
+}
