@@ -1,7 +1,7 @@
 {
   "story_id": "S-1.01",
   "cycle": "v1.0.0-greenfield",
-  "passes_run": 15,
+  "passes_run": 17,
   "passes_clean": 0,
   "last_round_classifications": ["MATERIAL_FINDINGS", "MATERIAL_FINDINGS", "MATERIAL_FINDINGS"],
   "last_classification": "MATERIAL_FINDINGS",
@@ -32,7 +32,7 @@
   "frozen_perimeter": {
     "status": "FROZEN",
     "frozen_at_passes": 15,
-    "confirming_round_status": "PENDING",
+    "confirming_round_status": "MATERIAL_FINDINGS — passes 16 and 17 both returned MATERIAL_FINDINGS on the frozen perimeter L1-L6; confirming round NOT CLEAN; passes_clean remains 0 of 3 required. Three findings corroborated independently by both passes (P16-01=P17-03 doc contradiction, P16-05=P17-04 purity blindness, P16-06=P17-05 purity unreachability via just ci). Pass 18 re-dispatched after upstream API error mid-response; result pending.",
     "confirming_round_target_head": "f24ad3e",
     "root_cause_of_non_convergence": "BC-5.39.001 '3 consecutive clean passes' presumes a FIXED review perimeter. The orchestrator was lens-diversifying each round, examining previously-unexamined surface and finding real defects there — the criterion was applied to a MOVING perimeter; by construction there is always another lens.",
     "operator_ruling_rationale": "Applies standing residual-risk posture (gate #53/#57, workable-not-perfect, deal-breakers only) at story scale. The residual class is documentation-accuracy, which is DISCLOSED not hidden.",
@@ -248,6 +248,46 @@
       "dispositions": {
         "P15-01": "fixed-in-70f1f19 — dot-dir guard erasable independently confirmed on L6 lens (same underlying defect as P14-02 from pass 14); two independent adversary passes on different lenses (L1/L3 and L6) converging on the same finding treated as high-confidence; same fix in 70f1f19 resolves both",
         "P15-02": "fixed-in-70f1f19 — duplicate MSRV CI job name: concurrent config edits produced two jobs named 'MSRV check (1.88)'; branch protection keys on check-run NAME making the required gate ambiguous/last-writer-wins; merged into single authoritative job"
+      }
+    },
+    {
+      "pass": 16,
+      "lens": "L1-L6-frozen-perimeter-confirming",
+      "classification": "MATERIAL_FINDINGS",
+      "on_perimeter_material_count": 7,
+      "low_count": 2,
+      "finding_ids": ["P16-01", "P16-02", "P16-03", "P16-04", "P16-05", "P16-06", "P16-07", "P16-08", "P16-09"],
+      "dispositions": {
+        "P16-01": "OPEN — HIGH — L2/L5/L6 — scanner.rs:133-135 vs :137-142 doc contradiction on dot-FILES: post-filter is NAME-based and structural (not best-effort); 'subject to override by ignore-rule negation patterns' claim is FALSE. Also BC-2.01.004 semantic mis-anchor (invariant 1 governs dot-DIRECTORIES only). Consequence: D-252a adjudication was made on false information; S-1.02 told a non-existent override path exists. ORCHESTRATOR-CONFIRMED EMPIRICAL: negation-pattern probe (tempdir + .gitignore with !.* + dot-files) returned only the non-dot file; both dot-files excluded despite negation pattern.",
+        "P16-02": "OPEN — MEDIUM — L6/L3 — scanner_discovery_tests.rs:1438, :1443-1446: stale defect-tense sites survive inside F-P2-01 regression lock: 'FAILS on current impl.' comment and imperative-fix assertion message contradict :1374 GREEN-lock declaration. CONFIRMED by grep: exactly one hit for 'FAILS on current impl' at line 1438.",
+        "P16-03": "OPEN — MEDIUM — L3/L6 — scanner_discovery_tests.rs:13-15 plus ~18 inline sites: module doc still asserts RED GATE state (all 13 AC tests MUST fail; each panics at todo!()); 18 comments state present-tense that function panics at todo!(). Flatly contradictory to a passing suite. CONFIRMED by grep: no todo! in scanner.rs; only todo! in codebase is main.rs:11.",
+        "P16-04": "OPEN — MEDIUM — L3/L6 — scanner_discovery_tests.rs:19-20, 226, 246, 1236, 1253-1254: five sites assert pre-F-B2 require_git=true world. Most serious: :1236 false coverage claim that test exercises require_git=true path (unreachable through build_walk). :246 and :1253 tell maintainer git_init is required when it is not. CONFIRMED by grep: scanner.rs:79 is .require_git(false).",
+        "P16-05": "OPEN — MEDIUM — L6/L5 — ci.yml:329-349 and justfile:242-262: purity-gate grep patterns require non-grouped use std::... form; blind to grouped imports and fully-qualified calls. Guarded crate uses grouped form at types.rs:36. No known-positive self-test; file_count never asserted non-zero (POLICY 11). ORCHESTRATOR-CONFIRMED EMPIRICAL: planting grouped import + live fs::metadata call produced PASS exit 0; non-grouped form correctly produced FAIL exit 1.",
+        "P16-06": "OPEN — MEDIUM — L6 — justfile:76 and spec-lint recipe :273-302: spec-lint exits 1 by design (D-246, 39 SCENARIO-MISMATCH); ci.yml treats Spec lint as ADVISORY non-required; justfile wires it as HARD BLOCKING prerequisite before purity, making purity dead in just ci. ORCHESTRATOR-CONFIRMED EMPIRICAL: just spec-lint exits 1; just ci exits 1 with purity appearing 0 times in output.",
+        "P16-07": "OPEN — MEDIUM — L6 — justfile:344-354 vs hardening.yml:229 and :275: cargo-fuzz pinned in hardening.yml (SEC-2 fix) but justfile uses --locked with no --version; kani-verifier absent from justfile entirely while just hardening depends on kani recipe. CONFIRMED by direct comparison: justfile cargo-fuzz line has --locked but no --version; kani-verifier appears 0 times in justfile.",
+        "P16-08": "RESOLVED AS INTENTIONAL-LOW — L6 — ci.yml:191-212 and hardening.yml:54-69, 87-102, 152-187: four sibling jobs retain skip=true shape. ORCHESTRATOR-CONFIRMED: gh api confirmed MSRV check (1.88) is NOT in branch-protection required-contexts; Fix #4 scoping to the four required jobs was deliberate.",
+        "P16-09": "OPEN — LOW — L6 — justfile:3 and :9: recipe list summary documents 4 entries vs actual 6; 'Mirrors CI exactly' claim false (omits msrv-check, vef-selftest, verify-evidence-figures). CONFIRMED by read."
+      }
+    },
+    {
+      "pass": 17,
+      "lens": "L1-L6-frozen-perimeter-confirming",
+      "classification": "MATERIAL_FINDINGS",
+      "on_perimeter_material_count": 5,
+      "low_count": 4,
+      "new_lens_count": 1,
+      "finding_ids": ["P17-01", "P17-02", "P17-03", "P17-04", "P17-05", "P17-06", "P17-07", "P17-08", "P17-09", "P17-N1"],
+      "dispositions": {
+        "P17-01": "OPEN — HIGH — L3/L6 — scanner.rs:95-103: filter_entry dot-directory guard has ZERO discriminating test coverage after P14-02 fix. The backstop masks it: removing filter_entry entirely leaves all 42 tests green. Fix-integrity regression — the P14-02 fix destroyed kill-coverage that closed F-01. filter_entry is the ONLY BC-2.01.004 defence for direct build_walk consumers named at scanner.rs:47-55. ORCHESTRATOR-CONFIRMED EMPIRICAL: removed filter_entry statement; cargo nextest: 42 passed, 0 detected removal; scanner.rs restored from backup.",
+        "P17-02": "OPEN — MEDIUM — L6 — justfile:157-162: just hardening reports kani as EXECUTED when zero harnesses exist. Under set -euo pipefail: grep exits 1 with zero matches; pipefail propagates; || echo '0' fires IN ADDITION to wc's emitted 0, capturing '0\n0'; [ '0\n0' -eq 0 ] errors; set -e does not apply to if conditions; ELSE branch runs; kani lands in executed. Sibling kani recipe at :131 uses || true correctly. ORCHESTRATOR-CONFIRMED EMPIRICAL: bash -euo pipefail test produced RAW=[0<newline>0], integer expected error, BRANCH=executed.",
+        "P17-03": "OPEN — HIGH — L2/L5/L6 — cross-pass corroboration of P16-01 at scanner.rs:133-135 vs :137-142 and :166-169; same doc contradiction on dot-FILES found independently by a different confirming-round pass. Two-independent-lens rule: high-confidence.",
+        "P17-04": "OPEN — MEDIUM — L6/L5 — cross-pass corroboration of P16-05; same purity-gate grouped-import blindness found independently. ci.yml:329-349 and justfile:242-262.",
+        "P17-05": "OPEN — MEDIUM — L6 — cross-pass corroboration of P16-06; same just ci/purity unreachability via known-red spec-lint blocking prerequisite.",
+        "P17-06": "OPEN — LOW — L3 — scanner_discovery_tests.rs:441-447: AC-008 dot-component invariant sweep uses UTF-8-only form (c.as_os_str().to_str().map(...)) — the F-P2-01 identified fail-open form — while siblings at :1541 and :1567 are byte-wise. No discrimination lost today (ASCII fixture); latent for non-UTF-8 fixture. Intent adjudication needed.",
+        "P17-07": "OPEN — LOW — L3 — scanner_discovery_tests.rs:869-965: VP-017 is the only test with no positive-discovery gate; all four prop_assert!s are negative or universally quantified; Vec::new() satisfies VP-017 for all 256 cases. Every other test carries explicit F-04 vacuous-pass-prevention assertion. prop_assert_eq!(result.len(), file_count) would close it.",
+        "P17-08": "RESOLVED AS INTENTIONAL-LOW — L6 — cross-pass corroboration of P16-08; same four sibling jobs retain skip=true shape; same branch-protection reasoning applies (MSRV not required).",
+        "P17-09": "OPEN — LOW — L2 — scanner.rs:166: strip_prefix(root).unwrap_or(path.as_path()) converts prefix mismatch to silent empty scan with no error and no log; absolute fallback path on macOS tempdirs contains dot-prefixed component so line 167 would reject every file. Believed unreachable in practice but unproven. Recommend debug_assert or fail-loud rather than silent fallback.",
+        "P17-N1": "ROUTED TO S-1.02 INPUT — new-lens finding (not on frozen L1-L6 perimeter) — no docs/demo-evidence/S-1.01/ directory exists; POLICY 10 not violated; Step 5 not yet reached. Not an S-1.01 blocker per D-254 new_lens_routing."
       }
     }
   ]
