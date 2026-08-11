@@ -123,6 +123,30 @@ PLANTS=(
     'use std::{\n    collections::BTreeMap,\n    net::TcpStream,\n};\nfn _p19() { let _: Option<BTreeMap<u8, u8>> = None; }'
     'use std::time::{\n    Duration,\n    Instant,\n};\nfn _p20() { let _ = Duration::from_secs(1); }'
     'use std::{collections::{BTreeMap, BTreeSet}, fs};\nfn _p21() { let _: Option<BTreeSet<u8>> = None; }'
+    # ── A1 fixes (BI-096): leading :: absolute-path prefix ─────────────────────
+    # These shapes escape the old STMT_RE anchor `use[[:space:]]+std::` because
+    # the leading `::` interposes between `use ` and `std::`.  The alias form
+    # (`as f`) is the confirmed high-severity exploit (D-263).
+    'use ::std::fs as f;\nfn _p22() { let _ = 1; }'
+    'use ::std::net::TcpStream;\nfn _p23() { let _: Option<TcpStream> = None; }'
+    'fn _p24() { use ::rand as r; }'
+    # ── A3 fixes (BI-098): RNG crates beyond rand ──────────────────────────────
+    # ADR-001 forbids random-number generators generally; prior coverage was
+    # rand-only.  Each crate below appeared in NEITHER COVERED NOR NOT-COVERED.
+    'fn _p25() { let _ = getrandom::getrandom(&mut b); }'
+    'fn _p26() { let _ = fastrand::u64(..); }'
+    'fn _p27() { let _ = oorandom::rand32(1, 10, &mut 0u64); }'
+    'fn _p28() { let _ = rand_chacha::ChaCha20Rng::seed_from_u64(0); }'
+    'fn _p29() { use getrandom; }'
+    'fn _p30() { use ::fastrand; }'
+    # ── A2 fixes (BI-097): std::path::Path/PathBuf inherent I/O methods ────────
+    # These perform real syscalls; prior detector was blind to them entirely.
+    # NOT added: .exists(), .is_dir(), .is_file() — see NOT-COVERED below.
+    'fn _p31() { use std::path::Path; let p = Path::new("x"); let _ = p.metadata(); }'
+    'fn _p32() { use std::path::Path; let p = Path::new("x"); let _ = p.try_exists(); }'
+    'fn _p33() { use std::path::Path; let p = Path::new("."); let _ = p.read_dir(); }'
+    'fn _p34() { use std::path::Path; let p = Path::new("x"); let _ = p.symlink_metadata(); }'
+    'fn _p35() { use std::path::Path; let p = Path::new("x"); let _ = p.canonicalize(); }'
 )
 
 # Negative controls.  Without these, a detector that matched EVERYTHING would
