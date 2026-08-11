@@ -142,10 +142,16 @@ record.
   AC-006 and AC-010 are clause-(i)-only: clause (ii) is deferred to S-1.02
   because the anchor-table infrastructure does not yet exist (see partial-coverage
   disclosure above, BI-106).
-- All four branch-protection-required CI checks are **green** at `9a9b46c`.
-  `git diff --name-only 9a9b46c HEAD -- ':(exclude)docs'` returns nothing —
-  the delta from that commit to the current HEAD is documentation-only, so the
-  attestation carries to the HEAD of this branch.
+- All four branch-protection-required CI checks are **green** at `b538112`
+  (current HEAD): `Format check`, `Clippy (deny warnings)`, `Test (macos-latest)`,
+  `Build release (macos-latest)`, all `conclusion: success`. The workflow-level run
+  conclusion is `failure` because `Spec lint` is advisory-red by design (D-246).
+  The 13 AC transcripts and mutation matrix were executed at `9a9b46c`; they carry
+  to this HEAD because `crates/` is byte-unchanged between the two SHAs (verified:
+  `git diff --name-only 9a9b46c HEAD -- crates/` returns zero paths). The one
+  non-docs commit between `9a9b46c` and `b538112` altered only echo and comment
+  lines in `scripts/purity-check.sh`; LINE_RE, STMT_RE, PLANTS, and CLEAN are
+  byte-identical — detection behaviour is unchanged.
 - The story is **NOT CONVERGED**. Four confirming rounds have run (adversary
   passes 16–18, 19–21, 22–24, 25–27) and every one returned `MATERIAL_FINDINGS`;
   `passes_clean` is **0 of 3** required under BC-5.39.001. Round 4 (passes 25–27)
