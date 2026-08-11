@@ -17,7 +17,7 @@
 #   cargo-audit      0.21.2    cargo install cargo-audit --locked --version 0.21.2
 #   cargo-deny       0.19.0    cargo install cargo-deny --locked --version 0.19.0
 #   cargo-mutants    24.11.2   cargo install cargo-mutants --locked --version 24.11.2
-#   cargo-fuzz       0.13.2    cargo +nightly install cargo-fuzz --version 0.13.2 (no --locked; see install-tools)
+#   cargo-fuzz       0.13.2    cargo +nightly install cargo-fuzz --version 0.13.2 --locked
 #   kani-verifier    0.67.0    cargo install kani-verifier --version 0.67.0 --locked
 #   semgrep          1.75.0+   pip install semgrep==1.75.0
 #   hyperfine                  brew install hyperfine / cargo install hyperfine
@@ -190,6 +190,14 @@ fuzz-smoke:
     fi
     for target in $(cargo +nightly fuzz list 2>/dev/null); do
         echo "Fuzzing ${target} for 30s..."
+        # No --locked here, and that is CORRECT — unlike `cargo install`,
+        # `cargo fuzz run` does not accept the flag.  Probed 2026-08-11:
+        #   $ cargo fuzz run --locked <target>
+        #   error: unexpected argument '--locked' found
+        # This note lives here, at the run site it actually describes.  It was
+        # previously attached to the `cargo install cargo-fuzz` line in
+        # install-tools, where it manufactured a false justification for
+        # omitting a flag that `cargo install` does accept (BI-082).
         cargo +nightly fuzz run "${target}" -- -max_total_time=30 -max_len=65536
     done
 
@@ -328,23 +336,73 @@ purity:
     # Discrimination verified: grouped form, fully-qualified form, and clean tree
     # all produce the correct gate result (report in finding P15-F2).
     #
+    # BI-081 fix (L-87 recurrence): the grouped-import arms were ASYMMETRIC.
+    # "std::\{[^}]*\b<name>\b" existed for fs and net only; stdout and Instant
+    # had only the narrower "std::io::\{" / "std::time::\{" forms, which require
+    # the brace to open AFTER the submodule.  Four bypasses were confirmed by
+    # execution at 9badc02 (each yielded exit 0 with a PASS line):
+    #   use std::{io::stdout, fmt::Debug}; stdout()
+    #   use std::io::{self, Write}; io::stdout()
+    #   use std::{time::Instant}; Instant::now()
+    #   use std::time::{self}; time::Instant::now()
+    # Four arms are added below: the symmetric "std::\{" grouped forms for
+    # stdout/Instant, plus bare "io::stdout" / "time::Instant" to catch the
+    # submodule-via-self shape.  Any occurrence of those two fragments in a
+    # PURE crate is forbidden regardless of prefix, so the broadening is safe.
+    #
+    # COUPLING: this pattern is duplicated in the `purity` job of
+    # .github/workflows/ci.yml — both must be edited together.
+    #
     # Comment-only lines (// and //!) are excluded — they describe the rule
     # without being executable (types.rs:7-8 is one such doc-comment).
-    FORBIDDEN_RE='(std::fs|std::\{[^}]*\bfs\b|std::net|std::\{[^}]*\bnet\b|std::io::stdout|std::io::\{[^}]*\bstdout\b|std::time::Instant|std::time::\{[^}]*\bInstant\b|\buse rand\b|rand::|extern crate rand)'
+    FORBIDDEN_RE='(std::fs|std::\{[^}]*\bfs\b|std::net|std::\{[^}]*\bnet\b|std::io::stdout|std::io::\{[^}]*\bstdout\b|std::\{[^}]*\bstdout\b|\bio::stdout\b|std::time::Instant|std::time::\{[^}]*\bInstant\b|std::\{[^}]*\bInstant\b|\btime::Instant\b|\buse rand\b|rand::|extern crate rand)'
 
-    # ── Self-check (L-87 remedy) ──────────────────────────────────────────────
-    # Plant a grouped-import + fully-qualified violation; assert detector fires;
-    # remove plant; then scan the real tree.  A gate that has never fired is not
-    # verified (lesson L-87: the previous gate passed with a live fs call present).
+    # ── Self-check (L-87 remedy, generalized per BI-081) ──────────────────────
+    # Plant each evasion shape SEPARATELY and assert each fires INDIVIDUALLY.
+    # Asserting only an aggregate plant is what produced BI-081: the prior
+    # self-check planted the `fs` grouped form alone and generalized to
+    # stdout/Instant, which were in fact blind.  One blind arm must not be
+    # able to hide behind a sibling arm that fires.
     SELFTEST=$(mktemp /tmp/purity-selftest-XXXXX.rs)
     trap 'rm -f "${SELFTEST}"' EXIT
-    printf 'fn _planted() { use std::{fs as _f, path::PathBuf}; let _ = std::fs::read_to_string("x"); }\n' > "${SELFTEST}"
-    if ! grep -qE "${FORBIDDEN_RE}" "${SELFTEST}" 2>/dev/null; then
-        echo "PURITY SELF-CHECK FAILED: detector blind to grouped-import or fully-qualified violation"
-        echo "  Gate infrastructure is broken — this is NOT a clean-tree result."
-        exit 1
-    fi
-    echo "purity self-check: PASS (detector fires on grouped-import and fully-qualified forms)"
+    PLANTS=(
+        'fn _p1() { use std::{fs as _f, path::PathBuf}; let _ = std::fs::read_to_string("x"); }'
+        'fn _p2() { use std::fs; let _ = fs::metadata("x"); }'
+        'fn _p3() { use std::{net::TcpStream}; let _: Option<TcpStream> = None; }'
+        'fn _p4() { use std::{io::stdout, fmt::Debug}; let _ = stdout(); }'
+        'fn _p5() { use std::io::{self, Write}; let _ = io::stdout(); }'
+        'fn _p6() { use std::{io::{self, stdout}}; let _ = stdout(); }'
+        'fn _p7() { use std::{time::Instant}; let _ = Instant::now(); }'
+        'fn _p8() { use std::time::{self}; let _ = time::Instant::now(); }'
+        'fn _p9() { let _ = rand::random::<u8>(); }'
+    )
+    for plant in "${PLANTS[@]}"; do
+        printf '%s\n' "${plant}" > "${SELFTEST}"
+        if ! grep -qE "${FORBIDDEN_RE}" "${SELFTEST}" 2>/dev/null; then
+            echo "PURITY SELF-CHECK FAILED: detector blind to this evasion shape:"
+            echo "    ${plant}"
+            echo "  Gate infrastructure is broken — this is NOT a clean-tree result."
+            exit 1
+        fi
+    done
+    # Negative controls: a detector that matched everything would also produce
+    # a green self-check above while making the clean-tree PASS meaningless.
+    CLEAN=(
+        'fn _n1() { use std::collections::BTreeMap; let _: BTreeMap<u8,u8> = BTreeMap::new(); }'
+        'fn _n2() { use std::{fmt::Debug, cmp::Ordering}; let _ = Ordering::Equal; }'
+        'fn _n3() { use std::time::Duration; let _ = Duration::from_secs(1); }'
+        'fn _n4() { use std::path::Path; let _ = Path::new("x"); }'
+    )
+    for clean in "${CLEAN[@]}"; do
+        printf '%s\n' "${clean}" > "${SELFTEST}"
+        if grep -qE "${FORBIDDEN_RE}" "${SELFTEST}" 2>/dev/null; then
+            echo "PURITY SELF-CHECK FAILED: detector matches a CLEAN line (false positive):"
+            echo "    ${clean}"
+            echo "  A detector that matches everything makes the PASS below meaningless."
+            exit 1
+        fi
+    done
+    echo "purity self-check: PASS (${#PLANTS[@]} distinct evasion shapes each detected individually; ${#CLEAN[@]} clean lines each not matched)"
     rm -f "${SELFTEST}"
     trap - EXIT
 
@@ -361,8 +419,7 @@ purity:
     violations=$(echo "${violation_output}" | { grep -c . || true; })
 
     echo "purity: ${file_count} file(s) in ${CORE_SRC} scanned, ${violations} forbidden-path match(es) found"
-    echo "  Patterns: std::fs, std::net, std::io::stdout, std::time::Instant, use rand, rand::"
-    echo "  Both grouped (use std::{fs,...}) and fully-qualified (std::fs::fn()) forms detected."
+    echo "  Forbidden paths: std::fs, std::net, std::io::stdout, std::time::Instant, RNG (rand)."
     if [ "${violations}" -gt 0 ]; then
         echo "${violation_output}"
         echo "FAIL: ADR-001 purity boundary violated in mdlinkcheck-core."
@@ -370,7 +427,16 @@ purity:
         exit 1
     fi
     echo "PASS: ${file_count} .rs file(s) checked; no forbidden I/O or RNG path-fragments found (ADR-001)."
-    echo "  Note: both non-grouped and grouped import forms were checked."
+    # Scope statement, deliberately specific.  The prior wording — "both
+    # non-grouped and grouped import forms were checked" — was TRUE of fs/net
+    # and FALSE of stdout/Instant (BI-081); it must never again assert coverage
+    # broader than the pattern set actually provides.
+    echo "  COVERED for all four forbidden std paths: non-grouped imports,"
+    echo "    grouped imports (brace after std:: or after the submodule, incl. nested),"
+    echo "    aliased imports (as _x), and fully-qualified call sites."
+    echo "  NOT COVERED: macro-generated I/O (println!/print!/eprintln!/write!)."
+    echo "    ADR-001 enumerates path-fragments, not macros; this is the known"
+    echo "    sibling-gate class, deliberately out of scope, not an oversight."
 
 # ─────────────────────────────────────────────────────────────────
 # spec-lint — run all spec integrity validators (no Cargo required)
@@ -493,17 +559,30 @@ install-tools:
     # semgrep 1.56.0, hyperfine 2.0.0); the CI-tested values below take
     # precedence.  Do NOT "correct" toward spec values without a new operator ruling.
     #
-    # cargo-fuzz: --locked is intentionally absent.
-    # Verified: `cargo fuzz run` does not accept --locked (exits "unexpected argument
-    # '--locked' found").  The --locked sweep at f24ad3e covered deny/mutants/kani
-    # but not fuzz — that absence is correct, not an oversight.
+    # BI-082 fix: `--locked` was previously ABSENT from the cargo-fuzz install
+    # below, justified by the claim that "`cargo fuzz run` does not accept
+    # --locked".  That claim is TRUE but was a CATEGORY ERROR at this site: it
+    # describes `cargo fuzz run`, not `cargo install`.  Re-probed 2026-08-11:
+    #   `cargo install --help`  → lists --locked (valid flag)
+    #   `cargo fuzz run --locked` → "error: unexpected argument '--locked' found"
+    # The true fact now lives at the fuzz RUN site (see the `fuzz-smoke` recipe).
+    # --version pins cargo-fuzz itself; --locked pins its transitive dependency
+    # graph.  Without --locked the local tool and the CI tool are NOT the same
+    # artifact, which defeats the stated SEC-2 supply-chain intent locally.
     cargo install cargo-nextest --locked --version 0.9.98
     cargo install cargo-audit --locked --version 0.21.2
     cargo install cargo-deny --locked --version 0.19.0
     cargo install cargo-mutants --locked --version 24.11.2
-    # SEC-2 fix: pinned to exact version to prevent supply-chain substitution (matches hardening.yml:229).
-    cargo +nightly install cargo-fuzz --version 0.13.2
-    # SEC-1 fix: required for `just hardening` kani recipe (matches hardening.yml:275).
+    # SEC-2 fix: pinned to exact version to prevent supply-chain substitution.
+    # Byte-for-byte flag parity with hardening.yml "Install cargo-fuzz" step
+    # (`cargo +nightly install cargo-fuzz --version 0.13.2 --locked`).
+    # Do NOT remove --locked here to "reconcile" with that step — it is present
+    # in BOTH, and removing it from either destroys the SEC-2 pin.
+    cargo +nightly install cargo-fuzz --version 0.13.2 --locked
+    # SEC-1 fix: required for `just hardening` kani recipe.  Flag-for-flag parity
+    # with the hardening.yml "Install Kani verifier" step (verified 2026-08-11).
+    # Referenced by STEP NAME, not line number: line citations into another file
+    # drift silently on any edit above them (the BI-084 finding class).
     cargo install kani-verifier --version 0.67.0 --locked
     @echo ""
     @echo "Install semgrep separately: pip install semgrep==1.75.0"
