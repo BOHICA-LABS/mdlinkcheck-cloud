@@ -447,11 +447,9 @@ version = "0.1.0"
 dependencies = [
  "globset",
  "percent-encoding",
- "proptest",
  "pulldown-cmark",
  "serde",
  "serde_json",
- "tempfile",
  "unicode-normalization",
  "url",
 ]
