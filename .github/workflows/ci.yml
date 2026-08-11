@@ -192,7 +192,51 @@ jobs:
         run: cargo build --locked --release
 
   # ─────────────────────────────────────────────────────────────────
-  # Job 5: Spec lint — validate spec artifact integrity (no Cargo needed)
+  # Job 5: MSRV check — verify the workspace compiles on the declared MSRV
+  # Local equivalent: just msrv-check
+  #
+  # Declared MSRV: 1.88.
+  # Operator-authorized deviation from frozen spec value of 1.85 (D-205):
+  # globset 0.4.20 and ignore 0.4.33 both require rustc 1.88, and the
+  # F-A1/F-P2-01 dot-directory guard correctness argument is explicitly
+  # grounded in ignore 0.4.33 behavior, so downgrading is not safe.
+  # Deviation is disclosed in the PR body and wave-1 gate package.
+  # ─────────────────────────────────────────────────────────────────
+  msrv:
+    name: MSRV check (1.88)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Guard — skip if no Cargo workspace
+        id: guard
+        shell: bash
+        run: |
+          if [ ! -f Cargo.toml ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No Cargo.toml found — workspace not yet scaffolded, skipping."
+          fi
+
+      - name: Install Rust 1.88 toolchain
+        if: steps.guard.outputs.skip != 'true'
+        run: rustup toolchain install 1.88 --profile minimal
+
+      - name: Restore Cargo cache
+        if: steps.guard.outputs.skip != 'true'
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          key: msrv-1.88-ubuntu-latest
+
+      - name: MSRV check
+        if: steps.guard.outputs.skip != 'true'
+        run: cargo +1.88 check --all-targets --locked
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 6: Spec lint — validate spec artifact integrity (no Cargo needed)
   # Local equivalent: just spec-lint
   #
   # Pure-Python validators that require only the .factory/specs/ tree.
@@ -279,7 +323,7 @@ jobs:
 
 
   # ─────────────────────────────────────────────────────────────────
-  # Job 6: VEF selftest suite — own job for honest conclusion (M-5)
+  # Job 7: VEF selftest suite — own job for honest conclusion (M-5)
   # Local equivalent: python3 scripts/tests/test-vef.py
   #
   # WHY THIS IS ITS OWN JOB — do NOT merge back into spec-lint (M-5):
@@ -328,7 +372,7 @@ jobs:
           esac
 
   # ─────────────────────────────────────────────────────────────────
-  # Job 7: Evidence-figure verifier — own job for conclusion honesty
+  # Job 8: Evidence-figure verifier — own job for conclusion honesty
   # Local equivalent: python3 scripts/verify-evidence-figures.py
   #
   # WHY THIS IS ITS OWN JOB — do NOT merge back into spec-lint:
@@ -444,3 +488,47 @@ jobs:
             5) echo "verify-evidence-figures: PARTIAL — some checks skipped, not a full pass (exit 5)"; exit 1 ;;
             *) echo "verify-evidence-figures: FAIL (exit $ret)"; exit $ret ;;
           esac
+
+  # ─────────────────────────────────────────────────────────────────
+  # Job 8: MSRV check — verify workspace compiles on declared MSRV
+  # Local equivalent: just msrv-check
+  #
+  # D-205 (operator ruling): declared MSRV raised to 1.88 because
+  # globset 0.4.20 and ignore 0.4.33 both require rustc >= 1.88;
+  # downgrading those libs would invalidate the F-A1/F-P2-01
+  # correctness argument grounded in ignore 0.4.33 behavior.
+  #
+  # Not a required status check (only the operator can flip that).
+  # ─────────────────────────────────────────────────────────────────
+  msrv-check:
+    name: MSRV check (1.88)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Guard — skip if no Cargo workspace
+        id: guard
+        shell: bash
+        run: |
+          if [ ! -f Cargo.toml ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No Cargo.toml found — workspace not yet scaffolded, skipping."
+          fi
+
+      - name: Install Rust 1.88
+        if: steps.guard.outputs.skip != 'true'
+        run: rustup toolchain install 1.88 --no-self-update
+
+      - name: Restore Cargo cache
+        if: steps.guard.outputs.skip != 'true'
+        uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
+        with:
+          key: msrv-1.88
+
+      - name: MSRV check
+        if: steps.guard.outputs.skip != 'true'
+        run: cargo +1.88 check --all-targets --locked

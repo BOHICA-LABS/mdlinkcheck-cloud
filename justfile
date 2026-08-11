@@ -12,7 +12,7 @@
 # Prerequisites (install with `just install-tools`):
 #   cargo-nextest   0.9.98+    cargo install cargo-nextest --locked
 #   cargo-audit     0.21.2+    cargo install cargo-audit --locked
-#   cargo-deny      0.17.0+    cargo install cargo-deny --locked
+#   cargo-deny      0.19.0+    cargo install cargo-deny --locked
 #   cargo-mutants   24.11.2+   cargo install cargo-mutants --locked
 #   cargo-fuzz                 cargo install cargo-fuzz --locked (needs nightly)
 #   semgrep         1.75.0+    pip install semgrep
@@ -173,6 +173,19 @@ check:
     cargo check --all-targets
 
 # ─────────────────────────────────────────────────────────────────
+# msrv-check — verify the workspace compiles on the declared MSRV
+#
+# Declared MSRV: 1.88 (operator-authorized deviation from frozen spec
+# value of 1.85 — see D-205; globset 0.4.20 and ignore 0.4.33 both
+# require rustc 1.88, and downgrading would invalidate F-A1/F-P2-01
+# correctness arguments grounded in ignore 0.4.33 behavior).
+#
+# Toolchain 1.88 must be installed: rustup toolchain install 1.88
+# ─────────────────────────────────────────────────────────────────
+msrv-check:
+    cargo +1.88 check --all-targets --locked
+
+# ─────────────────────────────────────────────────────────────────
 # doc — build documentation
 # ─────────────────────────────────────────────────────────────────
 doc:
@@ -267,7 +280,7 @@ spec-gen:
 install-tools:
     cargo install cargo-nextest --locked --version 0.9.98
     cargo install cargo-audit --locked --version 0.21.2
-    cargo install cargo-deny --locked --version 0.17.0
+    cargo install cargo-deny --locked --version 0.19.0
     cargo install cargo-mutants --locked --version 24.11.2
     cargo +nightly install cargo-fuzz --locked
     @echo ""
