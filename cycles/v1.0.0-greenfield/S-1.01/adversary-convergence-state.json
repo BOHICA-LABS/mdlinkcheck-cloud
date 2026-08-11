@@ -1,14 +1,29 @@
 {
   "story_id": "S-1.01",
   "cycle": "v1.0.0-greenfield",
-  "passes_run": 6,
+  "passes_run": 9,
   "passes_clean": 0,
+  "last_round_classifications": ["NITPICK_ONLY", "MATERIAL_FINDINGS", "MATERIAL_FINDINGS"],
   "last_classification": "MATERIAL_FINDINGS",
   "converged": false,
   "required_clean_passes": 3,
   "blocking_gate": "BC-5.39.001",
-  "head_sha": "f773598",
-  "note": "Five adversary passes run (pass 1 general; pass 2 spec-compliance; pass 3 code-correctness; convergence-A spec-compliance; convergence-B code-correctness). A sixth convergence-C pass (test-integrity/CI) was dispatched but returned MATERIAL_FINDINGS. Every pass returned MATERIAL_FINDINGS; passes_clean = 0 of 3 required. All findings are fixed, adjudicated-deferred to S-1.02, or escalated to operator. Resume next-action: obtain operator ruling on dot-FILE exclusion, then run a fresh round of 3 lens-diversified passes.",
+  "head_sha": "7bea0b2",
+  "tests_total": 41,
+  "clippy_deny_warnings_exit": 0,
+  "production_defects_found_and_fixed": [
+    "F-B2 require_git",
+    "F-A1 dot-dir whitelist bypass",
+    "F-P2-01 non-UTF-8 guard fail-open"
+  ],
+  "operator_rulings": [
+    {
+      "id": "D-252a",
+      "subject": "dot-FILE exclusion",
+      "ruling": "defer and disclose; current behavior stands"
+    }
+  ],
+  "note": "Nine adversary passes run (passes 1-6 from prior session; passes 7-9 this session). Most recent round: NITPICK_ONLY, MATERIAL_FINDINGS, MATERIAL_FINDINGS. passes_clean = 0 of 3 required. All findings fixed, adjudicated-deferred to S-1.02, or resolved via operator ruling. Empirical trend: each round has surfaced real defects with decreasing severity (HIGH -> MED -> MED/NIT); convergence plausibly one to two rounds away but NOT yet demonstrated. Resume next-action: fresh round of 3 lens-diversified passes against 7bea0b2 with accumulated do-not-report disclosure list injected.",
   "findings": [
     {
       "pass": 1,
@@ -56,7 +71,7 @@
       "classification": "MATERIAL_FINDINGS",
       "finding_ids": ["C-A1", "C-A2"],
       "dispositions": {
-        "C-A1": "escalated-to-operator — dot-FILE exclusion: hidden(true) excludes dot-FILES (e.g. docs/.template.md), which no anchored BC authorizes; BC-2.01.001 postcondition 1 requires every .md file to be included; BC-2.01.004 covers only dot-DIRECTORIES; confirmed empirically; options (a) accept under D-011 or (b) set hidden(false) and rely on filter_entry for dot-dirs",
+        "C-A1": "escalated-to-operator — dot-FILE exclusion: hidden(true) excludes dot-FILES (e.g. docs/.template.md), which no anchored BC authorizes; BC-2.01.001 postcondition 1 requires every .md file to be included; BC-2.01.004 covers only dot-DIRECTORIES; confirmed empirically; RESOLVED by D-252a: defer and disclose, current behavior stands",
         "C-A2": "deferred-to-S-1.02 — default-CWD rooting via std::env::current_dir() absent because CLI is S-1.02"
       }
     },
@@ -79,6 +94,40 @@
         "C-C2": "accepted-register-entry — is_md_extension diverges from BC-2.01.005 wording for file named exactly .md; trailing-dot/multi-dot names untested; unreachable via traversal",
         "C-C3": "accepted-register-entry — four tests hard-depend on git being on PATH",
         "C-C4": "accepted-register-entry — types_tests.rs messages overclaim (imply AnchorTable enforces dedup when no code does); compile-time shape-pinning whose behavioral claims exceed what is implemented"
+      }
+    },
+    {
+      "pass": 7,
+      "lens": "convergence-D-multi-angle",
+      "classification": "NITPICK_ONLY",
+      "finding_ids": ["N-D1", "N-D2", "N-D3"],
+      "dispositions": {
+        "N-D1": "carried-not-actioned — filter_entry depth-0 exemption branch reportedly unreachable (ignore Walk::skip_entry returns early for depth 0 before consulting the filter); branch is harmless defensive code but comment overstates its necessity",
+        "N-D2": "carried-not-actioned — AC-003 termination property inherently unfalsifiable by assertion (non-termination hangs to CI timeout rather than failing as a test failure)",
+        "N-D3": "carried-not-actioned — BC-2.01.004 VP-016 row states a different property than BC-2.01.003 VP-016 row under the same VP ID; closed-world register entry, spec corpus"
+      }
+    },
+    {
+      "pass": 8,
+      "lens": "convergence-E-test-integrity",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["C-E1", "C-E2", "C-E3", "C-E4", "C-E5", "F-P2-01"],
+      "dispositions": {
+        "C-E1": "fixed-in-7a681ea — VP-017 proptest fixture setup swallowed errors via let _ = symlink(...); allowed all three symlink prop_assert!s to go vacuously true across all 256 cases on any runner where symlink creation fails; VP-017 is one of only two discriminators for follow_links(false) mutant",
+        "C-E2": "fixed-in-7a681ea — global_gitignore_test.rs INVOCATION_COUNT guard on unsafe env::set_var completely inert under cargo nextest (each test in its own process); converted to harness = false with explicit single-threaded fn main(); second #[test] now structurally impossible",
+        "C-E3": "fixed-in-7a681ea — AC-003 asserted only len()==3 which three unrelated paths would satisfy; gained contains identity assertions",
+        "C-E4": "fixed-in-7a681ea — fixture DIRECTORY names not using mdlc_fixture_ convention (only files were); renamed to close ancestor-ignore fragility introduced when require_git(false) made ancestor ignore files authoritative outside git repos",
+        "C-E5": "fixed-in-7a681ea — scanner_discovery_tests.rs module doc comment overclaimed that counts are scoped assertions; rewritten to state truthfully that counts are whole-set result.len() checks with hermeticity from mdlc_fixture_ prefix",
+        "F-P2-01": "fixed-in-7bea0b2 — filter_entry dot-dir guard was UTF-8-only: e.file_name().to_str().is_some_and(|n| n.starts_with('.')) returns false for non-UTF-8 directory name; guard FAILED OPEN on exactly the input class it existed to block; violated BC-2.01.004 postcondition 1 and invariant 1 and BC-2.01.001 invariant 1; HIGH severity; fixed byte-wise by extracting pub fn is_dot_dir_name(name: &OsStr) -> bool { name.as_encoded_bytes().starts_with(b\".\") }; as_encoded_bytes() stable since Rust 1.74; independently confirmed by pass 9"
+      }
+    },
+    {
+      "pass": 9,
+      "lens": "convergence-F-code-correctness",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["F-P2-01-convergent"],
+      "dispositions": {
+        "F-P2-01-convergent": "fixed-in-7bea0b2 — independently confirmed F-P2-01 non-UTF-8 guard fail-open on a different lens from pass 8; two independent adversary passes on different lenses converging on the same finding was treated as high-confidence; same fix in 7bea0b2 resolves both"
       }
     }
   ]

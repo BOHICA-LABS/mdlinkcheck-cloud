@@ -3777,9 +3777,9 @@ PRD **v1.15** | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC
 
 ---
 
-## §RESUME SNAPSHOT D-251
+## §RESUME SNAPSHOT D-251 [SUPERSEDED by D-252 — retained for audit]
 
-*Written: 2026-08-10 — session-closing wrap (S-1.01 implemented and green; Step 4.5 adversarial convergence NOT YET CONVERGED). Supersedes D-250.*
+*Written: 2026-08-10 — session-closing wrap (S-1.01 implemented and green; Step 4.5 adversarial convergence NOT YET CONVERGED). Supersedes D-250. **[SUPERSEDED by D-252 — retained for audit]**.*
 
 > **DEVIATION FROM STANDARD WRAP:** `STATE.md` was NOT bumped this session. The standard wrap procedure advances `version:`, `current_step`, and the Session Resume Checkpoint in STATE.md; that step is SKIPPED because STATE.md is off limits under the operator's deferral ruling (D-243 classifier block; CI-063 forbids rewording to evade the classifier). The full wrap lives here in `SESSION-HANDOFF.md §RESUME SNAPSHOT D-251`. `cycles/phase-1d/decisions-pending-state-insert.md` remains AUTHORITATIVE for all pending STATE.md records.
 
@@ -3863,3 +3863,108 @@ PRD **v1.15** | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC
 ### WORKTREE INVENTORY
 
 `.factory/` — ACTIVE, `factory-artifacts` at the wrap commit (parent `a217bd9`), keep. `.worktrees/S-1.01/` — ACTIVE, `feature/S-1.01-workspace-scaffold-and-core-discovery` @ `f773598`, tree CLEAN, PUSHED — **keep** (wave-1 delivery continues in it). Exactly THREE worktrees: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `develop`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/S-1.01` on the feature branch.
+
+---
+
+## §RESUME SNAPSHOT D-252
+
+*Written: 2026-08-10 — session-closing wrap (two further adversarial rounds + fix rounds; HEAD 7bea0b2; Step 4.5 NOT CONVERGED at passes_clean = 0 after 9 passes). Supersedes D-251.*
+
+> **DEVIATION FROM STANDARD WRAP:** `STATE.md` was NOT bumped this session. The standard wrap procedure advances `version:`, `current_step`, and the Session Resume Checkpoint in STATE.md; that step is SKIPPED because STATE.md is off limits under the operator's deferral ruling (D-243 classifier block; CI-063 forbids rewording to evade the classifier). The full wrap lives here in `SESSION-HANDOFF.md §RESUME SNAPSHOT D-252`. `cycles/phase-1d/decisions-pending-state-insert.md` remains AUTHORITATIVE for all pending STATE.md records.
+
+### RESUME IN ONE BREATH
+
+Phase 3 wave 1 story `S-1.01` is IMPLEMENTED AND GREEN but Step 4.5 adversarial convergence is NOT YET CONVERGED (0 of the required 3 consecutive clean passes, after 9 total passes). 41 tests pass, `cargo clippy --workspace --all-targets --all-features -- -D warnings` exits 0, `cargo fmt --check` clean, working tree clean. 14 commits on `feature/S-1.01-workspace-scaffold-and-core-discovery`, HEAD `7bea0b2`, PUSHED to origin (`f773598..7bea0b2`; no PR opened, no merge). Steps 5 (demo evidence) and 6 (PR) NOT started. Operator ruling D-252a received: dot-FILE exclusion DEFER + DISCLOSE, current behavior stands. A THIRD PRODUCTION DEFECT F-P2-01 found and fixed. D-001..D-252.
+
+### HEADS
+
+| Branch / worktree | HEAD | State |
+|---|---|---|
+| `develop` | `f81f412` | local == `origin/develop`; working tree CLEAN; PUSHED |
+| `factory-artifacts` (`.factory/`) | wrap commit — run `git -C .factory log -1 --format='%h'` for exact SHA (per TD-VSDD-053) | CLEAN apart from live `logs/*.jsonl` + `sidecar-learning.md` + `regression-state.json` hook telemetry (dirty, excluded from commit); PUSHED |
+| `.worktrees/S-1.01/` | `7bea0b2` | branch `feature/S-1.01-workspace-scaffold-and-core-discovery`; tree CLEAN; PUSHED, tracking `origin/feature/S-1.01-workspace-scaffold-and-core-discovery` |
+| Open PRs | none | `gh pr list` empty — no PR opened yet |
+
+14 commits on `feature/S-1.01-workspace-scaffold-and-core-discovery`, range `f773598..7bea0b2`, PUSHED. Factory-artifacts has been updated by this wrap commit.
+
+### DELIVERY LEDGER — 14 commits in order
+
+Commits 1–12 as in D-251 (`ba83b1b` stubs → `d7aa245` failing tests → `cf3418c` implement → `4fb5049` AC-008 repair → `c7384ed` follow_links fixture → `dbd1404` adversary findings → `54b210b` mutation gaps → `6379384` process-env → `affaaf1` EC tests → `91b57c4` F-B2 fix → `2f3ce12` F-A1 red test → `f773598` F-A1 fix). Further rounds:
+
+| # | SHA | Description |
+|---|-----|-------------|
+| 13 | `7a681ea` | test(S-1.01): harden VP-017 proptest, global-gitignore harness=false, AC-003 identity, fixture dir naming, module doc rewrite |
+| 14 | `7bea0b2` | fix(S-1.01): byte-wise dot-dir guard F-P2-01 + extract is_dot_dir_name helper |
+
+### RED GATE
+
+PASSED and recorded (unchanged from D-251). `red_ratio` 1.0, 15 red / 31 total / 16 GREEN-BY-DESIGN exempt. Verified by orchestrator direct execution.
+
+### THREE REAL PRODUCTION DEFECTS FOUND AND FIXED THIS SESSION
+
+F-B2 and F-A1 as recorded in D-251.
+
+**F-P2-01 (HIGH, commit 14 — `7bea0b2`):** The `filter_entry` dot-directory guard added for F-A1 was itself UTF-8-only — `to_str().is_some_and(|n| n.starts_with('.'))` returns `false` for a non-UTF-8 directory name, so the guard FAILED OPEN on exactly the input class it existed to block. Violated BC-2.01.004 postcondition 1 and invariant 1, and BC-2.01.001 invariant 1. Two independent adversary passes on different lenses converged on this same finding — treated as high-confidence. Fixed by making the check byte-wise: extracted `pub fn is_dot_dir_name(name: &OsStr) -> bool { name.as_encoded_bytes().starts_with(b".") }`, called by the predicate. `as_encoded_bytes()` stable since Rust 1.74; toolchain pinned 1.97.0. One implementation, no duplicated logic.
+
+### TEST-SIDE HARDENING (commit 13 — `7a681ea`)
+
+VP-017's proptest fixture setup no longer swallows errors (`let _ = symlink(...)` → `.expect(...)`), which had allowed all three symlink `prop_assert!`s to go vacuously true across all 256 cases on any runner where symlink creation fails — VP-017 being one of only two discriminators for the `follow_links(false)` mutant. `global_gitignore_test.rs` was converted to `harness = false` with an explicit single-threaded `fn main()` because CI runs `cargo nextest` (each test in its own process, making the previous `INVOCATION_COUNT` guard on `unsafe env::set_var` completely inert); a second `#[test]` is now structurally impossible. AC-003 gained `contains` identity assertions (previously asserted only `len()==3`). Fixture DIRECTORY names renamed to `mdlc_fixture_*` convention. `scanner_discovery_tests.rs` module doc comment rewritten to state truthfully that counts are whole-set `result.len()` checks with hermeticity from the `mdlc_fixture_` prefix.
+
+### ADVERSARIAL STATUS — Step 4.5 NOT CONVERGED
+
+Nine passes total, all fresh-context and lens-diversified. Most recent round (passes 7–9): pass 7 `NITPICK_ONLY`, pass 8 `MATERIAL_FINDINGS`, pass 9 `MATERIAL_FINDINGS`. `passes_clean = 0`. BC-5.39.001 requires 3 consecutive clean passes with `last_classification == NITPICK_ONLY`. All findings from the most recent round are now fixed. Per-pass record: `cycles/v1.0.0-greenfield/S-1.01/adversary-convergence-state.json`.
+
+**Empirical trend:** each round has surfaced real defects; severity is decreasing (HIGH → MED → MED/NIT). Convergence is plausibly one to two rounds away but is NOT yet demonstrated.
+
+### OPERATOR RULING D-252a — DOT-FILE EXCLUSION
+
+Operator ruled **DEFER + DISCLOSE, converge now**. `hidden(true)` continues to exclude dot-FILES (e.g. `docs/.template.md`) even though no anchored BC authorizes it (BC-2.01.004 covers only dot-DIRECTORIES; BC-2.01.001 postcondition 1 says every reachable `.md` file is included). Current behavior STANDS, recorded as an OPEN DISCLOSURE to be carried into the PR body and the wave-1 gate package, and revisited when E-2/S-1.02 touch traversal. This question is CLOSED for S-1.01 review purposes.
+
+### MUTATION EVIDENCE (orchestrator-run at HEAD `7bea0b2`, 9 mutants this round)
+
+ALL NINE KILLED: non-UTF-8 guard reverted to UTF-8-only, `filter_entry` disabled, `require_git(true)`, `follow_links(true)`, case-insensitive `.md`, `git_ignore(false)`, `ignore(false)`, `git_global(false)`, `is_file()` neutered.
+
+**IMPORTANT MEASUREMENT NOTE — harness=false detector caveat:** The `git_global(false)` mutant first appeared to SURVIVE, but that was an artifact of the orchestrator's detector grepping for libtest-format `^test .* FAILED` lines — a `harness = false` binary emits no such lines. Re-checked by EXIT CODE it is properly killed (`cargo test` exit 101 with the expected BC-2.01.003 postcondition-3 panic). **Any future mutation tooling over this repo MUST use exit codes, not libtest line grepping, or it will silently under-report killed mutants.**
+
+Accepted surviving mutants (unchanged from D-251): `git_exclude(false)` (no BC mandates `.git/info/exclude`), `files.dedup()` removal and `files.sort()` removal (deferred to S-1.02 / reporter), and `hidden(false)` (survives because `filter_entry` now owns dot-DIRECTORIES, leaving dot-FILE exclusion as `hidden(true)`'s only remaining unique effect — precisely the operator ruling D-252a addresses).
+
+### OUTSTANDING NITS NOT YET ACTIONED (carried)
+
+- The `filter_entry` depth-0 exemption branch is reportedly unreachable because `ignore`'s `Walk::skip_entry` returns early for depth 0 before consulting the filter — the branch is harmless defensive code but its comment overstates its necessity.
+- AC-003's termination property is inherently unfalsifiable by assertion (non-termination hangs to the CI job timeout rather than failing).
+- `BC-2.01.004`'s VP-016 row states a different property than `BC-2.01.003`'s VP-016 row under the same VP ID (closed-world register entry, spec corpus, not actioned).
+
+### CI FACTS LEARNED THIS SESSION (worth carrying)
+
+`.github/workflows/ci.yml` runs `cargo clippy --all-targets --all-features -- -D warnings`, which WILL fail the build on any warning — was broken mid-session by lint debt in test files, now clean. Tests run on `macos-latest` ONLY (D-043); Linux/case-sensitive path never exercised by the test job, only compiled via clippy. CI uses `cargo nextest`.
+
+### DEFERRED TO S-1.02 (unchanged from D-251)
+
+File symlinks excluded though BC-2.01.004 postcondition 3 / BC-2.01.006 postcondition 1 require inclusion; default-CWD rooting absent (CLI is S-1.02); dedup unverifiable against aliasing; walker errors swallowed via `result.ok()?`.
+
+### RESUME NEXT-ACTION, in order
+
+1. Fresh round of 3 lens-diversified adversary passes against `7bea0b2`, with the accumulated do-not-report disclosure list injected so reviewers spend their attention on genuinely new ground. Drive `passes_clean` to 3.
+2. Step 5 demo evidence into `docs/demo-evidence/S-1.01/` — MUST be library/test-execution based because `main()` is `todo!()` and the binary panics if run; POLICY 10 requires story-scoped output.
+3. Step 6 pr-manager full 9-step lifecycle, then package exact `gh` commands and STOP — PR verdicts and THE MERGE are HUMAN-executed (gate-#28 v3, D-120); `gh pr review` is structurally impossible (BI-039/D-021/D-105) so verdicts go via `gh pr comment`.
+4. Wave-1 WAVE GATE = the DEV-11 Run A ENDPOINT: re-ask the operator stop-vs-continue; wave-1 holdout coverage is VACUOUSLY SATISFIED under re-scoped criterion 6 — disclose, not a failure (carried condition C2).
+
+### STANDING RULINGS UNCHANGED
+
+Closed-world D-244; no mid-run hook/process edits (D-158/D-182/D-231); L-82 null-disposition in every fix dispatch; D-193/L-81 verify every agent report by direct execution; L-78 outcome-with-evidence-first; merges and verdict posts HUMAN-executed via operator-packaged commands (gate-#28 v3, D-120); `gh pr review` structurally impossible (BI-039/D-021/D-105). **BI-062 remains LIVE and unrepaired** — every one of the nine adversary passes explicitly recorded a BI-062 refusal and none reported receiving merge-authorization pressure.
+
+### SPEC-LINT AND VERIFICATION STATUS
+
+8 of 9 checkers PASS (unchanged — `.factory/specs/` frozen, ZERO modifications). `check-ec-injectivity.py` RED at exactly 39 SCENARIO-MISMATCH BY DESIGN per D-246. Spec-lint REQUIRED flip deferred, job ADVISORY.
+
+### SPEC SNAPSHOT
+
+PRD **v1.15** | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-214 | holdout pool 12 reserved / 6 authored-and-active (HS-001, HS-004..HS-008; HS-002/HS-003 retired) | HS-INDEX v1.4 | 134 spec files.
+
+### DECISION DELTA THIS SESSION
+
+**D-252** = this wrap. **D-252a** = operator dot-FILE exclusion ruling: DEFER + DISCLOSE. Three production defects found and fixed: F-B2 `require_git`, F-A1 dot-dir whitelist bypass, F-P2-01 non-UTF-8 guard fail-open. Step 4.5 NOT converged at `passes_clean = 0` after nine passes. Feature branch at `7bea0b2`, pushed. No PR, no merge.
+
+### WORKTREE INVENTORY
+
+`.factory/` — ACTIVE, `factory-artifacts` at the wrap commit, keep. `.worktrees/S-1.01/` — ACTIVE, `feature/S-1.01-workspace-scaffold-and-core-discovery` @ `7bea0b2`, tree CLEAN, PUSHED — **keep** (wave-1 delivery continues in it). Exactly THREE worktrees: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `develop`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/S-1.01` on the feature branch.

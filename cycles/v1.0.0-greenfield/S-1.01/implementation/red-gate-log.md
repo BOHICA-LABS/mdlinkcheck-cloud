@@ -211,3 +211,63 @@ to S-1.02, or escalated to operator. Per-pass disposition detail:
 
 **Step 5 (demo evidence) and Step 6 (PR) have NOT begun.** Step 4.5 must
 reach 3 consecutive NITPICK_ONLY or CLEAN passes before proceeding.
+
+---
+
+## Step 4.5 — Adversarial Convergence Update (IN PROGRESS, NOT CONVERGED)
+
+**Updated: 2026-08-10. HEAD `7bea0b2`.**
+
+### 9-Pass Tally
+
+| Field | Value |
+|-------|-------|
+| Total passes run | 9 |
+| Passes clean | 0 |
+| Required consecutive clean | 3 |
+| Blocking gate | BC-5.39.001 |
+| Status | NOT CONVERGED |
+| Most recent round | pass 7 NITPICK_ONLY / pass 8 MATERIAL_FINDINGS / pass 9 MATERIAL_FINDINGS |
+
+Nine adversary passes have been run across multiple rounds, all fresh-context and
+lens-diversified. Every round has surfaced real defects with decreasing severity
+(HIGH to MED to MED/NIT). `passes_clean = 0` of the required 3 consecutive clean
+passes.
+
+All findings from all nine passes are fixed, adjudicated-deferred to S-1.02, or
+resolved via operator ruling (D-252a dot-FILE exclusion). Per-pass detail:
+`.factory/cycles/v1.0.0-greenfield/S-1.01/adversary-convergence-state.json`.
+
+### Final Mutation Evidence at HEAD `7bea0b2` — All Nine Killed
+
+| Mutant | Result |
+|--------|--------|
+| non-UTF-8 guard reverted to UTF-8-only | KILLED |
+| `filter_entry` disabled | KILLED |
+| `require_git(true)` | KILLED |
+| `follow_links(true)` | KILLED |
+| case-insensitive `.md` | KILLED |
+| `git_ignore(false)` | KILLED |
+| `ignore(false)` | KILLED |
+| `git_global(false)` | KILLED (see caveat below) |
+| `is_file()` neutered | KILLED |
+
+**harness=false detector caveat:** The `git_global(false)` mutant first appeared
+to SURVIVE, but that was an artifact of the orchestrator's detector grepping for
+libtest-format `^test .* FAILED` lines — a `harness = false` binary emits no
+such lines. Re-checked by EXIT CODE: `cargo test` exits 101 with the expected
+BC-2.01.003 postcondition-3 panic. Mutant is properly KILLED. **Any future
+mutation tooling over this repo MUST use exit codes, not libtest line grepping,
+or it will silently under-report killed mutants.**
+
+Accepted surviving mutants (unchanged): `git_exclude(false)` (no BC mandates
+`.git/info/exclude`), `files.dedup()` removal (deferred S-1.02), `files.sort()`
+removal (deferred S-1.02), `hidden(false)` (survives because `filter_entry` now
+owns dot-DIRECTORIES; dot-FILE exclusion is D-252a operator-deferred).
+
+### Steps 5 and 6 Status
+
+**Step 5 (demo evidence) and Step 6 (PR) have NOT begun.** Step 4.5 must reach 3
+consecutive NITPICK_ONLY or CLEAN passes before proceeding. Resume next-action:
+run a fresh round of 3 lens-diversified adversary passes against HEAD `7bea0b2`
+with the accumulated do-not-report disclosure list injected.
