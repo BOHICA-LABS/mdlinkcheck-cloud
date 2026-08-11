@@ -10,14 +10,16 @@
 //!   VP-016 — gitignored files never appear in the scan set (integration test)
 //!   VP-017 — scan terminates for arbitrary directory trees including symlink cycles (proptest)
 //!
-//! RED GATE STATE: all 13 AC tests and both VP tests MUST fail at this step.
-//! Each failure is a panic at `todo!()` inside the called scanner function body
-//! (commit ba83b1b). No test may pass before the implementer runs.
+//! This is the GREEN acceptance corpus for AC-001..AC-013 (story S-1.01) plus VP-016
+//! and VP-017. All 44 tests must pass. At Red Gate (commit ba83b1b), every call to
+//! `collect_md_files` and `is_md_extension` panicked at `todo!()` inside the scanner
+//! function bodies — that phase is complete.
 //!
 //! Gitignore fixture forms (Scope Ruling 4 — both forms covered):
-//!   AC-004 / VP-016 Form A : git repo + `.gitignore` (git init required; ignore
-//!                            crate default `require_git=true` only honours
-//!                            .gitignore inside a real git repo)
+//!   AC-004 / VP-016 Form A : git repo + `.gitignore` (git init NOT required for
+//!                            .gitignore to work — `build_walk` calls `require_git(false)`
+//!                            which honours .gitignore unconditionally; git init is used
+//!                            for belt-and-suspenders assurance and Scope Ruling 4 semantics)
 //!   AC-005 / AC-006 / VP-016 Form B : plain (non-git) dir + `.ignore`
 //!                            (`.ignore` is honoured unconditionally by WalkBuilder
 //!                            regardless of `require_git`)
@@ -101,19 +103,26 @@ fn test_BC_2_01_001_default_cwd_scan_includes_all_md_files() {
     create_file(root, "not_a_md.txt");
     create_file(root, "image.png");
 
-    // ── Red Gate: collect_md_files panics at todo!() ──────────────────────────
+    // ── Red Gate history (commit ba83b1b): collect_md_files panicked at todo!(). ──────
     let result = scanner::collect_md_files(root);
 
-    // "Exactly once" guard: assert Vec length BEFORE set conversion so that a
-    // walker yielding a path multiple times is caught here.  The HashSet below
-    // would silently deduplicate duplicates, making the len()==3 assertion vacuous
-    // with respect to BC-2.01.001 postcondition 1 ("each file appears exactly once").
+    // Exact-count assertion: assert the returned Vec has exactly 3 paths.
+    // NOTE: this assertion CANNOT detect duplicate yields from the walker.
+    // `collect_md_files` calls `files.sort(); files.dedup()` before returning,
+    // so `result.len()` can never exceed 3 as a consequence of a duplicate yield.
+    // The "exactly once" property for BC-2.01.001 postconditions 1 and 2 is
+    // enforced structurally by `collect_md_files`'s internal dedup — genuine
+    // path-aliasing verification (e.g. hardlinks) requires explicit path arguments
+    // and is deferred (C-B1, anchored to S-1.02); hardlink aliasing intent is
+    // unadjudicated (P10-01/BI-068). The subsequent `result_set.len() == 3`
+    // assertion covers the same "exactly 3 distinct .md files" constraint.
     assert_eq!(
         result.len(),
         3,
-        "scan set must contain exactly 3 paths before deduplication; \
-         a len > 3 means the walker yielded a path more than once \
-         (BC-2.01.001 postcondition 1 'exactly once')"
+        "scan set must contain exactly 3 distinct .md paths (BC-2.01.001 \
+         postconditions 1 and 2); NOTE: duplicate-yield detection is not possible \
+         at this level because collect_md_files deduplicates internally before \
+         returning — path-aliasing verification (C-B1) is deferred to S-1.02"
     );
 
     // After implementation: every .md file under root must appear in the result.
@@ -153,7 +162,7 @@ fn test_BC_2_01_001_no_duplicate_in_scan_set() {
         "mdlc_fixture_sub/mdlc_fixture_nested/mdlc_fixture_c.md",
     );
 
-    // ── Red Gate: panics at todo!() ───────────────────────────────────────────
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
     let result = scanner::collect_md_files(root);
 
     let unique: HashSet<PathBuf> = result.iter().cloned().collect();
@@ -200,8 +209,8 @@ fn test_BC_2_01_001_scan_terminates_for_finite_tree() {
     create_file(root, "mdlc_fixture_b/mdlc_fixture_c.md");
     create_file(root, "mdlc_fixture_b/mdlc_fixture_d/mdlc_fixture_e.md");
 
-    // ── Red Gate: panics at todo!() ───────────────────────────────────────────
-    // After implementation: must return without looping.
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
+    // This call must return without looping (BC-2.01.001 postcondition 3).
     let result = scanner::collect_md_files(root);
 
     // Identity assertions prevent three unrelated paths from satisfying len==3
@@ -223,7 +232,9 @@ fn test_BC_2_01_001_scan_terminates_for_finite_tree() {
 
 // ─── AC-004 (traces to BC-2.01.003 postcondition 1) ──────────────────────────
 // Fixture form: GIT REPO + `.gitignore`
-// (git init so the ignore crate's require_git=true default honours .gitignore)
+// (git init for Scope Ruling 4 belt-and-suspenders; require_git(false) in
+// build_walk honours .gitignore even without a git repo — git init is NOT
+// required for .gitignore to work; see git_init doc comment)
 //
 // Process-environment policy: no process-env mutation in this test.
 // The `git init` subprocess is hermetic via per-command env on `Command`
@@ -243,12 +254,14 @@ fn test_BC_2_01_003_gitignore_excludes_from_scan_set() {
     let hermetic_cfg = root.join(".hermetic_gitconfig");
     fs::write(&hermetic_cfg, "").expect("write hermetic gitconfig");
 
-    git_init(root, &hermetic_cfg); // required: ignore crate only reads .gitignore inside a git repo
+    git_init(root, &hermetic_cfg); // Scope Ruling 4 belt-and-suspenders; require_git(false) in
+                                   // build_walk honours .gitignore outside git repos — git init
+                                   // is NOT required for .gitignore to work (see git_init doc)
     fs::write(root.join(".gitignore"), "node_modules/\n").expect("write .gitignore");
     create_file(root, "node_modules/mdlc_fixture_foo.md"); // must be excluded
     create_file(root, "mdlc_fixture_README.md"); // must be included
 
-    // ── Red Gate: panics at todo!() ───────────────────────────────────────────
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
     let result = scanner::collect_md_files(root);
 
     assert!(
@@ -277,9 +290,7 @@ fn test_BC_2_01_003_gitignored_file_not_scanned_as_source() {
     create_file(root, "mdlc_fixture_secret.md"); // excluded by .ignore
     create_file(root, "mdlc_fixture_visible.md"); // included
 
-    // ── Red Gate: panics at todo!() ───────────────────────────────────────────
-    // After implementation: mdlc_fixture_secret.md must NOT appear in the scan
-    // set; it must never be scanned as a link source.
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
     let result = scanner::collect_md_files(root);
 
     assert!(
@@ -313,7 +324,7 @@ fn test_BC_2_01_003_gitignored_file_anchor_table_built_as_target() {
     create_file(root, "mdlc_fixture_ignored_target.md"); // excluded by .ignore
     create_file(root, "mdlc_fixture_source.md"); // in scan set
 
-    // ── Red Gate: panics at todo!() ───────────────────────────────────────────
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
     // Clause (i): the .ignore-excluded file must NOT appear in the scan set.
     let result = scanner::collect_md_files(root);
 
@@ -350,7 +361,7 @@ fn test_BC_2_01_004_dot_directories_unconditionally_skipped() {
     create_file(root, ".trailing./mdlc_fixture_in_trailing_dot.md"); // dot-dir with trailing `.` — must be skipped
     create_file(root, "mdlc_fixture_README.md"); // not in dot-dir — must appear
 
-    // ── Red Gate: panics at todo!() ───────────────────────────────────────────
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
     let result = scanner::collect_md_files(root);
 
     let result_set: HashSet<PathBuf> = result.into_iter().collect();
@@ -412,7 +423,7 @@ fn test_BC_2_01_004_no_override_flag_for_dot_dir_skip() {
     // no `hidden: bool`, no override config, no builder knob for dot-dir traversal.
     // This is both a compile-time and a runtime assertion of D-011.
     //
-    // ── Red Gate: panics at todo!() ───────────────────────────────────────────
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
     let result = scanner::collect_md_files(root);
 
     // Positive assertion: mdlc_fixture_visible.md MUST appear in the scan set.
@@ -477,9 +488,9 @@ fn test_BC_2_01_004_directory_symlinks_not_followed() {
 
     create_file(root, "README.md");
 
-    // ── Red Gate: panics at todo!() ───────────────────────────────────────────
-    // After implementation: must terminate normally (follow_links(false) prevents
-    // infinite recursion) and must NOT yield any path containing "cycle_link".
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
+    // follow_links(false) prevents infinite recursion; no path containing "cycle_link"
+    // must appear in the result.
     let result = scanner::collect_md_files(root);
 
     assert!(
@@ -599,7 +610,7 @@ fn test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target() {
     create_file(root, ".vitepress/api.md");
     create_file(root, "mdlc_fixture_source.md");
 
-    // ── Red Gate: panics at todo!() ───────────────────────────────────────────
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
     // Clause (i): dot-dir .md must NOT appear in the scan set as a link source.
     let result = scanner::collect_md_files(root);
 
@@ -626,7 +637,7 @@ fn test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target() {
 
 #[test]
 fn test_BC_2_01_005_exact_md_extension_included() {
-    // ── Red Gate: is_md_extension panics at todo!() ───────────────────────────
+    // ── Red Gate history (commit ba83b1b): is_md_extension panicked at todo!(). ──────
     assert!(
         scanner::is_md_extension(&PathBuf::from("README.md")),
         "README.md must pass the .md extension filter (BC-2.01.005)"
@@ -662,7 +673,7 @@ fn test_BC_2_01_005_non_md_extensions_excluded() {
         "data.json",
     ];
 
-    // ── Red Gate: is_md_extension panics at todo!() on first call ─────────────
+    // ── Red Gate history (commit ba83b1b): is_md_extension panicked at todo!() on first call. ─
     for name in &excluded {
         assert!(
             !scanner::is_md_extension(&PathBuf::from(name)),
@@ -676,7 +687,7 @@ fn test_BC_2_01_005_non_md_extensions_excluded() {
 
 #[test]
 fn test_BC_2_01_005_case_sensitive_byte_match() {
-    // ── Red Gate: is_md_extension panics at todo!() on first call ─────────────
+    // ── Red Gate history (commit ba83b1b): is_md_extension panicked at todo!() on first call. ─
     // Case-sensitivity: ONLY the exact lowercase byte sequence ".md" is matched.
     assert!(
         !scanner::is_md_extension(&PathBuf::from("README.MD")),
@@ -788,7 +799,7 @@ fn test_BC_2_01_005_ec005_ec006a_ec006b_traversal_excludes_non_md_extensions() {
 //   Form B — plain (non-git) dir + `.ignore`
 //
 // This is a dedicated integration test for VP-016, separate from the 13 ACs.
-// At Red Gate it fails on Form A's collect_md_files call (todo!() panic).
+// At Red Gate (commit ba83b1b) it failed on Form A's collect_md_files call (todo!() panic).
 //
 // Process-environment policy: see module-level doc comment.  Form A uses
 // the `mdlc_fixture_` prefix on fixture files and omits the len() assertion.
@@ -810,7 +821,7 @@ fn test_vp016_gitignored_files_never_in_scan_set() {
         create_file(root, "excluded/mdlc_fixture_hidden.md");
         create_file(root, "mdlc_fixture_visible.md");
 
-        // ── Red Gate: panics at todo!() ───────────────────────────────────────
+        // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
         let result = scanner::collect_md_files(root);
 
         assert!(
@@ -861,8 +872,8 @@ fn test_vp016_gitignored_files_never_in_scan_set() {
 // combinations. `collect_md_files` must terminate and return only paths under
 // root for every generated input.
 //
-// At Red Gate: proptest panics on the first generated case because
-// `collect_md_files` calls `todo!()`. The test is reported as FAILED.
+// At Red Gate (commit ba83b1b): proptest panicked on the first generated case because
+// `collect_md_files` called `todo!()`. The test was reported as FAILED.
 
 use proptest::prelude::*;
 
@@ -920,9 +931,9 @@ proptest! {
             }
         }
 
-        // ── Red Gate: panics at todo!() on first generated case ───────────────
-        // After implementation: must terminate for ALL generated inputs including
-        // cycles (follow_links(false) in WalkBuilder breaks cycles per VP-017).
+        // ── Red Gate history (commit ba83b1b): panicked at todo!() on first generated case. ─
+        // Must terminate for ALL generated inputs including cycles
+        // (follow_links(false) in WalkBuilder breaks cycles per VP-017).
         let result = scanner::collect_md_files(root);
 
         // All discovered paths must be under root
@@ -1232,9 +1243,13 @@ fn test_BC_2_01_004_ec004_real_git_directory_md_files_skipped() {
 // `.gitignore`-in-git-repo code path.
 //
 // This companion test covers the SAME invariant (BC-2.01.003 invariant 1) but
-// uses a REAL `.gitignore` inside a `git init`-ed tempdir, exercising the
-// `require_git=true` path of the `ignore` crate.  Using hermetic git config on
-// the subprocess (not process-env mutation) keeps it safe for concurrent runs.
+// uses a REAL `.gitignore` inside a `git init`-ed tempdir as a realistic
+// end-to-end fixture, complementing the synthetic plain-dir tests.  It does NOT
+// exercise a `require_git=true` code path — `build_walk` calls `require_git(false)`,
+// so the `require_git=true` path is unreachable through `collect_md_files`; the
+// stated justification in any prior version of this comment was void.  The test's
+// real value is as a belt-and-suspenders real-git-repo fixture.  Using hermetic git
+// config on the subprocess (not process-env mutation) keeps it safe for concurrent runs.
 //
 // Fixture form: GIT REPO + real `.gitignore` (Scope Ruling 4, Form A).
 //
@@ -1250,8 +1265,9 @@ fn test_BC_2_01_003_inv1_gitignored_source_not_scanned_real_gitignore() {
     let hermetic_cfg = root.join(".hermetic_gitconfig");
     fs::write(&hermetic_cfg, "").expect("write hermetic gitconfig");
 
-    // git init required: the ignore crate's require_git=true default only
-    // honours .gitignore inside a real git repository (Scope Ruling 4).
+    // git init for Scope Ruling 4 belt-and-suspenders assurance; require_git(false)
+    // in build_walk honours .gitignore unconditionally — git init is NOT required
+    // for .gitignore to work (see git_init doc comment).
     git_init(root, &hermetic_cfg);
 
     // .gitignore excludes mdlc_fixture_gitignored_source.md.
@@ -1435,16 +1451,17 @@ fn test_BC_2_01_004_inv1_dot_dir_skip_handles_non_utf8_dir_name() {
                 "mdlc_fixture_README.md must be in the scan set (F-04 positive gate)"
             );
 
-            // BC-2.01.004 postcondition 1 / invariant 1 — FAILS on current impl.
-            // filter_entry: to_str() returns None → is_some_and returns false →
-            // is_dot_dir = false → dir traversed → secret.md appears (F-P2-01).
+            // BC-2.01.004 postcondition 1 / invariant 1 — GREEN regression lock.
+            // Locks fix for defect F-P2-01 (commit 7bea0b2): `is_dot_dir_name` uses
+            // `as_encoded_bytes().starts_with(b".")` — byte-wise, UTF-8-agnostic —
+            // so a non-UTF-8 dot-prefixed directory name is correctly rejected.
             assert!(
                 !result.iter().any(|p| p.starts_with(&dot_dir)),
                 "no file under the non-UTF-8 dot-directory {:?} must appear in the \
-                 scan set (BC-2.01.004 postcondition 1 / invariant 1 / F-P2-01): \
-                 filter_entry uses to_str().is_some_and() which returns false for \
-                 non-UTF-8 names — fix: use as_encoded_bytes().starts_with(b\".\"). \
-                 Got scan set: {:?}",
+                 scan set (BC-2.01.004 postcondition 1 / invariant 1 / F-P2-01 regression \
+                 lock): is_dot_dir_name must use byte-wise as_encoded_bytes().starts_with(b\".\") \
+                 so non-UTF-8 dot-dir names are correctly rejected — a failure here means the \
+                 F-P2-01 fix was reverted. Got scan set: {:?}",
                 dot_dir,
                 result
             );
@@ -1569,5 +1586,195 @@ fn test_build_walk_filter_entry_replaceable_but_collect_md_files_backstop_holds(
         "collect_md_files must exclude all dot-dir content regardless of any \
          builder mutation — the post-filter backstop is structural for all callers \
          (BC-2.01.004 invariant 1 / ignore 0.4.33 walk.rs:1043)"
+    );
+}
+
+// ─── Regression lock: BC-2.01.004 invariant 1 — builder-level filter_entry guard ─
+//
+// SOLE REGRESSION LOCK for the `filter_entry` dot-directory guard registered
+// inside `build_walk`.  The `collect_md_files` post-filter (structural backstop)
+// masks the builder guard for all callers of that function — deleting the entire
+// `builder.filter_entry(...)` statement from `build_walk` leaves every
+// `collect_md_files`-based test green.  Only a test that calls `build_walk`
+// directly WITHOUT replacing the predicate can kill the guard-deletion mutant.
+//
+// WHY collect_md_files CANNOT SUBSTITUTE:
+//   Since commit 70f1f19, `collect_md_files` applies an independent structural
+//   post-filter (`is_dot_dir_name` on every relative path component) that rejects
+//   dot-dir content even when the builder guard is absent.  The S-1.02
+//   `--ignore <glob>` consumer (BC-2.11.001) calls `build_walk` directly and
+//   registers its own `filter_entry` predicate on the returned builder.  If the
+//   builder-level guard is absent, a direct consumer who does NOT also apply the
+//   `collect_md_files` post-filter re-arms the original F-A1 defect with no
+//   regression signal.
+//
+// FIXTURE DESIGN (defeats hidden(true) so the test genuinely exercises filter_entry):
+//   `.gitignore` with `.*` + `!.github` — the exact two-line pattern confirmed to
+//   defeat `hidden(true)` in `ignore` 0.4.33 (the `.gitignore` negation re-enables
+//   .github/ traversal; `require_git(false)` in `build_walk` honours this without
+//   a git init).  With `hidden(true)` defeated, the only remaining defence against
+//   traversal into `.github/` at the builder level is the `filter_entry` predicate.
+//   `mdlc_fixture_` prefix on the visible file and the `.github/` sub-file follows
+//   the C-E4 ancestor-ignore hermeticity convention.
+//
+// NON-VACUITY PROOF (mandatory for merging this test):
+//   Temporarily delete `builder.filter_entry(...)` from scanner.rs and re-run —
+//   this test MUST fail.  All `collect_md_files`-based tests will remain green
+//   (the post-filter masks the deletion), confirming this test is the sole
+//   kill-signal for the builder-level guard-deletion mutant.  Restore scanner.rs
+//   with `git checkout -- crates/mdlinkcheck/src/scanner.rs` and verify the suite
+//   is green again.
+//
+// Traceability: BC-2.01.004 invariant 1 / D-011 / EC-003 / F-A1 regression
+//               / S-1.02 build_walk direct consumer (BC-2.11.001)
+
+#[test]
+fn test_BC_2_01_004_inv1_build_walk_filter_entry_guard_is_active() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // Defeat hidden(true) via the exact two-line .gitignore negation pattern:
+    // ".*" excludes all dot-entries; "!.github" re-enables .github/ traversal.
+    // require_git(false) in build_walk honours this without a git init.
+    // With hidden(true) defeated, filter_entry is the sole remaining defence
+    // at the builder level against traversal into .github/.
+    fs::write(root.join(".gitignore"), ".*\n!.github\n")
+        .expect("write .gitignore that defeats hidden(true)");
+
+    // Dot-directory content: must NOT appear in the walk output.
+    // mdlc_fixture_ prefix follows the C-E4 ancestor-ignore hermeticity convention.
+    create_file(root, ".github/PULL_REQUEST_TEMPLATE.md");
+
+    // Visible file: MUST appear (F-04 positive gate — prevents vacuous pass on
+    // an empty result set).
+    create_file(root, "mdlc_fixture_visible.md");
+
+    // Call build_walk directly — do NOT replace filter_entry on the returned builder.
+    // The companion test (test_build_walk_filter_entry_replaceable_but_collect_md_files_backstop_holds)
+    // documents what happens when filter_entry IS replaced; this test exercises the
+    // as-shipped predicate.
+    let builder = scanner::build_walk(root);
+
+    let walked: Vec<PathBuf> = builder
+        .build()
+        .filter_map(|r| r.ok())
+        .filter(|e| e.file_type().is_some_and(|ft| ft.is_file()))
+        .filter(|e| scanner::is_md_extension(e.path()))
+        .map(|e| e.path().to_path_buf())
+        .collect();
+
+    // F-04 positive gate: mdlc_fixture_visible.md MUST be in the walk output.
+    // If the walk returns an empty Vec, the negative assertion below passes
+    // vacuously and the test discharges nothing.
+    assert!(
+        walked.contains(&root.join("mdlc_fixture_visible.md")),
+        "mdlc_fixture_visible.md must be discovered by build_walk \
+         (F-04 vacuous-pass prevention)"
+    );
+
+    // BC-2.01.004 invariant 1 — builder-level guard assertion.
+    // No yielded path may contain a dot-prefixed component relative to root.
+    // Uses byte-wise comparison (as_encoded_bytes().starts_with(b".")) matching
+    // the production is_dot_dir_name implementation — NOT to_str() which fails
+    // open on non-UTF-8 names (defect F-P2-01, fixed at commit 7bea0b2).
+    //
+    // MUTATION TARGET: deleting `builder.filter_entry(...)` from build_walk causes
+    // this assertion to FAIL because .github/ is traversed (hidden(true) is defeated
+    // by the .gitignore negation above) and PULL_REQUEST_TEMPLATE.md appears in the
+    // walked set.
+    assert!(
+        !walked.iter().any(|p| {
+            p.strip_prefix(root)
+                .unwrap_or(p.as_path())
+                .components()
+                .any(|c| c.as_os_str().as_encoded_bytes().starts_with(b"."))
+        }),
+        "build_walk's filter_entry guard must prevent dot-dir content from appearing \
+         in the walk output (BC-2.01.004 invariant 1 / D-011 / EC-003): \
+         .github/PULL_REQUEST_TEMPLATE.md must be blocked by the builder-level predicate. \
+         FAILURE means filter_entry was removed from build_walk — this is the sole \
+         regression lock for the builder-level guard (collect_md_files post-filter \
+         masks the deletion for all collect_md_files-based tests). walked: {walked:?}"
+    );
+}
+
+// ─── Regression lock: parents(true) ancestor-ascent semantics (D-259, operator intent) ──
+//
+// OPERATOR RULING D-259: ancestor-directory ignore files ARE honoured when the scan
+// root is a subdirectory of a directory containing an ignore file, even with no git
+// repository present anywhere.  This is intended behaviour matching git semantics
+// for scanning a subdirectory of a project.
+//
+// WHY THIS LOCK IS NECESSARY:
+//   `parents(true)` is the `ignore` 0.4.33 default.  Before it was set explicitly in
+//   `build_walk` (commit 47e11b0), cargo-mutants could not generate a kill-able mutant
+//   for it and no kill-rate metric could ever have covered it — an implicit default
+//   produces no mutant (lesson L-88).  Setting it explicitly enables a `parents(false)`
+//   mutant whose kill is this test.
+//
+// USER-VISIBLE CONSEQUENCE (accepted and disclosed per D-259):
+//   A user with a `$HOME/.gitignore` will have those patterns apply to any scan
+//   beneath it.  `collect_md_files` has no diagnostic channel to report such silent
+//   exclusions (deferred finding F-A3).
+//
+// FIXTURE DESIGN:
+//   - No `git init` anywhere — proves the behaviour is not git-repo-gated.
+//   - `mdlc_fixture_outer/` and `mdlc_fixture_outer/mdlc_fixture_inner/` are
+//     sub-directories inside the tempdir; the scan root is `mdlc_fixture_inner/`
+//     and the ignore file lives in `mdlc_fixture_outer/` (its parent), ensuring
+//     the ignore file is genuinely above and outside the scan root.  The tempdir
+//     root itself is not the scan root, so an ancestor ignore file above the
+//     tempdir cannot satisfy the assertion for an unrelated reason.
+//   - `mdlc_probe.md` matches the ancestor pattern and MUST be excluded.
+//   - `mdlc_keep.md` does NOT match and MUST be included (F-04 positive gate).
+//
+// Traceability: BC-2.01.003 postcondition 1 / parents(true) / D-259 / L-88
+
+#[test]
+fn test_BC_2_01_003_post1_ancestor_gitignore_honoured_parents_true() {
+    // No git init — behaviour must not be git-repo-gated.
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // Build mdlc_fixture_outer/ and mdlc_fixture_outer/mdlc_fixture_inner/ inside
+    // the tempdir.  Scan root will be mdlc_fixture_inner/.
+    let outer = root.join("mdlc_fixture_outer");
+    let inner = outer.join("mdlc_fixture_inner");
+    fs::create_dir_all(&inner).expect("create mdlc_fixture_outer/mdlc_fixture_inner");
+
+    // Ignore file lives in mdlc_fixture_outer/ — ABOVE the scan root (mdlc_fixture_inner/).
+    // Pattern: `mdlc_probe.md` inside the scan root must be excluded via ancestor ascent.
+    fs::write(outer.join(".gitignore"), "mdlc_probe.md\n")
+        .expect("write ancestor .gitignore in mdlc_fixture_outer/");
+
+    // File matching the ancestor ignore pattern — MUST be excluded.
+    create_file(root, "mdlc_fixture_outer/mdlc_fixture_inner/mdlc_probe.md");
+
+    // Sibling file that does NOT match — MUST be included (F-04 positive gate).
+    // Without this, an empty result passes the negative assertion vacuously.
+    create_file(root, "mdlc_fixture_outer/mdlc_fixture_inner/mdlc_keep.md");
+
+    // Scan mdlc_fixture_inner/ — the ignore file is in its parent (mdlc_fixture_outer/),
+    // which is outside the scan root.
+    let result = scanner::collect_md_files(&inner);
+
+    // F-04 positive gate: mdlc_keep.md MUST be in the scan set.
+    assert!(
+        result.contains(&inner.join("mdlc_keep.md")),
+        "mdlc_keep.md must be in the scan set (F-04 vacuous-pass prevention / D-259 \
+         ancestor-ascent positive gate)"
+    );
+
+    // BC-2.01.003 postcondition 1 / D-259: the ancestor-ignored file must be excluded.
+    // MUTATION TARGET: changing `parents(true)` to `parents(false)` in build_walk
+    // causes this assertion to FAIL because the ancestor .gitignore in
+    // mdlc_fixture_outer/ is no longer consulted and mdlc_probe.md appears in the result.
+    assert!(
+        !result.contains(&inner.join("mdlc_probe.md")),
+        "mdlc_probe.md must NOT be in the scan set — it is excluded by the ancestor \
+         .gitignore in mdlc_fixture_outer/ (BC-2.01.003 postcondition 1 / D-259 \
+         operator-ruled intended behaviour). FAILURE here means parents(true) was \
+         removed from build_walk — this test is the regression lock for ancestor-ascent \
+         semantics (lesson L-88). result: {result:?}"
     );
 }
