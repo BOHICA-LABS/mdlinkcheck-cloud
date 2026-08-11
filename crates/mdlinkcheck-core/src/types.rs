@@ -16,15 +16,17 @@
 //! `DirEntryInfo`, and `EntryKind`.
 //!
 //! This file defines **seven** of those eight. The eighth type — `Link` — is
-//! deliberately absent. The frozen `api-surface.md` §Key Shared Types defines no
-//! `Link` type; it defines `ExtractedLink` as the canonical link-representation type,
-//! and all downstream consumers (story specs, behavioral contracts) use `ExtractedLink`
-//! throughout. Adding a `Link` type here would follow the story's eight-type list but
-//! contradict `api-surface.md`, which takes precedence as the frozen architecture
-//! authority. The story-vs-`api-surface.md` contradiction has not been adjudicated by
-//! the operator and is left unresolved. A future operator decision should either add
-//! `Link` here and update `api-surface.md`, or formally remove `Link` from the story's
-//! type list to align the two documents.
+//! deliberately absent. The omission has **corpus-wide** backing:
+//! `api-surface.md` §Key Shared Types defines no `Link` type and uses `ExtractedLink`
+//! as the canonical link-representation type throughout; `module-decomposition.md:60`,
+//! `module-criticality.md:69`, and `domain-spec/entities.md` all name `Link` as an
+//! expected type. Only `api-surface.md` omits it. The conflict between the story's
+//! eight-type list (which includes `Link`) and the remainder of the corpus (which also
+//! includes `Link`) versus `api-surface.md` (which does not) has not been adjudicated
+//! by the operator. Precedence is unadjudicated. A `Link` type is NOT added here until
+//! the operator resolves the conflict. A future operator decision should either add
+//! `Link` here and update `api-surface.md`, or formally remove `Link` from all corpus
+//! documents that reference it.
 //!
 //! In addition to the seven story-named types, this file defines two further types
 //! required for compilation: `FailureReason` (referenced by `Verdict` and `Finding`)
@@ -127,7 +129,13 @@ pub struct ExtractedLink {
 /// Set of normalized anchor identifiers built from a Markdown document's headings.
 ///
 /// Populated by `anchor_table::build_anchor_table` (pure-core).
-/// Defined verbatim from `api-surface.md` §Library API.
+///
+/// **Deliberate divergence from `api-surface.md` §Library API (deferred to E-2):**
+/// `api-surface.md:80` declares the tuple field `private` (`AnchorTable(HashSet<String>)`),
+/// but this definition exposes it as `pub` (`AnchorTable(pub HashSet<String>)`) to
+/// satisfy compilation requirements in the current story scope. Callers MUST NOT rely
+/// on `.0` access outside this crate; the field visibility will be tightened when the
+/// anchor-table API is finalised in E-2.
 #[derive(Debug, Clone)]
 pub struct AnchorTable(pub HashSet<String>);
 

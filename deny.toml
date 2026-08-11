@@ -6,11 +6,13 @@
 #
 # Reference: https://embarkstudios.github.io/cargo-deny/
 #
-# Schema: cargo-deny 0.17.0 (CI-pinned version; compatible with 0.19+ as well)
+# Schema: cargo-deny 0.19.0 (CI-pinned version)
 
 [graph]
-# Check all features and targets to catch transitive deps that only appear
-# under specific feature flags or platform conditions.
+# Check all feature combinations to catch transitive deps that only appear
+# under specific feature flags.  Target coverage uses the cargo-deny default
+# (host target); extend via `targets = [...]` if cross-platform coverage is
+# needed in a future story.
 all-features = true
 
 # ─────────────────────────────────────────────────────────────────
@@ -45,10 +47,16 @@ allow = [
 exceptions = []
 
 [licenses.private]
-# Ignore workspace crates that have not yet been published to any registry.
-# mdlinkcheck and mdlinkcheck-core are at 0.1.0 development stage and carry
-# no license declaration yet — operator must add one before publishing.
-# Remove this when a LICENSE file and [package].license fields are added.
+# Both mdlinkcheck and mdlinkcheck-core now declare `license = "MIT OR Apache-2.0"`
+# in their [package] tables.  The LICENSE files (MIT and Apache-2.0 text) are not
+# yet present in the repository — that is a human decision item for the operator,
+# separate from the [package].license field.
+#
+# NOTE: `ignore = true` keys off the manifest `publish` field — a crate is
+# "private" only if it sets `publish = false` (or `publish = []`).  Neither crate
+# currently sets that field, so this stanza is effectively a no-op for the present
+# workspace.  It is retained so that any future `publish = false` crate added to
+# the workspace is automatically exempted from license checks.
 ignore = true
 
 # ─────────────────────────────────────────────────────────────────
@@ -61,11 +69,8 @@ db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 
 # Known acceptable advisories (empty — deny all unless explicitly noted here).
-# Vulnerabilities are always hard errors in cargo-deny 0.17+.
-# Yanked crates are denied by default in cargo-deny 0.17+.
-# The pre-0.17 "unmaintained = warn" severity field was removed in 0.17; the
-# key was later reintroduced in 0.19+ with scope values.  It is omitted here
-# to remain compatible with the CI-pinned 0.17.0 binary.
+# Vulnerabilities are always hard errors in cargo-deny 0.19+.
+# Yanked crates are denied by default in cargo-deny 0.19+.
 ignore = []
 
 # ─────────────────────────────────────────────────────────────────
@@ -82,10 +87,11 @@ wildcards = "deny"
 # Ban these crates entirely.
 deny = [
     # Avoid old openssl-based crates in favor of rustls.
-    { name = "openssl-sys" },
+    # PackageSpec format: `{ crate = "name" }` (cargo-deny 0.14+ canonical form).
+    { crate = "openssl-sys" },
     # Avoid unmaintained chrono; use time or jiff instead.
     # (Uncomment if chrono appears transitively.)
-    # { name = "chrono" },
+    # { crate = "chrono" },
 ]
 
 # Allow specific duplicate version pairs that can't be resolved yet.

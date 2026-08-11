@@ -181,6 +181,15 @@ fn test_BC_2_01_001_no_duplicate_in_scan_set() {
 // ─── AC-003 (traces to BC-2.01.001 postcondition 3) ──────────────────────────
 // Fixture form: plain tempdir with finite depth.
 // After implementation: the call must return within bounded time for any finite tree.
+//
+// TERMINATION DISCLOSURE: this test contains no timeout assertion or elapsed-time
+// check.  Non-termination (an infinite loop) would manifest as the test hanging
+// until the CI job's timeout fires and kills the process — it would NOT produce an
+// assertion failure.  The valuable assertions here are the identity gates below
+// (each expected path must be present) plus the exact Vec count (all three files,
+// no extras).  The WalkBuilder's follow_links(false) prevents infinite recursion
+// on symlink cycles; for finite trees without cycles, termination is guaranteed
+// by the finite depth of the filesystem tree itself.
 
 #[test]
 fn test_BC_2_01_001_scan_terminates_for_finite_tree() {
@@ -608,6 +617,12 @@ fn test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target() {
 }
 
 // ─── AC-011 (traces to BC-2.01.005 postcondition 1) ──────────────────────────
+//
+// NOTE — predicate-level test only: this test calls `is_md_extension` on
+// string literals and never creates a file on disk or calls `collect_md_files`.
+// It therefore does NOT exercise BC-2.01.005's "discovered via traversal"
+// precondition.  The traversal-level coverage that discharges that precondition
+// is provided by `test_BC_2_01_005_ec005_ec006a_ec006b_traversal_excludes_non_md_extensions`.
 
 #[test]
 fn test_BC_2_01_005_exact_md_extension_included() {

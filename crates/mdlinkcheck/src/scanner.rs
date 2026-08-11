@@ -19,7 +19,11 @@ use std::path::{Path, PathBuf};
 ///
 /// The builder is configured to:
 /// - Respect `.gitignore` and `.ignore` exclusion rules (BC-2.01.003)
-/// - Unconditionally skip dot-directories and dot-files (BC-2.01.004; see D-011)
+/// - Unconditionally skip dot-**directories** (BC-2.01.004; enforced by `filter_entry`
+///   independently of the ignore-rule system — see D-011 and the `filter_entry`
+///   section below); dot-**file** skipping is best-effort via `hidden(true)` only,
+///   is NOT unconditional, is NOT specified by any BC, and is under operator
+///   adjudication — see the "Guarantee that does NOT survive caller mutation" section
 /// - Never follow directory symlinks (BC-2.01.004 postcondition 2, DI-009)
 ///
 /// # D-011 Non-Goal
@@ -61,7 +65,13 @@ pub fn build_walk(root: &Path) -> ignore::WalkBuilder {
     let mut builder = ignore::WalkBuilder::new(root);
     builder
         .follow_links(false) // never follow dir symlinks (BC-2.01.004, DI-009)
-        .hidden(true) // unconditionally skip dot-dirs/files (BC-2.01.004, D-011)
+        // hidden(true): best-effort dot-FILE skip — NOT unconditional. Subordinate to
+        // ignore-rule matches: a .gitignore negation pattern can defeat this for
+        // dot-files (see "Guarantee that does NOT survive caller mutation" in this
+        // function's doc). NOT specified by any BC; under operator adjudication.
+        // Dot-DIRECTORY skipping is enforced unconditionally by filter_entry below
+        // (BC-2.01.004, D-011), independently of this flag.
+        .hidden(true)
         .git_ignore(true) // respect .gitignore (BC-2.01.003)
         .ignore(true) // respect .ignore files (BC-2.01.003)
         .git_global(true) // respect global gitignore
@@ -118,7 +128,11 @@ pub fn is_dot_dir_name(name: &OsStr) -> bool {
 ///
 /// Applies the full traversal policy from [`build_walk`]:
 /// - `.gitignore`/`.ignore` exclusion (BC-2.01.003)
-/// - Dot-directory and dot-file skip (BC-2.01.004)
+/// - Dot-**directory** skip: unconditional, BC-anchored (BC-2.01.004, enforced by
+///   both `filter_entry` in [`build_walk`] and the post-filter backstop below)
+/// - Dot-**file** skip: best-effort via `hidden(true)`, NOT unconditional, NOT
+///   specified by any BC; subject to override by ignore-rule negation patterns;
+///   under operator adjudication (defer-and-disclose)
 /// - Dir-symlink non-following (BC-2.01.004, DI-009)
 /// - Case-sensitive `.md`-only extension filter via [`is_md_extension`] (BC-2.01.005)
 /// - Post-filter backstop: any path whose components (relative to `root`) contain a

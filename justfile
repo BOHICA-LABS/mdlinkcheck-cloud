@@ -73,7 +73,7 @@ build-release:
 # Gate order matters: fmt-check and lint must pass before test/build
 # so slow jobs don't run on obviously broken code.
 # ─────────────────────────────────────────────────────────────────
-ci: fmt-check lint test build-release spec-lint
+ci: fmt-check lint test build-release spec-lint purity
     @echo ""
     @echo "CI pipeline passed."
 
@@ -87,7 +87,7 @@ audit:
 # deny — cargo-deny license / ban / advisory check (hardening)
 # ─────────────────────────────────────────────────────────────────
 deny:
-    cargo deny check
+    cargo deny --locked check
 
 # ─────────────────────────────────────────────────────────────────
 # semgrep — static analysis with auto rules (hardening)
@@ -97,9 +97,15 @@ semgrep:
 
 # ─────────────────────────────────────────────────────────────────
 # mutants — mutation smoke run (hardening, ~10 min)
+#
+# --test-tool nextest: use the same test runner as every per-PR gate
+#   (cargo nextest), so a regression manifesting under one runner
+#   but not the other is not invisible for up to a week.
+# --cargo-arg=--locked: matches the --locked flag on all other gates
+#   so dependency resolution cannot silently re-resolve.
 # ─────────────────────────────────────────────────────────────────
 mutants:
-    cargo mutants --no-shuffle -j2 --timeout 30 -- --all-targets
+    cargo mutants --test-tool nextest --no-shuffle -j2 --timeout 30 --cargo-arg=--locked -- --all-targets
 
 # ─────────────────────────────────────────────────────────────────
 # fuzz-smoke — fuzz each target for 30 seconds (hardening, needs nightly)
@@ -129,14 +135,37 @@ kani:
         exit 0
     fi
     echo "Found ${harness_count} file(s) containing Kani proof harnesses — running cargo kani."
-    cargo kani
+    cargo kani --locked
 
 # ─────────────────────────────────────────────────────────────────
 # hardening — run all Phase-6 gates locally
+#
+# Distinguishes EXECUTED (had real inputs) from NO-OP (nothing to run)
+# so the aggregate line is truthful rather than asserting six checks
+# passed when two structurally had no inputs.
 # ─────────────────────────────────────────────────────────────────
 hardening: audit deny semgrep mutants fuzz-smoke kani
-    @echo ""
-    @echo "All hardening checks passed."
+    #!/usr/bin/env bash
+    set -euo pipefail
+    executed="audit deny semgrep mutants"
+    noop=""
+    if [ ! -d fuzz ]; then
+        noop="${noop} fuzz-smoke"
+    else
+        executed="${executed} fuzz-smoke"
+    fi
+    harness_files=$(grep -rl '#\[kani::proof\]' . --include='*.rs' 2>/dev/null | wc -l | tr -d ' ' || echo "0")
+    if [ "${harness_files}" -eq 0 ]; then
+        noop="${noop} kani"
+    else
+        executed="${executed} kani"
+    fi
+    echo ""
+    echo "Hardening complete."
+    echo "  EXECUTED: ${executed}"
+    if [ -n "${noop}" ]; then
+        echo "  NO-OP (no inputs):${noop}"
+    fi
 
 # ─────────────────────────────────────────────────────────────────
 # bench — R8 performance budget check
@@ -196,6 +225,41 @@ doc:
 # ─────────────────────────────────────────────────────────────────
 clean:
     cargo clean
+
+# ─────────────────────────────────────────────────────────────────
+# purity — ADR-001 boundary check: mdlinkcheck-core must not import I/O or RNG
+#
+# Scans crates/mdlinkcheck-core/src/ for forbidden import patterns.
+# Emits a runtime-computed coverage line and exits non-zero on any hit.
+# Not a branch-protection required check — run on every PR via ci.yml
+# as an erosion gate for the 7 downstream stories.
+# ─────────────────────────────────────────────────────────────────
+purity:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    CORE_SRC="crates/mdlinkcheck-core/src"
+    # ADR-001 forbidden import patterns for mdlinkcheck-core
+    PATTERNS=(
+        'use std::fs'
+        'use std::net'
+        'use std::io::stdout'
+        'use std::time::Instant'
+        'use rand'
+        'extern crate rand'
+    )
+    file_count=$(find "${CORE_SRC}" -name '*.rs' | wc -l | tr -d ' ')
+    violations=0
+    for pat in "${PATTERNS[@]}"; do
+        if grep -rn "${pat}" "${CORE_SRC}" --include='*.rs' 2>/dev/null; then
+            violations=$((violations + 1))
+        fi
+    done
+    echo "purity: ${file_count} file(s) in ${CORE_SRC} scanned, ${violations} forbidden-pattern(s) found"
+    if [ "${violations}" -gt 0 ]; then
+        echo "FAIL: ADR-001 purity boundary violated in mdlinkcheck-core — remove the imports above"
+        exit 1
+    fi
+    echo "PASS: mdlinkcheck-core is free of forbidden I/O and RNG imports (ADR-001)"
 
 # ─────────────────────────────────────────────────────────────────
 # spec-lint — run all spec integrity validators (no Cargo required)

@@ -99,7 +99,7 @@ jobs:
 
       - name: Run deny check
         if: steps.guard.outputs.skip != 'true'
-        run: cargo deny check
+        run: cargo deny --locked check
 
   # ─────────────────────────────────────────────────────────────────
   # Job 3: Semgrep static analysis
@@ -162,7 +162,7 @@ jobs:
         if: steps.guard.outputs.skip != 'true'
         uses: Swatinem/rust-cache@82a92a6e8fbeee089604da2575dc567ae9ddeaab # v2.7.5
 
-      - name: Install cargo-nextest (needed by mutants runner)
+      - name: Install cargo-nextest (used by mutants runner via --test-tool nextest)
         if: steps.guard.outputs.skip != 'true'
         run: cargo install cargo-nextest --locked --version 0.9.98
 
@@ -172,12 +172,17 @@ jobs:
 
       - name: Run mutation smoke test
         if: steps.guard.outputs.skip != 'true'
+        # --test-tool nextest: use the same runner as every per-PR gate so a
+        #   regression manifesting under one runner but not the other is not
+        #   invisible for up to a week.
         # --no-shuffle: deterministic ordering for reproducible reports
         # -j2: parallelize 2 mutant builds (keeps time budget under 60 min)
         # --timeout 30: per-mutant timeout so slow mutants don't blow budget
+        # --cargo-arg=--locked: prevent silent dependency re-resolution
         run: |
           set -euo pipefail
-          cargo mutants --no-shuffle -j2 --timeout 30 \
+          cargo mutants --test-tool nextest --no-shuffle -j2 --timeout 30 \
+            --cargo-arg=--locked \
             -- --all-targets 2>&1 | tee mutants-report.txt
           exit ${PIPESTATUS[0]}
 
@@ -280,4 +285,4 @@ jobs:
             echo "No Kani proof harnesses found — skipping."
             exit 0
           fi
-          cargo kani
+          cargo kani --locked
