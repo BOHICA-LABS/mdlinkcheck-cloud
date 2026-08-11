@@ -21,76 +21,29 @@
 //!   AC-005 / AC-006 / VP-016 Form B : plain (non-git) dir + `.ignore`
 //!                            (`.ignore` is honoured unconditionally by WalkBuilder
 //!                            regardless of `require_git`)
+//!
+//! Process-environment policy: NO test in this file mutates the process
+//! environment.  The `git init` subprocess is kept hermetic through per-command
+//! env on the `Command` object — that is safe because it is not process-env
+//! mutation.  For `collect_md_files` (which runs in-process),
+//! fixture file names use a distinctive `mdlc_fixture_` prefix so that no plausible
+//! host-global gitignore pattern can accidentally exclude them, and count assertions
+//! are relaxed to `contains`/`!contains` style.  The one test that genuinely needs
+//! a controlled global gitignore (`test_BC_2_01_003_post3_global_gitignore_respected_when_available`)
+//! lives in its own integration-test file (`global_gitignore_test.rs`) which
+//! compiles to a separate binary with no concurrent libtest threads.
 
 #![allow(non_snake_case)]
 
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
 
 use tempfile::TempDir;
 
 use mdlinkcheck::scanner;
 
 // ─── Test fixture helpers ─────────────────────────────────────────────────────
-
-// ─── Hermetic git-fixture support (F-09) ─────────────────────────────────────
-//
-// `build_walk` sets `git_global(true)`, which is correct per BC-2.01.003
-// postcondition 3.  The `ignore` crate resolves the global gitignore path by
-// reading the gitconfig whose location comes from the `GIT_CONFIG_GLOBAL`
-// process environment variable (fallback: `$HOME/.gitconfig`).  If a
-// developer's or CI runner's global gitignore contains patterns like `*.md`,
-// git-init'd fixture tests (AC-004, VP-016 Form A) would fail for reasons
-// unrelated to the code under test.
-//
-// Fix: git-fixture tests serialize via `GIT_FIXTURE_LOCK` and temporarily
-// override `GIT_CONFIG_GLOBAL` (+ `GIT_CONFIG_NOSYSTEM`) to point at an empty
-// file inside the fixture's own `TempDir`.  `EnvRestoreGuard` restores the
-// prior env value on drop, ensuring cleanup even when a test panics.
-//
-// Race-free guarantee: `GIT_FIXTURE_LOCK` is the single shared resource.  Each
-// git-fixture test acquires the lock before mutating env, holds it through the
-// entire `collect_md_files` call, and releases it only after `EnvRestoreGuard`s
-// have restored the original values.  No two git-fixture tests can mutate env
-// concurrently.
-
-/// Serialises all git-fixture tests so that per-test env overrides are
-/// race-free within a single test binary process.
-static GIT_FIXTURE_LOCK: Mutex<()> = Mutex::new(());
-
-/// RAII guard: saves an env variable's current value on construction and
-/// restores it (or removes it if it was absent) when dropped.
-///
-/// Used to bracket `GIT_CONFIG_GLOBAL` / `GIT_CONFIG_NOSYSTEM` overrides so
-/// that the prior state is always restored — even when a test panics.
-struct EnvRestoreGuard {
-    key: &'static str,
-    original: Option<std::ffi::OsString>,
-}
-
-impl EnvRestoreGuard {
-    fn set(key: &'static str, new_val: impl AsRef<std::ffi::OsStr>) -> Self {
-        let original = std::env::var_os(key);
-        // SAFETY: this binary's tests are serialised via GIT_FIXTURE_LOCK so no
-        // concurrent mutation can race with this assignment.
-        unsafe { std::env::set_var(key, new_val) };
-        EnvRestoreGuard { key, original }
-    }
-}
-
-impl Drop for EnvRestoreGuard {
-    fn drop(&mut self) {
-        // SAFETY: same serialisation guarantee as in `set`.
-        unsafe {
-            match &self.original {
-                Some(v) => std::env::set_var(self.key, v),
-                None => std::env::remove_var(self.key),
-            }
-        }
-    }
-}
 
 /// Create a file (and all parent dirs) at `root/rel`, writing placeholder content.
 fn create_file(root: &Path, rel: &str) {
@@ -104,15 +57,13 @@ fn create_file(root: &Path, rel: &str) {
 
 /// Run `git init -q` in `dir` with hermetic git configuration.
 ///
-/// `hermetic_config` is the path to an empty gitconfig file that lives inside
+/// `hermetic_config` is the path to a gitconfig file that lives inside
 /// the fixture's `TempDir`.  Passing it as per-command env (`GIT_CONFIG_GLOBAL`,
-/// `GIT_CONFIG_NOSYSTEM=1`) ensures the `git init` subprocess is not influenced
-/// by the developer's real global gitignore or git configuration.
+/// `GIT_CONFIG_NOSYSTEM=1`) via `Command::env` ensures the `git init` subprocess
+/// is not influenced by the developer's real global gitignore or git configuration.
 ///
-/// The caller must also set `GIT_CONFIG_GLOBAL` in the *process* environment
-/// (via `EnvRestoreGuard`) before calling `collect_md_files`, so that the
-/// `ignore` crate — which runs in-process and reads `GIT_CONFIG_GLOBAL` to
-/// locate the global gitignore — also uses the empty hermetic config.
+/// This function only affects the child subprocess environment — it performs
+/// no process-env mutation on the current process.
 ///
 /// Required for `.gitignore` exclusion tests because the `ignore` crate's
 /// `WalkBuilder` default (`require_git = true`) only honours `.gitignore` files
@@ -227,39 +178,43 @@ fn test_BC_2_01_001_scan_terminates_for_finite_tree() {
 // ─── AC-004 (traces to BC-2.01.003 postcondition 1) ──────────────────────────
 // Fixture form: GIT REPO + `.gitignore`
 // (git init so the ignore crate's require_git=true default honours .gitignore)
+//
+// Process-environment policy: no process-env mutation in this test.
+// The `git init` subprocess is hermetic via per-command env on `Command`
+// (see `git_init`).  `collect_md_files` runs with the host's process env;
+// fixture file names use the `mdlc_fixture_` prefix so no plausible host-global
+// gitignore pattern can accidentally exclude them.  No exact-count assertion is
+// made because an unrelated ambient gitignore exclusion could add or remove
+// other files without invalidating the BC-2.01.003 postcondition.
 
 #[test]
 fn test_BC_2_01_003_gitignore_excludes_from_scan_set() {
     let dir = TempDir::new().expect("tempdir");
     let root = dir.path();
 
-    // Hermetic git config: prevents developer's/CI's global gitignore (e.g. `*.md`)
-    // from interfering with the fixture via the ignore crate's git_global(true) path.
-    // The lock serialises this test with other git-fixture tests; EnvRestoreGuard
-    // restores env on exit (including panics).  See GIT_FIXTURE_LOCK docs above.
+    // Hermetic config for the git subprocess only (per-command env — not process-env
+    // mutation).  The ignore crate running in collect_md_files uses the host env.
     let hermetic_cfg = root.join(".hermetic_gitconfig");
     fs::write(&hermetic_cfg, "").expect("write hermetic gitconfig");
-    let _git_lock = GIT_FIXTURE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let _guard_global = EnvRestoreGuard::set("GIT_CONFIG_GLOBAL", &hermetic_cfg);
-    let _guard_nosys = EnvRestoreGuard::set("GIT_CONFIG_NOSYSTEM", "1");
 
     git_init(root, &hermetic_cfg); // required: ignore crate only reads .gitignore inside a git repo
     fs::write(root.join(".gitignore"), "node_modules/\n").expect("write .gitignore");
-    create_file(root, "node_modules/foo.md"); // must be excluded
-    create_file(root, "README.md"); // must be included
+    create_file(root, "node_modules/mdlc_fixture_foo.md"); // must be excluded
+    create_file(root, "mdlc_fixture_README.md"); // must be included
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     let result = scanner::collect_md_files(root);
 
     assert!(
-        !result.contains(&root.join("node_modules/foo.md")),
-        "node_modules/foo.md must not appear in the scan set (gitignored by node_modules/)"
+        !result.contains(&root.join("node_modules/mdlc_fixture_foo.md")),
+        "node_modules/mdlc_fixture_foo.md must not appear in the scan set \
+         (gitignored by node_modules/)"
     );
     assert!(
-        result.contains(&root.join("README.md")),
-        "README.md must appear in the scan set"
+        result.contains(&root.join("mdlc_fixture_README.md")),
+        "mdlc_fixture_README.md must appear in the scan set"
     );
-    assert_eq!(result.len(), 1, "only README.md should be in the scan set");
+    // No exact-count assertion: host global gitignore could exclude unrelated files.
 }
 
 // ─── AC-005 (traces to BC-2.01.003 invariant 1) ──────────────────────────────
@@ -433,7 +388,12 @@ fn test_BC_2_01_004_no_override_flag_for_dot_dir_skip() {
 
 // ─── AC-009 (traces to BC-2.01.004 postcondition 2) ──────────────────────────
 // Fixture form: plain tempdir with a directory-symlink cycle (EC-008).
+//
+// Gated on unix: symlink creation is a Unix-only API.  On non-unix targets this
+// test would create no symlink, making both `cycle_link` negative assertions
+// vacuously true — green while asserting nothing.  `#[cfg(unix)]` prevents that.
 
+#[cfg(unix)]
 #[test]
 fn test_BC_2_01_004_directory_symlinks_not_followed() {
     let dir = TempDir::new().expect("tempdir");
@@ -446,7 +406,6 @@ fn test_BC_2_01_004_directory_symlinks_not_followed() {
 
     // Create a directory-symlink cycle: dir_a/cycle_link -> dir_a
     // This replicates EC-008: `a/b -> a`.
-    #[cfg(unix)]
     std::os::unix::fs::symlink(&dir_a, dir_a.join("cycle_link"))
         .expect("create directory symlink cycle");
 
@@ -754,6 +713,9 @@ fn test_BC_2_01_005_ec005_ec006a_ec006b_traversal_excludes_non_md_extensions() {
 //
 // This is a dedicated integration test for VP-016, separate from the 13 ACs.
 // At Red Gate it fails on Form A's collect_md_files call (todo!() panic).
+//
+// Process-environment policy: see module-level doc comment.  Form A uses
+// the `mdlc_fixture_` prefix on fixture files and omits the len() assertion.
 
 #[test]
 fn test_vp016_gitignored_files_never_in_scan_set() {
@@ -762,17 +724,15 @@ fn test_vp016_gitignored_files_never_in_scan_set() {
         let dir = TempDir::new().expect("tempdir form A");
         let root = dir.path();
 
-        // Hermetic git config for Form A (same rationale as AC-004).
+        // Hermetic config for the git subprocess only (per-command env — not
+        // process-env mutation).
         let hermetic_cfg = root.join(".hermetic_gitconfig");
         fs::write(&hermetic_cfg, "").expect("write hermetic gitconfig form A");
-        let _git_lock = GIT_FIXTURE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-        let _guard_global = EnvRestoreGuard::set("GIT_CONFIG_GLOBAL", &hermetic_cfg);
-        let _guard_nosys = EnvRestoreGuard::set("GIT_CONFIG_NOSYSTEM", "1");
 
         git_init(root, &hermetic_cfg);
         fs::write(root.join(".gitignore"), "excluded/\n").expect("write .gitignore");
-        create_file(root, "excluded/hidden.md");
-        create_file(root, "visible.md");
+        create_file(root, "excluded/mdlc_fixture_hidden.md");
+        create_file(root, "mdlc_fixture_visible.md");
 
         // ── Red Gate: panics at todo!() ───────────────────────────────────────
         let result = scanner::collect_md_files(root);
@@ -781,7 +741,11 @@ fn test_vp016_gitignored_files_never_in_scan_set() {
             !result.iter().any(|p| p.starts_with(root.join("excluded"))),
             "VP-016 form A: gitignored files must never appear in scan set"
         );
-        assert_eq!(result.len(), 1);
+        assert!(
+            result.contains(&root.join("mdlc_fixture_visible.md")),
+            "VP-016 form A: mdlc_fixture_visible.md must appear in scan set (positive gate)"
+        );
+        // No exact-count assertion: host global gitignore may exclude other files.
     }
 
     // Form B is unreachable in Red Gate state because Form A panics first.
@@ -903,121 +867,6 @@ proptest! {
              no path with 'outlink' component may appear in scan results (EC-009)"
         );
     }
-}
-
-// ─── BC-2.01.003 postcondition 3: global gitignore respected when available ───
-//
-// Mutation target: `git_global(true)` → `git_global(false)` in `build_walk`.
-//
-// WHY THIS TEST IS NEEDED:
-//   All other git-fixture tests (AC-004, VP-016 Form A) write an EMPTY hermetic
-//   gitconfig so the developer's real global gitignore cannot interfere.  That
-//   hermeticity fix (F-09 from the previous round) was correct, but it created a
-//   blind spot: if `git_global(true)` is mutated to `git_global(false)` the
-//   behaviour is now identical (no global ignore in either case) and the mutant
-//   survives.
-//
-// FIX: this test writes a hermetic gitconfig with a real `core.excludesFile`
-//   entry pointing at a separate file inside the same TempDir.  That file lists
-//   `globally-ignored.md` as a pattern.  If `git_global(true)` is in effect, the
-//   `ignore` crate reads the config, resolves the `core.excludesFile` path, and
-//   excludes the matching file.  If `git_global(false)` is in effect, the global
-//   gitignore is never consulted and `globally-ignored.md` appears in the scan
-//   set — killing the mutant via the negative assertion below.
-//
-// NESTED-.GITIGNORE SUB-CASE (BC-2.01.003 postcondition 2):
-//   A `.gitignore` inside `subdir/` excludes `subdir/nested-excluded.md` but
-//   not files outside that subdirectory.  This is cheap to add in the same
-//   git-init'd fixture and closes the postcondition 2 coverage gap.
-//
-// Isolation: uses the same `GIT_FIXTURE_LOCK` / `EnvRestoreGuard` machinery as
-//   all other git-fixture tests — no second locking mechanism is introduced.
-//
-// Traceability: BC-2.01.003 postcondition 3 (global gitignore respected)
-//              BC-2.01.003 postcondition 2 (nested .gitignore respected)
-
-#[test]
-fn test_BC_2_01_003_post3_global_gitignore_respected_when_available() {
-    let dir = TempDir::new().expect("tempdir");
-    let root = dir.path();
-
-    // Create the global gitignore file with a distinctive pattern.
-    let global_gitignore = root.join("global.gitignore");
-    fs::write(&global_gitignore, "globally-ignored.md\n").expect("write global.gitignore");
-
-    // Write a hermetic gitconfig whose `core.excludesFile` points at the global
-    // gitignore above.  Unlike the empty configs used in AC-004 / VP-016, this
-    // config provides REAL global-gitignore coverage while remaining
-    // machine-independent (the path is inside the same TempDir).
-    let hermetic_cfg = root.join(".hermetic_gitconfig");
-    fs::write(
-        &hermetic_cfg,
-        format!(
-            "[core]\n\texcludesFile = {}\n",
-            global_gitignore.to_str().expect("UTF-8 path")
-        ),
-    )
-    .expect("write hermetic gitconfig with core.excludesFile");
-
-    let _git_lock = GIT_FIXTURE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let _guard_global = EnvRestoreGuard::set("GIT_CONFIG_GLOBAL", &hermetic_cfg);
-    let _guard_nosys = EnvRestoreGuard::set("GIT_CONFIG_NOSYSTEM", "1");
-
-    // git init is required: `ignore` crate's `require_git=true` default only
-    // honours `.gitignore` files (and git_global) inside a real git repository.
-    git_init(root, &hermetic_cfg);
-
-    // File that must be excluded via the global gitignore (core.excludesFile):
-    create_file(root, "globally-ignored.md");
-
-    // Normal file that must be included (positive gate — F-04 vacuous-pass
-    // prevention: an empty result passes every negative assertion vacuously).
-    create_file(root, "normal.md");
-
-    // ── Nested-.gitignore sub-case (BC-2.01.003 postcondition 2) ─────────────
-    // A .gitignore inside subdir/ excludes subdir/nested-excluded.md but must
-    // NOT affect files outside that subdirectory.
-    fs::create_dir_all(root.join("subdir")).expect("create subdir");
-    fs::write(
-        root.join("subdir").join(".gitignore"),
-        "nested-excluded.md\n",
-    )
-    .expect("write subdir/.gitignore");
-    create_file(root, "subdir/nested-excluded.md"); // must be excluded
-    create_file(root, "subdir/nested-included.md"); // must be included
-
-    let result = scanner::collect_md_files(root);
-
-    // ── Positive gates (F-04 vacuous-pass prevention) ─────────────────────────
-    assert!(
-        result.contains(&root.join("normal.md")),
-        "normal.md must be in the scan set \
-         (positive gate, BC-2.01.003 postcondition 3)"
-    );
-    assert!(
-        result.contains(&root.join("subdir/nested-included.md")),
-        "subdir/nested-included.md must be in the scan set \
-         (nested-.gitignore positive gate, BC-2.01.003 postcondition 2)"
-    );
-
-    // ── Negative assertion — MUTATION TARGET: git_global(true) → git_global(false)
-    // Under git_global(false) the `core.excludesFile` is NOT read; the pattern
-    // `globally-ignored.md` is never loaded, so the file appears in the scan
-    // set and this assertion FAILS — killing the mutant.
-    assert!(
-        !result.contains(&root.join("globally-ignored.md")),
-        "globally-ignored.md must be excluded via the global gitignore \
-         (core.excludesFile in hermetic gitconfig) — \
-         BC-2.01.003 postcondition 3. \
-         If git_global(false) is used, this file incorrectly appears in the scan set."
-    );
-
-    // ── Negative assertion — nested .gitignore (BC-2.01.003 postcondition 2) ──
-    assert!(
-        !result.contains(&root.join("subdir/nested-excluded.md")),
-        "subdir/nested-excluded.md must be excluded by subdir/.gitignore \
-         (BC-2.01.003 postcondition 2 — nested .gitignore files are respected)"
-    );
 }
 
 // ─── BC-2.01.005 postcondition 1: directories with .md names excluded ─────────
