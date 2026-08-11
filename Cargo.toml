@@ -1,0 +1,6 @@
+[workspace]
+members = ["crates/mdlinkcheck-core", "crates/mdlinkcheck"]
+resolver = "2"
+
+[workspace.metadata]
+msrv = "1.85"
