@@ -3990,11 +3990,11 @@ Story S-1.01 is implemented, green, and for the first time MERGEABLE-BY-CI. Feat
 | `.worktrees/S-1.01/` | `f24ad3e` | branch `feature/S-1.01-workspace-scaffold-and-core-discovery`; tree CLEAN; PUSHED, tracking `origin/feature/S-1.01-workspace-scaffold-and-core-discovery` |
 | Open PRs | none | `gh pr list` empty — no PR ever opened for S-1.01 |
 
-20 commits total on `feature/S-1.01-workspace-scaffold-and-core-discovery`. Factory-artifacts updated by this wrap commit.
+21 commits total on `feature/S-1.01-workspace-scaffold-and-core-discovery`. Factory-artifacts updated by this wrap commit.
 
-### DELIVERY LEDGER — 20 commits in order
+### DELIVERY LEDGER — 21 commits in order
 
-Commits 1–14 as in D-252 (`ba83b1b`..`7bea0b2`). Six further commits this session (`7bea0b2..f24ad3e`, per orchestrator; +550/−132 across 12 files in the first five):
+Commits 1–14 as in D-252 (`ba83b1b`..`7bea0b2`). Seven further commits this session (`7bea0b2..f24ad3e`; +550/−132 across 12 files in the first five):
 
 | # | SHA | Description |
 |---|-----|-------------|
