@@ -26,10 +26,12 @@ use std::path::{Path, PathBuf};
 /// via `hidden(true)` and cannot be overridden by any caller-visible flag.
 ///
 /// # Gitignore vs .ignore
-/// `.gitignore` files are honoured only inside a real git repository
-/// (`require_git` defaults to `true`). `.ignore` files are always honoured
-/// regardless of git status. Tests that exercise `.gitignore` exclusion
-/// (AC-004, VP-016 Form A) call `git init` in the fixture tempdir.
+/// `.gitignore` files are honoured in ALL directories regardless of whether a
+/// real git repository is present (`require_git(false)`). `.ignore` files are
+/// likewise always honoured. This satisfies BC-2.01.003 postcondition 1
+/// ("every file matching a pattern in **any applicable** `.gitignore` or
+/// `.ignore` file is excluded") and EC-002 ("`node_modules/` in `.gitignore`
+/// → excluded, no performance blowout") which impose no git-repo requirement.
 pub fn build_walk(root: &Path) -> ignore::WalkBuilder {
     let mut builder = ignore::WalkBuilder::new(root);
     builder
@@ -38,7 +40,8 @@ pub fn build_walk(root: &Path) -> ignore::WalkBuilder {
         .git_ignore(true) // respect .gitignore (BC-2.01.003)
         .ignore(true) // respect .ignore files (BC-2.01.003)
         .git_global(true) // respect global gitignore
-        .git_exclude(true); // respect .git/info/exclude
+        .git_exclude(true) // respect .git/info/exclude
+        .require_git(false); // honour .gitignore outside git repos (BC-2.01.003 post1, EC-002)
     builder
 }
 
