@@ -7,6 +7,29 @@
 //! This module MUST NOT import `std::fs`, `std::net`, `std::io::stdout`,
 //! `std::time::Instant`, or any RNG. All filesystem I/O belongs in
 //! `mdlinkcheck/src/scanner.rs`.
+//!
+//! # Type Count: Story S-1.01 vs. `api-surface.md`
+//!
+//! Story S-1.01 (Task 6 and File Structure Requirements) names **eight** shared
+//! types that must be defined here:
+//! `Link`, `ExtractedLink`, `Finding`, `Verdict`, `AnchorTable`, `DirIndex`,
+//! `DirEntryInfo`, and `EntryKind`.
+//!
+//! This file defines **seven** of those eight. The eighth type — `Link` — is
+//! deliberately absent. The frozen `api-surface.md` §Key Shared Types defines no
+//! `Link` type; it defines `ExtractedLink` as the canonical link-representation type,
+//! and all downstream consumers (story specs, behavioral contracts) use `ExtractedLink`
+//! throughout. Adding a `Link` type here would follow the story's eight-type list but
+//! contradict `api-surface.md`, which takes precedence as the frozen architecture
+//! authority. The story-vs-`api-surface.md` contradiction has not been adjudicated by
+//! the operator and is left unresolved. A future operator decision should either add
+//! `Link` here and update `api-surface.md`, or formally remove `Link` from the story's
+//! type list to align the two documents.
+//!
+//! In addition to the seven story-named types, this file defines two further types
+//! required for compilation: `FailureReason` (referenced by `Verdict` and `Finding`)
+//! and `LinkKind` (referenced by `ExtractedLink`). Those two are not among the eight
+//! types the story names.
 
 use std::collections::{HashMap, HashSet};
 use std::ffi::OsString;
@@ -36,8 +59,9 @@ pub enum Verdict {
 /// Concrete variants (e.g., `AnchorNotFound`, `FileNotFound`, `MalformedUrl`) are
 /// added by the implementer in the story that implements `verdict.rs` / `reporter.rs`.
 ///
-/// Added beyond the 7 named types because both `Verdict` and `Finding` reference it
-/// directly and the file would not compile without it.
+/// Added beyond the 8 story-named types (see module-level doc for the full accounting)
+/// because both `Verdict` and `Finding` reference it directly and the file would not
+/// compile without it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FailureReason {
     // TODO(implementer): add concrete variants per behavioral contracts
@@ -73,8 +97,9 @@ pub struct Finding {
 /// Concrete variants (e.g., `RelativePath`, `AbsolutePath`, `Http`, `MailTo`) are
 /// added by the implementer in the story that implements `link_extractor.rs`.
 ///
-/// Added beyond the 7 named types because `ExtractedLink.kind` references it
-/// directly and the file would not compile without it.
+/// Added beyond the 8 story-named types (see module-level doc for the full accounting)
+/// because `ExtractedLink.kind` references it directly and the file would not compile
+/// without it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LinkKind {
     // TODO(implementer): add concrete variants per behavioral contracts
