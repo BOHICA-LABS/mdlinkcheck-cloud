@@ -3,8 +3,15 @@
 # Provides local equivalents for CI jobs.  `just ci` runs the blocking gates
 # (fmt-check, lint, test, build-release, purity) plus spec-lint in advisory mode.
 # With no remote, `just ci` IS the canonical gate for blocking checks.
-# Not covered by `just ci` (separate recipes exist): msrv-check, vef-selftest,
-# verify-evidence-figures.  ci.yml has 9 jobs; `just ci` covers the 5 blocking ones.
+# Not covered by `just ci`: msrv-check, vef-selftest, verify-evidence-figures.
+#   msrv-check          — IS a recipe here (`just msrv-check`).
+#   vef-selftest        — NOT a recipe; run `python3 scripts/tests/test-vef.py`.
+#   verify-evidence-figures — NOT a recipe; run `python3 scripts/verify-evidence-figures.py`.
+#   (The prior wording "(separate recipes exist)" was false for the latter two.)
+# ci.yml has 9 jobs.  `just ci` runs 5 of them as hard prerequisites, but only
+# FOUR are branch-protection-required: Format check, Clippy (deny warnings),
+# Test (macos-latest), Build release (macos-latest).  `purity` is blocking inside
+# `just ci` yet is deliberately NOT a required CI status check (operator-gated).
 #
 # Usage:
 #   just <recipe>       run a single recipe
@@ -54,9 +61,11 @@ lint:
 # ─────────────────────────────────────────────────────────────────
 # test — run full test suite with nextest (matches CI test job)
 #
-# Cross-platform correctness (D-006): path case-sensitivity and NFC
-# normalization must be verified on macOS (case-insensitive) and
-# Linux (case-sensitive).  Run on Windows via WSL or native.
+# Platform scope: D-043 (2026-08-06) retired the prior D-006 three-platform
+# matrix (ubuntu/macos/windows); the product targets macOS exclusively and CI
+# tests macos-latest only.  Do NOT reinstate a multi-platform obligation here
+# without a new operator ruling — this comment previously cited D-006 as if the
+# matrix were still live.
 # ─────────────────────────────────────────────────────────────────
 test:
     #!/usr/bin/env bash
@@ -76,6 +85,12 @@ test:
     # nextest output formats.
     # Raise POL11_TEST_FLOOR / POL11_BIN_FLOOR when new tests or binaries are added.
     # Verified baseline: 44 tests across 6 binaries (2026-08-11).
+    # PLATFORM-DEPENDENT: 44 is the count on unix. Three tests are #[cfg(unix)]
+    # gated (scanner_discovery_tests.rs:472, :526, :1411 — symlink and non-UTF-8
+    # cases), so a non-unix target compiles 41 and this floor reports
+    # "POL-11 FAIL: test count 41 is below floor 44" with the misleading
+    # "a test binary may have silently dropped out" diagnostic. Fails CLOSED, and
+    # CI is macos-latest only per D-043, so no gate is compromised.
     # COUPLING: POL11_TEST_FLOOR and POL11_BIN_FLOOR are defined here and also in the
     # POL-11 step of the `test` job in .github/workflows/ci.yml — both files must
     # be updated together when tests or binaries are added.
@@ -188,7 +203,15 @@ fuzz-smoke:
         echo "No fuzz/ directory found — nothing to do."
         exit 0
     fi
-    for target in $(cargo +nightly fuzz list 2>/dev/null); do
+    # Capture the target list FIRST rather than putting the command substitution
+    # in the for-loop word list. A substitution in the word list is NOT covered by
+    # `set -e`: a failing `cargo fuzz list` (no nightly, cargo-fuzz absent, broken
+    # fuzz/Cargo.toml) would yield an empty list, zero iterations, and exit 0 with
+    # no diagnostic — while `just hardening` still reports fuzz-smoke as EXECUTED.
+    # This matches the form the hardening.yml "Smoke run all fuzz targets" step
+    # already uses and documents. Same false-green class as the kani `0\n0` bug.
+    targets="$(cargo +nightly fuzz list)"
+    for target in ${targets}; do
         echo "Fuzzing ${target} for 30s..."
         # No --locked here, and that is CORRECT — unlike `cargo install`,
         # `cargo fuzz run` does not accept the flag.  Probed 2026-08-11:
@@ -323,120 +346,16 @@ clean:
 purity:
     #!/usr/bin/env bash
     set -euo pipefail
-    CORE_SRC="crates/mdlinkcheck-core/src"
-    # ADR-001 forbidden-path detector (broadened from original six-pattern form).
+    # Delegates to scripts/purity-check.sh — the SINGLE implementation, shared
+    # with the `purity` job in .github/workflows/ci.yml.
     #
-    # Detects ALL of: direct imports, grouped imports, and fully-qualified calls.
-    #   Direct:       "use std::fs;"            → matches "std::fs"
-    #   Grouped:      "use std::{fs, path};"    → matches "std::\{[^}]*\bfs\b"
-    #   Fully-qual:   "std::fs::read_to_string" → matches "std::fs"
-    #
-    # The previous form required "use " prefix — "use std::{fs, path::PathBuf};"
-    # plus fs::metadata() bypassed it silently (orchestrator-verified bypass).
-    # Discrimination verified: grouped form, fully-qualified form, and clean tree
-    # all produce the correct gate result (report in finding P15-F2).
-    #
-    # BI-081 fix (L-87 recurrence): the grouped-import arms were ASYMMETRIC.
-    # "std::\{[^}]*\b<name>\b" existed for fs and net only; stdout and Instant
-    # had only the narrower "std::io::\{" / "std::time::\{" forms, which require
-    # the brace to open AFTER the submodule.  Four bypasses were confirmed by
-    # execution at 9badc02 (each yielded exit 0 with a PASS line):
-    #   use std::{io::stdout, fmt::Debug}; stdout()
-    #   use std::io::{self, Write}; io::stdout()
-    #   use std::{time::Instant}; Instant::now()
-    #   use std::time::{self}; time::Instant::now()
-    # Four arms are added below: the symmetric "std::\{" grouped forms for
-    # stdout/Instant, plus bare "io::stdout" / "time::Instant" to catch the
-    # submodule-via-self shape.  Any occurrence of those two fragments in a
-    # PURE crate is forbidden regardless of prefix, so the broadening is safe.
-    #
-    # COUPLING: this pattern is duplicated in the `purity` job of
-    # .github/workflows/ci.yml — both must be edited together.
-    #
-    # Comment-only lines (// and //!) are excluded — they describe the rule
-    # without being executable (types.rs:7-8 is one such doc-comment).
-    FORBIDDEN_RE='(std::fs|std::\{[^}]*\bfs\b|std::net|std::\{[^}]*\bnet\b|std::io::stdout|std::io::\{[^}]*\bstdout\b|std::\{[^}]*\bstdout\b|\bio::stdout\b|std::time::Instant|std::time::\{[^}]*\bInstant\b|std::\{[^}]*\bInstant\b|\btime::Instant\b|\buse rand\b|rand::|extern crate rand)'
-
-    # ── Self-check (L-87 remedy, generalized per BI-081) ──────────────────────
-    # Plant each evasion shape SEPARATELY and assert each fires INDIVIDUALLY.
-    # Asserting only an aggregate plant is what produced BI-081: the prior
-    # self-check planted the `fs` grouped form alone and generalized to
-    # stdout/Instant, which were in fact blind.  One blind arm must not be
-    # able to hide behind a sibling arm that fires.
-    SELFTEST=$(mktemp /tmp/purity-selftest-XXXXX.rs)
-    trap 'rm -f "${SELFTEST}"' EXIT
-    PLANTS=(
-        'fn _p1() { use std::{fs as _f, path::PathBuf}; let _ = std::fs::read_to_string("x"); }'
-        'fn _p2() { use std::fs; let _ = fs::metadata("x"); }'
-        'fn _p3() { use std::{net::TcpStream}; let _: Option<TcpStream> = None; }'
-        'fn _p4() { use std::{io::stdout, fmt::Debug}; let _ = stdout(); }'
-        'fn _p5() { use std::io::{self, Write}; let _ = io::stdout(); }'
-        'fn _p6() { use std::{io::{self, stdout}}; let _ = stdout(); }'
-        'fn _p7() { use std::{time::Instant}; let _ = Instant::now(); }'
-        'fn _p8() { use std::time::{self}; let _ = time::Instant::now(); }'
-        'fn _p9() { let _ = rand::random::<u8>(); }'
-    )
-    for plant in "${PLANTS[@]}"; do
-        printf '%s\n' "${plant}" > "${SELFTEST}"
-        if ! grep -qE "${FORBIDDEN_RE}" "${SELFTEST}" 2>/dev/null; then
-            echo "PURITY SELF-CHECK FAILED: detector blind to this evasion shape:"
-            echo "    ${plant}"
-            echo "  Gate infrastructure is broken — this is NOT a clean-tree result."
-            exit 1
-        fi
-    done
-    # Negative controls: a detector that matched everything would also produce
-    # a green self-check above while making the clean-tree PASS meaningless.
-    CLEAN=(
-        'fn _n1() { use std::collections::BTreeMap; let _: BTreeMap<u8,u8> = BTreeMap::new(); }'
-        'fn _n2() { use std::{fmt::Debug, cmp::Ordering}; let _ = Ordering::Equal; }'
-        'fn _n3() { use std::time::Duration; let _ = Duration::from_secs(1); }'
-        'fn _n4() { use std::path::Path; let _ = Path::new("x"); }'
-    )
-    for clean in "${CLEAN[@]}"; do
-        printf '%s\n' "${clean}" > "${SELFTEST}"
-        if grep -qE "${FORBIDDEN_RE}" "${SELFTEST}" 2>/dev/null; then
-            echo "PURITY SELF-CHECK FAILED: detector matches a CLEAN line (false positive):"
-            echo "    ${clean}"
-            echo "  A detector that matches everything makes the PASS below meaningless."
-            exit 1
-        fi
-    done
-    echo "purity self-check: PASS (${#PLANTS[@]} distinct evasion shapes each detected individually; ${#CLEAN[@]} clean lines each not matched)"
-    rm -f "${SELFTEST}"
-    trap - EXIT
-
-    # ── Fail closed ──────────────────────────────────────────────────────────
-    # An empty source directory means the gate is scanning nothing.
-    file_count=$(find "${CORE_SRC}" -name '*.rs' 2>/dev/null | wc -l | tr -d ' ')
-    if [ "${file_count}" -eq 0 ]; then
-        echo "FAIL: ${CORE_SRC} contains no .rs files — gate is scanning nothing (fail-closed per POL-11)"
-        exit 1
-    fi
-
-    # ── Scan for forbidden patterns, excluding comment-only lines ─────────────
-    violation_output=$(grep -rn -E "${FORBIDDEN_RE}" "${CORE_SRC}" --include='*.rs' 2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//' || true)
-    violations=$(echo "${violation_output}" | { grep -c . || true; })
-
-    echo "purity: ${file_count} file(s) in ${CORE_SRC} scanned, ${violations} forbidden-path match(es) found"
-    echo "  Forbidden paths: std::fs, std::net, std::io::stdout, std::time::Instant, RNG (rand)."
-    if [ "${violations}" -gt 0 ]; then
-        echo "${violation_output}"
-        echo "FAIL: ADR-001 purity boundary violated in mdlinkcheck-core."
-        echo "  Remove or move I/O and RNG code to the effectful crate (mdlinkcheck)."
-        exit 1
-    fi
-    echo "PASS: ${file_count} .rs file(s) checked; no forbidden I/O or RNG path-fragments found (ADR-001)."
-    # Scope statement, deliberately specific.  The prior wording — "both
-    # non-grouped and grouped import forms were checked" — was TRUE of fs/net
-    # and FALSE of stdout/Instant (BI-081); it must never again assert coverage
-    # broader than the pattern set actually provides.
-    echo "  COVERED for all four forbidden std paths: non-grouped imports,"
-    echo "    grouped imports (brace after std:: or after the submodule, incl. nested),"
-    echo "    aliased imports (as _x), and fully-qualified call sites."
-    echo "  NOT COVERED: macro-generated I/O (println!/print!/eprintln!/write!)."
-    echo "    ADR-001 enumerates path-fragments, not macros; this is the known"
-    echo "    sibling-gate class, deliberately out of scope, not an oversight."
+    # BI-090: this recipe and that CI job previously carried two hand-maintained
+    # copies of the detector. Keeping them byte-identical was a standing
+    # obligation that produced defects in three consecutive review rounds
+    # (BI-081; then P22-01/P23-01/P24-01 multi-line + inverted asymmetry; then
+    # P24-02 self-check arm masking). One file closes the class by construction.
+    # Do NOT re-inline the detector here.
+    ./scripts/purity-check.sh
 
 # ─────────────────────────────────────────────────────────────────
 # spec-lint — run all spec integrity validators (no Cargo required)
