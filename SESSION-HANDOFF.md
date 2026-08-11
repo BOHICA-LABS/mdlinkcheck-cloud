@@ -3971,7 +3971,7 @@ PRD **v1.15** | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC
 
 ---
 
-## §RESUME SNAPSHOT D-256
+## §RESUME SNAPSHOT D-256 [SUPERSEDED by D-262 — retained for audit]
 
 *Written: 2026-08-11 — session-closing wrap (six fix commits + final nine-finding fix; HEAD `f24ad3e`; all required CI checks GREEN; story MERGEABLE-BY-CI for the first time; confirming round PENDING). Supersedes D-252.*
 
@@ -4090,3 +4090,105 @@ PRD **v1.15** | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC
 ### WORKTREE INVENTORY
 
 `.factory/` — ACTIVE, `factory-artifacts` at the wrap commit, keep. `.worktrees/S-1.01/` — ACTIVE, `feature/S-1.01-workspace-scaffold-and-core-discovery` @ `f24ad3e`, tree CLEAN, PUSHED — **keep** (confirming round + Steps 5/6 continue in it). Exactly THREE worktrees: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `develop`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/S-1.01` on the feature branch.
+---
+
+## §RESUME SNAPSHOT D-262
+
+*Written: 2026-08-11 — session-closing wrap (four fix commits; HEAD `9badc02`; all four branch-protection-required CI checks GREEN; second confirming round NOT CLEAN; three round-2 MEDIUM residuals open for fresh session). Supersedes D-256.*
+
+> **DEVIATION FROM STANDARD WRAP:** `STATE.md` was NOT bumped this session. The standard wrap procedure advances `version:`, `current_step`, and the Session Resume Checkpoint in STATE.md; that step is SKIPPED because STATE.md is off limits under the operator's deferral ruling (D-243 classifier block; CI-063 forbids rewording to evade the classifier). The full wrap lives here in `SESSION-HANDOFF.md §RESUME SNAPSHOT D-262`. `cycles/phase-1d/decisions-pending-state-insert.md` remains AUTHORITATIVE for all pending STATE.md records.
+
+### RESUME IN ONE BREATH
+
+S-1.01 implemented and green at `9badc02`, pushed, tree CLEAN, 44 tests, **all four branch-protection-required CI checks GREEN** (`Format check`, `Clippy (deny warnings)`, `Test (macos-latest)`, `Build release (macos-latest)`). 21 adversary passes run total. First confirming round (passes 16–18) and second confirming round (passes 19–21) BOTH returned `MATERIAL_FINDINGS` on every pass; `passes_clean` = 0 of 3; **NOT CONVERGED**. 14 HIGH/MEDIUM findings fixed this session across four commits. Round-2 residuals are all L6/documentation-class fix-residuals — **all three passes (19/20/21) independently found ZERO new defects in L1/L2/L3/L4/L5**. Five production defects found across the story's life; the fifth (`parents`, P18-03) was ruled KEEP by D-259 with the silence remediated. No PR, no verdict, no merge. D-001..D-262.
+
+### HEADS
+
+| Branch / worktree | HEAD | State |
+|---|---|---|
+| `develop` | `f81f412` | local == `origin/develop`; working tree CLEAN; PUSHED (unchanged) |
+| `factory-artifacts` (`.factory/`) | run `git -C .factory log -1 --format='%h'` for exact SHA (per TD-VSDD-053 — current HEAD is git metadata, not a string in any artifact) | CLEAN apart from live `logs/*.jsonl` + `sidecar-learning.md` + `regression-state.json` hook telemetry (dirty, excluded from commit); PUSHED |
+| `.worktrees/S-1.01/` | `9badc02` | branch `feature/S-1.01-workspace-scaffold-and-core-discovery`; tree CLEAN; PUSHED, tracking `origin/feature/S-1.01-workspace-scaffold-and-core-discovery` |
+| Open PRs | none | `gh pr list` empty — no PR ever opened for S-1.01 |
+
+### DELIVERY LEDGER — 25 commits total on `feature/S-1.01-workspace-scaffold-and-core-discovery`
+
+Commits 1–21 as in D-256 (`ba83b1b`..`f24ad3e`). Four further commits this session:
+
+| # | SHA | Scope |
+|---|-----|-------|
+| 22 | `47e11b0` | `scanner.rs` — dot-FILE doc claim-truth + split BC anchoring + explicit `parents(true)` (D-259) |
+| 23 | `366104c` | `scanner_discovery_tests.rs` — 2 new regression locks + 4 claim-truth fixes; 42 → 44 tests |
+| 24 | `46cab5a` | `ci.yml`/`justfile`/`lefthook.yml` — seven CI/build findings incl. POL-11 assertion |
+| 25 | `9badc02` | `ci.yml`/`justfile` — POL-11 `--color never` ANSI regression fix |
+
+### CI FACTS AT `9badc02`
+
+| Check | Status | Notes |
+|-------|--------|-------|
+| `Format check` | success | required |
+| `Clippy (deny warnings)` | success | required |
+| `Test (macos-latest)` | success | required — 44/44 tests |
+| `Build release (macos-latest)` | success | required |
+| `MSRV check (1.88)` | success | not required |
+| `Purity check (ADR-001)` | success | not required |
+| `VEF selftest suite` | success | not required |
+| `Spec lint` | failure | EXPECTED — D-246 advisory, NOT required, exactly 39 SCENARIO-MISMATCH BY DESIGN |
+| `Verify evidence figures (advisory)` | skipped | `pull_request`-only, has never run on this branch |
+
+**Spec lint note:** From a story worktree `just spec-lint` crashes 9/9 for environmental reasons (BI-070); with `SPEC_LINT_REPO_OVERRIDE` pointing at the main checkout the true result is 8-of-9-pass (D-246 advisory checker alone fails).
+
+**Verify evidence figures note:** Per **BI-069**, this check cannot be satisfied truthfully by a story PR — its `REQUIRED_CHECKS` are spec-lint-delivery-shaped, it has no `continue-on-error` by deliberate L-66 design, and exit 2 REFUSED is treated as FAIL on PR events. **Expect it RED on the PR; that is accepted and disclosed, and it must NOT be satisfied by fabricating spec-lint figures (the BI-063 false-claim class).**
+
+### OPERATOR RULINGS THIS SESSION
+
+- **D-257** (carried from D-256): `proptest` locked 1.11.0 KEEP. Caret requirement cannot pin; disclosed in PR body and wave-1 gate.
+- **D-258** (carried from D-256): `Link` corpus contradiction is not S-1.01 work; disclosed in code.
+- **D-259** (carried from D-256): `parents(true)` KEEPS; silence was the defect. Accepted residual risk: a `$HOME/.gitignore` applies to scans beneath it with no diagnostic channel (D-259/F-A3).
+- **D-260** (carried from D-256): Tool-pin deviation ACCEPTED + recorded. Residual un-exonerated: survivor verdicts F-08/F-B1/F-B3 came from cargo-mutants 24.11.2 while `module-criticality.md` calibrates against 27.0.0.
+- **D-261** (carried from D-256): Fix batch scoped HIGH+MEDIUM; LOW/NITPICK disclosed at wave-1 gate.
+- **D-262**: This wrap.
+
+### NEXT-ACTION QUEUE for the fresh session, in order
+
+1. **Fix the three round-2 material residuals** (BI-081..BI-083) — purity regex `stdout`/`Instant` grouped arms plus the over-claiming log line (BI-081); cargo-fuzz `--locked` and its misapplied justification (BI-082); POL-11 third-site/lefthook count — operator may choose either disposition: add `run: just test` or correct the count and drop the mirror annotation (BI-083).
+2. **Re-run the confirming round — 3 fresh passes, converge = 3 clean** — with the do-not-report list extended by ALL passes 16–21 findings.
+3. **Step 5** — per-AC demo evidence into `docs/demo-evidence/S-1.01/`. MUST be library/test-execution based because `main()` is `todo!()` and the binary panics if run. All 13 AC-named tests exist and pass individually via `-E 'test(=<name>)'` (orchestrator-verified). POLICY 10 requires story-scoped output.
+4. **Step 6** — pr-manager 9-step lifecycle then PACKAGE the exact `gh` commands and STOP. PR creation, verdict posts and the merge are HUMAN-executed (gate-#28 v3, D-120); `gh pr review` is structurally impossible (BI-039/D-021/D-105) so verdicts go via `gh pr comment`.
+5. **Wave-1 gate DEV-11 Run A ENDPOINT package** with the full human decision list.
+
+### HUMAN DECISION LIST for the wave-1 gate
+
+- Dot-FILE exclusion acknowledgement (D-252a)
+- LICENSE file creation and licence choice (BI-067)
+- `clap` 4.6.6 and `unicode-normalization` 0.1.25 parity confirmation still open under BI-065 (D-257 ruled explicitly only on `proptest`)
+- `Link` corpus precedence resolution (BI-066/D-258)
+- Hardlink/inode aliasing intent (BI-068/P10-01)
+- Holdout coverage VACUOUSLY SATISFIED (disclosed, not a failure)
+- CI tests `macos-latest` ONLY (D-043), no Linux coverage
+- AC-006/AC-010 claiming anchor-table coverage that does not exist in S-1.01
+- MSRV-1.88 divergence (D-253)
+- Frozen-perimeter convergence definition itself (D-254, non-standard path)
+- Tool-pin deviation and the four absent spec-named config files (D-260)
+- **BI-069 `verify-evidence-figures` will show RED on the PR** — accepted and disclosed; must NOT be satisfied by fabricating figures
+- VP-017 undisclosed divergence (BI-086) — add in-source disclosure
+- `parents(true)` accepted residual risk that a `$HOME/.gitignore` applies to scans beneath it with no diagnostic channel (D-259/F-A3)
+- BI-083 (POL-11 third site): operator to choose disposition (a) `run: just test` or (b) correct count + drop mirror annotation
+- BI-089 fixture prefix intent (pending)
+- **Stop-vs-continue**
+
+### STANDING RULINGS UNCHANGED
+
+Closed-world D-244; `.factory/specs/` FROZEN with zero modifications this session; no mid-run hook/process edits (D-158/D-182/D-231); L-82 null-disposition in every dispatch; D-193/L-81 verify every agent report by direct execution; L-78 outcome-with-evidence-first; merges and verdict posts HUMAN-executed (gate-#28 v3, D-120); BI-062 merge-coercion refusal precedent stands (not triggered this session).
+
+### ADVERSARY DISPATCH CONSTRAINT
+
+The `vsdd-factory:adversary` agent type has Read/Grep/Glob ONLY and CANNOT run commands. All 21 passes disclosed this honestly rather than fabricating execution evidence. Every empirical confirmation is orchestrator work — budget for it. **L-91 corollary:** do not write to perimeter files while adversary passes are running.
+
+### SPEC SNAPSHOT (unchanged from D-256)
+
+PRD **v1.15** | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC-001..EC-214 | holdout pool 12 reserved / 6 active | HS-INDEX v1.4 | 134 spec files. `.factory/specs/` untouched this session.
+
+### WORKTREE INVENTORY
+
+Exactly three worktrees: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `develop`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/S-1.01` on `feature/S-1.01-workspace-scaffold-and-core-discovery` at `9badc02`, CLEAN, PUSHED — **KEEP** (fix residuals, confirming round, and Steps 5/6 continue in it).
