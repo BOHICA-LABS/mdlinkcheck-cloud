@@ -1,14 +1,16 @@
 {
   "story_id": "S-1.01",
   "cycle": "v1.0.0-greenfield",
-  "passes_run": 24,
+  "passes_run": 27,
   "passes_clean": 0,
   "last_round_classifications": ["MATERIAL_FINDINGS", "MATERIAL_FINDINGS", "MATERIAL_FINDINGS"],
   "last_classification": "MATERIAL_FINDINGS",
   "converged": false,
   "required_clean_passes": 3,
   "blocking_gate": "BC-5.39.001",
-  "head_sha": "98a4f15",
+  "head_sha": "b42285a",
+  "head_sha_note": "Prior value was 98a4f15 (code-remediation SHA; scripts/purity-check.sh was introduced at that commit). Round 4 correctly audited b42285a = 98a4f15 + two docs-only commits (all 16 paths under docs/demo-evidence/S-1.01/; verified by git diff --name-only 98a4f15 b42285a).",
+  "audit_record": "cycles/v1.0.0-greenfield/S-1.01/confirming-round-passes-25-27.md",
   "tests_total": 44,
   "clippy_deny_warnings_exit": 0,
   "production_defects_found_and_fixed": [
@@ -28,12 +30,127 @@
       "id": "D-254",
       "subject": "convergence perimeter freeze",
       "ruling": "freeze lens set at six families already exercised (L1-L6); run ONE confirming round against fixed perimeter; new-lens findings route to S-1.02 or register entries, not S-1.01 blockers"
+    },
+    {
+      "id": "D-263",
+      "subject": "fourth confirming round disposition",
+      "ruling": "Option (a) durability first: (1) write audit record, commit, push; (2) fix A1-A3 and B1-B2 — A1 MUST-FIX per D-205 (silent purity-gate escape), B1/B2 non-negotiable (false claims must not go public); (3) C1-C4 and A4-A7 ACCEPTED as disclosed-documentation class; (4) ONE confirming review scoped to changed surface only; (5) if scoped review clean declare convergence ACHIEVED-WITH-DISCLOSED-RESIDUALS and present PR plus DEV-11 package, STOP; if material stop and escalate — no fix wave 6 on orchestrator authority. B3/B4 disposition OPEN pending operator. No PR creation, no verdict, no merge — HUMAN executes."
     }
   ],
+  "refuted_findings": [
+    {
+      "claim": "The 98a4f15..HEAD delta is not docs-only; therefore the 'four required checks green' attestation does not carry to HEAD; and scripts/purity-check.sh has never been executed by any CI run.",
+      "agreed_by_passes": [25, 26, 27],
+      "unanimous_pass_agreement": true,
+      "verdict": "REFUTED — all three claims are false; orchestrator refuted by execution via five commands",
+      "refuting_commands": [
+        {
+          "cmd": "git log --oneline --diff-filter=A -- scripts/purity-check.sh",
+          "result": "98a4f15 — script was INTRODUCED at 98a4f15, not after it"
+        },
+        {
+          "cmd": "git diff --name-only 98a4f15 b42285a",
+          "result": "16 paths, all under docs/demo-evidence/S-1.01/ — delta IS docs-only"
+        },
+        {
+          "cmd": "git log --oneline 98a4f15..HEAD -- .github/workflows/ci.yml justfile lefthook.yml scripts/",
+          "result": "empty — no CI-config commit after 98a4f15"
+        },
+        {
+          "cmd": "gh api repos/{owner}/{repo}/commits/98a4f15/check-runs (Purity check field)",
+          "result": "success — purity gate HAS run green in CI at 98a4f15"
+        },
+        {
+          "cmd": "gh api .../commits/b42285a/check-runs + gh api .../branches/develop/protection/required_status_checks",
+          "result": "all four required contexts success at b42285a; required set = Format check, Clippy (deny warnings), Test (macos-latest), Build release (macos-latest)"
+        }
+      ],
+      "consequence": "Attestation is TRUE; only SHA anchor is stale (C4/BI-110). Three-pass unanimous consensus was not truth. Had the orchestrator accepted the consensus, a non-existent CI-coverage gap would have been chased in a fix wave. Primary evidence basis for L-97.",
+      "lesson_refs": ["L-97", "L-81", "D-193"]
+    }
+  ],
+  "verified_true_mutation_table": {
+    "produced_by": "orchestrator",
+    "target_sha": "b42285a",
+    "method": "out-of-tree git archive clone with assert-mutant-landed cmp guard per L-90; --no-fail-fast; guard fired twice on bad sed/perl attempts which were correctly discarded",
+    "replaces": "evidence-report.md:61-68 and PR-PACKAGE.md:160-167 (wrong per B1/BI-103 due to doubling error from line-counting and fail-fast cancelled runs)",
+    "adversary_derived_correction_warning": "Passes P25, P26, and P27 all independently 'corrected' the evidence figures to 3/1/5/1 by reading cancelled Summary lines as ground truth. That correction is WRONG for M3 (adversary-derived 5, true 7) and M4 (adversary-derived 1, true 2). Only execution settled it. Any downstream fix must use true_complete_run, not adversary_derived_correction. Note: M4 originally-reported 2 is coincidentally CORRECT despite being produced by the doubling error.",
+    "mutants": [
+      {
+        "id": "M1",
+        "description": "extension match case-INsensitive",
+        "reported_in_evidence": 6,
+        "cancelled_run_summary": 3,
+        "adversary_derived_correction": 3,
+        "true_complete_run": 3,
+        "killing_tests_true": [
+          "test_BC_2_01_005_case_sensitive_byte_match",
+          "test_BC_2_01_005_ec005_ec006a_ec006b_traversal_excludes_non_md_extensions",
+          "test_BC_2_01_005_non_md_extensions_excluded"
+        ]
+      },
+      {
+        "id": "M2",
+        "description": "dot-dir filter_entry guard removed",
+        "reported_in_evidence": 2,
+        "cancelled_run_summary": 1,
+        "adversary_derived_correction": 1,
+        "true_complete_run": 1,
+        "killing_tests_true": ["test_BC_2_01_004_inv1_build_walk_filter_entry_guard_is_active"]
+      },
+      {
+        "id": "M3",
+        "description": ".gitignore honouring disabled",
+        "reported_in_evidence": 10,
+        "cancelled_run_summary": 5,
+        "adversary_derived_correction": 5,
+        "true_complete_run": 7,
+        "killing_tests_true": [
+          "five tests recorded in evidence-report.md (see B1/BI-103)",
+          "test_build_walk_filter_entry_replaceable_but_collect_md_files_backstop_holds",
+          "test_vp016_gitignored_files_never_in_scan_set"
+        ],
+        "note": "adversary-derived correction to 5 is WRONG; true kill count is 7"
+      },
+      {
+        "id": "M4",
+        "description": "follow_links(true)",
+        "reported_in_evidence": 2,
+        "cancelled_run_summary": 1,
+        "adversary_derived_correction": 1,
+        "true_complete_run": 2,
+        "killing_tests_true": [
+          "test_BC_2_01_004_ec009_directory_symlink_to_outside_not_followed",
+          "test_vp017_scan_terminates_arbitrary_tree"
+        ],
+        "note": "adversary-derived correction to 1 is WRONG; true kill count is 2; original report of 2 is coincidentally correct"
+      },
+      {
+        "id": "M5",
+        "description": "files.sort() + dedup() removed",
+        "reported_in_evidence": 0,
+        "cancelled_run_summary": 0,
+        "adversary_derived_correction": 0,
+        "true_complete_run": 0,
+        "killing_tests_true": [],
+        "note": "survivor — already registered (F-B1/F-B3/C-B1, deferred S-1.02)"
+      },
+      {
+        "id": "M6",
+        "description": "post-filter backstop removed",
+        "reported_in_evidence": 0,
+        "cancelled_run_summary": null,
+        "adversary_derived_correction": 0,
+        "true_complete_run": 0,
+        "killing_tests_true": [],
+        "note": "survivor — BI-095; open per D-252a route"
+      }
+    ]
+  },
   "frozen_perimeter": {
     "status": "FROZEN",
     "frozen_at_passes": 15,
-    "confirming_round_status": "MATERIAL_FINDINGS — THREE confirming rounds have now run (16–18, 19–21, 22–24). Every round returned MATERIAL_FINDINGS. passes_clean = 0 of 3 required. ALL round-2 and round-3 material findings were L6 fix-residuals of the immediately preceding fix wave while L1–L5 has been independently clean for six consecutive passes (passes 19–24). Round-1 residuals: three MEDIUM (BI-081..BI-083) FIXED at 2616257; six LOW/NITPICK (BI-084..BI-089) disclosed at wave-1 gate. Round-2 residuals: five MEDIUM/L6 (BI-091..BI-094 + BI-090 structural) FIXED at 98a4f15; LOW/NITPICK carried forward. Round-2 also introduced BI-095 (orchestrator mutation testing, LOW, open per D-252a route).",
+    "confirming_round_status": "MATERIAL_FINDINGS — FOUR confirming rounds have now run (16–18, 19–21, 22–24, 25–27). Every round returned MATERIAL_FINDINGS. passes_clean = 0 of 3 required. CRITICAL QUALITATIVE SHIFT AT ROUND 4: the nine-consecutive-pass zero-L1–L5 production-code streak held (passes 19–27 all clean on L1–L5), but round 4 found the first functionally exploitable defect since P18-03 — in the enforcement gate itself. scripts/purity-check.sh (new at 98a4f15, never previously adversarially reviewed) contains BI-096 (HIGH, use ::std::fs as f; + f::metadata() defeats all gates including purity-check.sh exit 0), which FALSIFIES the 'residual is documentation-class only' premise that D-254's early-ratification posture rested on. BI-096 is MUST-FIX per D-205. Additional round-4 findings: BI-097/098 FIX; BI-099/100/101/102 ACCEPTED; BI-103/104 FIX; BI-105/106 PENDING OPERATOR; BI-107/108/109/110 ACCEPTED. Operator ruling D-263 issued. Scoped fix wave and one scoped confirming review pending.",
     "confirming_round_target_head": "f24ad3e",
     "root_cause_of_non_convergence": "BC-5.39.001 '3 consecutive clean passes' presumes a FIXED review perimeter. The orchestrator was lens-diversifying each round, examining previously-unexamined surface and finding real defects there — the criterion was applied to a MOVING perimeter; by construction there is always another lens.",
     "operator_ruling_rationale": "Applies standing residual-risk posture (gate #53/#57, workable-not-perfect, deal-breakers only) at story scale. The residual class is documentation-accuracy, which is DISCLOSED not hidden.",
@@ -78,7 +195,7 @@
     "new_lens_routing": "Findings from any lens NOT in L1-L6 route to S-1.02 input or register entries and are NOT S-1.01 blockers. Findings MATERIAL on the frozen perimeter (L1-L6) are still blockers.",
     "decision_ref": "D-254"
   },
-  "note": "Twenty-four adversary passes run (passes 1–9 from prior sessions; passes 10–15 same session; passes 16–18 first confirming round on frozen perimeter; passes 19–21 second confirming round; passes 22–24 third confirming round). THREE CONFIRMING ROUNDS RUN (16–18, 19–21, 22–24). EVERY ROUND RETURNED MATERIAL_FINDINGS. passes_clean = 0 of 3 required. CRITICAL QUALITATIVE SHIFT (now sustained across six passes, 19–24): all six passes from rounds 2 and 3 independently reported ZERO new defects in L1/L2/L3/L4/L5. All round-2 and round-3 material findings are L6/documentation-class fix-residuals of the immediately preceding fix wave, not defects in production code or the test corpus. Round-1 (passes 16–18) against HEAD f24ad3e: 5 HIGH, 9 MEDIUM, 9 LOW/NITPICK. Fix wave committed at 47e11b0/366104c/46cab5a/9badc02. Round-2 (passes 19–21) against HEAD 9badc02: 3 MEDIUM (BI-081..BI-083) + 6 LOW/NITPICK (BI-084..BI-089). Fix wave committed at 2616257. Round-3 (passes 22–24) against HEAD 2616257: 4 MEDIUM (BI-091..BI-094) + structural BI-090 + LOW/NITPICK all fixed at 98a4f15. BI-095 (orchestrator mutation testing, LOW) open per D-252a route. Five production defects found total (F-B2, F-A1, F-P2-01, P14-02/P15-01, P18-03); P18-03 KEPT with silence remediated (D-259). Operator decisions still pending: BI-067, BI-068, BI-085 (dot-path root), BI-086 (VP-017 undisclosed divergence), BI-089 (fixture prefix intent), BI-095 (backstop survivor per D-252a). Audit records: cycles/v1.0.0-greenfield/S-1.01/confirming-round-passes-16-18.md; cycles/v1.0.0-greenfield/S-1.01/confirming-round-passes-19-21.md; cycles/v1.0.0-greenfield/S-1.01/confirming-round-passes-22-24.md.",
+  "note": "Twenty-seven adversary passes run (passes 1–9 from prior sessions; passes 10–15 same session; passes 16–18 first confirming round; passes 19–21 second confirming round; passes 22–24 third confirming round; passes 25–27 fourth confirming round). FOUR CONFIRMING ROUNDS RUN (16–18, 19–21, 22–24, 25–27). EVERY ROUND RETURNED MATERIAL_FINDINGS. passes_clean = 0 of 3 required. NINE-CONSECUTIVE-PASS ZERO-L1–L5 STREAK HOLDS (passes 19–27 all independently clean on production code and test corpus). ROUND 4 FALSIFIED D-254 PREMISE: scripts/purity-check.sh (new at 98a4f15, never adversarially reviewed) contains BI-096 — fully-exploitable purity-gate escape, MUST-FIX per D-205. THREE-PASS CONSENSUS REFUTED: unanimous inference that attestation did not carry to b42285a was FALSE; five git/gh commands settled it; cited as primary basis for L-97. VERIFIED TRUE MUTATION TABLE produced; adversary-derived correction of 3/1/5/1 is wrong for M3 (true 7) and M4 (true 2). Operator ruling D-263 issued. Round-1 (passes 16–18) against HEAD f24ad3e: 5 HIGH, 9 MEDIUM, 9 LOW/NITPICK. Fix wave at 47e11b0/366104c/46cab5a/9badc02. Round-2 (passes 19–21) against HEAD 9badc02: 3 MEDIUM (BI-081..BI-083) + 6 LOW/NITPICK (BI-084..BI-089). Fix wave at 2616257. Round-3 (passes 22–24) against HEAD 2616257: 4 MEDIUM (BI-091..BI-094) + structural BI-090 + LOW/NITPICK; fixed at 98a4f15. Round-4 (passes 25–27) against HEAD b42285a: BI-096/097/098 FIX; BI-099/100/101/102 ACCEPTED; BI-103/104 FIX; BI-105/106 PENDING; BI-107/108/109/110 ACCEPTED. Five production defects found total (F-B2, F-A1, F-P2-01, P14-02/P15-01, P18-03). Audit records: cycles/v1.0.0-greenfield/S-1.01/confirming-round-passes-16-18.md; cycles/v1.0.0-greenfield/S-1.01/confirming-round-passes-19-21.md; cycles/v1.0.0-greenfield/S-1.01/confirming-round-passes-22-24.md; cycles/v1.0.0-greenfield/S-1.01/confirming-round-passes-25-27.md.",
   "findings": [
     {
       "pass": 1,
@@ -280,7 +397,7 @@
       "finding_ids": ["P17-01", "P17-02", "P17-03", "P17-04", "P17-05", "P17-06", "P17-07", "P17-08", "P17-09", "P17-N1"],
       "dispositions": {
         "P17-01": "OPEN — HIGH — L3/L6 — scanner.rs:95-103: filter_entry dot-directory guard has ZERO discriminating test coverage after P14-02 fix. The backstop masks it: removing filter_entry entirely leaves all 42 tests green. Fix-integrity regression — the P14-02 fix destroyed kill-coverage that closed F-01. filter_entry is the ONLY BC-2.01.004 defence for direct build_walk consumers named at scanner.rs:47-55. ORCHESTRATOR-CONFIRMED EMPIRICAL: removed filter_entry statement; cargo nextest: 42 passed, 0 detected removal; scanner.rs restored from backup.",
-        "P17-02": "OPEN — MEDIUM — L6 — justfile:157-162: just hardening reports kani as EXECUTED when zero harnesses exist. Under set -euo pipefail: grep exits 1 with zero matches; pipefail propagates; || echo '0' fires IN ADDITION to wc's emitted 0, capturing '0\n0'; [ '0\n0' -eq 0 ] errors; set -e does not apply to if conditions; ELSE branch runs; kani lands in executed. Sibling kani recipe at :131 uses || true correctly. ORCHESTRATOR-CONFIRMED EMPIRICAL: bash -euo pipefail test produced RAW=[0<newline>0], integer expected error, BRANCH=executed.",
+        "P17-02": "OPEN — MEDIUM — L6 — justfile:157-162: just hardening reports kani as EXECUTED when zero harnesses exist. Under set -euo pipefail: grep exits 1 with zero matches; pipefail propagates; || echo '0' fires IN ADDITION to wc's emitted 0, capturing '0\\n0'; [ '0\\n0' -eq 0 ] errors; set -e does not apply to if conditions; ELSE branch runs; kani lands in executed. Sibling kani recipe at :131 uses || true correctly. ORCHESTRATOR-CONFIRMED EMPIRICAL: bash -euo pipefail test produced RAW=[0<newline>0], integer expected error, BRANCH=executed.",
         "P17-03": "OPEN — HIGH — L2/L5/L6 — cross-pass corroboration of P16-01 at scanner.rs:133-135 vs :137-142 and :166-169; same doc contradiction on dot-FILES found independently by a different confirming-round pass. Two-independent-lens rule: high-confidence.",
         "P17-04": "OPEN — MEDIUM — L6/L5 — cross-pass corroboration of P16-05; same purity-gate grouped-import blindness found independently. ci.yml:329-349 and justfile:242-262.",
         "P17-05": "OPEN — MEDIUM — L6 — cross-pass corroboration of P16-06; same just ci/purity unreachability via known-red spec-lint blocking prerequisite.",
@@ -408,12 +525,83 @@
       "off_perimeter_finding_ids": ["P24-OOP-01", "P24-OOP-02"],
       "dispositions": {
         "P24-01": "corroborates-BI-091 — three-pass highest-confidence; FIXED in 98a4f15",
-        "P24-02": "registered-BI-092; FIXED in 98a4f15 — purity self-check could go green with load-bearing arm blind; five arms had no plant depending on them alone; arm masking reproduced BI-081's failure mode; plants 9→21 (including 5 multi-line/nested), negative controls 4→6",
+        "P24-02": "registered-BI-092; FIXED in 98a4f15 — purity self-check could go green with load-bearing arm blind; five arms had no plant depending on them alone; arm masking reproduced BI-081's failure mode; plants 9->21 (including 5 multi-line/nested), negative controls 4->6",
         "P24-03": "corroborates-BI-093 — two-pass corroboration; FIXED in 98a4f15",
         "P24-04": "corroborates-P22-04 — just missing from lefthook prerequisites; FIXED in 98a4f15",
         "P24-05": "FIXED in 98a4f15 — test recipe cited D-006's retired three-platform matrix, superseded by D-043",
         "P24-OOP-01": "ROUTED-TO-S-1.02 — ignore_case_insensitive is one remaining implicit WalkBuilder option that RESTRICTS when true; same_file_system(true) and finite max_depth/max_filesize have same property; candidate for explicit writing under L-88 rationale",
         "P24-OOP-02": "ROUTED-TO-S-1.02 — ignore 0.4.33 walk.rs:606 force-follows a scan root that is a symlink to a .md file; exempt from relative-path dot-component filter; belongs with BI-085 explicit-PATH-root question under BC-2.01.002"
+      }
+    },
+    {
+      "pass": 25,
+      "lens": "L1-L6-frozen-perimeter-confirming",
+      "classification": "MATERIAL_FINDINGS",
+      "on_perimeter_material_count": 6,
+      "low_nitpick_count": 8,
+      "zero_l1_l5_findings": true,
+      "angle": "purity-script-first line-by-line then evidence artifacts",
+      "finding_ids": ["P25-01", "P25-02", "P25-03", "P25-04", "P25-05", "P25-06", "P25-07", "P25-08", "P25-09", "P25-10", "P25-11", "P25-12", "P25-13", "P25-14"],
+      "dispositions": {
+        "P25-01": "material perimeter observation — purity-script line-by-line angle; low/medium severity; documented in confirming-round-passes-25-27.md narrative; not assigned separate BI register entry",
+        "P25-02": "low-nitpick observation — pass-25 perimeter sweep; not assigned permanent BI register entry",
+        "P25-03": "registered-BI-099; ACCEPTED per D-263 — scripts/purity-check.sh:36-37 claims Phase A 'yields precise file:line locations'; FALSE: detect_in_file pipes through strip_comments before grep -n so line numbers index the comment-stripped stream; orchestrator-confirmed violation on true line 7 reported as line 2; magnitude: types.rs has 117 comment lines of 181 so no reported number can exceed 64; THREE-WAY CONVERGENCE: orchestrator pre-discovery, P25-03, P27-05; MEDIUM; ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P25-04": "registered-BI-100; ACCEPTED per D-263 — scripts/purity-check.sh:63-65 io::stdout arm rationale false on two counts: (1) cited example use std::io as _i; _i::stdout() matches io::stdout arm ZERO times — \\bstdout[[:space:]]*\\( arm fires instead; (2) 'Same reasoning omits leading \\b nowhere else' contradicted by three further arms (time::Instant, rand::, extern crate rand); MEDIUM; risk: invites deleting the arm that actually functions; ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P25-05": "registered-BI-110; ACCEPTED per D-263 — PR-PACKAGE.md pins stale HEAD f7c5b11 at five-plus sites (:14, :51, :104, :255, :348) and :356 expects commit count 28 vs true 29; LOW; operator Step 1 and Step 5 verifications fail on execution (fails LOUD, not silent); THREE-PASS HIGHEST-CONFIDENCE (P25-05, P26-06, P27-04); ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P25-06": "registered-BI-108; ACCEPTED per D-263 — ci.yml:461 says spec-lint has 'its three known advisory failures on develop'; established fact under D-246 is ONE failing checker (check-ec-injectivity, 39 SCENARIO-MISMATCH); MEDIUM; triager reading this would silently absorb two genuine checker regressions; ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P25-07": "registered-BI-096; FIX per D-263 — use ::std::fs as f; + f::metadata() defeats purity gate via leading :: defeating STMT_RE use[[:space:]]+std:: anchor and ' as f' rename defeating LINE_RE \\bfs:: arm; HIGH; orchestrator-confirmed in out-of-tree git archive clone of b42285a: compiles, cargo fmt exit 0, cargo clippy exit 0, cargo nextest 44/44 pass, purity-check.sh exit 0; rustfmt does NOT normalize leading ::; gate SCOPE block :205-208 falsely claims this shape COVERED; MUST-FIX per D-205 (seven downstream stories depend on ADR-001 enforcement); corroborated by P26-01 (two-pass high-confidence)",
+        "P25-08": "registered-BI-102; ACCEPTED per D-263 — nonexistent CORE_SRC exits 1 with ZERO diagnostic output; set -euo pipefail aborts find assignment before FAIL: message can print; 2>/dev/null discards find's own diagnostic; fails CLOSED but undiagnosable; FAIL: message reachable only for narrower 'directory exists but is empty' case; LOW; corroborated P26-09; ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P25-09": "low-nitpick observation — pass-25 perimeter sweep; not assigned permanent BI register entry",
+        "P25-10": "low-nitpick observation — pass-25 perimeter sweep; not assigned permanent BI register entry",
+        "P25-11": "low-nitpick observation — pass-25 perimeter sweep; not assigned permanent BI register entry",
+        "P25-12": "registered-BI-109; ACCEPTED per D-263 — justfile:5 states 'With no remote, just ci IS the canonical gate for blocking checks'; origin exists (https://github.com/BOHICA-LABS/mdlinkcheck-cloud.git), branch protection on develop is live with four required contexts; claim contradicted six lines later in same rewritten header block; LOW/MEDIUM; corroborated P26-05; ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P25-13": "low-nitpick observation — pass-25 perimeter sweep; not assigned permanent BI register entry",
+        "P25-14": "low-nitpick observation — pass-25 perimeter sweep; not assigned permanent BI register entry"
+      }
+    },
+    {
+      "pass": 26,
+      "lens": "L1-L6-frozen-perimeter-confirming",
+      "classification": "MATERIAL_FINDINGS",
+      "on_perimeter_material_count": 7,
+      "low_nitpick_count": 4,
+      "zero_l1_l5_findings": true,
+      "angle": "evidence-vs-reality falsification plus detector-escape construction",
+      "finding_ids": ["P26-01", "P26-02", "P26-03", "P26-04", "P26-05", "P26-06", "P26-07", "P26-08", "P26-09", "P26-10", "P26-11"],
+      "dispositions": {
+        "P26-01": "registered-BI-096; FIX per D-263 — primary finding: use ::std::fs as f; + f::metadata() defeats purity gate; leading :: defeats STMT_RE anchor; ' as f' rename defeats LINE_RE \\bfs:: arm; HIGH; orchestrator-confirmed all gates pass including purity-check.sh exit 0; gate SCOPE block affirmatively claims this shape covered (FALSE); MUST-FIX per D-205; independently corroborated by P25-07 — two-pass high-confidence",
+        "P26-02": "material perimeter observation — evidence-vs-reality angle; medium severity; documented in confirming-round-passes-25-27.md narrative; not assigned separate BI register entry",
+        "P26-03": "registered-BI-104; FIX per D-263 — PR-PACKAGE.md:63 names ScanSet and ScanPath as core crate's headline public types 'consumed by all downstream crates'; orchestrator-confirmed: tree-wide grep across *.rs and *.toml returns ZERO hits for either identifier; sole occurrence is PR-PACKAGE.md:63; actual types: Verdict, FailureReason, Finding, LinkKind, ExtractedLink, AnchorTable, DirIndex, DirEntryInfo, EntryKind; HIGH; fabricated type names in PR body What Was Built; FIX per D-263",
+        "P26-04": "registered-BI-106; PENDING OPERATOR per D-263 — PR-PACKAGE.md:94-98 AC-006/AC-010 footnote asserts both tests 'pass by satisfying a structural reachability invariant (the file path can be resolved from the scan root)'; orchestrator-confirmed: no such assertion exists in either test; both have exactly two assertions — negative !result.contains(...) and positive vacuity gate; tests' own in-source comments accurate and scope to clause (i); PR body replaced honesty with invented proof; evidence-report.md:29-45 carries same 13-row table with NO footnote, states at :105 all 13 ACs have passing assertion-bearing evidence; MEDIUM; DISPOSITION PENDING OPERATOR (assigned neither to fix list A1-A3/B1-B2 nor to accepted list C1-C4/A4-A7 by D-263)",
+        "P26-05": "corroborates-BI-109 — justfile:5 'with no remote' claim while origin exists; same as P25-12; two-pass corroboration; LOW/MEDIUM; ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P26-06": "corroborates-BI-110 — PR-PACKAGE stale HEAD SHA at five-plus sites and wrong commit count; same as P25-05; two-pass corroboration; LOW; ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P26-07": "registered-BI-097; FIX per D-263 — inherent methods on Path/PathBuf (exists(), try_exists(), metadata(), symlink_metadata(), is_dir(), is_file(), read_dir(), canonicalize()) perform real syscalls with zero forbidden tokens; orchestrator-confirmed: file with use std::path::Path; + p.exists() + p.metadata() passes purity-check.sh exit 0; not in NOT-COVERED block; script's own negative control _n4 at :135 blesses use std::path::Path as clean; MEDIUM; FIX per D-263",
+        "P26-08": "registered-BI-101; ACCEPTED per D-263 — .rs filename containing newline makes wc -l count 2 while read -r yields two nonexistent paths; file_count derives from second separate find and never reconciled against files actually passed through detect_in_file; orchestrator-confirmed: file with use std::fs; in newline-named path reported as '2 file(s) ... checked' and PASSED; LOW; genuine fail-OPEN; ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P26-09": "corroborates-BI-102 — nonexistent CORE_SRC silent fail; same as P25-08; two-pass corroboration; LOW; ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P26-10": "material perimeter observation — evidence-vs-reality angle; medium severity; documented in confirming-round-passes-25-27.md narrative; not assigned separate BI register entry",
+        "P26-11": "material perimeter observation — evidence-vs-reality angle; medium severity; documented in confirming-round-passes-25-27.md narrative; not assigned separate BI register entry"
+      }
+    },
+    {
+      "pass": 27,
+      "lens": "L1-L6-frozen-perimeter-confirming",
+      "classification": "MATERIAL_FINDINGS",
+      "on_perimeter_material_count": 5,
+      "low_nitpick_count": 5,
+      "zero_l1_l5_findings": true,
+      "angle": "fix-integrity regression and cross-artifact numeral coherence",
+      "finding_ids": ["P27-01", "P27-02", "P27-03", "P27-04", "P27-05", "P27-06", "P27-07", "P27-08", "P27-09", "P27-10"],
+      "dispositions": {
+        "P27-01": "registered-BI-107; ACCEPTED per D-263 — MSRV-1.88 deviation cited to D-205 at ci.yml:226 and justfile:317; D-205 is build-sufficiency/MUST-FIX-vs-ADJUDICATE materiality ruling and contains no MSRV content; authorising ruling is D-253, which same delivery cites CORRECTLY at PR-PACKAGE.md:289; delivery names two different authorities for one deviation; MEDIUM; ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P27-02": "material perimeter observation — fix-integrity regression angle; medium severity; documented in confirming-round-passes-25-27.md narrative; not assigned separate BI register entry",
+        "P27-03": "registered-BI-105; PENDING OPERATOR per D-263 — evidence-report.md:80-82 and PR-PACKAGE.md:178-179 claim filter_entry and post-filter backstop are 'mutually masking: removing either one alone leaves all 44 tests green'; orchestrator-confirmed FALSE for filter_entry half by re-running M2 mutant to completion with --no-fail-fast: kills test_BC_2_01_004_inv1_build_walk_filter_entry_guard_is_active which is SOLE REGRESSION LOCK for that guard; masking is ONE-DIRECTIONAL (removing backstop = all green per BI-095; removing filter_entry = 1 killed); MEDIUM; material because this is the disclosure the operator is adjudicating D-252a on; DISPOSITION PENDING OPERATOR (assigned neither to fix list A1-A3/B1-B2 nor to accepted list C1-C4/A4-A7 by D-263)",
+        "P27-04": "corroborates-BI-110 — PR-PACKAGE stale HEAD SHA and commit count; three-pass highest-confidence (P25-05, P26-06, P27-04); LOW; ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P27-05": "corroborates-BI-099 — strip_comments shifts line numbers; THREE-WAY CONVERGENCE with orchestrator pre-discovery and P25-03; MEDIUM; ACCEPTED per D-263; disclosed in PR body; no fix",
+        "P27-06": "low-nitpick observation — pass-27 perimeter sweep; not assigned permanent BI register entry",
+        "P27-07": "registered-BI-098; FIX per D-263 — RNG detection is rand-crate-only (\\buse rand\\b, rand::, extern crate rand); getrandom::getrandom(b) passes purity-check.sh exit 0; orchestrator-confirmed; getrandom/fastrand/oorandom/rand_chacha in neither COVERED nor NOT-COVERED enumeration; ADR-001 forbids random-number generators generally, not specifically rand; MEDIUM; FIX per D-263",
+        "P27-08": "low-nitpick observation — pass-27 perimeter sweep; not assigned permanent BI register entry",
+        "P27-09": "low-nitpick observation — pass-27 perimeter sweep; not assigned permanent BI register entry",
+        "P27-10": "low-nitpick observation — pass-27 perimeter sweep; not assigned permanent BI register entry"
       }
     }
   ]

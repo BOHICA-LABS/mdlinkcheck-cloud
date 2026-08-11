@@ -43,11 +43,30 @@ traces_to: STATE.md
    **Process-gap disposition required — not yet made. Do not invent story IDs.**
    **Closes:** (pre-D-448(b) exemption)
 
+6. **L-97 — Unanimous Multi-Agent Agreement Is Not Evidence** `[process-gap]` — Three independent adversary passes (P25, P26, P27) converged unanimously on an inference — that `98a4f15..HEAD` was not docs-only and that the CI attestation did not carry to `b42285a` — that was FALSE. Five `git`/`gh` commands refuted it completely. Consensus raises confidence about *salience* (the topic is worth examining) but not about *truth* (the conclusion is correct). Every agent report is verified by direct execution regardless of how many passes agree. The refutation is the primary evidence basis for the standing L-81/D-193 rule: verify empirically, always.
+   _Discovered: S-1.01 fourth confirming round passes 25–27, 2026-08-11_
+   **Process-gap disposition required — not yet made. Do not invent story IDs.**
+   **Closes:** (pre-D-448(b) exemption)
+
+7. **L-98 — Never Derive a Metric from a Cancelled Run** `[process-gap]` — All four mutation killing runs were CANCELLED by nextest's default fail-fast (`25/44`, `25/44`, `21/44`, `18/44` with `0 skipped`). A `Summary: N/M tests run` line with `0 skipped` means fail-fast cancellation, not completion — the count is a floor, not a measurement. All three adversary passes then independently "corrected" the evidence figures by reading these cancelled summaries as ground truth, producing a correction (`3/1/5/1`) that was itself wrong for two of four mutants (M3 true 7, not 5; M4 already correct at 2, not 1). Mutation kill counts must be produced with `--no-fail-fast` or they are not kill counts — they are partial counts from cancelled runs, which are unreliable in both directions.
+   _Discovered: S-1.01 fourth confirming round passes 25–27, 2026-08-11_
+   **Process-gap disposition required — not yet made. Do not invent story IDs.**
+   **Closes:** (pre-D-448(b) exemption)
+
+8. **L-99 — A Collapsed Single Implementation Inherits None of the Review History of What It Replaced** `[process-gap]` — The BI-090 fix extracted the duplicated purity detector to a single `scripts/purity-check.sh`. That extraction was correct: it closed L-96's defect-generator class by construction. But `scripts/purity-check.sh` was entirely new code — it was NOT the old inline code copied verbatim, it was a rewrite — and it was never adversarially reviewed as a unit before round 4. The leading-`::` escape (BI-096, HIGH) lived in it from the moment it was created. When a duplicated gate is collapsed into one shared implementation, treat the new single file as unreviewed surface and audit it before trusting any "closed by construction" claim the collapse makes. The collapse closes the parity problem; it does not retroactively audit the new file.
+   _Discovered: S-1.01 fourth confirming round, 2026-08-11_
+   **Process-gap disposition required — not yet made. Do not invent story IDs.**
+   **Closes:** (pre-D-448(b) exemption)
+
 ## Infrastructure-Level
 
 5. **L-96 — Duplicated Gate Logic Across CI and a Local Task Runner Is a Defect Generator** `[process-gap]` — The purity detector lived as two hand-maintained copies in `ci.yml` and `justfile`. Three consecutive adversary rounds found defects in it: BI-081 (round 2), then BI-091 and BI-092 (round 3). All three would have been impossible if there had been only one copy to maintain. The pattern "two copies must stay byte-identical by discipline" is a standing defect generator; the correct shape is "one file invoked by both." Extract to one invoked file so parity holds by construction rather than by ongoing manual synchronization.
    _Discovered: S-1.01 third confirming round, 2026-08-11_
    **Process-gap disposition required — not yet made. Do not invent story IDs.**
+   **Closes:** (pre-D-448(b) exemption)
+
+9. **L-100 — A Gate's Self-Check Can Only Prove the Shapes It Enumerates** — `scripts/purity-check.sh` asserted 21 evasion shapes and printed a coverage claim broader than those 21 ("leaf-aliased (as _x)", "intermediate-module-aliased", "in any import shape"). The escape lived in the gap between the enumeration and the claim: the SCOPE block said a shape was covered but no plant actually tested it. A scope statement must be derived from the plant list, never written independently of it. The correct claim is "the detector catches each of the N shapes in this plant list" — provable by inspection. Any broader claim ("all forms", "in any import shape") is an assertion about the gap the plants do not cover and cannot be verified by the self-check. Discovered via BI-096: the claim of coverage was in the gate's own SCOPE block, which made it authoritative-looking and caused prior passes to trust the gate's self-assessed scope without probing it.
+   _Discovered: S-1.01 fourth confirming round, 2026-08-11_
    **Closes:** (pre-D-448(b) exemption)
 
 ## Policy Candidates
@@ -60,3 +79,6 @@ traces_to: STATE.md
 | 3 (L-92) | Claim-correction sweep requirement: after any fix to a documented claim, grep the repo for every verbatim repetition before committing | Fix-wave process | proposed |
 | 4 (L-94) | Formatter-output verification: text-pattern gates must be validated against `rustfmt`-formatted samples before merging | CI gate authoring | proposed |
 | 5 (L-96) | Single-source gate logic: gate scripts invoked from multiple callers must live in exactly one file; inline duplication is a blocker | CI gate authoring | proposed |
+| 6 (L-97) | Multi-agent consensus verification: unanimous agreement across N passes is not a substitute for execution; empirical verification is required regardless of agreement count | Adversarial review process | proposed |
+| 7 (L-98) | Fail-fast prohibition for mutation runs: mutation kill counts must be produced with `--no-fail-fast`; results from cancelled runs must not be counted or quoted as kill counts | Mutation testing process | proposed |
+| 8 (L-99) | Collapsed-implementation audit obligation: any gate logic extracted from duplication to a single file is treated as unreviewed surface and must pass fresh adversarial review before the "closed by construction" claim is accepted | CI gate authoring | proposed |
