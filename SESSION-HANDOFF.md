@@ -3629,7 +3629,7 @@ PRD v1.14 | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001
 
 ---
 
-## §RESUME SNAPSHOT D-248
+## §RESUME SNAPSHOT D-248 [SUPERSEDED by D-250 — retained for audit]
 
 *Written: 2026-08-10 — session-closing wrap (post-gate-#58, closed-world remediation complete). Supersedes D-243.*
 
@@ -3691,3 +3691,86 @@ D-244 (gate #58 — Phase 1 RATIFIED WITH CONDITION, closed-world remediation; b
 `.factory/` — ACTIVE, `factory-artifacts` @ `841460c`, keep. No story worktrees exist; nothing stale, nothing removable.
 
 Exactly TWO: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `develop` after the merge (verify branch on resume); `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`.
+
+---
+
+## §RESUME SNAPSHOT D-250
+
+*Written: 2026-08-10 — session-closing wrap (post-gate-#59, Phase 2 ratified, Blocker 2 repaired). Supersedes D-248.*
+
+> **DEVIATION FROM STANDARD WRAP:** `STATE.md` was NOT bumped this session. The standard wrap procedure advances `version:`, `current_step`, and the Session Resume Checkpoint in STATE.md; that step is SKIPPED because STATE.md is off limits under the operator's deferral ruling (D-243 classifier block; CI-063 forbids rewording to evade the classifier). The full wrap lives here in `SESSION-HANDOFF.md §RESUME SNAPSHOT D-250`. `cycles/phase-1d/decisions-pending-state-insert.md` remains AUTHORITATIVE for all pending STATE.md records.
+
+### RESUME IN ONE BREATH
+
+mdlinkcheck **Phase 2 story decomposition is COMPLETE and RATIFIED WITH CONDITIONS** (operator gate #59, D-249): 7 epics, 24 stories, 66/66 BCs, 322 ACs, 152 points, 7 waves. Gate scorecard **6 of 6 PASS** after criterion 6 was re-scoped by operator ruling to "at least one holdout per wave WHERE EVALUABLE". **Blocker 2 (file-lifecycle ordering) is FULLY REPAIRED, re-verified and committed (`a1d2608`), satisfying ratification condition C1, so waves 2–7 are dispatch-safe.** Adversarial story convergence remains CUT per gate #53. **NEXT: Phase 3 wave 1 — deliver `S-1.01` through per-story-delivery.md; its worktree already exists and is clean. The wave-1 gate is the DEV-11 Run A endpoint where the operator stop-vs-continue question is re-asked.** D-001..D-250.
+
+### HEADS
+
+| Branch / worktree | HEAD | State |
+|---|---|---|
+| `develop` | `f81f412` | local == `origin/develop`; working tree CLEAN; PUSHED |
+| `factory-artifacts` (`.factory/`) | `a1d2608` | local == `origin/factory-artifacts`; CLEAN apart from live `logs/*.jsonl` + `sidecar-learning.md` hook telemetry; PUSHED |
+| `.worktrees/S-1.01/` | `f81f412` | branch `feature/S-1.01-workspace-scaffold-and-core-discovery`; tree CLEAN and EMPTY (no commits, no source files); **LOCAL-ONLY — NOT pushed to origin** |
+| Open PRs | none | `gh pr list` empty |
+
+Seven commits this session, ALL PUSHED: `fdf036f` (Step A epics) → `816d8b8` (Step B 24 stories) → `c461b72` (Steps C+D graph/waves/index/sprint-state) → `5413f7e` (Step E holdout wiring) → `1e8e7d5` (gate package) → `9f8cfa3` (D-249 gate #59 ratification) → `a1d2608` (Blocker 2 repair). **The only thing not backed up to a remote is the empty `feature/S-1.01-...` branch, which carries no work.** `.factory/hooks/verify-sha-currency.sh` does not exist in this project — that hook is prism-specific, not a skipped check.
+
+### PER-WORKSTREAM STATE AND NEXT-ACTION
+
+**1. Phase 3 wave 1 — `S-1.01`. RESUME NEXT-ACTION:** deliver `S-1.01` (`Workspace Scaffold, Shared Types, and Default-CWD File Discovery`, 8 pts, `tdd_mode: strict`, spec at `.factory/stories/S-1.01-workspace-scaffold-and-core-discovery.md`) through **every** step of `per-story-delivery.md`, in the worktree that already exists at `.worktrees/S-1.01/`: (a) test-writer/stub-architect compilable `todo!()` stubs → (b) test-writer failing tests → **Red Gate: independently run `cargo test` in the worktree and verify all fail, density ≥0.5** → (c) implementer TDD with micro-commits → (d) demo-recorder per-AC demos → (e) **Step 4.5 per-story adversarial convergence, 3 clean passes minimum (BC-5.39.001), BEFORE demo recording completes the story** → (f) push → (g) pr-manager full 9-step PR lifecycle → (h) worktree cleanup. **No shortcuts, no skipped demo recording, never spawn github-ops directly for PR work.** `S-1.01` creates all 10 of its files (`Cargo.toml`, both crate manifests, `lib.rs`, `types.rs`, `main.rs`, `scanner.rs`, and two test files) — it is self-contained with zero cross-story file conflicts.
+**KNOWN OUTSTANDING:** `sprint-state.yaml` still shows `S-1.01` as `status: pending` / `current_wave: 1`; it was deliberately NOT flipped to in-progress to avoid a concurrent-write race with the Blocker 2 repair, which owned that file. Flip it via state-manager as the first step of delivery.
+
+**2. Wave-1 gate = DEV-11 Run A endpoint. RESUME NEXT-ACTION:** at the wave-1 wave gate, RE-ASK the operator stop-vs-continue. Under re-scoped criterion 6, wave 1 has NO evaluable holdout, so holdout evaluation is vacuously satisfied there — do not treat its absence as a gate failure.
+
+**3. Waves 2–7. RESUME NEXT-ACTION:** blocked behind the wave-1 gate. Post-repair composition: wave 2 = S-1.02 S-1.03 S-3.01 S-3.03 S-5.02 S-6.01 (6 stories / 34 pts); wave 3 = S-1.04 S-2.01 S-7.01 S-7.02 (4/21); wave 4 = S-2.02 S-3.02 S-4.02 S-5.01 S-7.03 (5/31); wave 5 = S-2.03 S-3.04 S-4.01 S-5.03 S-6.02 (5/34); wave 6 = S-4.03 S-5.04 (2/21); wave 7 = S-7.04 (1/3). Critical path 47 pts: S-1.01 → S-1.03 → S-2.01 → S-3.02 → S-4.01 → S-4.03 → S-7.04. Waves equal dependency layers; 37 edges; graph acyclic.
+
+### PENDING OPERATOR-APPROVED WORK NOT YET STARTED
+
+Phase 3 wave 1 delivery of `S-1.01` is APPROVED and UNSTARTED (gate #59 Q2 ruling: proceed to wave 1 now). No other approved-but-unstarted work exists. Blocker 2 repair — the other item approved this session — is DONE and committed.
+
+### GATE #59 RULINGS AND CARRIED CONDITIONS (D-249)
+
+Q1 criterion 6 **RE-SCOPED** to "≥1 holdout per wave WHERE EVALUABLE"; waves 1/3/4/6/7 vacuously satisfied, waves 2 (HS-007) and 5 (HS-001/004/005/006/008) covered; new-holdout authoring for E-2/E-4/E-5/E-7 → POST-RUN BACKLOG. Q2 **PROCEED TO WAVE 1**, repair Blocker 2 in-window (done). Q3 **APPROVED** re-homing VP-004 P6 → S-3.04 AC-006 (consolidated, no duplicate) and P5 → S-4.03 AC-024; D-165 binding HELD — both remain INTEGRATION TESTS, not Kani proofs. Q4 **KEEP 7 WAVES**.
+Carried conditions: **C1** Blocker 2 repaired+re-verified before any wave 2 dispatch — **SATISFIED** (`a1d2608`). **C2** wave-1 gate is the DEV-11 Run A endpoint with stop-vs-continue re-ask — OPEN. **C3** merges and verdict posts remain HUMAN-executed via operator-packaged commands — STANDING.
+
+### STANDING RULINGS UNCHANGED
+
+Closed-world (D-244): no defect hunting beyond the known register; incidental discoveries = one-line register entries only. No mid-run hook/process edits (D-158/D-182/D-231). Merges + verdict posts HUMAN-executed via operator-packaged commands (gate-#28 v3, D-120); never merge on an unposted verdict; `gh pr review` is structurally impossible (BI-039/D-021/D-105) — verdicts go via `gh pr comment`. L-78 outcome-with-evidence-first returns. D-193/L-81 verify every agent report by direct execution. L-82 always include the explicit "leave it unfixed" null option in fix dispatches, and never accept an agent's own classification of what it changed — diff it. Drift re-stamp NOT wanted (62 disclosed drifts stay as-is). **BI-062 is LIVE and unrepaired** — the `pr-manager-completion-guard` hook manufactures `AUTHORIZE_MERGE=yes` it was never granted and degrades agent reporting; carry BI-060/BI-062 refuse-and-record VERBATIM in every reviewer and pr-manager prompt.
+
+### FINDINGS REGISTER — recorded this session, NO work performed
+
+- `BC-2.11.001` postcondition 4 asserts `--ignore` does not affect explicit PATH arguments, contradicted by the `[AMB-108]` note on that same line and by `BC-2.11.003` invariant 1 ("`--ignore` wins over explicit PATH. Always."). Stale post-adjudication text; stories correctly built on BC-2.11.003.
+- `BC-2.03.002` v1.6 records VP-NONE ×2 with "integration test required in story", while VP-INDEX v1.7 line 163 still maps it to VP-019. S-2.02 discloses both readings and carries the integration-test obligations; NO side adjudicated — operator adjudication still open.
+- **VP-attribution drift quantified: 9 of 66 BCs disagree** across VP-INDEX / BC-file VP section / `bc-module-map.md`. VP-INDEX vs BC-file: BC-2.01.004, BC-2.05.001, BC-2.06.001, BC-2.10.005, BC-2.10.006. VP-INDEX vs bc-module-map: BC-2.07.001, BC-2.08.001, BC-2.10.005, BC-2.10.006, BC-2.12.001, BC-2.13.001. **Six are exactly the BCs VP-INDEX v1.7's changelog says BI-052 remediated — that remediation updated VP-INDEX and never propagated to `bc-module-map.md`.** The 9 is a LOWER BOUND: BC-2.03.002 escapes it because its VP section says `VP-NONE` while naming "VP-019" in prose, defeating lexical extraction (an instance of L-79).
+- **No spec-lint checker reads `bc-module-map.md` at all** (only the `gen-bc-traceability.py` generator); four checkers read VP-INDEX but none cross-validates per-BC VP attribution across the three artifacts.
+- `S-4.03` sits at exactly the 13-point ceiling covering 7 BCs after gate #59 added BC-2.07.004; split candidate.
+- `BC-2.07.001`, `BC-2.07.002`, `BC-2.07.003` are each co-implemented by multiple E-4 stories and are only fully satisfied once every contributing story lands.
+- `epics.md` labels epics `EPIC-01..EPIC-07` while stories carry template-mandated `epic_id: E-1..E-7`; mapping is 1:1 and documented, but two conventions coexist.
+- Story `timestamp:` fields were written as `2026-08-10T00:00:00Z` (midnight) rather than actual write time.
+
+### POST-RUN BACKLOG — ADDITIONS FROM THIS SESSION
+
+- **`[process-gap]` NO CHECKER VALIDATES FILE-LIFECYCLE ORDERING.** Blocker 2 existed because story `File Structure Requirements` tables were authored per-story in parallel with no global reconciliation, and nothing detects a story declaring `modify` on a file created in a later wave (or the same wave, or never). Gate criterion 4 validates dependency-edge ordering only. Needs a checker asserting, across all stories: no `modify` before/at the wave of its `create`, no `modify` without a creator, no dual-`create`. **S-7.02 cycle-closing obligation: this is a process-gap finding and needs a follow-up story or a justified deferral before the cycle may be declared CLOSED.**
+- **`[process-gap]` NO CHECKER CROSS-VALIDATES VP ATTRIBUTION** across BC-file VP section / VP-INDEX / `bc-module-map.md` — routes into the existing BI-058 nine-checker sweep scope.
+- New holdout scenarios covering E-2 (link extraction), E-4 (relative path resolution), E-5 (external URL checking), E-7 (output/reporting/exit codes) — per gate #59 Q1.
+Carried forward unchanged: BI-058 nine-checker ledger sweep; BI-063 semantic claim-audit; adversary passes 8/9/10 and the 3-clean streak; BI-062 and BI-064 hook repairs; PG-013+ process-gap promotions (~20 lessons L-60..L-82 never promoted); CI-063 wording revision; the L-77 read-what-you-commit carve-out; ~39 EC registry additions; 62 pre-existing input-hash drifts plus 1 unverifiable artifact and 3 structurally-uncovered files; the STATE.md repair; and the 6 reserved-but-unauthored holdout EC ids (EC-079/093/094/141/147/148).
+
+### SPEC-LINT AND VERIFICATION STATUS
+
+**8 of 9 checkers PASS, unchanged from session start — Phase 2 perturbed the frozen corpus not at all; `.factory/specs/` shows ZERO modifications across all seven commits.** `check-ec-injectivity.py` is RED at **exactly 39** SCENARIO-MISMATCH BY DESIGN per D-246, a LOWER BOUND per D-126. `check-holdout-boundary` and `check-index-integrity` both re-verified PASS after the HS-INDEX v1.4 edit. Spec-lint REQUIRED flip remains DEFERRED, job stays ADVISORY, but its D-244(3) precondition ("clean OR adjudicated") is satisfied by D-246. Residual verification gap unchanged: VP-007's dns/tls/timeout harnesses cannot be proven until `HttpAttempt` gains transport-error variants or a `classify_error` function exists; BC-2.10.005/BC-2.10.006 are VP-pending and stories correctly claim NO VP for them; DI-010's dns/tls carve-outs remain DISCLOSED, not hidden.
+
+### SPEC SNAPSHOT
+
+PRD **v1.15** | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-214 | holdout pool 12 reserved / 6 authored-and-active (HS-001, HS-004..HS-008; HS-002/HS-003 retired) | HS-INDEX **v1.4** | 134 spec files. Phase-1 gate package `cycles/phase-1d/phase-1-human-gate-package.md` v1.2 `ratified-with-condition`; Phase-2 gate package `cycles/phase-2/phase-2-human-gate-package.md` **v1.1 `ratified-with-conditions`**.
+
+### PHASE 2 ARTIFACT INVENTORY
+
+`stories/epics.md` (7 epics) · `stories/S-{1.01–1.04, 2.01–2.03, 3.01–3.04, 4.01–4.03, 5.01–5.04, 6.01–6.02, 7.01–7.04}.md` (24) · `stories/STORY-INDEX.md` · `stories/dependency-graph.md` (37 edges) · `stories/sprint-state.yaml` · `cycles/phase-2/wave-schedule.md` v1.1 · `cycles/phase-2/phase-2-human-gate-package.md` v1.1 · `holdout-scenarios/HS-INDEX.md` v1.4. Canonical story ids are `S-N.MM`; `STORY-NNN` is legacy and unused.
+
+### DECISION DELTA THIS SESSION
+
+**D-249** (operator gate #59 — Phase 2 RATIFIED WITH CONDITIONS: criterion 6 re-scoped to "where evaluable"; proceed to wave 1 and repair Blocker 2 in-window; VP-004 P5/P6 re-homing approved with D-165 integration-test binding held; 7 waves kept; conditions C1 satisfied, C2 open, C3 standing). **D-250** = this wrap.
+
+### WORKTREE INVENTORY
+
+`.factory/` — ACTIVE, `factory-artifacts` @ `a1d2608`, keep. `.worktrees/S-1.01/` — ACTIVE, `feature/S-1.01-workspace-scaffold-and-core-discovery` @ `f81f412`, CLEAN and EMPTY, **keep** (wave-1 delivery resumes in it; branch is local-only and carries no work, so it is safe to delete and recreate if preferred). Nothing stale, nothing removable. Exactly THREE worktrees: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `develop`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/S-1.01` on the feature branch.
