@@ -6,7 +6,7 @@
 #
 # Reference: https://embarkstudios.github.io/cargo-deny/
 #
-# Schema: cargo-deny 0.17+ (incompatible with pre-0.16 advisory severity fields)
+# Schema: cargo-deny 0.17.0 (CI-pinned version; compatible with 0.19+ as well)
 
 [graph]
 # Check all features and targets to catch transitive deps that only appear
@@ -60,14 +60,12 @@ ignore = true
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 
-# Scope of unmaintained-crate checks: "none" mirrors the original "warn"
-# (non-blocking) intent from the pre-0.17 schema.  Upgrade to "workspace"
-# or "all" when ready to enforce this as a hard gate.
-unmaintained = "none"
-
 # Known acceptable advisories (empty — deny all unless explicitly noted here).
 # Vulnerabilities are always hard errors in cargo-deny 0.17+.
 # Yanked crates are denied by default in cargo-deny 0.17+.
+# The pre-0.17 "unmaintained = warn" severity field was removed in 0.17; the
+# key was later reintroduced in 0.19+ with scope values.  It is omitted here
+# to remain compatible with the CI-pinned 0.17.0 binary.
 ignore = []
 
 # ─────────────────────────────────────────────────────────────────
