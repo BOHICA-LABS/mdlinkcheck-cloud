@@ -3,7 +3,7 @@ test:      test_BC_2_01_005_non_md_extensions_excluded
 command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_005_non_md_extensions_excluded)'
 toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
 nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
-commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+commit:    9a9b46c4ba30b57c95f7d96156ce36be1136877e
 
 NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
 crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
@@ -11,9 +11,9 @@ panics if run and no CLI or terminal demo is possible at this story. Evidence
 is therefore test-execution based, which is the honest available form.
 
 ----- BEGIN EXECUTION OUTPUT -----
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
 ────────────
- Nextest run ID 47f80897-76bf-430d-82da-b58e2eeecdc3 with nextest profile: default
+ Nextest run ID 35f30b55-f6f5-4321-a1b3-84be1a05f27a with nextest profile: default
     Starting 1 test across 6 binaries (43 tests skipped)
        START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_non_md_extensions_excluded
 
@@ -22,9 +22,9 @@ test test_BC_2_01_005_non_md_extensions_excluded ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
 
-        PASS [   0.012s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_non_md_extensions_excluded
+        PASS [   0.015s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_non_md_extensions_excluded
 ────────────
-     Summary [   0.014s] 1 test run: 1 passed, 43 skipped
+     Summary [   0.016s] 1 test run: 1 passed, 43 skipped
 ----- END EXECUTION OUTPUT -----
 exit_code: 0
 

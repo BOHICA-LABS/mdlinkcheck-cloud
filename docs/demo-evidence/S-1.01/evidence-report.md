@@ -2,7 +2,7 @@
 
 **Branch:** `feature/S-1.01-workspace-scaffold-and-core-discovery`
 **Worktree:** `.worktrees/S-1.01/`
-**Commit:** `98a4f15`
+**Commit:** `9a9b46c`
 **Recorded:** 2026-08-11
 **Toolchain:** rustc 1.97.0 · cargo-nextest 0.9.129 (CI pins nextest 0.9.98; suite verified green under both)
 
@@ -35,11 +35,11 @@ assertion the test makes, and the test's full source — so a reader can judge
 | AC-003 | BC-2.01.001 post 3 | `test_BC_2_01_001_scan_terminates_for_finite_tree` | `AC-003-…txt` | PASS |
 | AC-004 | BC-2.01.003 post 1 | `test_BC_2_01_003_gitignore_excludes_from_scan_set` | `AC-004-…txt` | PASS |
 | AC-005 | BC-2.01.003 inv 1 | `test_BC_2_01_003_gitignored_file_not_scanned_as_source` | `AC-005-…txt` | PASS |
-| AC-006 | BC-2.01.003 inv 2 | `test_BC_2_01_003_gitignored_file_anchor_table_built_as_target` | `AC-006-…txt` | PASS |
+| AC-006 | BC-2.01.003 inv 2 | `test_BC_2_01_003_gitignored_file_anchor_table_built_as_target` | `AC-006-…txt` | PASS (clause i only — see note) |
 | AC-007 | BC-2.01.004 post 1 | `test_BC_2_01_004_dot_directories_unconditionally_skipped` | `AC-007-…txt` | PASS |
 | AC-008 | BC-2.01.004 inv 1 | `test_BC_2_01_004_no_override_flag_for_dot_dir_skip` | `AC-008-…txt` | PASS |
 | AC-009 | BC-2.01.004 post 2 | `test_BC_2_01_004_directory_symlinks_not_followed` | `AC-009-…txt` | PASS |
-| AC-010 | BC-2.01.004 inv 3 | `test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target` | `AC-010-…txt` | PASS |
+| AC-010 | BC-2.01.004 inv 3 | `test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target` | `AC-010-…txt` | PASS (clause i only — see note) |
 | AC-011 | BC-2.01.005 post 1 | `test_BC_2_01_005_exact_md_extension_included` | `AC-011-…txt` | PASS |
 | AC-012 | BC-2.01.005 post 2 | `test_BC_2_01_005_non_md_extensions_excluded` | `AC-012-…txt` | PASS |
 | AC-013 | BC-2.01.005 inv 1 | `test_BC_2_01_005_case_sensitive_byte_match` | `AC-013-…txt` | PASS |
@@ -48,6 +48,30 @@ Every one of the 13 tests named in the story spec exists verbatim and passes whe
 run individually via `-E 'test(=<name>)'`. Full suite at this commit:
 **44 tests run: 44 passed, 0 skipped**, plus `POL-11 PASS: 44 tests across 6 binaries`.
 
+**Partial-coverage disclosure — AC-006 and AC-010 (BI-106)**
+
+AC-006 (`test_BC_2_01_003_gitignored_file_anchor_table_built_as_target`) and
+AC-010 (`test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target`) each
+have two clauses. The table above shows PASS for both, but the coverage is
+partial:
+
+- **Clause (i) — excluded file must NOT appear in scan set**: asserted and
+  discharged. Both tests contain a `!result.contains(...)` negative assertion
+  plus a `result.contains(...)` vacuous-pass guard. The tests' own in-source
+  comments confirm this scope: "clause (i) of BC-2.01.003 invariant 2" and
+  "clause (i) of BC-2.01.004 invariant 3".
+
+- **Clause (ii) — anchor table built as target**: **untested and deferred**.
+  The anchor-table infrastructure (`build_anchor_table` / link-resolution) does
+  not exist in S-1.01 and will not exist until S-1.02 or later. There is no
+  assertion in either test that verifies a gitignored or dot-directory file
+  appears in an anchor table. The test names reference this intent in their
+  names, but the implementations are clause-(i)-only stubs scoped to what the
+  scanner currently provides.
+
+Deferral target: S-1.02 (anchor-table stories). These ACs will require
+additional test logic once the anchor-table infrastructure exists.
+
 ---
 
 ## Discrimination evidence — the tests fail when the behaviour breaks
@@ -55,17 +79,24 @@ run individually via `-E 'test(=<name>)'`. Full suite at this commit:
 A green test suite is not evidence that the tests *discriminate*. Six targeted
 mutations were applied to `scanner.rs` in a hermetic out-of-tree copy, each with
 an assert-mutant-landed check (a `cmp` against the pristine file) so that a
-no-op edit could not be mistaken for a kill. Full transcript in
-`discrimination-matrix.txt`.
+no-op edit could not be mistaken for a kill. Every run used `--no-fail-fast` so
+that all 44 tests ran to completion regardless of earlier failures — a
+`N/M tests run` summary with N < M means cancellation and any count taken from it
+is a floor, not a measurement. Full corrected transcript in
+`discrimination-matrix.txt`. The previously published counts (6/2/10/2) were
+wrong: the original runs used fail-fast (stopping at the first failure) and
+counted FAIL lines rather than distinct test names (each test appeared twice —
+once streamed, once in the end-of-run recap). See BI-103 for the root-cause
+record.
 
-| Mutation | Tests killed |
-|----------|--------------|
-| Extension match made case-**in**sensitive | 6 |
-| Dot-directory `filter_entry` guard removed | 2 |
-| `.gitignore` honouring disabled | 10 |
-| Directory symlinks followed (`follow_links(true)`) | 2 |
-| `files.sort()` + `files.dedup()` removed | **0** |
-| `collect_md_files` post-filter backstop removed | **0** |
+| Mutation | Tests killed | Killing tests |
+|----------|:------------:|---------------|
+| Extension match made case-**in**sensitive | **3** | `test_BC_2_01_005_case_sensitive_byte_match`, `test_BC_2_01_005_ec005_ec006a_ec006b_traversal_excludes_non_md_extensions`, `test_BC_2_01_005_non_md_extensions_excluded` |
+| Dot-directory `filter_entry` guard removed | **1** | `test_BC_2_01_004_inv1_build_walk_filter_entry_guard_is_active` |
+| `.gitignore` honouring disabled | **7** | `test_BC_2_01_003_post3_global_gitignore_respected_when_available`, `test_BC_2_01_003_gitignore_excludes_from_scan_set`, `test_BC_2_01_003_inv1_gitignored_source_not_scanned_real_gitignore`, `test_BC_2_01_003_post1_ancestor_gitignore_honoured_parents_true`, `test_BC_2_01_003_post1_gitignore_honored_outside_git_repo`, `test_build_walk_filter_entry_replaceable_but_collect_md_files_backstop_holds`, `test_vp016_gitignored_files_never_in_scan_set` |
+| Directory symlinks followed (`follow_links(true)`) | **2** | `test_BC_2_01_004_ec009_directory_symlink_to_outside_not_followed`, `test_vp017_scan_terminates_arbitrary_tree` |
+| `files.sort()` + `files.dedup()` removed | **0** | — survivor |
+| `collect_md_files` post-filter backstop removed | **0** | — survivor |
 
 ### The two survivors are disclosed, not hidden
 
@@ -77,10 +108,15 @@ no-op edit could not be mistaken for a kill. Full transcript in
   duplicate, so the dedup call is defensive and currently unobservable.
 
 - **Post-filter backstop removal survives — newly recorded (BI-095).** The
-  `filter_entry` guard and the `collect_md_files` post-filter are **mutually
-  masking**: removing either one alone leaves all 44 tests green. `filter_entry`
-  covers dot-**directories** for every `collect_md_files` consumer, so the
-  backstop's unique contribution is dot-**files**. The existing
+  masking is **one-directional, not mutual** (BI-105): removing the `filter_entry`
+  guard alone kills `test_BC_2_01_004_inv1_build_walk_filter_entry_guard_is_active`
+  (M2, 1 kill) — that test declares itself in its own assertion message "the sole
+  regression lock for the builder-level guard". So `filter_entry` is **independently
+  locked**. Only the post-filter backstop is the unlocked half: removing it alone
+  leaves all 44 tests green (M6, 0 kills). The `filter_entry` guard covers
+  dot-**directories** for every `collect_md_files` consumer; the backstop's unique
+  contribution — the reason it survives deletion undetected — is dot-**files**. The
+  existing
   `test_build_walk_filter_entry_replaceable_but_collect_md_files_backstop_holds`
   does not lock the backstop — it asserts a property `filter_entry` alone
   satisfies.
@@ -103,7 +139,10 @@ no-op edit could not be mistaken for a kill. Full transcript in
 ## Honest status of this story at this commit
 
 - All 13 ACs have passing, individually-executed, assertion-bearing evidence.
-- All four branch-protection-required CI checks are **green** at `98a4f15`.
+  AC-006 and AC-010 are clause-(i)-only: clause (ii) is deferred to S-1.02
+  because the anchor-table infrastructure does not yet exist (see partial-coverage
+  disclosure above, BI-106).
+- All four branch-protection-required CI checks are **green** at `9a9b46c`.
 - The story is **NOT CONVERGED**. Three confirming rounds have run (adversary
   passes 16–18, 19–21, 22–24) and every one returned `MATERIAL_FINDINGS`;
   `passes_clean` is **0 of 3** required under BC-5.39.001. A fourth confirming

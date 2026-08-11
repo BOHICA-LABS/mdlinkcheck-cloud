@@ -3,7 +3,7 @@ test:      test_BC_2_01_003_gitignored_file_not_scanned_as_source
 command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_003_gitignored_file_not_scanned_as_source)'
 toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
 nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
-commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+commit:    9a9b46c4ba30b57c95f7d96156ce36be1136877e
 
 NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
 crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
@@ -13,7 +13,7 @@ is therefore test-execution based, which is the honest available form.
 ----- BEGIN EXECUTION OUTPUT -----
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
 ────────────
- Nextest run ID c7fbdf8a-aa7c-4d2a-a52b-5bfef7f6f77a with nextest profile: default
+ Nextest run ID e8e47d02-5548-49a9-9f33-482705228068 with nextest profile: default
     Starting 1 test across 6 binaries (43 tests skipped)
        START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_gitignored_file_not_scanned_as_source
 

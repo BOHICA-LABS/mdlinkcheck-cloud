@@ -3,7 +3,7 @@ test:      test_BC_2_01_004_no_override_flag_for_dot_dir_skip
 command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_004_no_override_flag_for_dot_dir_skip)'
 toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
 nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
-commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+commit:    9a9b46c4ba30b57c95f7d96156ce36be1136877e
 
 NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
 crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
@@ -13,7 +13,7 @@ is therefore test-execution based, which is the honest available form.
 ----- BEGIN EXECUTION OUTPUT -----
     Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
 ────────────
- Nextest run ID 3e3c1fce-11b6-44f2-8547-2b8b9cf7ed13 with nextest profile: default
+ Nextest run ID 3adc8fd2-cff6-4fb4-afde-c48bb4444747 with nextest profile: default
     Starting 1 test across 6 binaries (43 tests skipped)
        START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_no_override_flag_for_dot_dir_skip
 
@@ -22,9 +22,9 @@ test test_BC_2_01_004_no_override_flag_for_dot_dir_skip ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
 
-        PASS [   0.015s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_no_override_flag_for_dot_dir_skip
+        PASS [   0.016s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_no_override_flag_for_dot_dir_skip
 ────────────
-     Summary [   0.015s] 1 test run: 1 passed, 43 skipped
+     Summary [   0.017s] 1 test run: 1 passed, 43 skipped
 ----- END EXECUTION OUTPUT -----
 exit_code: 0
 

@@ -3,7 +3,7 @@ test:      test_BC_2_01_004_directory_symlinks_not_followed
 command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_004_directory_symlinks_not_followed)'
 toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
 nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
-commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+commit:    9a9b46c4ba30b57c95f7d96156ce36be1136877e
 
 NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
 crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
@@ -11,9 +11,9 @@ panics if run and no CLI or terminal demo is possible at this story. Evidence
 is therefore test-execution based, which is the honest available form.
 
 ----- BEGIN EXECUTION OUTPUT -----
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
 ────────────
- Nextest run ID 89b279cb-e788-4736-8ae4-a69b333067e5 with nextest profile: default
+ Nextest run ID 4254e27a-08af-4853-8201-c2b4153ba6c9 with nextest profile: default
     Starting 1 test across 6 binaries (43 tests skipped)
        START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_directory_symlinks_not_followed
 
@@ -22,9 +22,9 @@ test test_BC_2_01_004_directory_symlinks_not_followed ... ok
 
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
 
-        PASS [   0.014s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_directory_symlinks_not_followed
+        PASS [   0.015s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_directory_symlinks_not_followed
 ────────────
-     Summary [   0.014s] 1 test run: 1 passed, 43 skipped
+     Summary [   0.015s] 1 test run: 1 passed, 43 skipped
 ----- END EXECUTION OUTPUT -----
 exit_code: 0
 
