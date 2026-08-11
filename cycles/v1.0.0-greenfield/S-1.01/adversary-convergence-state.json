@@ -1,29 +1,83 @@
 {
   "story_id": "S-1.01",
   "cycle": "v1.0.0-greenfield",
-  "passes_run": 9,
+  "passes_run": 15,
   "passes_clean": 0,
-  "last_round_classifications": ["NITPICK_ONLY", "MATERIAL_FINDINGS", "MATERIAL_FINDINGS"],
+  "last_round_classifications": ["MATERIAL_FINDINGS", "MATERIAL_FINDINGS", "MATERIAL_FINDINGS"],
   "last_classification": "MATERIAL_FINDINGS",
   "converged": false,
   "required_clean_passes": 3,
   "blocking_gate": "BC-5.39.001",
-  "head_sha": "7bea0b2",
-  "tests_total": 41,
+  "head_sha": "70f1f19",
+  "tests_total": 42,
   "clippy_deny_warnings_exit": 0,
   "production_defects_found_and_fixed": [
-    "F-B2 require_git",
-    "F-A1 dot-dir whitelist bypass",
-    "F-P2-01 non-UTF-8 guard fail-open"
+    "F-B2 require_git(false) missing",
+    "F-A1 dot-dir whitelist-negation bypass",
+    "F-P2-01 non-UTF-8 guard fail-open",
+    "P14-02/P15-01 dot-dir guard erasable via replacing filter_entry; backstopped inside collect_md_files"
   ],
   "operator_rulings": [
     {
       "id": "D-252a",
       "subject": "dot-FILE exclusion",
       "ruling": "defer and disclose; current behavior stands"
+    },
+    {
+      "id": "D-254",
+      "subject": "convergence perimeter freeze",
+      "ruling": "freeze lens set at six families already exercised (L1-L6); run ONE confirming round against fixed perimeter; new-lens findings route to S-1.02 or register entries, not S-1.01 blockers"
     }
   ],
-  "note": "Nine adversary passes run (passes 1-6 from prior session; passes 7-9 this session). Most recent round: NITPICK_ONLY, MATERIAL_FINDINGS, MATERIAL_FINDINGS. passes_clean = 0 of 3 required. All findings fixed, adjudicated-deferred to S-1.02, or resolved via operator ruling. Empirical trend: each round has surfaced real defects with decreasing severity (HIGH -> MED -> MED/NIT); convergence plausibly one to two rounds away but NOT yet demonstrated. Resume next-action: fresh round of 3 lens-diversified passes against 7bea0b2 with accumulated do-not-report disclosure list injected.",
+  "frozen_perimeter": {
+    "status": "FROZEN",
+    "frozen_at_passes": 15,
+    "confirming_round_status": "PENDING",
+    "confirming_round_target_head": "70f1f19",
+    "root_cause_of_non_convergence": "BC-5.39.001 '3 consecutive clean passes' presumes a FIXED review perimeter. The orchestrator was lens-diversifying each round, examining previously-unexamined surface and finding real defects there — the criterion was applied to a MOVING perimeter; by construction there is always another lens.",
+    "operator_ruling_rationale": "Applies standing residual-risk posture (gate #53/#57, workable-not-perfect, deal-breakers only) at story scale. The residual class is documentation-accuracy, which is DISCLOSED not hidden.",
+    "lenses": [
+      {
+        "id": "L1",
+        "name": "Spec-compliance",
+        "description": "BC clause conformance and AC-by-AC verification",
+        "instantiated_in_passes": [2, 4, 14]
+      },
+      {
+        "id": "L2",
+        "name": "Code-correctness",
+        "description": "traversal semantics and mutation coverage",
+        "instantiated_in_passes": [1, 3, 5, 9]
+      },
+      {
+        "id": "L3",
+        "name": "Test-integrity",
+        "description": "assertion discrimination, vacuity, and whether tests actually execute under the CI runner",
+        "instantiated_in_passes": [6, 8, 14]
+      },
+      {
+        "id": "L4",
+        "name": "Hostile-filesystem and platform semantics",
+        "description": "non-UTF-8 names, trailing-dot names, symlinks, hardlinks, macOS/APFS behavior",
+        "instantiated_in_passes": [10]
+      },
+      {
+        "id": "L5",
+        "name": "Public-API contract and downstream consumability",
+        "description": "visibility, type contracts, forward-compatibility with S-1.02..S-7.02",
+        "instantiated_in_passes": [11]
+      },
+      {
+        "id": "L6",
+        "name": "Build/dependency/CI configuration integrity",
+        "description": "including fix-integrity/partial-fix regression and semantic claim-truth auditing",
+        "instantiated_in_passes": [12, 13, 15]
+      }
+    ],
+    "new_lens_routing": "Findings from any lens NOT in L1-L6 route to S-1.02 input or register entries and are NOT S-1.01 blockers. Findings MATERIAL on the frozen perimeter (L1-L6) are still blockers.",
+    "decision_ref": "D-254"
+  },
+  "note": "Fifteen adversary passes run across 5 rounds (passes 1-9 from prior sessions; passes 10-15 this session). All five rounds returned MATERIAL_FINDINGS; passes_clean = 0 of 3 required. ROOT CAUSE OF NON-CONVERGENCE adjudicated: BC-5.39.001 '3 consecutive clean passes' criterion was applied to a MOVING perimeter (lens-diversification each round). OPERATOR RULING (D-254): freeze lens set at six families already exercised (L1-L6); run ONE confirming round against the fixed perimeter. Production defects found and fixed: F-B2, F-A1, F-P2-01, P14-02/P15-01. Confirming round (passes 16-18 on frozen perimeter) PENDING against HEAD 70f1f19.",
   "findings": [
     {
       "pass": 1,
@@ -128,6 +182,72 @@
       "finding_ids": ["F-P2-01-convergent"],
       "dispositions": {
         "F-P2-01-convergent": "fixed-in-7bea0b2 — independently confirmed F-P2-01 non-UTF-8 guard fail-open on a different lens from pass 8; two independent adversary passes on different lenses converging on the same finding was treated as high-confidence; same fix in 7bea0b2 resolves both"
+      }
+    },
+    {
+      "pass": 10,
+      "lens": "L4-hostile-filesystem-platform",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["P10-01", "P10-02", "P10-03"],
+      "dispositions": {
+        "P10-01": "deferred-register — hardlink/inode aliasing: one inode reachable by two hardlinked paths yields two collect_md_files entries; BC-2.01.001 postcondition 2 says 'not scanned more than once'; operator intent unadjudicated; recorded as BI-068",
+        "P10-02": "deferred-to-S-1.02 — trailing-dot directory names (e.g. 'docs./') behavior not defined in S-1.01 BCs; unreachable via normal filesystems but possible on some platforms",
+        "P10-03": "accepted-register-entry — macOS HFS+ case-insensitive filesystem could produce path aliasing distinct from symlinks or hardlinks; CI runs on macos-latest only (D-043); no test coverage for case-sensitivity edge cases"
+      }
+    },
+    {
+      "pass": 11,
+      "lens": "L5-public-api-contract",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["P11-01", "P11-02"],
+      "dispositions": {
+        "P11-01": "accepted-register-entry — AnchorTable field is pub whereas api-surface.md line 80 specifies private; real invariant-erosion risk across 7 downstream stories; deferred to E-2 (companion to C-C1 from pass 6; independently re-found on L5 lens)",
+        "P11-02": "disclosed-in-7f2d38e — absent Link type: module-decomposition.md:60, module-criticality.md:69, domain-spec/entities.md all name Link; api-surface.md §Key Shared Types has ExtractedLink not Link; implementation followed api-surface.md and discloses the omission; 8-vs-7 type count disclosed in commit message; operator decision pending (BI-066)"
+      }
+    },
+    {
+      "pass": 12,
+      "lens": "L6-build-dependency-ci",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["P12-01", "P12-02", "P12-03", "P12-04", "P12-05"],
+      "dispositions": {
+        "P12-01": "fixed-in-e69276c — profile.release missing from workspace Cargo.toml; cargo-deny and other tooling expect it",
+        "P12-02": "fixed-in-e69276c — --locked missing from cargo nextest CI invocation; lockfile not enforced at gate",
+        "P12-03": "fixed-in-e69276c — kani installation path incorrect in CI workflow",
+        "P12-04": "fixed-in-e69276c — deny.toml schema incompatible with pinned cargo-deny 0.17.0; original migration validated against wrong version",
+        "P12-05": "fixed-in-e69276c — rust-version field inconsistent between workspace metadata and package tables"
+      }
+    },
+    {
+      "pass": 13,
+      "lens": "L6-build-dependency-ci",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["P13-01", "P13-02", "P13-03"],
+      "dispositions": {
+        "P13-01": "fixed-in-bbb79e6 — deny.toml residual corrections: schema compatibility with 0.17.0; license = MIT OR Apache-2.0 alignment with spec",
+        "P13-02": "fixed-in-ceb30ab — cargo-deny 0.17.0 cannot parse current RustSec advisory database (CVSS 4.0 unsupported; RUSTSEC-2026-0073); weekly hardening job broken independent of project config; pin bumped to 0.19.0",
+        "P13-03": "fixed-in-ceb30ab — MSRV spec contradiction: mandated library versions (ignore 0.4.33, globset 0.4.20) require rust-version = 1.88 but spec declares MSRV 1.85; exit 101 confirmed under cargo +1.85; operator ruled raise MSRV to 1.88 (D-253)"
+      }
+    },
+    {
+      "pass": 14,
+      "lens": "L1-spec-compliance-L3-test-integrity",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["P14-01", "P14-02", "P14-03"],
+      "dispositions": {
+        "P14-01": "fixed-in-70f1f19 — stale defect-tense comments referencing F-P2-01 still in present-tense defect voice after the fix was confirmed and committed",
+        "P14-02": "fixed-in-70f1f19 — dot-dir guard erasable: WalkBuilder::filter_entry closure is public API; any caller can replace it, removing the guard added for F-A1; HIGH severity; fix backstopped guard unconditionally inside collect_md_files so no external caller can erase it; real production defect; independently confirmed by pass 15",
+        "P14-03": "fixed-in-70f1f19 — harness=false fn main() in global_gitignore_test.rs did not handle argv properly; test parser was fail-open if invoked with unexpected arguments; fixture hermeticity gap"
+      }
+    },
+    {
+      "pass": 15,
+      "lens": "L6-build-dependency-ci",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["P15-01", "P15-02"],
+      "dispositions": {
+        "P15-01": "fixed-in-70f1f19 — dot-dir guard erasable independently confirmed on L6 lens (same underlying defect as P14-02 from pass 14); two independent adversary passes on different lenses (L1/L3 and L6) converging on the same finding treated as high-confidence; same fix in 70f1f19 resolves both",
+        "P15-02": "fixed-in-70f1f19 — duplicate MSRV CI job name: concurrent config edits produced two jobs named 'MSRV check (1.88)'; branch protection keys on check-run NAME making the required gate ambiguous/last-writer-wins; merged into single authoritative job"
       }
     }
   ]
