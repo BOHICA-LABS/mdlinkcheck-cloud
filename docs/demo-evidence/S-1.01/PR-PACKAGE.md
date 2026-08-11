@@ -6,20 +6,22 @@
 
 # PRE-EXECUTION BLOCKER
 
-**This package is NOT cleared for execution.**
+**Adversarial convergence recorded: ACHIEVED-WITH-DISCLOSED-RESIDUALS (D-254/D-263).**
 
-Adversarial convergence for S-1.01 requires **3 clean consecutive confirming passes** under
-BC-5.39.001. Four confirming rounds have run (passes 16–18, 19–21, 22–24, 25–27) and every
-one returned `MATERIAL_FINDINGS`. `passes_clean` = **0 of 3** required. Round 4 (passes 25–27)
-found a leading-`::`-plus-rename escape from the ADR-001 purity gate (BI-096), fixed at
-`9a9b46c` and confirmed closed. A **scoped confirming review of the changed surface** is still
-required before this package is conventionally cleared.
+The standard BC-5.39.001 criterion (three consecutive clean passes) was **never met** — every
+pass 16–27 returned `MATERIAL_FINDINGS`, `passes_clean` was **0 of 3**. Convergence is recorded
+on an operator-ruled non-standard path: frozen six-lens perimeter (D-254) applied to four
+adversarial rounds plus pass 28 (scoped confirming review), C-class residuals and pass-28
+findings accepted under D-263. A reviewer must not interpret ACHIEVED-WITH-DISCLOSED-RESIDUALS
+as equivalent to the standard criterion having been met.
 
-**The operator may nonetheless choose to open the PR now** — with the non-convergence
-disclosure intact and visible in the body — before convergence completes. That decision
-belongs to the operator, not to this package. This package does not recommend it, nor does
-it oppose it. If the operator opens the PR early, the body below accurately reflects the
-current state and makes no false convergence claim.
+**What authorises execution:** the operator's explicit D-254/D-263 ruling. Pass 28 found no
+blocking findings on the functional substance; all pass-28 findings are disclosed in the PR
+body below.
+
+**What remains disclosed:** P28-01 (MEDIUM, accepted-not-fixed), P28-04 and P28-05 (LOW), and
+the C-class residuals listed in the PR body. Every mutating command remains
+**HUMAN-EXECUTED ONLY** (D-120/BI-062).
 
 The command sequence is in ready-to-execute form. Every mutating command is marked
 **HUMAN-EXECUTED ONLY** and must not be run by an automated agent.
@@ -49,15 +51,17 @@ feat(S-1.01): workspace scaffold, shared types, and default-CWD file discovery
 **S-1.01 — Workspace scaffold, shared types, and default-CWD file discovery**
 
 **Branch:** `feature/S-1.01-workspace-scaffold-and-core-discovery`
-**Evidence execution SHA:** `9a9b46c` (all 13 AC transcripts and mutation matrix executed here;
-all four branch-protection CI checks green, orchestrator-verified via `gh api`)
+**Evidence execution SHA:** `9a9b46c` (all 13 AC transcripts and mutation matrix executed here)
+**CI attestation SHA:** `b538112` — all four branch-protection-required CI checks are green
+at `b538112`, orchestrator-verified via `gh api`. `crates/` is byte-unchanged from `9a9b46c`
+to `b538112` (verified, zero paths); the change at `b538112` touched only comment and `echo`
+lines in `scripts/purity-check.sh` — `LINE_RE`, `STMT_RE`, `PLANTS`, and `CLEAN` are
+byte-identical, so detection behaviour is unchanged.
 **Base:** `develop`
 **Merge-base equals `origin/develop` HEAD (`f81f412`):** the branch is fully current;
 `git merge-tree` reports zero conflict markers.
-**Carry-forward attestation:** `git diff --name-only 9a9b46c HEAD -- ':(exclude)docs'`
-returns nothing — the delta from the evidence SHA to the current branch HEAD is
-documentation-only. Verify this yourself before creating the PR; if it ever returns
-non-empty output, the CI and test attestations must be re-verified.
+**Before creating the PR:** run `git diff --name-only b538112 HEAD -- crates/ scripts/`; if
+it returns any path, the CI and transcript attestations must be re-verified.
 
 ---
 
@@ -115,10 +119,12 @@ scoped correctly to S-1.01 — it is a disclosure, not a defect claim.
 
 ## Test Evidence
 
-All runs at evidence execution SHA `9a9b46c`. All four branch-protection-required CI checks
-are green at `9a9b46c`. `git diff --name-only 9a9b46c HEAD -- ':(exclude)docs'` returns
-nothing — the delta to the current branch HEAD is documentation-only and the attestation
-carries.
+All 13 AC transcripts and the mutation matrix were executed at `9a9b46c`. All four
+branch-protection-required CI checks are green at `b538112` (orchestrator-verified via
+`gh api`). `crates/` is byte-unchanged from `9a9b46c` to `b538112` — the transcripts are
+valid at `b538112`. The change at `b538112` touched only comment and `echo` lines in
+`scripts/purity-check.sh`; `LINE_RE`, `STMT_RE`, `PLANTS`, and `CLEAN` are byte-identical,
+so detection behaviour is unchanged.
 
 **Full suite:** 44 tests run: **44 passed, 0 skipped**
 `POL-11 PASS: 44 tests across 6 binaries`
@@ -215,10 +221,13 @@ alongside D-252a.
 
 ## CI Status
 
-All four branch-protection-required CI checks are green at evidence SHA `9a9b46c`
-(orchestrator-verified via `gh api`). `git diff --name-only 9a9b46c HEAD -- ':(exclude)docs'`
-returns nothing — all commits since `9a9b46c` are documentation-only, so the CI attestation
-carries to the current branch HEAD.
+All four branch-protection-required CI checks are green at `b538112` (orchestrator-verified
+via `gh api`). `crates/` is byte-unchanged from `9a9b46c` to `b538112` (verified, zero
+paths). The change at `b538112` touched only comment and `echo` lines in
+`scripts/purity-check.sh`; `LINE_RE`, `STMT_RE`, `PLANTS`, and `CLEAN` are byte-identical,
+so detection behaviour is unchanged. To confirm the attestations still hold for the commit
+you are reading: run `git diff --name-only b538112 HEAD -- crates/ scripts/`; if it returns
+any paths, re-verify CI and the transcripts before relying on them.
 
 ### Four required branch-protection checks — all SUCCESS
 
@@ -269,7 +278,7 @@ Material facts:
 false-claim class and constitutes a fabricated artifact regardless of review outcome. The
 correct response to this check being red is to note D-227 and proceed.
 
-### Additional non-required checks (SUCCESS at `9a9b46c`)
+### Additional non-required checks (SUCCESS at `b538112`)
 
 `MSRV check (1.88)` — success
 `Purity check (ADR-001)` — success
@@ -295,38 +304,67 @@ detected. `io::stdin`, `io::stderr`, `std::process`, `std::env`, and `SystemTime
 not detected. Every limit is a limit of the CHECK, not a permission granted by ADR-001.
 Extending coverage is an operator decision at the wave-1 gate.
 
+**Second exploitable escape found in the same gate (P28-01, MEDIUM, accepted-not-fixed):**
+Pass 28 found that crate-root aliasing of `std` plus a renamed leaf —
+`mod m { pub use ::std as s; } use m::s::fs as f; f::metadata(...)` — escapes the purity
+gate. Orchestrator-confirmed exploitable: compiles and passes `cargo fmt --all --check`,
+`cargo clippy -D warnings`, all 44 tests, and the gate itself. Affects `std::fs` and
+`std::net`; `stdout`/`Instant` remain caught by their respective arms. This is the second
+exploitable escape found in the same gate (BI-096 was the first, found at round 4), and the
+third instance of the same over-claiming-scope-statement class (BI-081, BI-096, P28-01). The
+purity gate claim language is now a closed enumeration ending "Shapes not listed above are
+NOT covered. This enumeration is closed." — so this class cannot recur. No regex fix was
+applied (operator ruling: "optional means omitted under runway"). ADR-001 forbids this use;
+extending detection coverage is an operator decision at the wave-1 gate.
+
+**P28-04 (LOW, deliberate):** `.metadata()` and `.canonicalize()` are detected despite the
+same future-domain-name-collision hazard used to justify excluding `.exists()`/`.is_dir()`/
+`.is_file()`. Zero occurrences in `mdlinkcheck-core` today; a false positive would fail
+CLOSED. The asymmetry is deliberate and disclosed.
+
+**P28-05 (LOW, latent):** Third-party I/O crates are undetected — `walkdir::WalkDir::new(".")`
+matches zero arms. All seven current core dependencies perform no I/O; the risk is latent
+and visible in dependency review.
+
 ---
 
-## Convergence Status — NOT CONVERGED
+## Convergence Status — ACHIEVED-WITH-DISCLOSED-RESIDUALS
 
-**This PR does not claim convergence and must not be treated as converged.**
+**This convergence was recorded on a non-standard, operator-ruled path. The standard
+BC-5.39.001 criterion (three consecutive clean passes) was NEVER met.**
 
-Four confirming adversarial rounds have run:
+Rounds 1–4 (passes 16–27) plus pass 28:
 - Passes 16–18: MATERIAL_FINDINGS
 - Passes 19–21: MATERIAL_FINDINGS
 - Passes 22–24: MATERIAL_FINDINGS
 - Passes 25–27: MATERIAL_FINDINGS
+- Pass 28 (scoped confirming review): no blocking findings on functional substance
 
-`passes_clean` = **0 of 3** required under BC-5.39.001. Round 4 (passes 25–27) found a
-leading-`::`-plus-rename escape from the ADR-001 purity gate (BI-096), fixed at `9a9b46c`
-and confirmed closed. A **scoped confirming review of the changed surface** is still required
-before the story is conventionally certified.
+`passes_clean` was **0 of 3** across all four rounds. Convergence is recorded on an
+operator-ruled non-standard path (D-254 frozen perimeter + D-263), NOT by satisfying the
+three-clean-pass criterion. The exact definition:
 
-**Balanced disclosure:** The story is functionally green and has been extensively reviewed.
+> Frozen six-lens perimeter (L1–L6, frozen at pass 15 per D-254); adversarial rounds 1–4
+> (passes 16–27) plus one scoped confirming review (pass 28) of the fix surface; C-class
+> residuals plus P28-01, P28-04 and P28-05 disclosed rather than fixed; purity-gate claim
+> language closed by explicit enumeration so the over-claim class cannot recur.
+
+**Pass 28 record:** Found one MEDIUM (P28-01) plus four LOW (P28-02 through P28-05). P28-01
+is disclosed-not-fixed by operator ruling. Pass 28 affirmatively exonerated the substance of
+all seven round-4 fixes. No blocking finding was found on the functional substance.
+
+**Balanced disclosure:**
 
 - **L1–L5** (spec-compliance, code-correctness, test-integrity, hostile-filesystem,
   public-API): independently reported **clean by nine consecutive passes (19–27)**; round 4
-  included — `crates/` is byte-unchanged across round 4
+  included — `crates/` is byte-unchanged across round 4. Pass 28 exonerated all seven
+  round-4 functional fixes
 - Every round-2 and round-3 material finding was **L6 class** (gate-configuration or
   documentation); round 4's only non-documentation finding (BI-096) is fixed and confirmed
   closed at `9a9b46c`
 - Every material finding in rounds 2 and 3 was a residual of the immediately preceding
   fix wave — not a defect in the story's source code or tests
 - Five production defects were found and fixed during the story's lifetime
-
-The branch is disclosed, not hidden. This PR body carries the non-convergence disclosure
-intact. Whether to open the PR before the scoped confirming review completes is the
-operator's decision.
 
 ---
 
@@ -368,7 +406,7 @@ for reviewer awareness:
 | BI-108 | `ci.yml:461` claims spec-lint has "three known advisory failures"; there is exactly one (`check-ec-injectivity`) | ACCEPTED |
 | BI-109 | `justfile:5` "With no remote…" is false and self-contradicted six lines later | ACCEPTED |
 | BI-099 | Purity gate Phase-A line numbers index the comment-stripped stream; reported locations are offset by up to 117 lines in `types.rs` while the header claims precision | ACCEPTED |
-| BI-100 | The `io::stdout` arm's rationale comment in the purity gate is false on two counts | ACCEPTED |
+| BI-100 | The `io::stdout` arm's rationale comment in the purity gate was false on two counts | **FIXED** at `b538112` — corrected to name the arm that actually fires |
 | BI-101 | A `.rs` filename containing a newline is a genuine fail-open in the purity gate | ACCEPTED |
 | BI-102 | Nonexistent source directory exits 1 with no diagnostic | ACCEPTED |
 
@@ -391,13 +429,13 @@ or the acceptance criteria. All deferred per D-261 deferral scoping ruling.
 - [x] `cargo clippy --locked --all-targets --all-features -- -D warnings` exit 0
 - [x] `just purity` exit 0
 - [x] `just ci` exit 0
-- [x] Four required CI checks green at `9a9b46c` (orchestrator-verified via `gh api`; attestation carries to HEAD — delta is documentation-only)
+- [x] Four required CI checks green at `b538112` (orchestrator-verified via `gh api`); `crates/` byte-unchanged from `9a9b46c` to `b538112`
 - [x] Demo evidence: 13 per-AC transcripts + discrimination matrix + evidence report
 - [x] All CI check expectations honestly documented (including expected reds)
-- [x] Non-convergence disclosed; `passes_clean` = 0/3
+- [x] Convergence: ACHIEVED-WITH-DISCLOSED-RESIDUALS (D-254/D-263); `passes_clean` was 0/3 on standard criterion — non-standard operator-ruled path, disclosed
+- [x] Pass 28 complete — no blocking findings on functional substance; P28-01/P28-04/P28-05 disclosed
 - [x] Sequencing deviation disclosed
 - [x] Two mutation survivors registered and routed
-- [ ] Scoped confirming review (BI-096 purity gate fix, `9a9b46c`) — **OUTSTANDING**; required for conventional certification under BC-5.39.001
 
 === END PR BODY ===
 
@@ -449,14 +487,13 @@ git -C /Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/S-1.01 \
 Expected result: `9a9b46c is an ancestor — attestation carries`
 
 ```sh
-# Confirm the delta from the evidence SHA to HEAD is documentation-only
+# Confirm no code or script changes since the CI attestation SHA
 git -C /Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/S-1.01 \
-  diff --name-only 9a9b46c HEAD -- ':(exclude)docs'
+  diff --name-only b538112 HEAD -- crates/ scripts/
 ```
 
-Expected result: empty output (zero lines). If any lines appear, the CI and test
-attestations do not carry to the current HEAD and must be re-verified before creating
-the PR.
+Expected result: empty output (zero lines). As of `fc61828`, this returns empty. If any
+lines appear, the CI and transcript attestations must be re-verified before creating the PR.
 
 ```sh
 # Confirm no conflict markers between branch and develop
@@ -637,7 +674,7 @@ Example:
 ```sh
 gh pr comment <PR_NUMBER> \
   --repo BOHICA-LABS/mdlinkcheck-cloud \
-  --body "Operator verdict: [APPROVE / REQUEST_CHANGES / NOTE] <rationale here>. Convergence status: passes_clean=0/3 (BC-5.39.001). Fourth round outstanding."
+  --body "Operator verdict: [APPROVE / REQUEST_CHANGES / NOTE] <rationale here>. Convergence: ACHIEVED-WITH-DISCLOSED-RESIDUALS (D-254/D-263). Standard three-clean-pass criterion was not met; convergence recorded on non-standard operator-ruled path. Pass 28 complete; P28-01 (MEDIUM), P28-04 and P28-05 (LOW) disclosed-not-fixed."
 ```
 
 Expected result: the comment appears on the PR. No `gh pr review` call is needed or valid.
@@ -678,18 +715,19 @@ enforce-merge-strategy.sh wrapper in its workflow, substitute:
 This package contains the following explicit disclosures. A reviewer confirming the PR
 body should verify all are present in the submitted body:
 
-1. NOT CONVERGED — passes_clean 0/3; four rounds returned MATERIAL_FINDINGS; scoped confirming review of BI-096 fix outstanding
-2. L1–L5 clean for nine consecutive passes (19–27); all material findings were L6 class; round 4's BI-096 finding is fixed and confirmed closed
-3. `Spec lint` expected red — D-246 advisory ruling; 39 SCENARIO-MISMATCH in BC-2.05–2.14; zero in BC-2.01.*
-4. `Verify evidence figures` expected red — BI-069/D-227; pull_request-only job; not a required check; must not be satisfied by fabricating spec-lint figures (BI-063)
-5. Demo evidence is test-execution based — `main.rs` is a `todo!()` stub; no CLI until S-1.02
-6. Two mutation survivors: `sort`/`dedup` (F-B1/F-B3/C-B1, deferred to S-1.02) and post-filter backstop (BI-095/BI-105, one-directional masking, routed to D-252a adjudication)
-7. Sequencing deviation: Step 5 demo recording performed while Step 4.5 convergence was open
-8. AC-006/AC-010: clause (i) only — clause (ii) anchor-table coverage deferred to S-1.02 (BI-106)
-9. Carried-forward LOW/NITPICK register: BI-084 through BI-089 (deferred per D-261)
-10. Accepted/ruled items: D-259/F-A3, D-257, D-258, D-260, D-261, D-253, D-252a, D-043, D-254
-11. ADR-001 purity gate: A1 escape (BI-096) found in round 4, fixed at `9a9b46c`, confirmed closed; known residual gaps documented in "Purity Gate" section above
-12. C-class accepted residuals: BI-107, BI-108, BI-109, BI-099, BI-100, BI-101, BI-102 (D-263, accepted as disclosed)
-13. PR creation, verdict posts, and merge are human-executed (D-120/BI-062)
+1. Convergence: ACHIEVED-WITH-DISCLOSED-RESIDUALS (D-254/D-263); standard three-clean-pass criterion was NEVER met — `passes_clean` was 0/3 across all four rounds; non-standard operator-ruled path
+2. Pass 28 complete: no blocking findings on functional substance; P28-01 (MEDIUM), P28-04 and P28-05 (LOW) disclosed-not-fixed
+3. L1–L5 clean for nine consecutive passes (19–27); round 4's BI-096 finding fixed and confirmed closed at `9a9b46c`; pass 28 exonerated all seven round-4 fixes
+4. `Spec lint` expected red — D-246 advisory ruling; 39 SCENARIO-MISMATCH in BC-2.05–2.14; zero in BC-2.01.*
+5. `Verify evidence figures` expected red — BI-069/D-227; pull_request-only job; not a required check; must not be satisfied by fabricating spec-lint figures (BI-063)
+6. Demo evidence is test-execution based — `main.rs` is a `todo!()` stub; no CLI until S-1.02
+7. Two mutation survivors: `sort`/`dedup` (F-B1/F-B3/C-B1, deferred to S-1.02) and post-filter backstop (BI-095/BI-105, one-directional masking, routed to D-252a adjudication)
+8. Sequencing deviation: Step 5 demo recording performed while Step 4.5 convergence was open
+9. AC-006/AC-010: clause (i) only — clause (ii) anchor-table coverage deferred to S-1.02 (BI-106)
+10. Carried-forward LOW/NITPICK register: BI-084 through BI-089 (deferred per D-261)
+11. Accepted/ruled items: D-259/F-A3, D-257, D-258, D-260, D-261, D-253, D-252a, D-043, D-254
+12. ADR-001 purity gate: BI-096 (round 4) fixed at `9a9b46c`; P28-01 second exploitable escape accepted-not-fixed; P28-04/P28-05 latent gaps disclosed; BI-100 FIXED at `b538112`; remaining gaps documented in "Purity Gate" section
+13. C-class accepted residuals: BI-107, BI-108, BI-109, BI-099, BI-101, BI-102 (D-263, accepted as disclosed); BI-100 removed — FIXED
+14. PR creation, verdict posts, and merge are human-executed (D-120/BI-062)
 
-13 named disclosures. 10 named commands in the sequence (Steps 1–10 with sub-commands).
+14 named disclosures. 10 named commands in the sequence (Steps 1–10 with sub-commands).
