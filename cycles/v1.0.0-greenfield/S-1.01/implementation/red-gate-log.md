@@ -129,3 +129,85 @@ D-244).
 Demo evidence for S-1.01 therefore cannot be CLI-invocation based; it must
 be library/test-execution based. Flagged for the Step 5 demo-recorder
 dispatch.
+
+---
+
+## Step 4 — Implementation and Post-Implementation Hardening
+
+**Branch:** `feature/S-1.01-workspace-scaffold-and-core-discovery`
+**Final HEAD:** `f773598` (PUSHED to origin)
+**Test count at step close:** 40 tests pass, 0 fail
+**Clippy:** `cargo clippy --all-targets --all-features -- -D warnings` exits 0
+**Format:** `cargo fmt --check` clean
+**Working tree:** CLEAN
+
+### 12-Commit Ledger (stub → green → hardened)
+
+| # | SHA | Description |
+|---|-----|-------------|
+| 1 | `ba83b1b` | feat(S-1.01): add module stubs (9 files, cargo check green) |
+| 2 | `d7aa245` | test(S-1.01): write failing test suite — Red Gate step 2 |
+| 3 | `cf3418c` | feat(S-1.01): implement build_walk, collect_md_files, is_md_extension |
+| 4 | `4fb5049` | fix(test/S-1.01): repair AC-008 dot-dir skip test against relative components |
+| 5 | `c7384ed` | test(S-1.01): close follow_links mutation gap with EC-009 fixture |
+| 6 | `dbd1404` | fix(S-1.01): resolve five adversarial-review findings F-04 F-05 F-06 F-09 F-10 |
+| 7 | `54b210b` | test(S-1.01): close two mutation-coverage gaps in scanner_discovery_tests |
+| 8 | `6379384` | test(S-1.01): remove process-env mutation; gate AC-009 on unix |
+| 9 | `affaaf1` | test(S-1.01): add 4 tests — EC-001, EC-004, AC-005 companion, F-B2 red |
+| 10 | `91b57c4` | fix(S-1.01): require_git(false) so .gitignore is honoured outside git repos (F-B2) |
+| 11 | `2f3ce12` | test(S-1.01): add F-A1 red test + hygiene fixes F-C1/F-C2/F-C3/F-C5 |
+| 12 | `f773598` | fix(S-1.01): F-A1 dot-dir guard + B-03 doc fix + clippy clean |
+
+### Two Real Production Defects Found and Fixed
+
+**F-B2 (commit 10 — `91b57c4`):** `build_walk` lacked `require_git(false)`, so
+`.gitignore` was honored ONLY inside a git repository. Probe against `ignore`
+0.4.33: a non-git directory with `.gitignore` containing `node_modules/` returned
+`["node_modules/foo.md","README.md"]`. Violated BC-2.01.003 postcondition 1. Fixed
+TDD red-first.
+
+**F-A1 HIGH (commit 12 — `f773598`):** dot-directory skip was NOT unconditional.
+`hidden(true)` is subordinate to ignore-rule matches in `ignore` 0.4.33, so a
+whitelist negation pattern (`.gitignore`: `.*` + `!.github`) re-enabled traversal of
+`.github/`. Probe returned `[".github/PULL_REQUEST_TEMPLATE.md","README.md"]`.
+Violated BC-2.01.004 postcondition 1 and invariant 1 (D-011), BC-2.01.001 invariant
+1. Fixed with a `WalkBuilder::filter_entry` dot-dir guard that exempts depth 0
+(critical: `TempDir` roots are `.tmp`-prefixed, so a naive predicate would reject
+the scan root and empty every scan set).
+
+### Final Mutation Sweep — 12 Mutants
+
+| Mutant | Result | Notes |
+|--------|--------|-------|
+| `filter_entry` disabled | KILLED | F-A1 fix tested directly |
+| `require_git(true)` | KILLED | F-B2 fix tested directly |
+| `follow_links(true)` | KILLED | EC-009 fixture |
+| case-insensitive `.md` | KILLED | F-04 |
+| `git_ignore(false)` | KILLED | F-05 |
+| `ignore(false)` | KILLED | F-06 |
+| `git_global(false)` | KILLED | F-09 |
+| `is_file()` neutered | KILLED | 54b210b |
+| `hidden(false)` (early) | KILLED | Superseded — see below |
+| `git_exclude(false)` | SURVIVED | Accepted: no BC mandates `.git/info/exclude` |
+| `files.dedup()` removal | SURVIVED | Deferred to S-1.02 / reporter |
+| `files.sort()` removal | SURVIVED | Deferred to S-1.02 / reporter (byte-order vs NFC per DI-001) |
+
+**`hidden(false)` reclassification:** This mutant NOW SURVIVES because
+`filter_entry` handles dot-DIRECTORIES independently of the `hidden` flag.
+`hidden(true)`'s only remaining unique effect is dot-FILE exclusion. This
+is a coherent consequence of the F-A1 fix, not a regression — and is
+exactly the escalated open question (dot-FILE exclusion needs an operator
+ruling). Summary: 9 killed / 3 survived (accepted or deferred) / 1
+reclassified.
+
+### Step 4.5 — Adversarial Convergence Status
+
+**NOT CONVERGED. `passes_clean = 0` of 3 required (BC-5.39.001).**
+
+Six passes run (1 general + 2 lens + 3 convergence attempts); every pass
+returned MATERIAL_FINDINGS. All findings are fixed, adjudicated-deferred
+to S-1.02, or escalated to operator. Per-pass disposition detail:
+`.factory/cycles/v1.0.0-greenfield/S-1.01/adversary-convergence-state.json`.
+
+**Step 5 (demo evidence) and Step 6 (PR) have NOT begun.** Step 4.5 must
+reach 3 consecutive NITPICK_ONLY or CLEAN passes before proceeding.

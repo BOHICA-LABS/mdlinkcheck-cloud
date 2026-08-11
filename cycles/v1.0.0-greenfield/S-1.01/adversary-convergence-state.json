@@ -1,0 +1,85 @@
+{
+  "story_id": "S-1.01",
+  "cycle": "v1.0.0-greenfield",
+  "passes_run": 6,
+  "passes_clean": 0,
+  "last_classification": "MATERIAL_FINDINGS",
+  "converged": false,
+  "required_clean_passes": 3,
+  "blocking_gate": "BC-5.39.001",
+  "head_sha": "f773598",
+  "note": "Five adversary passes run (pass 1 general; pass 2 spec-compliance; pass 3 code-correctness; convergence-A spec-compliance; convergence-B code-correctness). A sixth convergence-C pass (test-integrity/CI) was dispatched but returned MATERIAL_FINDINGS. Every pass returned MATERIAL_FINDINGS; passes_clean = 0 of 3 required. All findings are fixed, adjudicated-deferred to S-1.02, or escalated to operator. Resume next-action: obtain operator ruling on dot-FILE exclusion, then run a fresh round of 3 lens-diversified passes.",
+  "findings": [
+    {
+      "pass": 1,
+      "lens": "general",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["F-01", "F-02", "F-03", "F-04", "F-05", "F-06", "F-07", "F-08", "F-09", "F-10"],
+      "dispositions": {
+        "F-01": "fixed — mutation coverage gap for filter_entry disabled",
+        "F-02": "fixed — require_git(true) mutation killed",
+        "F-03": "fixed — follow_links(true) mutation killed",
+        "F-04": "fixed — case-insensitive .md path via dbd1404",
+        "F-05": "fixed — git_ignore(false) mutation killed via dbd1404",
+        "F-06": "fixed — ignore(false) mutation killed via dbd1404",
+        "F-07": "fixed — is_file() neutered mutation killed",
+        "F-08": "accepted-register-entry — git_exclude(false) survival: no BC mandates .git/info/exclude",
+        "F-09": "fixed — git_global(false) mutation closed via 54b210b",
+        "F-10": "fixed — hidden(false) mutation addressed via F-A1 filter_entry guard"
+      }
+    },
+    {
+      "pass": 2,
+      "lens": "spec-compliance",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["F-B1", "F-B2", "F-B3"],
+      "dispositions": {
+        "F-B1": "accepted-register-entry — files.dedup() removal survival deferred to S-1.02 (reporter)",
+        "F-B2": "fixed — require_git(false) added in 91b57c4; real production defect confirmed by orchestrator probe against ignore 0.4.33",
+        "F-B3": "accepted-register-entry — files.sort() removal survival deferred to S-1.02 (reporter); byte-order vs NFC per DI-001"
+      }
+    },
+    {
+      "pass": 3,
+      "lens": "code-correctness",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["F-A1", "F-A2", "F-A3"],
+      "dispositions": {
+        "F-A1": "fixed — dot-dir skip was not unconditional; hidden(true) subordinate to ignore-rule matches in ignore 0.4.33; whitelist negation re-enabled traversal; fixed in f773598 with WalkBuilder::filter_entry guard exempting depth 0; HIGH severity; real production defect confirmed by orchestrator probe",
+        "F-A2": "deferred-to-S-1.02 — file symlinks excluded from scan set; BC-2.01.004 postcondition 3 / BC-2.01.006 postcondition 1 require including them",
+        "F-A3": "deferred-to-S-1.02 — collect_md_files swallows walker errors via result.ok()? with no error channel; interacts with exit-code 2 for I/O errors"
+      }
+    },
+    {
+      "pass": 4,
+      "lens": "convergence-A-spec-compliance",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["C-A1", "C-A2"],
+      "dispositions": {
+        "C-A1": "escalated-to-operator — dot-FILE exclusion: hidden(true) excludes dot-FILES (e.g. docs/.template.md), which no anchored BC authorizes; BC-2.01.001 postcondition 1 requires every .md file to be included; BC-2.01.004 covers only dot-DIRECTORIES; confirmed empirically; options (a) accept under D-011 or (b) set hidden(false) and rely on filter_entry for dot-dirs",
+        "C-A2": "deferred-to-S-1.02 — default-CWD rooting via std::env::current_dir() absent because CLI is S-1.02"
+      }
+    },
+    {
+      "pass": 5,
+      "lens": "convergence-B-code-correctness",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["C-B1"],
+      "dispositions": {
+        "C-B1": "deferred-to-S-1.02 — dedup unverifiable against genuine path aliasing without CLI path arguments; BC-2.01.007 / BC-2.01.008 anchored to S-1.02"
+      }
+    },
+    {
+      "pass": 6,
+      "lens": "convergence-C-test-integrity-ci",
+      "classification": "MATERIAL_FINDINGS",
+      "finding_ids": ["C-C1", "C-C2", "C-C3", "C-C4"],
+      "dispositions": {
+        "C-C1": "accepted-register-entry — AnchorTable field is pub whereas api-surface.md line 80 specifies private; deferred to E-2; real invariant-erosion risk recorded",
+        "C-C2": "accepted-register-entry — is_md_extension diverges from BC-2.01.005 wording for file named exactly .md; trailing-dot/multi-dot names untested; unreachable via traversal",
+        "C-C3": "accepted-register-entry — four tests hard-depend on git being on PATH",
+        "C-C4": "accepted-register-entry — types_tests.rs messages overclaim (imply AnchorTable enforces dedup when no code does); compile-time shape-pinning whose behavioral claims exceed what is implemented"
+      }
+    }
+  ]
+}
