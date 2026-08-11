@@ -1,0 +1,62 @@
+S-1.01 per-AC demo evidence — AC-006
+test:      test_BC_2_01_003_gitignored_file_anchor_table_built_as_target
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_003_gitignored_file_anchor_table_built_as_target)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+────────────
+ Nextest run ID 78969189-e94a-4cdd-8c15-2d6168af805a with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_gitignored_file_anchor_table_built_as_target
+
+running 1 test
+test test_BC_2_01_003_gitignored_file_anchor_table_built_as_target ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+        PASS [   0.014s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_gitignored_file_anchor_table_built_as_target
+────────────
+     Summary [   0.014s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (2 assertion(s)) -----
+  assert!(
+  assert!(
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:317) -----
+
+#[test]
+fn test_BC_2_01_003_gitignored_file_anchor_table_built_as_target() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // .ignore excludes "mdlc_fixture_ignored_target.md" from the scan set (clause i only)
+    fs::write(root.join(".ignore"), "mdlc_fixture_ignored_target.md\n").expect("write .ignore");
+    create_file(root, "mdlc_fixture_ignored_target.md"); // excluded by .ignore
+    create_file(root, "mdlc_fixture_source.md"); // in scan set
+
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
+    // Clause (i): the .ignore-excluded file must NOT appear in the scan set.
+    let result = scanner::collect_md_files(root);
+
+    assert!(
+        !result.contains(&root.join("mdlc_fixture_ignored_target.md")),
+        "mdlc_fixture_ignored_target.md must not appear in the scan set (excluded by .ignore) \
+         — clause (i) of BC-2.01.003 invariant 2"
+    );
+    // Positive gate: mdlc_fixture_source.md must be present (F-04 vacuous-pass
+    // prevention — an empty Vec passes the negative assertion above vacuously).
+    assert!(
+        result.contains(&root.join("mdlc_fixture_source.md")),
+        "mdlc_fixture_source.md must appear in the scan set (F-04 vacuous-pass prevention)"
+    );
+}

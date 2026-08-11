@@ -1,0 +1,72 @@
+S-1.01 per-AC demo evidence — AC-009
+test:      test_BC_2_01_004_directory_symlinks_not_followed
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_004_directory_symlinks_not_followed)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.11s
+────────────
+ Nextest run ID 89b279cb-e788-4736-8ae4-a69b333067e5 with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_directory_symlinks_not_followed
+
+running 1 test
+test test_BC_2_01_004_directory_symlinks_not_followed ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+        PASS [   0.014s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_directory_symlinks_not_followed
+────────────
+     Summary [   0.014s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (2 assertion(s)) -----
+  assert!(
+  assert!(
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:472) -----
+
+#[cfg(unix)]
+#[test]
+fn test_BC_2_01_004_directory_symlinks_not_followed() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // Create a directory with real .md content.
+    // Name is mdlc_fixture_-prefixed for hermeticity (N-2 fix).
+    let dir_a = root.join("mdlc_fixture_dir_a");
+    fs::create_dir_all(&dir_a).expect("create mdlc_fixture_dir_a");
+    create_file(root, "mdlc_fixture_dir_a/real.md");
+
+    // Create a directory-symlink cycle: mdlc_fixture_dir_a/cycle_link -> mdlc_fixture_dir_a
+    // This replicates EC-008: `a/b -> a`.
+    std::os::unix::fs::symlink(&dir_a, dir_a.join("cycle_link"))
+        .expect("create directory symlink cycle");
+
+    create_file(root, "README.md");
+
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
+    // follow_links(false) prevents infinite recursion; no path containing "cycle_link"
+    // must appear in the result.
+    let result = scanner::collect_md_files(root);
+
+    assert!(
+        !result
+            .iter()
+            .any(|p| p.to_string_lossy().contains("cycle_link")),
+        "directory symlinks must not be traversed; cycle_link must not appear in scan set"
+    );
+    // mdlc_fixture_dir_a/real.md is a real file (not behind a symlink) and must appear
+    assert!(
+        result.contains(&root.join("mdlc_fixture_dir_a/real.md")),
+        "mdlc_fixture_dir_a/real.md must be discovered (it is a real file, not behind a dir symlink)"
+    );
+}

@@ -1,0 +1,54 @@
+S-1.01 per-AC demo evidence — AC-011
+test:      test_BC_2_01_005_exact_md_extension_included
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_005_exact_md_extension_included)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+────────────
+ Nextest run ID 01eb19a7-1a17-4ee3-ba27-18e08df3976c with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_exact_md_extension_included
+
+running 1 test
+test test_BC_2_01_005_exact_md_extension_included ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+        PASS [   0.012s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_exact_md_extension_included
+────────────
+     Summary [   0.012s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (3 assertion(s)) -----
+  assert!(
+  assert!(
+  assert!(
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:638) -----
+
+#[test]
+fn test_BC_2_01_005_exact_md_extension_included() {
+    // ── Red Gate history (commit ba83b1b): is_md_extension panicked at todo!(). ──────
+    assert!(
+        scanner::is_md_extension(&PathBuf::from("README.md")),
+        "README.md must pass the .md extension filter (BC-2.01.005)"
+    );
+    // Additional canonical vectors from BC-2.01.005 test-vector table:
+    assert!(
+        scanner::is_md_extension(&PathBuf::from("notes.md")),
+        "notes.md must pass"
+    );
+    assert!(
+        scanner::is_md_extension(&PathBuf::from("path/to/deep/file.md")),
+        "nested path with .md extension must pass"
+    );
+}

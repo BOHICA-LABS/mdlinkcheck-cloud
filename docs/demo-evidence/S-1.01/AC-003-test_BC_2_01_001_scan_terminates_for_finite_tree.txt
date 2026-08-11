@@ -1,0 +1,67 @@
+S-1.01 per-AC demo evidence — AC-003
+test:      test_BC_2_01_001_scan_terminates_for_finite_tree
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_001_scan_terminates_for_finite_tree)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+────────────
+ Nextest run ID 5ecb2eca-8db2-4598-bb37-e51197383819 with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_001_scan_terminates_for_finite_tree
+
+running 1 test
+test test_BC_2_01_001_scan_terminates_for_finite_tree ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+        PASS [   0.016s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_001_scan_terminates_for_finite_tree
+────────────
+     Summary [   0.016s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (4 assertion(s)) -----
+  assert!(
+  assert!(
+  assert!(
+  assert_eq!(result.len(), 3, "all three .md files must be discovered");
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:203) -----
+
+#[test]
+fn test_BC_2_01_001_scan_terminates_for_finite_tree() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    create_file(root, "mdlc_fixture_a.md");
+    create_file(root, "mdlc_fixture_b/mdlc_fixture_c.md");
+    create_file(root, "mdlc_fixture_b/mdlc_fixture_d/mdlc_fixture_e.md");
+
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
+    // This call must return without looping (BC-2.01.001 postcondition 3).
+    let result = scanner::collect_md_files(root);
+
+    // Identity assertions prevent three unrelated paths from satisfying len==3
+    // (F-P3-04 identity gate — AC-003).
+    assert!(
+        result.contains(&root.join("mdlc_fixture_a.md")),
+        "mdlc_fixture_a.md must be in the scan set (AC-003 identity gate)"
+    );
+    assert!(
+        result.contains(&root.join("mdlc_fixture_b/mdlc_fixture_c.md")),
+        "mdlc_fixture_b/mdlc_fixture_c.md must be in the scan set (AC-003 identity gate)"
+    );
+    assert!(
+        result.contains(&root.join("mdlc_fixture_b/mdlc_fixture_d/mdlc_fixture_e.md")),
+        "mdlc_fixture_b/mdlc_fixture_d/mdlc_fixture_e.md must be in the scan set (AC-003 identity gate)"
+    );
+    assert_eq!(result.len(), 3, "all three .md files must be discovered");
+}

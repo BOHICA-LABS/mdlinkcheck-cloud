@@ -1,0 +1,62 @@
+S-1.01 per-AC demo evidence — AC-012
+test:      test_BC_2_01_005_non_md_extensions_excluded
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_005_non_md_extensions_excluded)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+────────────
+ Nextest run ID 47f80897-76bf-430d-82da-b58e2eeecdc3 with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_non_md_extensions_excluded
+
+running 1 test
+test test_BC_2_01_005_non_md_extensions_excluded ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+        PASS [   0.012s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_non_md_extensions_excluded
+────────────
+     Summary [   0.014s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (1 assertion(s)) -----
+  assert!(
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:658) -----
+
+#[test]
+fn test_BC_2_01_005_non_md_extensions_excluded() {
+    // Canonical non-goal extensions from BC-2.01.005 and D-012.
+    // `.Md` is explicitly named in the AC text and must be present here.
+    let excluded = [
+        "README.MD",
+        "notes.Md", // AC text names .Md explicitly (mixed-case, BC-2.01.005 invariant 1)
+        "notes.markdown",
+        "notes.mdx",
+        "notes.mdown",
+        "notes.mkd",
+        "doc.txt",
+        "page.html",
+        "image.png",
+        "archive.zip",
+        "data.json",
+    ];
+
+    // ── Red Gate history (commit ba83b1b): is_md_extension panicked at todo!() on first call. ─
+    for name in &excluded {
+        assert!(
+            !scanner::is_md_extension(&PathBuf::from(name)),
+            "'{}' must NOT pass the .md extension filter (D-012 non-goal)",
+            name
+        );
+    }
+}

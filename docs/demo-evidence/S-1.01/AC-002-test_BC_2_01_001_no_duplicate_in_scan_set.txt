@@ -1,0 +1,74 @@
+S-1.01 per-AC demo evidence — AC-002
+test:      test_BC_2_01_001_no_duplicate_in_scan_set
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_001_no_duplicate_in_scan_set)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.14s
+────────────
+ Nextest run ID c2532c90-c1b0-4f7b-b7c4-d914226f0af3 with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_001_no_duplicate_in_scan_set
+
+running 1 test
+test test_BC_2_01_001_no_duplicate_in_scan_set ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+        PASS [   0.014s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_001_no_duplicate_in_scan_set
+────────────
+     Summary [   0.014s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (4 assertion(s)) -----
+  assert_eq!(
+  assert!(
+  assert!(
+  assert!(
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:153) -----
+
+#[test]
+fn test_BC_2_01_001_no_duplicate_in_scan_set() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    create_file(root, "mdlc_fixture_a.md");
+    create_file(root, "mdlc_fixture_sub/mdlc_fixture_b.md");
+    create_file(
+        root,
+        "mdlc_fixture_sub/mdlc_fixture_nested/mdlc_fixture_c.md",
+    );
+
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
+    let result = scanner::collect_md_files(root);
+
+    let unique: HashSet<PathBuf> = result.iter().cloned().collect();
+    assert_eq!(
+        result.len(),
+        unique.len(),
+        "scan set must not contain duplicate paths (BC-2.01.001 postcondition 2)"
+    );
+    // Positive gate: all three fixture files must be present (F-04 vacuous-pass
+    // prevention — an empty Vec passes the dedup assertion above vacuously).
+    assert!(
+        unique.contains(&root.join("mdlc_fixture_a.md")),
+        "mdlc_fixture_a.md must appear in the scan set"
+    );
+    assert!(
+        unique.contains(&root.join("mdlc_fixture_sub/mdlc_fixture_b.md")),
+        "mdlc_fixture_sub/mdlc_fixture_b.md must appear in the scan set"
+    );
+    assert!(
+        unique.contains(&root.join("mdlc_fixture_sub/mdlc_fixture_nested/mdlc_fixture_c.md")),
+        "mdlc_fixture_sub/mdlc_fixture_nested/mdlc_fixture_c.md must appear in the scan set"
+    );
+}

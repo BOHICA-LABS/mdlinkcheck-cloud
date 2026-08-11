@@ -1,0 +1,60 @@
+S-1.01 per-AC demo evidence — AC-013
+test:      test_BC_2_01_005_case_sensitive_byte_match
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_005_case_sensitive_byte_match)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+────────────
+ Nextest run ID f26aa3e5-b840-4ecf-886a-e3e31e3ffc2d with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_case_sensitive_byte_match
+
+running 1 test
+test test_BC_2_01_005_case_sensitive_byte_match ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+        PASS [   0.012s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_case_sensitive_byte_match
+────────────
+     Summary [   0.012s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (4 assertion(s)) -----
+  assert!(
+  assert!(
+  assert!(
+  assert!(
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:688) -----
+
+#[test]
+fn test_BC_2_01_005_case_sensitive_byte_match() {
+    // ── Red Gate history (commit ba83b1b): is_md_extension panicked at todo!() on first call. ─
+    // Case-sensitivity: ONLY the exact lowercase byte sequence ".md" is matched.
+    assert!(
+        !scanner::is_md_extension(&PathBuf::from("README.MD")),
+        ".MD must NOT match — case-sensitive byte comparison (BC-2.01.005 invariant 1, D-012)"
+    );
+    assert!(
+        !scanner::is_md_extension(&PathBuf::from("notes.Md")),
+        ".Md must NOT match"
+    );
+    assert!(
+        !scanner::is_md_extension(&PathBuf::from("notes.mD")),
+        ".mD must NOT match"
+    );
+    // Only exact lowercase ".md" is accepted:
+    assert!(
+        scanner::is_md_extension(&PathBuf::from("notes.md")),
+        ".md (exact lowercase) MUST match"
+    );
+}

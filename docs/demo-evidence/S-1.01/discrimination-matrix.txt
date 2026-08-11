@@ -1,0 +1,76 @@
+
+=== MUTANT M1: extension match becomes case-INsensitive ===
+--- diff ---
+232c232
+< pub fn is_md_extension(path: &Path) -> bool {
+---
+> pub fn is_md_extension(path: &Path) -> bool { return path.extension().is_some_and(|e| e.to_string_lossy().to_lowercase()=="md");
+--- failing tests ---
+FAIL [   0.036s] (10/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_ec005_ec006a_ec006b_traversal_excludes_non_md_extensions
+FAIL [   0.048s] (11/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_case_sensitive_byte_match
+FAIL [   0.047s] (13/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_non_md_extensions_excluded
+Summary [   0.165s] 25/44 tests run: 22 passed, 3 failed, 0 skipped
+FAIL [   0.036s] (10/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_ec005_ec006a_ec006b_traversal_excludes_non_md_extensions
+FAIL [   0.048s] (11/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_case_sensitive_byte_match
+FAIL [   0.047s] (13/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_005_non_md_extensions_excluded
+
+=== MUTANT M2: dot-directory filter_entry guard removed ===
+--- diff ---
+122,123c122
+<         let is_dot_dir =
+<             e.file_type().is_some_and(|ft| ft.is_dir()) && is_dot_dir_name(e.file_name());
+---
+>         let is_dot_dir = false;
+--- failing tests ---
+FAIL [   0.064s] (10/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_inv1_build_walk_filter_entry_guard_is_active
+Summary [   0.164s] 25/44 tests run: 24 passed, 1 failed, 0 skipped
+FAIL [   0.064s] (10/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_inv1_build_walk_filter_entry_guard_is_active
+
+=== MUTANT M3: gitignore honouring disabled ===
+--- diff ---
+85c85
+<         .git_ignore(true) // respect .gitignore (BC-2.01.003)
+---
+>         .git_ignore(false) // respect .gitignore (BC-2.01.003)
+--- failing tests ---
+FAIL [   0.062s] ( 6/44) mdlinkcheck::global_gitignore_test test_BC_2_01_003_post3_global_gitignore_respected_when_available
+FAIL [   0.075s] ( 9/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_gitignore_excludes_from_scan_set
+FAIL [   0.085s] (10/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_post1_gitignore_honored_outside_git_repo
+FAIL [   0.114s] (15/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_inv1_gitignored_source_not_scanned_real_gitignore
+FAIL [   0.133s] (18/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_post1_ancestor_gitignore_honoured_parents_true
+Summary [   0.141s] 21/44 tests run: 16 passed, 5 failed, 0 skipped
+FAIL [   0.062s] ( 6/44) mdlinkcheck::global_gitignore_test test_BC_2_01_003_post3_global_gitignore_respected_when_available
+FAIL [   0.075s] ( 9/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_gitignore_excludes_from_scan_set
+FAIL [   0.085s] (10/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_post1_gitignore_honored_outside_git_repo
+FAIL [   0.114s] (15/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_inv1_gitignored_source_not_scanned_real_gitignore
+FAIL [   0.133s] (18/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_post1_ancestor_gitignore_honoured_parents_true
+
+=== MUTANT M4: directory symlinks ARE followed ===
+--- diff ---
+77c77
+<         .follow_links(false) // never follow dir symlinks (BC-2.01.004, DI-009)
+---
+>         .follow_links(true) // never follow dir symlinks (BC-2.01.004, DI-009)
+--- failing tests ---
+FAIL [   0.030s] ( 3/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_ec009_directory_symlink_to_outside_not_followed
+Summary [   0.159s] 18/44 tests run: 17 passed, 1 failed, 0 skipped
+FAIL [   0.030s] ( 3/44) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_ec009_directory_symlink_to_outside_not_followed
+
+=== MUTANT M5: dedup removed (postcondition 2) ===
+--- diff ---
+215,216d214
+<     files.sort();
+<     files.dedup();
+--- failing tests ---
+Summary [   0.954s] 44 tests run: 44 passed, 0 skipped
+
+=== MUTANT M6: post-filter dot-component backstop removed ===
+--- diff ---
+203,205c203
+<             if rel.components().any(|c| is_dot_dir_name(c.as_os_str())) {
+<                 return None;
+<             }
+---
+>             
+--- failing tests ---
+Summary [   0.907s] 44 tests run: 44 passed, 0 skipped

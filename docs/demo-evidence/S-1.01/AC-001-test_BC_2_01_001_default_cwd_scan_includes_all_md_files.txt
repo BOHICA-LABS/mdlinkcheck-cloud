@@ -1,0 +1,96 @@
+S-1.01 per-AC demo evidence — AC-001
+test:      test_BC_2_01_001_default_cwd_scan_includes_all_md_files
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_001_default_cwd_scan_includes_all_md_files)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+────────────
+ Nextest run ID d071b02b-22e1-4f8e-95db-f25f9a2cbaf4 with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_001_default_cwd_scan_includes_all_md_files
+
+running 1 test
+test test_BC_2_01_001_default_cwd_scan_includes_all_md_files ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+        PASS [   0.015s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_001_default_cwd_scan_includes_all_md_files
+────────────
+     Summary [   0.016s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (5 assertion(s)) -----
+  assert_eq!(
+  assert!(
+  assert!(
+  assert!(
+  assert_eq!(
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:92) -----
+
+#[test]
+fn test_BC_2_01_001_default_cwd_scan_includes_all_md_files() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    create_file(root, "mdlc_fixture_README.md");
+    create_file(root, "mdlc_fixture_docs/mdlc_fixture_guide.md");
+    create_file(
+        root,
+        "mdlc_fixture_docs/mdlc_fixture_api/mdlc_fixture_reference.md",
+    );
+    create_file(root, "not_a_md.txt");
+    create_file(root, "image.png");
+
+    // ── Red Gate history (commit ba83b1b): collect_md_files panicked at todo!(). ──────
+    let result = scanner::collect_md_files(root);
+
+    // Exact-count assertion: assert the returned Vec has exactly 3 paths.
+    // NOTE: this assertion CANNOT detect duplicate yields from the walker.
+    // `collect_md_files` calls `files.sort(); files.dedup()` before returning,
+    // so `result.len()` can never exceed 3 as a consequence of a duplicate yield.
+    // The "exactly once" property for BC-2.01.001 postconditions 1 and 2 is
+    // enforced structurally by `collect_md_files`'s internal dedup — genuine
+    // path-aliasing verification (e.g. hardlinks) requires explicit path arguments
+    // and is deferred (C-B1, anchored to S-1.02); hardlink aliasing intent is
+    // unadjudicated (P10-01/BI-068). The subsequent `result_set.len() == 3`
+    // assertion covers the same "exactly 3 distinct .md files" constraint.
+    assert_eq!(
+        result.len(),
+        3,
+        "scan set must contain exactly 3 distinct .md paths (BC-2.01.001 \
+         postconditions 1 and 2); NOTE: duplicate-yield detection is not possible \
+         at this level because collect_md_files deduplicates internally before \
+         returning — path-aliasing verification (C-B1) is deferred to S-1.02"
+    );
+
+    // After implementation: every .md file under root must appear in the result.
+    let result_set: HashSet<PathBuf> = result.into_iter().collect();
+    assert!(
+        result_set.contains(&root.join("mdlc_fixture_README.md")),
+        "mdlc_fixture_README.md must be in the scan set"
+    );
+    assert!(
+        result_set.contains(&root.join("mdlc_fixture_docs/mdlc_fixture_guide.md")),
+        "mdlc_fixture_docs/mdlc_fixture_guide.md must be in the scan set"
+    );
+    assert!(
+        result_set
+            .contains(&root.join("mdlc_fixture_docs/mdlc_fixture_api/mdlc_fixture_reference.md")),
+        "mdlc_fixture_docs/mdlc_fixture_api/mdlc_fixture_reference.md must be in the scan set"
+    );
+    assert_eq!(
+        result_set.len(),
+        3,
+        "only .md files must appear; .txt/.png must be excluded"
+    );
+}

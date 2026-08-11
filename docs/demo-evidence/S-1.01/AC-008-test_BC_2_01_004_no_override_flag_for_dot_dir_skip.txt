@@ -1,0 +1,87 @@
+S-1.01 per-AC demo evidence — AC-008
+test:      test_BC_2_01_004_no_override_flag_for_dot_dir_skip
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_004_no_override_flag_for_dot_dir_skip)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+────────────
+ Nextest run ID 3e3c1fce-11b6-44f2-8547-2b8b9cf7ed13 with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_no_override_flag_for_dot_dir_skip
+
+running 1 test
+test test_BC_2_01_004_no_override_flag_for_dot_dir_skip ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+        PASS [   0.015s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_no_override_flag_for_dot_dir_skip
+────────────
+     Summary [   0.015s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (3 assertion(s)) -----
+  assert!(
+  assert!(
+  assert!(
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:414) -----
+
+#[test]
+fn test_BC_2_01_004_no_override_flag_for_dot_dir_skip() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    create_file(root, ".hidden_dir/secret.md");
+    create_file(root, "mdlc_fixture_visible.md");
+
+    // The call below compiles with EXACTLY ONE argument, asserting the API surface:
+    // no `hidden: bool`, no override config, no builder knob for dot-dir traversal.
+    // This is both a compile-time and a runtime assertion of D-011.
+    //
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
+    let result = scanner::collect_md_files(root);
+
+    // Positive assertion: mdlc_fixture_visible.md MUST appear in the scan set.
+    // Without this, the invariant below would pass vacuously on an empty Vec —
+    // an empty result is not a correct implementation.
+    assert!(
+        result.contains(&root.join("mdlc_fixture_visible.md")),
+        "mdlc_fixture_visible.md must appear in the scan set"
+    );
+
+    // Negative assertion: the file inside the dot-directory must NOT appear.
+    assert!(
+        !result.contains(&root.join(".hidden_dir").join("secret.md")),
+        ".hidden_dir/secret.md must not appear — dot-dir skip is unconditional (D-011)"
+    );
+
+    // Invariant: no path whose RELATIVE components (relative to root) contain a
+    // dot-prefixed segment may appear.  We strip the absolute root prefix first so
+    // that a dot-prefixed OS tempdir name (e.g. `/tmp/.tmpXXXXX` — tempfile's
+    // default prefix on all platforms) in the absolute path does not trigger a
+    // false failure.  Only the relative path components count for D-011.
+    assert!(
+        !result.iter().any(|p| {
+            p.strip_prefix(root)
+                .unwrap_or(p.as_path())
+                .components()
+                .any(|c| {
+                    c.as_os_str()
+                        .to_str()
+                        .map(|s| s.starts_with('.'))
+                        .unwrap_or(false)
+                })
+        }),
+        "no file inside a dot-directory component must ever appear in the scan set \
+         regardless of invocation — dot-dir skip is unconditional (D-011)"
+    );
+}

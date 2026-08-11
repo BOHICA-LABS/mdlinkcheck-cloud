@@ -1,0 +1,61 @@
+S-1.01 per-AC demo evidence — AC-010
+test:      test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+────────────
+ Nextest run ID b8b2ec69-9ccd-4edc-8d52-18d463e975fe with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target
+
+running 1 test
+test test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+        PASS [   0.014s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target
+────────────
+     Summary [   0.014s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (2 assertion(s)) -----
+  assert!(
+  assert!(
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:604) -----
+
+#[test]
+fn test_BC_2_01_004_dot_dir_md_file_anchor_table_built_as_target() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // .vitepress/api.md is inside a dot-directory (should be excluded from scan set)
+    create_file(root, ".vitepress/api.md");
+    create_file(root, "mdlc_fixture_source.md");
+
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
+    // Clause (i): dot-dir .md must NOT appear in the scan set as a link source.
+    let result = scanner::collect_md_files(root);
+
+    assert!(
+        !result.contains(&root.join(".vitepress/api.md")),
+        ".vitepress/api.md is in a dot-directory and must not appear in the scan set \
+         — clause (i) of BC-2.01.004 invariant 3"
+    );
+    // Positive gate: mdlc_fixture_source.md must be present (F-04 vacuous-pass
+    // prevention — an empty Vec passes the negative assertion above vacuously).
+    assert!(
+        result.contains(&root.join("mdlc_fixture_source.md")),
+        "mdlc_fixture_source.md must appear in the scan set (F-04 vacuous-pass prevention)"
+    );
+}

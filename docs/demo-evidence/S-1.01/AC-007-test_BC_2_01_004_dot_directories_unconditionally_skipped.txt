@@ -1,0 +1,91 @@
+S-1.01 per-AC demo evidence — AC-007
+test:      test_BC_2_01_004_dot_directories_unconditionally_skipped
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_004_dot_directories_unconditionally_skipped)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+────────────
+ Nextest run ID 10b2d4df-d382-44ab-b49d-1e8dabc3038d with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_dot_directories_unconditionally_skipped
+
+running 1 test
+test test_BC_2_01_004_dot_directories_unconditionally_skipped ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+        PASS [   0.015s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_004_dot_directories_unconditionally_skipped
+────────────
+     Summary [   0.015s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (6 assertion(s)) -----
+  assert!(
+  assert!(
+  assert!(
+  assert!(
+  assert!(
+  assert_eq!(
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:347) -----
+
+#[test]
+fn test_BC_2_01_004_dot_directories_unconditionally_skipped() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    create_file(root, ".github/PULL_REQUEST_TEMPLATE.md"); // dot-dir — must be skipped
+    create_file(root, ".git_backup/notes.md"); // dot-dir — must be skipped
+    create_file(root, ".vitepress/config.md"); // dot-dir — must be skipped
+                                               // P10-02: regression lock for dot-dirs whose name ENDS in `.`.
+                                               // In `ignore 0.4.33`, `pathutil.rs:156/158` make `hidden(true)` return
+                                               // "not hidden" for names ending in `.` or `..`, so this input class is
+                                               // defended by `filter_entry`/`is_dot_dir_name` ALONE.  The `hidden(false)`
+                                               // mutant is an accepted survivor; without this fixture that defence is
+                                               // unverified.  Behavior verified correct by direct execution.
+    create_file(root, ".trailing./mdlc_fixture_in_trailing_dot.md"); // dot-dir with trailing `.` — must be skipped
+    create_file(root, "mdlc_fixture_README.md"); // not in dot-dir — must appear
+
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
+    let result = scanner::collect_md_files(root);
+
+    let result_set: HashSet<PathBuf> = result.into_iter().collect();
+    assert!(
+        !result_set.contains(&root.join(".github/PULL_REQUEST_TEMPLATE.md")),
+        ".github/ is a dot-dir and must be unconditionally skipped (BC-2.01.004)"
+    );
+    assert!(
+        !result_set.contains(&root.join(".git_backup/notes.md")),
+        ".git_backup/ is a dot-dir and must be unconditionally skipped"
+    );
+    assert!(
+        !result_set.contains(&root.join(".vitepress/config.md")),
+        ".vitepress/ is a dot-dir and must be unconditionally skipped"
+    );
+    assert!(
+        !result_set.contains(&root.join(".trailing./mdlc_fixture_in_trailing_dot.md")),
+        ".trailing./ is a dot-dir (name starts with `.`) and must be unconditionally \
+         skipped even though ignore 0.4.33 hidden() considers trailing-`.` names as \
+         not hidden — defence is is_dot_dir_name alone (BC-2.01.004, P10-02)"
+    );
+    assert!(
+        result_set.contains(&root.join("mdlc_fixture_README.md")),
+        "mdlc_fixture_README.md (not in any dot-dir) must be in the scan set"
+    );
+    assert_eq!(
+        result_set.len(),
+        1,
+        "only mdlc_fixture_README.md should be discovered; \
+         .github/, .git_backup/, .vitepress/, and .trailing./ are all dot-dirs \
+         and must be unconditionally skipped (BC-2.01.004)"
+    );
+}

@@ -1,0 +1,67 @@
+S-1.01 per-AC demo evidence — AC-004
+test:      test_BC_2_01_003_gitignore_excludes_from_scan_set
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_003_gitignore_excludes_from_scan_set)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.09s
+────────────
+ Nextest run ID 8316446f-2700-44c6-9bdd-378112d6b145 with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_gitignore_excludes_from_scan_set
+
+running 1 test
+test test_BC_2_01_003_gitignore_excludes_from_scan_set ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.03s
+
+        PASS [   0.040s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_gitignore_excludes_from_scan_set
+────────────
+     Summary [   0.040s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (2 assertion(s)) -----
+  assert!(
+  assert!(
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:247) -----
+
+#[test]
+fn test_BC_2_01_003_gitignore_excludes_from_scan_set() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // Hermetic config for the git subprocess only (per-command env — not process-env
+    // mutation).  The ignore crate running in collect_md_files uses the host env.
+    let hermetic_cfg = root.join(".hermetic_gitconfig");
+    fs::write(&hermetic_cfg, "").expect("write hermetic gitconfig");
+
+    git_init(root, &hermetic_cfg); // Scope Ruling 4 belt-and-suspenders; require_git(false) in
+                                   // build_walk honours .gitignore outside git repos — git init
+                                   // is NOT required for .gitignore to work (see git_init doc)
+    fs::write(root.join(".gitignore"), "node_modules/\n").expect("write .gitignore");
+    create_file(root, "node_modules/mdlc_fixture_foo.md"); // must be excluded
+    create_file(root, "mdlc_fixture_README.md"); // must be included
+
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
+    let result = scanner::collect_md_files(root);
+
+    assert!(
+        !result.contains(&root.join("node_modules/mdlc_fixture_foo.md")),
+        "node_modules/mdlc_fixture_foo.md must not appear in the scan set \
+         (gitignored by node_modules/)"
+    );
+    assert!(
+        result.contains(&root.join("mdlc_fixture_README.md")),
+        "mdlc_fixture_README.md must appear in the scan set"
+    );
+    // No exact-count assertion: host global gitignore could exclude unrelated files.
+}

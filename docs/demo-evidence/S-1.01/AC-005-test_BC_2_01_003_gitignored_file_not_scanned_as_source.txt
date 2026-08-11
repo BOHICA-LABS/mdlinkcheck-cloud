@@ -1,0 +1,58 @@
+S-1.01 per-AC demo evidence — AC-005
+test:      test_BC_2_01_003_gitignored_file_not_scanned_as_source
+command:   cargo nextest run --locked --all-targets --no-capture -E 'test(=test_BC_2_01_003_gitignored_file_not_scanned_as_source)'
+toolchain: rustc 1.97.0 (2d8144b78 2026-07-07)
+nextest:   cargo-nextest 0.9.129 (1358a2296 2026-02-22)
+commit:    98a4f155440576c358efe23f670c7f8bdf6b62fc
+
+NOTE ON DEMO FORM (POLICY 10): S-1.01 delivers a library only —
+crates/mdlinkcheck/src/main.rs is a documented todo!() stub, so the binary
+panics if run and no CLI or terminal demo is possible at this story. Evidence
+is therefore test-execution based, which is the honest available form.
+
+----- BEGIN EXECUTION OUTPUT -----
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+────────────
+ Nextest run ID c7fbdf8a-aa7c-4d2a-a52b-5bfef7f6f77a with nextest profile: default
+    Starting 1 test across 6 binaries (43 tests skipped)
+       START [         ] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_gitignored_file_not_scanned_as_source
+
+running 1 test
+test test_BC_2_01_003_gitignored_file_not_scanned_as_source ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 26 filtered out; finished in 0.00s
+
+        PASS [   0.015s] (1/1) mdlinkcheck::scanner_discovery_tests test_BC_2_01_003_gitignored_file_not_scanned_as_source
+────────────
+     Summary [   0.015s] 1 test run: 1 passed, 43 skipped
+----- END EXECUTION OUTPUT -----
+exit_code: 0
+
+----- WHAT THIS TEST ASSERTS (2 assertion(s)) -----
+  assert!(
+  assert!(
+
+----- TEST SOURCE (crates/mdlinkcheck/tests/scanner_discovery_tests.rs:283) -----
+
+#[test]
+fn test_BC_2_01_003_gitignored_file_not_scanned_as_source() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // No git init: .ignore is always honoured, making this fixture git-independent
+    fs::write(root.join(".ignore"), "mdlc_fixture_secret.md\n").expect("write .ignore");
+    create_file(root, "mdlc_fixture_secret.md"); // excluded by .ignore
+    create_file(root, "mdlc_fixture_visible.md"); // included
+
+    // ── Red Gate history (commit ba83b1b): this call panicked at todo!(). ────────────
+    let result = scanner::collect_md_files(root);
+
+    assert!(
+        !result.contains(&root.join("mdlc_fixture_secret.md")),
+        "mdlc_fixture_secret.md must not be scanned as a link source (excluded by .ignore)"
+    );
+    assert!(
+        result.contains(&root.join("mdlc_fixture_visible.md")),
+        "mdlc_fixture_visible.md must be in the scan set"
+    );
+}
