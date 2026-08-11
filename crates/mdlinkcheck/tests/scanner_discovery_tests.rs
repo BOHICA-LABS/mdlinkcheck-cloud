@@ -370,6 +370,88 @@ fn test_BC_2_01_004_directory_symlinks_not_followed() {
     );
 }
 
+// ─── EC-009: non-cyclic out-of-root directory symlink (mutation-discriminating) ─
+//
+// WHY A SEPARATE TEST IS NEEDED:
+//   The EC-008 (cyclic) fixtures used by AC-009 and VP-017 pass vacuously under
+//   `follow_links(true)` because the `ignore` crate's loop detector returns an
+//   error (not a path) for the looping entry, which `result.ok()?` swallows.
+//   A NON-CYCLIC symlink pointing at an external directory DOES produce yielded
+//   paths under `follow_links(true)`, making it the only fixture that truly
+//   discriminates `follow_links(false)` from `follow_links(true)`.
+//
+// FIXTURE (EC-009 from the story edge-cases table):
+//   docs -> ../shared-docs  (directory symlink, not a cycle)
+//   Files under ../shared-docs are NOT discovered unless separately specified.
+//
+// Traceability: AC-009 / BC-2.01.004 postcondition 2 / DI-009 / EC-009
+// Mutation target: `follow_links(false)` in `build_walk` / `collect_md_files`
+
+#[cfg(unix)]
+#[test]
+fn test_BC_2_01_004_ec009_directory_symlink_to_outside_not_followed() {
+    // Create an EXTERNAL directory (outside the scan root) containing a .md file.
+    // Analogue: ../shared-docs/external.md from EC-009.
+    let external_dir = TempDir::new().expect("external tempdir EC-009");
+    let external = external_dir.path();
+    create_file(external, "external.md");
+
+    // Create the scan root (a separate TempDir so external is truly outside).
+    let root_dir = TempDir::new().expect("scan root tempdir EC-009");
+    let root = root_dir.path();
+
+    // Create a non-dot, non-cyclic directory symlink inside the scan root:
+    //   <root>/docs  ->  <external>   (analogous to EC-009: docs -> ../shared-docs)
+    std::os::unix::fs::symlink(external, root.join("docs"))
+        .expect("create non-cyclic out-of-root directory symlink (EC-009)");
+
+    // A real in-root .md file: prevents vacuous pass on an empty result.
+    create_file(root, "README.md");
+
+    let result = scanner::collect_md_files(root);
+
+    // Positive gate: README.md MUST appear.
+    // If the implementation returns an empty Vec, the negative assertions below
+    // would pass vacuously, so this guard is mandatory.
+    assert!(
+        result.contains(&root.join("README.md")),
+        "README.md must be discovered; empty scan set is not a correct implementation \
+         (EC-009 vacuous-pass prevention)"
+    );
+
+    // Negative assertion 1: no discovered path traverses the docs symlink.
+    // Under follow_links(false) the docs entry is seen as a symlink and skipped.
+    // Under follow_links(true) the walk descends into docs/ and yields paths
+    // containing a "docs" path component — this is the mutation-kill signal.
+    assert!(
+        !result
+            .iter()
+            .any(|p| p.components().any(|c| c.as_os_str() == "docs")),
+        "no path with a 'docs' component must appear — the docs directory symlink \
+         must not be traversed \
+         (AC-009 / BC-2.01.004 postcondition 2 / DI-009 / EC-009, \
+         mutation-discriminating case for follow_links(false))"
+    );
+
+    // Negative assertion 2: external.md must not be reachable by any path.
+    assert!(
+        !result
+            .iter()
+            .any(|p| p.file_name().map_or(false, |n| n == "external.md")),
+        "external.md lives outside the scan root and is reachable only via the docs \
+         directory symlink; it must not be discovered when follow_links(false) is set \
+         (EC-009 / BC-2.01.004 postcondition 2)"
+    );
+
+    // Exactly one file should be in the scan set.
+    assert_eq!(
+        result.len(),
+        1,
+        "only README.md should be in the scan set; \
+         external.md behind the docs symlink must be excluded (EC-009)"
+    );
+}
+
 // ─── AC-010 (traces to BC-2.01.004 invariant 3) ──────────────────────────────
 // Fixture form: plain tempdir with a dot-directory.
 //
@@ -560,12 +642,32 @@ proptest! {
             create_file(root, &rel);
         }
 
-        // Optionally add a directory-symlink cycle (EC-008): cycle_root/self_link -> cycle_root
+        // Hold TempDirs that must outlive the scan call on Unix.
+        // On non-Unix the vec stays empty; `mut` is needed only on Unix.
+        #[allow(unused_mut)]
+        let mut _keep_alive: Vec<TempDir> = Vec::new();
+
+        // Optionally add symlink scenarios when include_symlink_cycle is true:
+        //   EC-008 — self-referential cycle:  cycle_root/self_link -> cycle_root
+        //   EC-009 — non-cyclic out-of-root:  outlink -> <external TempDir>
+        // EC-009 is the mutation-discriminating case for follow_links(false):
+        // a non-cyclic symlink yields paths under follow_links(true) but must
+        // not yield any path under follow_links(false).
         if include_symlink_cycle {
+            // EC-008: self-referential cycle
             let cycle_dir = root.join("cycle_root");
             let _ = fs::create_dir_all(&cycle_dir);
             #[cfg(unix)]
             let _ = std::os::unix::fs::symlink(&cycle_dir, cycle_dir.join("self_link"));
+
+            // EC-009: non-cyclic out-of-root directory symlink
+            #[cfg(unix)]
+            {
+                let outside = TempDir::new().expect("tempdir VP-017 outside");
+                create_file(outside.path(), "outside.md");
+                let _ = std::os::unix::fs::symlink(outside.path(), root.join("outlink"));
+                _keep_alive.push(outside); // keep alive until after the scan
+            }
         }
 
         // ── Red Gate: panics at todo!() on first generated case ───────────────
@@ -582,10 +684,26 @@ proptest! {
             );
         }
 
-        // Symlink components must never appear in scan results
+        // EC-008: symlink-cycle components must never appear in scan results
         prop_assert!(
             !result.iter().any(|p| p.to_string_lossy().contains("self_link")),
             "directory symlink components must not appear in scan results"
+        );
+
+        // EC-009: files behind a non-cyclic out-of-root directory symlink must
+        // not appear (mutation-discriminating for follow_links(false)).
+        prop_assert!(
+            !result.iter().any(|p| p.file_name().map_or(false, |n| n == "outside.md")),
+            "files in out-of-root directories reachable only via a non-cyclic \
+             directory symlink must not appear in scan results \
+             (EC-009, mutation-discriminating for follow_links(false))"
+        );
+
+        // EC-009: the outlink symlink component itself must not appear in any path
+        prop_assert!(
+            !result.iter().any(|p| p.to_string_lossy().contains("outlink")),
+            "outlink directory symlink must not be traversed; \
+             no path with 'outlink' component may appear in scan results (EC-009)"
         );
     }
 }
