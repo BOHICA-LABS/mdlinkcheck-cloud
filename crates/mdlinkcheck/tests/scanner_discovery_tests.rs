@@ -954,3 +954,226 @@ fn test_BC_2_01_005_post1_directory_with_md_name_not_in_scan_set() {
          (BC-2.01.005 postcondition 1)"
     );
 }
+
+// ─── TEST 1 (INTENTIONALLY RED — F-B2 defect exposure) ───────────────────────
+//
+// .gitignore is NOT honored outside a git repository because `build_walk` does
+// not call `require_git(false)`.  The `ignore` crate defaults `require_git` to
+// `true`, which means `.gitignore` files are honoured ONLY inside a real git
+// repository.  In a non-git directory containing a `.gitignore` with
+// `node_modules/`, the file `node_modules/mdlc_fixture_foo.md` IS returned by
+// `collect_md_files` — it should be excluded.
+//
+// BC-2.01.003 postcondition 1: "Every file that matches a pattern in any
+//   applicable .gitignore or .ignore file is excluded from the scan set."
+//
+// EC-002: `node_modules/**/*.md` (5000 files); `node_modules/` in `.gitignore`
+//         → All 5000 files excluded; no performance blowout.
+//
+// Fix: add `require_git(false)` to `build_walk` in scanner.rs — another
+// agent's responsibility (defect F-B2, story S-1.01).  Do NOT weaken this
+// test, do NOT add #[ignore], and do NOT modify scanner.rs here.
+
+#[test]
+fn test_BC_2_01_003_post1_gitignore_honored_outside_git_repo() {
+    // NO git init — this is a plain directory, not a git repository.
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // .gitignore declares node_modules/ as excluded.
+    fs::write(root.join(".gitignore"), "node_modules/\n").expect("write .gitignore");
+
+    // This file is matched by node_modules/ and must NOT appear in the scan set.
+    // With defect F-B2 present (require_git=true default), the .gitignore is
+    // silently skipped in non-git directories and this file IS returned — the
+    // negative assertion below FAILS, exposing the defect.
+    create_file(root, "node_modules/mdlc_fixture_foo.md");
+
+    // Positive gate: a normal .md file outside node_modules must appear.
+    // Prevents vacuous pass on an empty scan set (F-04).
+    create_file(root, "mdlc_fixture_README.md");
+
+    let result = scanner::collect_md_files(root);
+
+    // Positive gate (F-04 vacuous-pass prevention): mdlc_fixture_README.md must
+    // be in the scan set.
+    assert!(
+        result.contains(&root.join("mdlc_fixture_README.md")),
+        "mdlc_fixture_README.md must be in the scan set (positive gate, F-04)"
+    );
+
+    // BC-2.01.003 postcondition 1 / EC-002: the .gitignore-excluded file must
+    // NOT appear — even in a non-git directory.
+    // THIS ASSERTION FAILS with defect F-B2: require_git=true causes .gitignore
+    // to be silently skipped outside a git repo, so node_modules/mdlc_fixture_foo.md
+    // appears in the scan set.
+    assert!(
+        !result.contains(&root.join("node_modules/mdlc_fixture_foo.md")),
+        "node_modules/mdlc_fixture_foo.md must not appear in the scan set \
+         (excluded by .gitignore per BC-2.01.003 postcondition 1 / EC-002). \
+         FAILS because build_walk does not call require_git(false): \
+         .gitignore is silently skipped in non-git directories (defect F-B2)."
+    );
+}
+
+// ─── EC-001: empty scan set when no .md files exist ──────────────────────────
+//
+// EC-001 from the story edge-cases table:
+//   "CWD has no .md files at any depth → Scan set is empty; no crash."
+//
+// No existing test covers EC-001.  This test creates a tempdir containing only
+// non-.md files and asserts that collect_md_files returns an empty Vec without
+// panicking.  The "No markdown files found." CLI exit message is deferred to
+// S-1.02; we assert only the empty scan set here.
+//
+// Fixture form: plain tempdir — no gitignore exclusion needed, tests pure
+// extension filtering.
+//
+// Traceability: BC-2.01.001 / EC-001
+
+#[test]
+fn test_BC_2_01_001_ec001_empty_scan_set_when_no_md_files() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // Only non-.md files — none of these match the .md-only filter (BC-2.01.005).
+    create_file(root, "notes.txt");
+    create_file(root, "image.png");
+    create_file(root, "sub/data.json");
+
+    // collect_md_files must not panic (EC-001: "no crash") and must return empty.
+    let result = scanner::collect_md_files(root);
+
+    // EC-001 postcondition: the scan set is empty when no .md files exist.
+    // The assertion itself IS the positive outcome — there is no vacuous-pass
+    // risk here because we are asserting emptiness (not absence of a specific
+    // file).  The "No markdown files found." CLI message is deferred to S-1.02.
+    assert!(
+        result.is_empty(),
+        "scan set must be empty when no .md files exist at any depth \
+         (EC-001 / BC-2.01.001): got {:?}",
+        result
+    );
+}
+
+// ─── EC-004: real .git/ directory — .md files inside must be skipped ─────────
+//
+// EC-004 from the story edge-cases table.  The existing dot-dir test
+// (test_BC_2_01_004_dot_directories_unconditionally_skipped) uses `.git_backup/`
+// and similar names — never an actual `.git/` directory.  The `ignore` crate
+// special-cases `.git` for repository detection, making it a genuinely different
+// code path from generic dot-directory skipping via `hidden(true)`.  This test
+// exercises that specific path.
+//
+// The `.git/` directory is created with `fs::create_dir_all` — no `git init`.
+// Creating it manually is sufficient to trigger the `.git`-specific handling in
+// the `ignore` crate while keeping the fixture simple and hermetic.
+//
+// Fixture form: plain tempdir with a manually-created `.git/` directory.
+//
+// Traceability: BC-2.01.004 postcondition 1 / EC-004
+
+#[test]
+fn test_BC_2_01_004_ec004_real_git_directory_md_files_skipped() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // Create a real .git/ directory (no git init — just mkdir).
+    fs::create_dir_all(root.join(".git")).expect("create .git dir");
+
+    // .md files inside .git/ must be unconditionally excluded because .git is
+    // a dot-directory (BC-2.01.004 postcondition 1) AND is special-cased by
+    // the ignore crate for repository detection.
+    create_file(root, ".git/COMMIT_EDITMSG.md");
+    create_file(root, ".git/notes.md");
+
+    // Positive gate: a normal .md file outside .git/ must appear in the scan set.
+    // Without this, an empty result passes every negative assertion vacuously (F-04).
+    create_file(root, "mdlc_fixture_README.md");
+
+    let result = scanner::collect_md_files(root);
+
+    // Positive gate (F-04 vacuous-pass prevention).
+    assert!(
+        result.contains(&root.join("mdlc_fixture_README.md")),
+        "mdlc_fixture_README.md must be in the scan set \
+         (positive gate, EC-004 / BC-2.01.004 postcondition 1)"
+    );
+
+    // Negative assertions: .md files inside .git/ must never appear.
+    assert!(
+        !result.contains(&root.join(".git/COMMIT_EDITMSG.md")),
+        ".git/COMMIT_EDITMSG.md must not appear — .git is a dot-dir and is \
+         unconditionally skipped (EC-004 / BC-2.01.004 postcondition 1)"
+    );
+    assert!(
+        !result.contains(&root.join(".git/notes.md")),
+        ".git/notes.md must not appear — .git is a dot-dir and is \
+         unconditionally skipped (EC-004 / BC-2.01.004 postcondition 1)"
+    );
+}
+
+// ─── AC-005 companion: real .gitignore inside a git-init'd repo ──────────────
+//
+// AC-005 (`test_BC_2_01_003_gitignored_file_not_scanned_as_source`) uses a
+// PLAIN (non-git) dir with a `.ignore` file — its name is mandated by the
+// story's AC-005 `**Test:**` field and must NOT be modified.  That fixture
+// exercises `.ignore` (honoured unconditionally); it does NOT exercise the
+// `.gitignore`-in-git-repo code path.
+//
+// This companion test covers the SAME invariant (BC-2.01.003 invariant 1) but
+// uses a REAL `.gitignore` inside a `git init`-ed tempdir, exercising the
+// `require_git=true` path of the `ignore` crate.  Using hermetic git config on
+// the subprocess (not process-env mutation) keeps it safe for concurrent runs.
+//
+// Fixture form: GIT REPO + real `.gitignore` (Scope Ruling 4, Form A).
+//
+// Traceability: BC-2.01.003 invariant 1 / AC-005 companion / S-1.01
+
+#[test]
+fn test_BC_2_01_003_inv1_gitignored_source_not_scanned_real_gitignore() {
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // Hermetic config for the git subprocess only (per-command env — not
+    // process-env mutation; see module-level doc comment and git_init helper).
+    let hermetic_cfg = root.join(".hermetic_gitconfig");
+    fs::write(&hermetic_cfg, "").expect("write hermetic gitconfig");
+
+    // git init required: the ignore crate's require_git=true default only
+    // honours .gitignore inside a real git repository (Scope Ruling 4).
+    git_init(root, &hermetic_cfg);
+
+    // .gitignore excludes mdlc_fixture_gitignored_source.md.
+    fs::write(
+        root.join(".gitignore"),
+        "mdlc_fixture_gitignored_source.md\n",
+    )
+    .expect("write .gitignore");
+
+    // This file is matched by .gitignore and must NOT appear in the scan set.
+    create_file(root, "mdlc_fixture_gitignored_source.md");
+
+    // This file is NOT gitignored and must appear in the scan set.
+    create_file(root, "mdlc_fixture_visible_source.md");
+
+    let result = scanner::collect_md_files(root);
+
+    // Positive gate (F-04 vacuous-pass prevention): mdlc_fixture_visible_source.md
+    // must be in the scan set.
+    assert!(
+        result.contains(&root.join("mdlc_fixture_visible_source.md")),
+        "mdlc_fixture_visible_source.md must be in the scan set \
+         (positive gate, BC-2.01.003 invariant 1 / AC-005 companion)"
+    );
+
+    // BC-2.01.003 invariant 1: a gitignored file must not appear in the scan set
+    // — it must never be scanned as a link source.
+    assert!(
+        !result.contains(&root.join("mdlc_fixture_gitignored_source.md")),
+        "mdlc_fixture_gitignored_source.md must not appear in the scan set \
+         (excluded by real .gitignore in git-init'd repo; \
+         BC-2.01.003 invariant 1 / AC-005 companion)"
+    );
+    // No exact-count assertion: host global gitignore may exclude unrelated files.
+}
