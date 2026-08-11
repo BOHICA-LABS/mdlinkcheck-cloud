@@ -60,9 +60,15 @@ set -euo pipefail
 CORE_SRC="${1:-crates/mdlinkcheck-core/src}"
 
 # ── Phase A: call sites and fully-qualified paths (line-oriented) ─────────────
-# `io::stdout` has no leading \b so that intermediate-module aliasing is caught:
-# `use std::io as _i; _i::stdout()` — a leading \b would fail after the word
-# character in `_i`.  Same reasoning omits a leading \b nowhere else.
+# `io::stdout` has no leading \b: the literal substring is a sufficient
+# discriminator; no realistic Rust path produces <word-char>io::stdout.
+# CORRECTION (BI-100): the intermediate-module aliased call site
+# `use std::io as _i; _i::stdout()` is NOT caught by the `io::stdout` arm —
+# that text is `_i::stdout`, which does not contain the substring `io::stdout`.
+# The arm that actually catches it is `\bstdout[[:space:]]*\(`, which fires on
+# `stdout(` regardless of the preceding qualifier (plant _p09).  Other arms
+# carrying no leading \b for the same reason: `time::Instant`, `rand::`,
+# `(getrandom|fastrand|oorandom|rand_chacha)::`.
 #
 # BI-096 (A1): `use[[:space:]]+(::)?rand\b` replaces the former `\buse rand\b`.
 # The leading-:: form (`use ::rand as r`) escaped the old word-boundary anchor;
@@ -237,7 +243,7 @@ while IFS= read -r f; do
 done < <(find "${CORE_SRC}" -name '*.rs' 2>/dev/null)
 
 echo "purity: ${file_count} file(s) in ${CORE_SRC} scanned, ${violations} file(s) with forbidden-path matches"
-echo "  Forbidden paths: std::fs, std::net, std::io::stdout, std::time::Instant, RNG (rand)."
+echo "  Forbidden paths: std::fs, std::net, std::io::stdout, std::time::Instant, RNG (rand, getrandom, fastrand, oorandom, rand_chacha)."
 if [ "${violations}" -gt 0 ]; then
     printf '%s\n' "${violation_output}"
     echo "FAIL: ADR-001 purity boundary violated in mdlinkcheck-core."
@@ -250,18 +256,77 @@ echo "PASS: ${file_count} .rs file(s) checked; no forbidden I/O or RNG path-frag
 # This block must never assert coverage broader than the detector provides, and
 # must never attribute its own scope limits to ADR-001. Both errors have shipped
 # here before (BI-081, then P23-02/P24-03).
-# Every shape named as COVERED below is traceable to at least one plant (L-100).
-echo "  COVERED — for all four forbidden std paths (std::fs, std::net,"
-echo "    std::io::stdout, std::time::Instant) and RNG crates (rand, getrandom,"
-echo "    fastrand, oorandom, rand_chacha), in any import shape:"
-echo "    non-grouped, grouped (brace after std:: or after the submodule),"
-echo "    sibling-nested, MULTI-LINE (rustfmt-split), leaf-aliased (as _x),"
-echo "    intermediate-module-aliased (use std::io as _i), ABSOLUTE-PATH PREFIX"
-echo "    (leading ::, e.g. use ::std::fs as f — BI-096), and call sites."
+# Every shape named as COVERED below is traceable to at least one alternation
+# arm.  Shapes lacking a dedicated self-check plant are noted (the arm is still
+# correct but is not independently exercised by the PLANTS array).
+echo "  COVERED — the following specific import shapes for std::fs, std::net,"
+echo "    std::io::stdout, std::time::Instant (Phase B STMT_RE + Phase A LINE_RE):"
+echo "    (1) non-grouped: use std::fs;  use std::net::Foo;  use std::io::stdout;"
+echo "        use std::time::Instant;"
+echo "        Phase B STMT_RE word-boundary arms (fs, net, io::stdout, time::Instant)."
+echo "        Plants: _p01 (fs), _p04 (net).  std::io::stdout and std::time::Instant"
+echo "        in this shape have no dedicated plant; matched by same STMT_RE arms."
+echo "    (2) grouped, brace after std:::"
+echo "        use std::{fs, path::PathBuf};  use std::{net::TcpStream};"
+echo "        use std::{io::stdout, ...};  use std::{time::Instant};"
+echo "        Phase B STMT_RE grouped-brace arm spanning up to the semicolon."
+echo "        Plants: _p02 (fs), _p05 (net), _p07 (stdout), _p11 (Instant)."
+echo "    (3) grouped, brace after submodule:"
+echo "        use std::io::{stdout, Write};  use std::time::{Duration, Instant};"
+echo "        Phase B STMT_RE submodule-brace arms (io::{ and time::{ variants)."
+echo "        Plants: _p06 (stdout), _p10 (Instant)."
+echo "    (4) sibling-nested: use std::{collections::{BTreeMap}, fs};"
+echo "        Phase B STMT_RE grouped-brace arm; [^;]* scope crosses inner braces"
+echo "        — the semicolon terminator, not a brace, is the scope boundary."
+echo "        Plants: _p21 (fs), _p19 (net).  stdout and Instant in this shape"
+echo "        have no dedicated plant; matched by the same arm."
+echo "    (5) multi-line rustfmt-split: all forms in (1)-(4) when split by rustfmt."
+echo "        Phase B collapses newlines before matching."
+echo "        Plants: _p17 (fs nested), _p18 (stdout), _p19 (net), _p20 (Instant),"
+echo "        _p21 (fs sibling-nested inline)."
+echo "    (6) absolute-path prefix (leading ::): use ::std::fs as f;"
+echo "        Phase B STMT_RE optional-:: prefix before std:: (BI-096)."
+echo "        Plants: _p22 (::std::fs), _p23 (::std::net).  std::io::stdout and"
+echo "        std::time::Instant in this shape have no dedicated plant; matched by"
+echo "        the same STMT_RE io::stdout and time::Instant word-boundary arms."
+echo "    (7) leaf-aliased (as _x): use std::fs as _f;  use ::std::fs as f;"
+echo "        STMT_RE word boundary fires at the space before 'as': the boundary"
+echo "        falls between the last letter of 'fs' or 'net' and the following space."
+echo "        Absolute form planted: _p22, _p23.  Non-absolute leaf-aliased has"
+echo "        no dedicated plant; matched by same STMT_RE fs and net word-boundary arms."
+echo "    (8) intermediate-module-aliased — std::io::stdout ONLY:"
+echo "        use std::io as _i; _i::stdout()"
+echo "        Caught by LINE_RE word-boundary stdout( call-site arm (plant _p09)."
+echo "        This arm is NOT present for std::fs or std::net — see NOT COVERED."
+echo "  COVERED — call sites and fully-qualified paths (Phase A, LINE_RE):"
+echo "    word-boundary fs:: (plants _p01, _p03);  word-boundary net:: (plant _p04);"
+echo "    io::stdout literal (plant _p08 — io::stdout() call);"
+echo "    word-boundary stdout( arm (plants _p06, _p09 — _p09 is _i::stdout(),"
+echo "    which is NOT caught by the io::stdout literal arm, only by this arm);"
+echo "    word-boundary Instant:: (plant _p13);  time::Instant literal (plant _p12)."
+echo "  COVERED — RNG crate imports and call sites (LINE_RE, Phase A):"
+echo "    rand: import _p15 (use rand), _p24 (use ::rand as r),"
+echo "      extern crate _p16, call site _p14 (rand::random)."
+echo "    getrandom: import _p29 (use getrandom), call site _p25."
+echo "    fastrand: import _p30 (use ::fastrand), call site _p26."
+echo "    oorandom: call site _p27; import arm exists — no dedicated plant."
+echo "    rand_chacha: call site _p28; import arm exists — no dedicated plant."
 echo "  COVERED — std::path::Path/PathBuf inherent I/O methods (BI-097):"
-echo "    .metadata(), .try_exists(), .symlink_metadata(), .read_dir(),"
-echo "    .canonicalize()."
+echo "    .metadata() _p31, .try_exists() _p32, .read_dir() _p33,"
+echo "    .symlink_metadata() _p34, .canonicalize() _p35."
+echo "  Shapes not listed above are NOT covered.  This enumeration is closed:"
+echo "  absence from this list means the detector does not catch it, not that"
+echo "  it cannot occur."
 echo "  NOT COVERED — grep cannot enforce these, and ADR-001 DOES forbid them:"
+echo "    * Crate-root aliasing of std followed by renamed leaf (P28-01):"
+echo "      mod m { pub use ::std as s; } use m::s::fs as f; f::metadata(...)"
+echo "      The use...std:: adjacency anchor is broken; the renamed leaf (fs as f)"
+echo "      leaves no detectable token; the .method() arm does not backstop it"
+echo "      (f::metadata is a path call, not a method call).  Affects std::fs and"
+echo "      std::net.  std::io::stdout and std::time::Instant remain caught via"
+echo "      their call-site arms.  Orchestrator-confirmed exploitable past fmt,"
+echo "      clippy, all 44 tests, and this gate.  Tracked as P28-01;"
+echo "      ADR-001 forbids it; extending coverage is an operator decision."
 echo "    * macro-generated I/O (println!/print!/eprintln!/write!) and other"
 echo "      std I/O primitives: io::stdin, io::stderr, std::process, std::env,"
 echo "      SystemTime::now."
@@ -270,11 +335,21 @@ echo "      names overlap expected future domain-type methods (EntryKind::is_dir
 echo "      EntryKind::is_file, AnchorTable::exists); adding them now causes"
 echo "      unacceptable false positives in stories beyond S-1.01. ADR-001"
 echo "      forbids these calls. This is a limit of THIS CHECK, not a permission."
+echo "    * Path::metadata() and .canonicalize() are included despite the same"
+echo "      false-positive hazard (.metadata() could conflict with a future domain"
+echo "      type accessor; .canonicalize() with an anchor/slug method).  Zero"
+echo "      occurrences in crates/mdlinkcheck-core/src/ today; a false positive"
+echo "      would fail CLOSED.  This asymmetry is deliberate and foreseen (P28-04)."
 echo "    * Path inherent I/O via UFCS form: Path::metadata(&p) has no dot, so"
 echo "      the .method() arm cannot catch it."
 echo "    * Aliased RNG call sites (use getrandom as g; g::getrandom(...)): the"
 echo "      import IS caught; the aliased call site cannot be detected by name."
 echo "    * RNG crates beyond the five named above (rand_core, nanorand, etc.)."
+echo "    * Third-party I/O crates (P28-05): e.g. walkdir::WalkDir::new('.') matches"
+echo "      zero arms.  Current core dependencies (pulldown-cmark, globset, url,"
+echo "      percent-encoding, unicode-normalization, serde, serde_json) perform no"
+echo "      I/O; risk is latent and visible in dependency review.  ADR-001's"
+echo "      'or any other I/O primitive' covers these by policy; this gate does not."
 echo "    ADR-001 enumerates four paths and then generalises: 'or any other I/O"
 echo "    primitive'. The gaps above are limits of THIS CHECK, not permissions"
 echo "    granted by ADR-001. Extending coverage is an operator decision."
