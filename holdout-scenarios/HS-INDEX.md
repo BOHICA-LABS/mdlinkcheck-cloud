@@ -1,10 +1,10 @@
 ---
 document_type: holdout-index
 level: ops
-version: "1.3"
+version: "1.4"
 status: active
 producer: vsdd-factory:product-owner
-timestamp: "2026-08-10T01:00:00Z"
+timestamp: "2026-08-10T02:00:00Z"
 phase: phase-1d
 inputs:
   - .factory/holdout-scenarios/wave-scenarios/
@@ -36,16 +36,16 @@ scope as future waves add subdirectories.
 
 ## Authored Scenarios
 
-| HS ID | EC ID | Title | Risk Cluster | BCs / CAPs Probed | Status |
-|-------|-------|-------|--------------|-------------------|--------|
-| HS-001 | EC-156 | .gitignore Traversal Exclusion × Cross-File Anchor | Exclusion boundary × Pass 1.5: an implementation may correctly skip ignored files as *sources* but incorrectly skip them as *anchor targets*, breaking cross-directory links into gitignored subtrees | BC-2.01.003 (gitignore exclusion rule), BC-2.05.001 (Pass 1.5 anchor-table construction), BC-2.08.004 (cross-file anchor into excluded file) | active |
-| ~~HS-002~~ | ~~EC-157~~ | ~~Percent-Encoded Fragment in Cross-File Link~~ | ~~Percent-encoding × anchor resolution~~ | ~~BC-2.08.002, BC-2.08.003~~ | **retired** — burned to visible test per D-020; holdout signal compromised (P2-C07); replaced by EC-167 (HS-006) |
-| ~~HS-003~~ | ~~EC-158~~ | ~~Emoji Heading × Collision Counter~~ | ~~Emoji × slug collision~~ | ~~BC-2.06.001, BC-2.06.002~~ | **retired** — burned to visible test per D-020; holdout signal compromised (P2-C07); replaced by EC-168 (HS-007) |
-| HS-004 | EC-165 | Anchor Resolution Case Variant | Anchor resolution edge: a variant of anchor resolution ordering not covered by existing visible tests | BC-2.05.001, BC-2.08.002 | active |
-| HS-005 | EC-166 | Source-Exclusion × Cross-File Anchor | Exclusion boundary × anchor target: source-exclusion flag interaction with cross-file anchor lookup | BC-2.01.003, BC-2.05.001, BC-2.08.004, BC-2.11.001 | active |
-| HS-006 | EC-167 | Percent-Encoding × Fragment Split | Percent-encoding combined with fragment splitting: tests the interaction of DI-003 (fragment-at-first-unescaped-#) with percent-encoded anchor values | BC-2.08.003, BC-2.08.002 | active |
-| HS-007 | EC-168 | Duplicate-Slug Collision Variant | Duplicate slug collision edge: a collision pattern not covered by EC-047/EC-048 visible tests | BC-2.06.001, BC-2.06.002 | active |
-| HS-008 | EC-214 | HTML-Block Heading × Cross-File Anchor | Heading nested inside a raw HTML block × cross-file anchor-table construction and anchor resolution; replaces EC-151 (D-122) | BC-2.05.001, BC-2.08.004 | active |
+| HS ID | EC ID | Title | Risk Cluster | BCs / CAPs Probed | Status | Earliest Evaluable Wave |
+|-------|-------|-------|--------------|-------------------|--------|------------------------|
+| HS-001 | EC-156 | .gitignore Traversal Exclusion × Cross-File Anchor | Exclusion boundary × Pass 1.5: an implementation may correctly skip ignored files as *sources* but incorrectly skip them as *anchor targets*, breaking cross-directory links into gitignored subtrees | BC-2.01.003 (gitignore exclusion rule), BC-2.05.001 (Pass 1.5 anchor-table construction), BC-2.08.004 (cross-file anchor into excluded file) | active | **5** |
+| ~~HS-002~~ | ~~EC-157~~ | ~~Percent-Encoded Fragment in Cross-File Link~~ | ~~Percent-encoding × anchor resolution~~ | ~~BC-2.08.002, BC-2.08.003~~ | **retired** — burned to visible test per D-020; holdout signal compromised (P2-C07); replaced by EC-167 (HS-006) | N/A (retired) |
+| ~~HS-003~~ | ~~EC-158~~ | ~~Emoji Heading × Collision Counter~~ | ~~Emoji × slug collision~~ | ~~BC-2.06.001, BC-2.06.002~~ | **retired** — burned to visible test per D-020; holdout signal compromised (P2-C07); replaced by EC-168 (HS-007) | N/A (retired) |
+| HS-004 | EC-165 | Anchor Resolution Case Variant | Anchor resolution edge: a variant of anchor resolution ordering not covered by existing visible tests | BC-2.05.001, BC-2.08.002 | active | **5** |
+| HS-005 | EC-166 | Source-Exclusion × Cross-File Anchor | Exclusion boundary × anchor target: source-exclusion flag interaction with cross-file anchor lookup | BC-2.01.003, BC-2.05.001, BC-2.08.004, BC-2.11.001 | active | **5** |
+| HS-006 | EC-167 | Percent-Encoding × Fragment Split | Percent-encoding combined with fragment splitting: tests the interaction of DI-003 (fragment-at-first-unescaped-#) with percent-encoded anchor values | BC-2.08.003, BC-2.08.002 | active | **5** |
+| HS-007 | EC-168 | Duplicate-Slug Collision Variant | Duplicate slug collision edge: a collision pattern not covered by EC-047/EC-048 visible tests | BC-2.06.001, BC-2.06.002 | active | **2** |
+| HS-008 | EC-214 | HTML-Block Heading × Cross-File Anchor | Heading nested inside a raw HTML block × cross-file anchor-table construction and anchor resolution; replaces EC-151 (D-122) | BC-2.05.001, BC-2.08.004 | active | **5** |
 
 ---
 
@@ -92,6 +92,62 @@ Operator gate #34 ruling D-122 determined that EC-151's POL-18 holdout boundary 
 
 ---
 
+## Wave Coverage Gap — DISCLOSED, NOT RESOLVED
+
+**Added in v1.4 (Phase 2 Step E). Escalated to operator. No new scenarios authored.**
+
+### Per-Wave Holdout Coverage
+
+The "earliest evaluable wave" values above produce the following coverage map across the 7-wave delivery schedule:
+
+| Wave | Stories | Evaluable Holdouts | Coverage |
+|------|---------|-------------------|----------|
+| 1 | S-1.01 | (none) | **UNCOVERED** |
+| 2 | S-1.02, S-1.03, S-3.01, S-3.03, S-5.02, S-6.01, S-7.02 | HS-007 | COVERED |
+| 3 | S-1.04, S-2.01, S-6.02, S-7.01, S-7.03 | (none) | **UNCOVERED** |
+| 4 | S-2.02, S-2.03, S-3.02, S-4.02, S-5.01 | (none) | **UNCOVERED** |
+| 5 | S-3.04, S-4.01, S-5.03 | HS-001, HS-004, HS-005, HS-006, HS-008 | COVERED |
+| 6 | S-4.03, S-5.04 | (none) | **UNCOVERED** |
+| 7 | S-7.04 | (none) | **UNCOVERED** |
+
+5 of 7 waves have no evaluable holdout at their gate. Only waves 2 and 5 are covered.
+
+### Conflict with Phase 2 Gate Criterion
+
+This distribution **conflicts with the Phase 2 decomposition gate criterion** which requires "at least one holdout scenario per wave." That criterion is not satisfied: waves 1, 3, 4, 6, and 7 all lack an evaluable holdout at their gate.
+
+### Wave 1 — DEV-11 Run A Endpoint Is Uncovered
+
+Wave 1 is the **DEV-11 "Run A" endpoint** — the operator's stop-vs-continue gate after the first story lands. It has **zero holdout coverage**. Every active holdout depends on anchor-resolution BCs (BC-2.05.001, BC-2.08.002, BC-2.08.004) that are implemented no earlier than wave 4–5. The wave 1 story (S-1.01) implements only BC-2.01.001, BC-2.01.003, BC-2.01.004, BC-2.01.005, none of which are probed by any active holdout in isolation.
+
+### Uncovered Epics
+
+The four epics with no active holdout at any wave:
+
+| Epic | Domain | No holdout probing... |
+|------|--------|-----------------------|
+| E-2 | Link Extraction | BC-2.02.*, BC-2.03.*, BC-2.04.* — inline link extraction, reference-style links, code context exclusion |
+| E-4 | Relative Path Resolution | BC-2.07.* — pure path resolver, DirIndex, fragment split / percent-decode ordering |
+| E-5 | External URL Checking | BC-2.09.*, BC-2.10.* — offline URL syntax, HTTP verdict, HTTP client protocol / transport errors |
+| E-7 | Output / Reporting / Exit Codes | BC-2.13.*, BC-2.14.* — exit code determination, text/JSON report generation |
+
+### Disposition — Escalated, Not Fixed
+
+**Resolving this gap by authoring new holdout scenarios is new work and is excluded by the D-244 closed-world ruling.** No new scenarios have been authored in this step. This section is a factual disclosure for operator adjudication.
+
+The operator must decide one of:
+1. Author new holdout scenarios for the uncovered epics and waves (new work, outside current phase scope).
+2. Accept the gap and weaken the gate criterion for waves 1, 3, 4, 6, 7 (gate policy change).
+3. Proceed with the current gate criterion knowing 5 waves will fail it (deferred risk).
+
+**This item is escalated and awaits operator ruling before Phase 2 gate can be satisfied against the original criterion.**
+
+### Reserved-but-Unauthored EC IDs
+
+The 6 reserved-but-not-yet-authored EC IDs (EC-079, EC-093, EC-094, EC-141, EC-147, EC-148) remain in the "Reserved IDs — Not Yet Authored" table above with `status: not-yet-authored`. No new authoring has been done. They are noted here because some could potentially address the uncovered epics, but determining that requires operator decision, not product-owner action under the closed-world ruling.
+
+---
+
 ## Scenario File Locations
 
 All authored scenario files reside in `.factory/holdout-scenarios/wave-scenarios/`:
@@ -104,3 +160,13 @@ All authored scenario files reside in `.factory/holdout-scenarios/wave-scenarios
 - `wave-scenarios/EC-167-percent-encoding-fragment-split.md` → HS-006 (active)
 - `wave-scenarios/EC-168-duplicate-slug-collision.md` → HS-007 (active)
 - `wave-scenarios/EC-214-html-block-heading-cross-file-anchor.md` → HS-008 (active)
+
+---
+
+## Changelog
+
+| Version | Date | Author | Summary |
+|---------|------|--------|---------|
+| 1.4 | 2026-08-10 | product-owner (Phase 2 Step E) | Added "Earliest Evaluable Wave" column to Authored Scenarios table (computed from story `wave:` frontmatter); added "Wave Coverage Gap — DISCLOSED, NOT RESOLVED" section disclosing that 5 of 7 waves have no evaluable holdout, conflicting with the Phase 2 gate criterion, and escalating to operator for adjudication. No scenarios authored, retired, rewritten, or re-scoped. |
+| 1.3 | 2026-08-10 | product-owner (phase-1d) | Added HS-008 (EC-214) replacing EC-151 per D-122; updated D-122 Resolution section. |
+| 1.0–1.2 | 2026-08-05–08 | product-owner | Initial index with HS-001..HS-008; P2-C07 resolution (D-020); EC-151 burn and replacement. |
