@@ -1,7 +1,15 @@
 # lefthook.yml — git hook configuration for mdlinkcheck
 #
 # Hooks run locally before commits and pushes to catch issues before CI.
-# They mirror the CI jobs exactly — the same commands, the same flags.
+#
+# Coverage note (Finding 6): these hooks run 4 of the 9 ci.yml jobs.
+# The commands they DO run match their CI counterparts flag-for-flag.
+# Jobs NOT covered: build-release, msrv (1.88), spec-lint, vef-selftest,
+# verify-evidence-figures.  Pre-commit hooks are kept fast (< 30s);
+# pre-push adds the test suite and the ADR-001 purity gate.
+# purity is included in pre-push because ADR-001 is a MANDATORY boundary
+# rule for the 7 downstream stories and the check is cheap (grep over a
+# small crate).
 #
 # Install: lefthook install
 # Skip a hook: LEFTHOOK=0 git commit
@@ -13,8 +21,8 @@
 
 # ─────────────────────────────────────────────────────────────────
 # pre-commit: fast checks (< 30 seconds)
-#   - Format check
-#   - Clippy lint
+#   - Format check  [mirrors CI job "Format check"]
+#   - Clippy lint   [mirrors CI job "Clippy (deny warnings)"]
 #
 # These run on every commit to catch trivial issues early.
 # They do NOT run the full test suite (that's pre-push).
@@ -33,10 +41,12 @@ pre-commit:
       stage_fixed: false
 
 # ─────────────────────────────────────────────────────────────────
-# pre-push: full test suite
+# pre-push: test suite + purity gate
+#   - Test suite (nextest)  [mirrors CI job "Test (macos-latest)"]
+#   - Purity (ADR-001)      [mirrors CI job "Purity check (ADR-001)"]
 #
-# Runs cargo nextest before any push.  This is the final local gate
-# before code reaches CI.  Takes ~1 minute for a clean build.
+# Runs before any push.  This is the final local gate before CI.
+# Takes ~1 minute for a clean build.
 # ─────────────────────────────────────────────────────────────────
 pre-push:
   parallel: false
@@ -44,3 +54,7 @@ pre-push:
     test:
       name: Test suite (nextest)
       run: cargo nextest run --locked --all-targets
+
+    purity:
+      name: Purity check (ADR-001)
+      run: just purity

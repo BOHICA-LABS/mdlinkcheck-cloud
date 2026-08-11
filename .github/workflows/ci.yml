@@ -135,6 +135,42 @@ jobs:
       - name: Run tests
         run: cargo nextest run --locked --all-targets
 
+      - name: POL-11 positive-coverage assertion
+        # Asserts test count and binary count meet required floors, preventing a
+        # silent false-green where a test binary silently drops out of the run
+        # (e.g. harness = false, wrong target path — both occurred in this story
+        # as findings C-E2 and P14-03; the binary was hardened but the gate was
+        # never added).  See architecture spec tooling-selection.md:155-160 (POL-11).
+        #
+        # NOTE: The frozen spec's literal command is:
+        #   cargo nextest list | grep -c '^tests::'
+        # That returns 0 in this project — nextest 0.9.98 (CI-pinned) uses the
+        # indented format "    test_name"; neither format uses "^tests::" prefix.
+        # The pattern below uses [[:space:]]+test_ which matches both the indented
+        # 0.9.98 format and the flat "crate::binary test_name" format of 0.9.129+.
+        # Raise POL11_TEST_FLOOR / POL11_BIN_FLOOR when tests or binaries are added.
+        # Verified baseline: 44 tests across 6 binaries (2026-08-11).
+        shell: bash
+        run: |
+          set -euo pipefail
+          POL11_TEST_FLOOR=44
+          POL11_BIN_FLOOR=6
+          test_count=$(cargo nextest list --locked --all-targets 2>/dev/null | { grep -cE '[[:space:]]+test_' || true; })
+          bin_count=$(cargo nextest list --locked --all-targets --list-type binaries-only 2>/dev/null | wc -l | tr -d ' ')
+          if [ "${test_count}" -lt "${POL11_TEST_FLOOR}" ]; then
+            echo "POL-11 FAIL: test count ${test_count} is below floor ${POL11_TEST_FLOOR}"
+            echo "  A test binary may have silently dropped out of the run."
+            echo "  Raise POL11_TEST_FLOOR in ci.yml and justfile when new tests are added."
+            exit 1
+          fi
+          if [ "${bin_count}" -lt "${POL11_BIN_FLOOR}" ]; then
+            echo "POL-11 FAIL: binary count ${bin_count} is below floor ${POL11_BIN_FLOOR}"
+            echo "  A test binary may have been lost."
+            echo "  Raise POL11_BIN_FLOOR in ci.yml and justfile when new binaries are added."
+            exit 1
+          fi
+          echo "POL-11 PASS: ${test_count} tests across ${bin_count} binaries (floors: ${POL11_TEST_FLOOR}/${POL11_BIN_FLOOR})"
+
   # ─────────────────────────────────────────────────────────────────
   # Job 4: Release build — macOS-only per D-043
   # Local equivalent: just build-release
@@ -325,28 +361,59 @@ jobs:
         run: |
           set -euo pipefail
           CORE_SRC="crates/mdlinkcheck-core/src"
-          # ADR-001 forbidden import patterns for mdlinkcheck-core
-          PATTERNS=(
-            'use std::fs'
-            'use std::net'
-            'use std::io::stdout'
-            'use std::time::Instant'
-            'use rand'
-            'extern crate rand'
-          )
-          file_count=$(find "${CORE_SRC}" -name '*.rs' | wc -l | tr -d ' ')
-          violations=0
-          for pat in "${PATTERNS[@]}"; do
-            if grep -rn "${pat}" "${CORE_SRC}" --include='*.rs' 2>/dev/null; then
-              violations=$((violations + 1))
-            fi
-          done
-          echo "purity: ${file_count} file(s) in ${CORE_SRC} scanned, ${violations} forbidden-pattern(s) found"
-          if [ "${violations}" -gt 0 ]; then
-            echo "FAIL: ADR-001 purity boundary violated in mdlinkcheck-core — remove the imports above"
+          # ADR-001 forbidden-path detector for mdlinkcheck-core.
+          #
+          # Detects ALL of: direct imports, grouped imports, and fully-qualified calls.
+          #   Direct:       "use std::fs;"            → matches "std::fs"
+          #   Grouped:      "use std::{fs, path};"    → matches "std::\{[^}]*\bfs\b"
+          #   Fully-qual:   "std::fs::read_to_string" → matches "std::fs"
+          #
+          # The previous six-pattern form required the "use " prefix and missed:
+          #   (a) "use std::{fs, path::PathBuf};" + real fs::metadata() call — verified bypass
+          #   (b) "std::fs::read_to_string(p)" with no import statement — verified bypass
+          # These broader patterns fix both. Discrimination proven in finding P15-F2.
+          #
+          # Comment-only lines (// and //!) are excluded to avoid false positives
+          # from doc-comment descriptions of the rule (e.g. types.rs:7-8).
+          FORBIDDEN_RE='(std::fs|std::\{[^}]*\bfs\b|std::net|std::\{[^}]*\bnet\b|std::io::stdout|std::io::\{[^}]*\bstdout\b|std::time::Instant|std::time::\{[^}]*\bInstant\b|\buse rand\b|rand::|extern crate rand)'
+
+          # Self-check (L-87 remedy): plant a grouped-import + fully-qualified violation,
+          # verify the detector fires, then remove the plant before scanning the real tree.
+          # A gate that has never been observed failing gives no guarantee.
+          SELFTEST=$(mktemp /tmp/purity-selftest-XXXXX.rs)
+          trap 'rm -f "${SELFTEST}"' EXIT
+          printf 'fn _planted() { use std::{fs as _f, path::PathBuf}; let _ = std::fs::read_to_string("x"); }\n' > "${SELFTEST}"
+          if ! grep -qE "${FORBIDDEN_RE}" "${SELFTEST}" 2>/dev/null; then
+            echo "PURITY SELF-CHECK FAILED: detector blind to grouped-import or fully-qualified violation"
+            echo "  Gate infrastructure is broken — this is NOT a clean-tree result."
             exit 1
           fi
-          echo "PASS: mdlinkcheck-core is free of forbidden I/O and RNG imports (ADR-001)"
+          echo "purity self-check: PASS (detector fires on both grouped-import and fully-qualified forms)"
+          rm -f "${SELFTEST}"
+          trap - EXIT
+
+          # Fail closed: an empty source directory means the gate checked nothing.
+          file_count=$(find "${CORE_SRC}" -name '*.rs' 2>/dev/null | wc -l | tr -d ' ')
+          if [ "${file_count}" -eq 0 ]; then
+            echo "FAIL: ${CORE_SRC} contains no .rs files — gate is scanning nothing (fail-closed per POL-11)"
+            exit 1
+          fi
+
+          # Scan for forbidden patterns, excluding comment-only lines.
+          violation_output=$(grep -rn -E "${FORBIDDEN_RE}" "${CORE_SRC}" --include='*.rs' 2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*//' || true)
+          violations=$(echo "${violation_output}" | { grep -c . || true; })
+
+          echo "purity: ${file_count} file(s) in ${CORE_SRC} scanned, ${violations} forbidden-path match(es) found"
+          echo "  Patterns: std::fs, std::net, std::io::stdout, std::time::Instant, use rand, rand::"
+          echo "  Both grouped (use std::{fs,...}) and fully-qualified (std::fs::fn()) forms detected."
+          if [ "${violations}" -gt 0 ]; then
+            echo "${violation_output}"
+            echo "FAIL: ADR-001 purity boundary violated in mdlinkcheck-core."
+            echo "  Remove or move I/O and RNG code to the effectful crate (mdlinkcheck)."
+            exit 1
+          fi
+          echo "PASS: ${file_count} .rs file(s) checked; no forbidden I/O or RNG path-fragments found (ADR-001)."
+          echo "  Note: both non-grouped and grouped import forms were checked."
 
   # ─────────────────────────────────────────────────────────────────
   # Job 8 (formerly 7): VEF selftest suite — own job for honest conclusion (M-5)
