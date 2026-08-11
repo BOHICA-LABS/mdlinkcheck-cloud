@@ -69,6 +69,25 @@ traces_to: STATE.md
    _Discovered: S-1.01 fourth confirming round, 2026-08-11_
    **Closes:** (pre-D-448(b) exemption)
 
+10. **L-101 — Attest to the Most Immutable Property That Supports the Conclusion** — "`crates/` is byte-unchanged between two named SHAs" survives; "the delta is documentation-only" does not survive committing further changes. Anchor CI to a fixed commit rather than carrying it forward. The permitted form for immutable attestation names both endpoint SHAs explicitly; the prohibited form names one SHA and claims it is current.
+    _Discovered: S-1.01 fix wave 5 (self-invalidating-attestation class), 2026-08-11_
+    **Closes:** (pre-D-448(b) exemption)
+
+11. **L-102 `[process-gap]` — A Committed Artifact Can Never Assert That a Named SHA IS the Current HEAD** — Committing moves HEAD, so any statement "SHA X is the current HEAD" is self-refuting the instant the commit lands. Permitted forms: (a) immutable named-SHA facts with both endpoint SHAs named; (b) verification commands phrased as instructions to the reader, making no claim about what HEAD currently is. The `PR-PACKAGE.md` ancestor-check lines used form (b) correctly throughout and were never defective — the pattern was available and simply had not been applied to the attestation bullets. Five recurrences before the class was closed.
+    _Discovered: S-1.01 fix wave 5 (fifth recurrence of self-invalidating-attestation class), 2026-08-11_
+    **Process-gap disposition required — not yet made. Do not invent story IDs.**
+    **Closes:** (pre-D-448(b) exemption)
+
+12. **L-103 `[process-gap]` — When a Defect Recurs, Specify the CLASS Fix, Not the Instance Fix** — Five recurrences of the self-invalidating-attestation defect across two files occurred because instance corrections were issued for a structural problem. The class only closed once the rule was stated as permitted/forbidden forms. Each successive instance fix narrowed the scope of the next violation rather than eliminating the root cause. The correct response to a second recurrence of the same defect class is to halt instance repair and instead articulate the prohibition in structural terms that make the class impossible.
+    _Discovered: S-1.01 fix wave 5 (fifth recurrence analysis), 2026-08-11_
+    **Process-gap disposition required — not yet made. Do not invent story IDs.**
+    **Closes:** (pre-D-448(b) exemption)
+
+13. **L-104 `[process-gap]` — A Self-Check That Aborts on First Failure Proves Only That the FIRST New Assertion Discriminates** — Test each new plant/lock individually against the pre-fix implementation, or the added coverage is unquantified. In fix wave 5: `cd3507a` added 14 new plants; the self-check exited 1 on the FIRST failing plant (`_p22`), so that alone proved only `_p22` discriminates. Individual per-plant testing revealed 12 genuinely discriminate and 2 do not (`_p23` and `_p26` — old `net::` matched regardless of the leading `::`, and old `rand::` matches `fastrand::` as a bare substring). The plant count locked less than it implied. The correct protocol is individual per-plant testing against the pre-fix detector, or a documented disclaimer that per-arm isolation is not guaranteed.
+    _Discovered: S-1.01 fix wave 5 orchestrator verification, 2026-08-11_
+    **Process-gap disposition required — not yet made. Do not invent story IDs.**
+    **Closes:** (pre-D-448(b) exemption)
+
 ## Policy Candidates
 
 <!-- Lessons that should be formalized as governance policies.
@@ -82,3 +101,6 @@ traces_to: STATE.md
 | 6 (L-97) | Multi-agent consensus verification: unanimous agreement across N passes is not a substitute for execution; empirical verification is required regardless of agreement count | Adversarial review process | proposed |
 | 7 (L-98) | Fail-fast prohibition for mutation runs: mutation kill counts must be produced with `--no-fail-fast`; results from cancelled runs must not be counted or quoted as kill counts | Mutation testing process | proposed |
 | 8 (L-99) | Collapsed-implementation audit obligation: any gate logic extracted from duplication to a single file is treated as unreviewed surface and must pass fresh adversarial review before the "closed by construction" claim is accepted | CI gate authoring | proposed |
+| 11 (L-102) | Self-invalidating-attestation prohibition: any committed artifact that uses the word "current" in conjunction with a named SHA is a defect; require permitted forms (a) or (b) | Fix-wave / evidence authoring | proposed |
+| 12 (L-103) | Class-fix obligation: after a second recurrence of any defect, the response must be a structural prohibition, not an instance correction | Orchestrator process | proposed |
+| 13 (L-104) | Per-plant discrimination requirement: each new plant/lock must be individually tested against the pre-fix implementation; a self-check abort on first failure is insufficient proof of per-arm coverage | CI gate authoring | proposed |

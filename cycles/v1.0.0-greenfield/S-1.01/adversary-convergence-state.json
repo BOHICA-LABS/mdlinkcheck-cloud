@@ -1,15 +1,24 @@
 {
   "story_id": "S-1.01",
   "cycle": "v1.0.0-greenfield",
-  "passes_run": 27,
+  "passes_run": 28,
   "passes_clean": 0,
   "last_round_classifications": ["MATERIAL_FINDINGS", "MATERIAL_FINDINGS", "MATERIAL_FINDINGS"],
   "last_classification": "MATERIAL_FINDINGS",
-  "converged": false,
+  "converged": true,
+  "convergence_basis": {
+    "status": "ACHIEVED-WITH-DISCLOSED-RESIDUALS",
+    "definition": "Frozen six-lens perimeter (L1-L6, frozen at pass 15 per D-254); adversarial rounds 1-4 (passes 16-27) plus one scoped confirming review (pass 28) of the fix surface only (b42285a..9796bf5); C-class residuals plus P28-01, P28-04, and P28-05 disclosed rather than fixed; purity-gate claim language closed by explicit enumeration so the over-claim class cannot recur.",
+    "standard_criterion_met": false,
+    "passes_clean_on_standard_criterion": 0,
+    "required_clean_passes": 3,
+    "mandatory_qualifier": "The BC-5.39.001 criterion of three consecutive clean passes was NEVER met. passes_clean = 0 of 3 across all four confirming rounds (passes 16-27) and every pass returned MATERIAL_FINDINGS. Convergence is recorded on an operator-ruled non-standard path, NOT by satisfying the three-clean-pass criterion.",
+    "decision_refs": ["D-254", "D-263"]
+  },
   "required_clean_passes": 3,
   "blocking_gate": "BC-5.39.001",
-  "head_sha": "b42285a",
-  "head_sha_note": "Prior value was 98a4f15 (code-remediation SHA; scripts/purity-check.sh was introduced at that commit). Round 4 correctly audited b42285a = 98a4f15 + two docs-only commits (all 16 paths under docs/demo-evidence/S-1.01/; verified by git diff --name-only 98a4f15 b42285a).",
+  "head_sha": "0719c3c",
+  "head_sha_note": "Updated from b42285a (round-4 HEAD) to 0719c3c (fix-wave-5 final commit, PR body final). Fix wave 5 chain: cd3507a -> 9a9b46c -> 2f93a31 -> 8194232 -> 8af58b1 -> beca9b6 -> 9796bf5 -> b538112 -> 0a9c320 -> fc61828 -> 0719c3c.",
   "audit_record": "cycles/v1.0.0-greenfield/S-1.01/confirming-round-passes-25-27.md",
   "tests_total": 44,
   "clippy_deny_warnings_exit": 0,
@@ -603,6 +612,69 @@
         "P27-09": "low-nitpick observation — pass-27 perimeter sweep; not assigned permanent BI register entry",
         "P27-10": "low-nitpick observation — pass-27 perimeter sweep; not assigned permanent BI register entry"
       }
+    },
+    {
+      "pass": 28,
+      "lens": "scoped-fix-review",
+      "scope": "b42285a..9796bf5",
+      "scope_note": "17 files: scripts/purity-check.sh + 16 demo-evidence files. crates/, .github/, justfile, lefthook.yml all byte-unchanged.",
+      "classification": "MATERIAL_FINDINGS",
+      "material_count": 1,
+      "low_count": 4,
+      "zero_l1_l5_findings": true,
+      "finding_ids": ["P28-01", "P28-02", "P28-03", "P28-04", "P28-05", "BI-100"],
+      "dispositions": {
+        "P28-01": "DISCLOSED — MEDIUM — crate-root aliasing of std plus a renamed leaf escapes purity gate: mod m { pub use ::std as s; } use m::s::fs as f; f::metadata(p). Orchestrator-CONFIRMED exploitable: compiles, cargo fmt exit 0, cargo clippy exit 0, cargo nextest 44/44, purity-check.sh exit 0. Mechanism: STMT_RE adjacency anchor broken by alias; LINE_RE \\bfs:: arm defeated by rename; A2 .method() arm does not backstop path call f::metadata(. Affects std::fs and std::net; stdout/Instant remain caught. Third instance of over-claiming-scope-statement class (BI-081, BI-096, P28-01). DISCLOSED, not fixed — no regex arms added under runway. Extending purity coverage is an operator decision.",
+        "P28-02": "FIXED — LOW — Forbidden paths summary still named RNG (rand) after A3 broadened to five crates; material-adjacent because on FAIL it was the only forbidden-paths summary an operator saw (prints at ~240, exit 1 at ~245, SCOPE block unreachable after FAIL). Now names all five.",
+        "P28-03": "FIXED — LOW — PR-PACKAGE.md operator-verdict comment template said Fourth round outstanding when four rounds had run; inside copy-paste template destined for public PR comment.",
+        "P28-04": "DISCLOSED — LOW — .metadata() and .canonicalize() detected despite the same future-domain-name-collision hazard used to justify excluding .exists()/.is_dir()/.is_file(). Zero occurrences in mdlinkcheck-core today; a false positive fails CLOSED. Asymmetry disclosed as deliberate and foreseen.",
+        "P28-05": "DISCLOSED — LOW — Third-party I/O crates undetected (e.g. walkdir::WalkDir::new('.') matches zero arms). All seven current core deps perform no I/O; latent, visible in dependency review.",
+        "BI-100": "FIXED — not re-accepted per pass 28 disposition. io::stdout arm rationale comment false on two counts: (1) cited example use std::io as _i; _i::stdout() matches arm ZERO times — \\bstdout[[:space:]]*\\( arm fires instead; (2) same-reasoning-omits-leading-\\b claim contradicted by three further arms. Round-4 wave had WIDENED its blast radius. Corrected to name the arm that actually fires and to list all arms carrying no leading \\b."
+      },
+      "pass_28_exoneration": "Pass 28 exonerated the substance of all seven round-4 fixes. Independently re-derived mutation kill sets as complete (not merely correct), verified all six mutation sites byte-exact against scanner.rs, verified B3 quotation across a Rust line-continuation split, recomputed ~20 numerals, found no fabricated execution evidence and no convergence assertion, checked accepted C-class list for misclassification finding none."
     }
-  ]
+  ],
+  "fix_wave_5": {
+    "commits": [
+      {"sha": "cd3507a", "description": "RED: 14 plants added, no regex change"},
+      {"sha": "9a9b46c", "description": "A1/A2/A3 regex fix"},
+      {"sha": "2f93a31", "description": "intermediate"},
+      {"sha": "8194232", "description": "intermediate"},
+      {"sha": "8af58b1", "description": "evidence B1/B3/B4 + residuals"},
+      {"sha": "beca9b6", "description": "intermediate"},
+      {"sha": "9796bf5", "description": "PR body B1-B4 + structural SHA fix"},
+      {"sha": "b538112", "description": "claim-language closure, text-only"},
+      {"sha": "0a9c320", "description": "intermediate"},
+      {"sha": "fc61828", "description": "evidence attestation re-anchor"},
+      {"sha": "0719c3c", "description": "PR body final"}
+    ],
+    "orchestrator_verifications": {
+      "l90_discipline": "Held and checked harder than reported. cd3507a genuinely RED (exit 1). Self-check aborts on FIRST failing plant so only _p22 was proved by the self-check alone.",
+      "plant_discrimination_result": "12 of 14 new plants genuinely discriminate. _p23 and _p26 do NOT: old net:: matched regardless of leading ::, and old rand:: matches fastrand:: as a bare substring. Plant set locks less than its count implies. Not a defect (header disclaims per-arm isolation) but documented here.",
+      "a1_closed": "Confirmed closed for all five categories (fs, net, rand, stdout, Instant) — each exit 1 with new regex.",
+      "b538112_text_only_proof": "LINE_RE, STMT_RE, PLANTS, CLEAN byte-identical between 9796bf5 and b538112. Diff contains nothing but comment and echo lines.",
+      "closed_enumeration_probed": "All 10 enumerated shapes resting on arm-verification alone (no dedicated plant) confirmed CAUGHT: use std::io::stdout;, use std::time::Instant;, sibling-nested stdout/Instant, absolute-prefix stdout/Instant, non-absolute leaf-aliased fs/net, oorandom import, rand_chacha import. All three disclosed gaps confirmed ESCAPING as disclosed. Clean control not flagged. Enumeration exactly true.",
+      "per_step_gates": "fmt 0, clippy 0, 44/44, shellcheck clean, bash -n clean, purity 0, just purity 0 at each step.",
+      "ci_at_b538112": "Green on all four branch-protection-required contexts (Format check, Clippy (deny warnings), Test (macos-latest), Build release (macos-latest)), verified via gh api. Run-level conclusion failure because Spec lint is advisory-red by design (D-246).",
+      "crates_byte_unchanged": "crates/ byte-unchanged from 9a9b46c through 0719c3c — zero paths."
+    }
+  },
+  "self_invalidating_attestation_class": {
+    "recurrence_count": 5,
+    "instances": [
+      "f7c5b11/98a4f15 mis-anchoring (round 4)",
+      "git diff ... ':(exclude)docs' returns nothing claim — broken by b538112 purity commit",
+      "Named SHA followed by '(current HEAD)' — false the instant committed",
+      "Named SHA followed by 'carry to this HEAD' — false the instant committed",
+      "Named SHA followed by 'confirmed closed at the current HEAD' — false the instant committed"
+    ],
+    "root_cause": "A committed artifact can never truthfully assert that a named SHA is the current HEAD, because committing moves HEAD. Instance fixes were specified for a structural problem; the class only closed once the rule was stated as permitted/forbidden forms.",
+    "class_rule": {
+      "forbidden": "Any claim that a named SHA is current.",
+      "permitted_a": "Immutable facts about fixed commits naming both endpoint SHAs explicitly — e.g. 'CI green at b538112'; 'crates/ byte-unchanged from 9a9b46c to b538112'.",
+      "permitted_b": "Verification commands phrased as instructions to the reader, making no claim about what HEAD currently is."
+    },
+    "corroborating_evidence": "PR-PACKAGE.md ancestor-check lines used form (b) correctly throughout and were never defective. The pattern was available in the package and simply had not been applied to the attestation bullets.",
+    "lesson_refs": ["L-102", "L-103"]
+  }
 }
