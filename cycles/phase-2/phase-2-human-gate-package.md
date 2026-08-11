@@ -1,12 +1,12 @@
 ---
 document_type: gate-package
 level: ops
-version: "1.0"
-status: awaiting-operator-ruling
+version: "1.1"
+status: ratified-with-conditions
 phase: phase-2
 producer: vsdd-factory:state-manager
 date: 2026-08-10
-timestamp: "2026-08-10T00:00:00Z"
+timestamp: "2026-08-10T18:30:00Z"
 inputs:
   - .factory/stories/STORY-INDEX.md
   - .factory/stories/epics.md
@@ -15,6 +15,7 @@ inputs:
   - .factory/specs/behavioral-contracts/BC-INDEX.md
   - .factory/holdout-scenarios/HS-INDEX.md
   - .factory/cycles/phase-2/wave-schedule.md
+input-hash: "916e02c"
 ---
 
 # Phase-2 Human Gate Package
@@ -68,9 +69,9 @@ decision is required from the operator only, this document says so.
 
 ---
 
-## §3 Decomposition Gate Scorecard — 5 PASS, 1 FAIL
+## §3 Decomposition Gate Scorecard — 6 of 6 PASS (criterion 6 re-scoped; Blocker 2 carried as ratification condition)
 
-**Gate verdict: BLOCKED.**
+**Gate verdict: RATIFIED WITH CONDITIONS (operator gate #59).**
 
 All criteria verified by orchestrator direct execution, independent of agent self-reports.
 
@@ -81,7 +82,7 @@ All criteria verified by orchestrator direct execution, independent of agent sel
 | 3 | No circular dependencies | **PASS** | Kahn sort places all 24 nodes; 34 edges |
 | 4 | Waves respect dependency ordering | **PASS** | 0 stories depend on a story in wave ≥ their own |
 | 5 | STORY-INDEX matches story files | **PASS** | 24 rows, 0 mismatches on id/epic/wave/points; sprint-state `blocked_by` == `depends_on` for all 24 |
-| 6 | At least one holdout scenario per wave | **FAIL** | See §4 Blocker 1 |
+| 6 | At least one holdout scenario per wave WHERE EVALUABLE (re-scoped from original "per wave") | **PASS (re-scoped)** | Originally written criterion: **FAIL** — waves 1, 3, 4, 6, 7 have no holdout; original FAIL evidence in §4.1 (preserved). Under re-scoped criterion ("evaluable" = every BC it probes is implemented): waves 1, 3, 4, 6, 7 are vacuously satisfied (no holdout is evaluable there); waves 2 (HS-007) and 5 (HS-001/004/005/006/008) are covered. Criterion intent not weakened; new holdout authoring for E-2/E-4/E-5/E-7 recorded in post-run backlog (D-249). 6 reserved-but-unauthored holdout EC ids remain unauthored. Blocker 2 carried as ratification CONDITION (C1). |
 
 ---
 
@@ -238,61 +239,43 @@ coexistence are acceptable.
 
 ## §8 Operator Ruling
 
-**Decision required from operator.**
+**Operator gate #59 ruling — 2026-08-10 — human/operator.**
 
 ### Q1 — Blocker 1: Holdout Wave Coverage
 
-```
-Option selected: [ ] (a) accept-uncovered-skip  [ ] (b) re-scope-criterion  [ ] (c) authorise-new-scenarios  [ ] (d) leave-unfixed
-
-Notes: ________________________________________________
-```
+**RULING: RE-SCOPE CRITERION 6.** The decomposition gate criterion "at least one holdout scenario per wave" is re-scoped to **"at least one holdout scenario per wave WHERE EVALUABLE."** A holdout is evaluable only once every BC it probes is implemented. Under the re-scoped criterion, waves 1, 3, 4, 6 and 7 are vacuously satisfied (no holdout is evaluable there) and waves 2 and 5 are covered, so criterion 6 PASSES. Authoring new holdout scenarios for E-2 (link extraction), E-4 (relative path resolution), E-5 (external URL checking) and E-7 (output/reporting/exit codes) is RECORDED IN THE POST-RUN BACKLOG and remains excluded from this run by D-244 closed-world. The criterion's intent was not weakened and no excluded work was performed. The 6 reserved-but-unauthored holdout EC ids remain unauthored.
 
 ### Q2 — Blocker 2: File-Lifecycle Ordering
 
-```
-Phase 3 gate approach: [ ] (a) fix-all-now  [ ] (b) wave-1-first-repair-in-window  [ ] (c) fix-mechanical-rule-separately
+**RULING: PROCEED TO WAVE 1, REPAIR IN THE WAVE-1 WINDOW.** Phase 3 wave 1 (`S-1.01`) is dispatched now because it is entirely `create` actions, self-contained, and provably unaffected. Blocker 2 is repaired during the wave-1 gate window, before any wave 2 dispatch. This preserves the DEV-11 Run A decision point unchanged and avoids idling.
 
-VP-004 P5/P6 re-homing (S-4.02 → S-4.03 / S-3.04): [ ] Approved  [ ] Rejected  [ ] Investigate
+### Q3 — S-4.02 VP-004 P5/P6 Re-Homing
 
-Notes: ________________________________________________
-```
-
-### Q3 — Blocker 2 Scope
-
-```
-Repairing Blocker 2 is: [ ] In-scope Phase 2 completion  [ ] Closed-world violation  [ ] Other: ___________
-```
+**RULING: APPROVE RE-HOMING.** S-4.02 is not mechanically fixable because S-4.03 depends on S-4.02 while S-4.02 declares modifications to `path_resolver.rs`, which S-4.03 creates. The VP-004 **P6** fragment-decode-before-anchor-lookup integration test moves to **S-3.04** (wave 5), which already implements decode-before-lookup at creation; the VP-004 **P5** path-decode-ordering integration test moves to **S-4.03** (wave 6), which creates `path_resolver.rs`. S-4.02 retains fragment split and empty-destination classification. **Binding under D-165: the decode-ordering obligations remain expressed as integration tests, not proof/Kani obligations.**
 
 ### Q4 — Wave Granularity
 
-```
-7-wave plan: [ ] Accept as-is  [ ] Consolidate to _____ waves  [ ] Investigate
-
-Notes: ________________________________________________
-```
+**RULING: KEEP 7 WAVES.** Waves continue to equal dependency layers, so no story ever shares a wave with its own dependency. Later-wave gate cost is accepted and is in any case contingent on continuing past the Run A endpoint.
 
 ### Q5 — Anchor-Checking Concentration
 
-```
-Anchor work spread waves 2–5, holdouts evaluable wave 5: [ ] Acceptable  [ ] Pull anchor work earlier
-
-Notes: ________________________________________________
-```
+Not separately addressed. Accepted as-is under the wave-1-first ruling (Q2).
 
 ### Q6 — Story ID Convention
 
-```
-Canonical S-N.MM + EPIC-0N/E-N coexistence: [ ] Acceptable  [ ] Requires reconciliation
-
-Notes: ________________________________________________
-```
+Not separately addressed. Canonical `S-N.MM` + `EPIC-0N`/`E-N` coexistence accepted as-is.
 
 ---
 
-```
-Verdict: ________________________________________________
+**Ratification conditions carried:**
 
-Signature: ________________________________________________
-Date:      ________________________________________________
-```
+1. Blocker 2 must be fully repaired and re-verified before any wave 2 dispatch.
+2. The wave-1 gate remains the DEV-11 Run A endpoint with the operator stop-vs-continue re-ask.
+3. Merges and verdict posts remain HUMAN-executed via operator-packaged commands.
+
+---
+
+**Verdict: PHASE 2 RATIFIED WITH CONDITIONS (operator gate #59).**
+
+**Signature:** human/operator
+**Date:** 2026-08-10
