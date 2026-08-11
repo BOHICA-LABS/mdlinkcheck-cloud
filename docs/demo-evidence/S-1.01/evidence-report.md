@@ -142,16 +142,19 @@ record.
   AC-006 and AC-010 are clause-(i)-only: clause (ii) is deferred to S-1.02
   because the anchor-table infrastructure does not yet exist (see partial-coverage
   disclosure above, BI-106).
-- All four branch-protection-required CI checks are **green** at `b538112`
-  (current HEAD): `Format check`, `Clippy (deny warnings)`, `Test (macos-latest)`,
+- All four branch-protection-required CI checks are **green** at `b538112`:
+  `Format check`, `Clippy (deny warnings)`, `Test (macos-latest)`,
   `Build release (macos-latest)`, all `conclusion: success`. The workflow-level run
   conclusion is `failure` because `Spec lint` is advisory-red by design (D-246).
   The 13 AC transcripts and mutation matrix were executed at `9a9b46c`; they carry
-  to this HEAD because `crates/` is byte-unchanged between the two SHAs (verified:
-  `git diff --name-only 9a9b46c HEAD -- crates/` returns zero paths). The one
+  to `b538112` because `crates/` is byte-unchanged between the two SHAs (verified:
+  `git diff --name-only 9a9b46c b538112 -- crates/` returns zero paths). The one
   non-docs commit between `9a9b46c` and `b538112` altered only echo and comment
   lines in `scripts/purity-check.sh`; LINE_RE, STMT_RE, PLANTS, and CLEAN are
-  byte-identical — detection behaviour is unchanged.
+  byte-identical — detection behaviour is unchanged. To confirm the attestations
+  still hold for the commit you are reading: run
+  `git diff --name-only b538112 HEAD -- crates/ scripts/`; if it returns any
+  paths, re-verify CI and the transcripts before relying on them.
 - The story is **NOT CONVERGED**. Four confirming rounds have run (adversary
   passes 16–18, 19–21, 22–24, 25–27) and every one returned `MATERIAL_FINDINGS`;
   `passes_clean` is **0 of 3** required under BC-5.39.001. Round 4 (passes 25–27)
@@ -172,4 +175,4 @@ record.
   (`cargo fmt`, `cargo clippy`, 44/44 tests, and the purity gate itself all passed
   with real `std::fs` I/O planted inside the pure core). Rounds 2 and 3 produced
   only documentation-accuracy residuals; round 4 did not. BI-096 is fixed and
-  confirmed closed at the current HEAD.
+  confirmed closed at `b538112`.
