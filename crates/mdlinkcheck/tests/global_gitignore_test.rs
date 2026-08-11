@@ -224,6 +224,69 @@ fn test_BC_2_01_003_post3_global_gitignore_respected_when_available() {
 }
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+
+    const TEST_NAME: &str = "test_BC_2_01_003_post3_global_gitignore_respected_when_available";
+
+    // `cargo nextest list` (and `cargo test -- --list --format terse`) enumerate
+    // tests by invoking `<bin> --list [--format terse]`.  Respond with the
+    // canonical libtest terse line and exit 0 without running the body.
+    //
+    // This was the root cause of the CI regression (P10-01 / P12-01): the
+    // previous `fn main()` ignored argv entirely, ran the test body, and printed
+    // "... ok" — which nextest could not parse as a `--list` response, causing
+    // EXIT=104 ("did not end with ': test'").
+    //
+    // nextest calls us TWICE during listing:
+    //   1. `--list [--format terse]`          → list non-ignored tests
+    //   2. `--list --ignored [--format terse]` → list only `#[ignore]`-marked tests
+    // Our test has no `#[ignore]` attribute, so it must appear in call (1) only.
+    // If we also output it for call (2), nextest marks the test as `ignored: true`
+    // and excludes it from the default run — which is a false green (it would look
+    // listed but would never execute).
+    if args.iter().any(|a| a == "--list") {
+        let listing_ignored_only = args.iter().any(|a| a == "--ignored");
+        if !listing_ignored_only {
+            println!("{}: test", TEST_NAME);
+        }
+        // Exit 0 for both the normal-list and the ignored-only-list invocations.
+        std::process::exit(0);
+    }
+
+    // `cargo nextest run` runs individual tests as
+    //   `<bin> <test_name> --exact [--nocapture ...]`.
+    // A positional arg (non-flag) is treated as a name filter; `--exact` requires
+    // a full-name match, otherwise it is a substring match.
+    let exact = args.iter().any(|a| a == "--exact");
+    let filters: Vec<&str> = args
+        .iter()
+        .skip(1)
+        .filter(|a| !a.starts_with('-'))
+        .map(String::as_str)
+        .collect();
+
+    if !filters.is_empty() {
+        let matches = filters.iter().any(|f| {
+            if exact {
+                TEST_NAME == *f
+            } else {
+                TEST_NAME.contains(f)
+            }
+        });
+        if !matches {
+            // Filtered out — no tests to run in this binary; exit 0.
+            std::process::exit(0);
+        }
+    }
+
+    // Run the single test body.  Any panic propagates and causes a non-zero exit
+    // (the default panic handler terminates the process), which nextest and
+    // `cargo test` both treat as a test failure.
+    //
+    // C-E2 soundness: this is the ONLY call site for the test function in this
+    // binary.  `harness = false` makes adding a second call impossible without
+    // refactoring `fn main()`, preserving the single-entry guarantee that makes
+    // `unsafe set_var` safe (no concurrent environment reads possible).
     test_BC_2_01_003_post3_global_gitignore_respected_when_available();
-    println!("test_BC_2_01_003_post3_global_gitignore_respected_when_available ... ok");
+    println!("test {TEST_NAME} ... ok");
 }

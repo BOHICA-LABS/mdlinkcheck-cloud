@@ -318,6 +318,13 @@ fn test_BC_2_01_004_dot_directories_unconditionally_skipped() {
     create_file(root, ".github/PULL_REQUEST_TEMPLATE.md"); // dot-dir — must be skipped
     create_file(root, ".git_backup/notes.md"); // dot-dir — must be skipped
     create_file(root, ".vitepress/config.md"); // dot-dir — must be skipped
+                                               // P10-02: regression lock for dot-dirs whose name ENDS in `.`.
+                                               // In `ignore 0.4.33`, `pathutil.rs:156/158` make `hidden(true)` return
+                                               // "not hidden" for names ending in `.` or `..`, so this input class is
+                                               // defended by `filter_entry`/`is_dot_dir_name` ALONE.  The `hidden(false)`
+                                               // mutant is an accepted survivor; without this fixture that defence is
+                                               // unverified.  Behavior verified correct by direct execution.
+    create_file(root, ".trailing./mdlc_fixture_in_trailing_dot.md"); // dot-dir with trailing `.` — must be skipped
     create_file(root, "mdlc_fixture_README.md"); // not in dot-dir — must appear
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
@@ -337,13 +344,21 @@ fn test_BC_2_01_004_dot_directories_unconditionally_skipped() {
         ".vitepress/ is a dot-dir and must be unconditionally skipped"
     );
     assert!(
+        !result_set.contains(&root.join(".trailing./mdlc_fixture_in_trailing_dot.md")),
+        ".trailing./ is a dot-dir (name starts with `.`) and must be unconditionally \
+         skipped even though ignore 0.4.33 hidden() considers trailing-`.` names as \
+         not hidden — defence is is_dot_dir_name alone (BC-2.01.004, P10-02)"
+    );
+    assert!(
         result_set.contains(&root.join("mdlc_fixture_README.md")),
         "mdlc_fixture_README.md (not in any dot-dir) must be in the scan set"
     );
     assert_eq!(
         result_set.len(),
         1,
-        "only mdlc_fixture_README.md should be discovered"
+        "only mdlc_fixture_README.md should be discovered; \
+         .github/, .git_backup/, .vitepress/, and .trailing./ are all dot-dirs \
+         and must be unconditionally skipped (BC-2.01.004)"
     );
 }
 
@@ -927,25 +942,26 @@ proptest! {
 // WHY THIS TEST IS NEEDED:
 //   `ignore::WalkBuilder` yields both files and directories during traversal.
 //   The `is_file()` guard ensures only regular files are considered.  If that
-//   guard is neutered, a DIRECTORY whose name ends in `.md` (e.g. `notes.md/`)
-//   passes the `is_md_extension` check and is incorrectly returned as a
-//   scannable Markdown file.  No existing test creates such a directory, so the
-//   mutant survives.
+//   guard is neutered, a DIRECTORY whose name ends in `.md`
+//   (e.g. `mdlc_fixture_notes.md/`) passes the `is_md_extension` check and is
+//   incorrectly returned as a scannable Markdown file.  No existing test
+//   creates such a directory, so the mutant survives.
 //
 // BC CONTRACT:
 //   BC-2.01.005 postcondition 1: "Files with extension `.md` (exact lowercase
-//   match) are included."  A directory is not a file; the directory `notes.md`
-//   therefore must NOT appear in the scan set.
+//   match) are included."  A directory is not a file; the directory
+//   `mdlc_fixture_notes.md` therefore must NOT appear in the scan set.
 //   BC-2.01.001 postcondition 1 likewise scopes the scan set to files.
 //
-// FIXTURE:
-//   - `notes.md/`          — a DIRECTORY (must NOT appear in scan set)
-//   - `notes.md/inner.md`  — a real file inside that directory (MUST appear)
-//   - `good.md`            — a normal file (MUST appear; positive gate)
+// FIXTURE (P10-04: all fixture dir names carry the `mdlc_fixture_` prefix so
+// that no host-global gitignore pattern can accidentally exclude them):
+//   - `mdlc_fixture_notes.md/`                    — a DIRECTORY (must NOT appear)
+//   - `mdlc_fixture_notes.md/mdlc_fixture_inner.md` — real file inside (MUST appear)
+//   - `mdlc_fixture_good.md`                      — normal file (MUST appear; positive gate)
 //
-// Under the mutant (is_file() removed): `notes.md` (directory) passes the
-//   extension check and is added → result.len() == 3, both the direct
-//   contains-check and the len-check fail, killing the mutant.
+// Under the mutant (is_file() removed): `mdlc_fixture_notes.md` (directory)
+//   passes the extension check and is added → result.len() == 3, both the
+//   direct contains-check and the len-check fail, killing the mutant.
 //
 // Traceability: BC-2.01.005 postcondition 1 / BC-2.01.001 postcondition 1
 
@@ -954,13 +970,17 @@ fn test_BC_2_01_005_post1_directory_with_md_name_not_in_scan_set() {
     let dir = TempDir::new().expect("tempdir");
     let root = dir.path();
 
-    // Create a DIRECTORY named notes.md (not a file).
-    fs::create_dir_all(root.join("notes.md")).expect("create directory named notes.md");
+    // Create a DIRECTORY named mdlc_fixture_notes.md (not a file).
+    // The `mdlc_fixture_` prefix is required by the module's fixture hermeticity
+    // policy (P10-04): no host-global gitignore can accidentally exclude it.
+    // The `.md` suffix is load-bearing: it exercises the `is_file()` guard.
+    fs::create_dir_all(root.join("mdlc_fixture_notes.md"))
+        .expect("create directory named mdlc_fixture_notes.md");
 
     // Put a real .md file inside it so the tree is realistic and proves the
     // walker still descends into the directory (it must — it is not a symlink,
     // not a dot-dir, and not gitignored).
-    create_file(root, "notes.md/mdlc_fixture_inner.md");
+    create_file(root, "mdlc_fixture_notes.md/mdlc_fixture_inner.md");
 
     // A normal .md file — mandatory positive gate (F-04 vacuous-pass prevention:
     // without it, an empty Vec passes every negative assertion vacuously).
@@ -975,33 +995,40 @@ fn test_BC_2_01_005_post1_directory_with_md_name_not_in_scan_set() {
          (positive gate, BC-2.01.005 postcondition 1)"
     );
 
-    // ── Positive gate 2: notes.md/mdlc_fixture_inner.md is a real file and must
-    // be discovered.  It must not be lost because its parent dir has a .md name.
+    // ── Positive gate 2: mdlc_fixture_notes.md/mdlc_fixture_inner.md is a real
+    // file and must be discovered.  It must not be lost because its parent dir
+    // has a .md name.
     assert!(
-        result.contains(&root.join("notes.md").join("mdlc_fixture_inner.md")),
-        "notes.md/mdlc_fixture_inner.md is a real .md file and must be in the scan set \
+        result.contains(
+            &root
+                .join("mdlc_fixture_notes.md")
+                .join("mdlc_fixture_inner.md")
+        ),
+        "mdlc_fixture_notes.md/mdlc_fixture_inner.md is a real .md file and must be in \
+         the scan set \
          (BC-2.01.005 postcondition 1 — files inside a .md-named directory are still files)"
     );
 
     // ── Negative assertion — MUTATION TARGET: is_file() guard removed. ────────
-    // Under the mutant the directory `notes.md` passes the extension check and
-    // is included; this assertion FAILS — killing the mutant.
+    // Under the mutant the directory `mdlc_fixture_notes.md` passes the
+    // extension check and is included; this assertion FAILS — killing the mutant.
     assert!(
-        !result.contains(&root.join("notes.md")),
-        "the directory named notes.md must NOT appear in the scan set — \
+        !result.contains(&root.join("mdlc_fixture_notes.md")),
+        "the directory named mdlc_fixture_notes.md must NOT appear in the scan set — \
          only regular files with .md extension are included, not directories \
          (BC-2.01.005 postcondition 1)"
     );
 
     // ── Count assertion — secondary discriminator. ────────────────────────────
-    // Exactly two files: mdlc_fixture_good.md and notes.md/mdlc_fixture_inner.md.
-    // Under the mutant, notes.md (directory) would be a third entry.
+    // Exactly two files: mdlc_fixture_good.md and
+    // mdlc_fixture_notes.md/mdlc_fixture_inner.md.
+    // Under the mutant, mdlc_fixture_notes.md (directory) would be a third entry.
     assert_eq!(
         result.len(),
         2,
         "exactly two files must be in the scan set \
-         (mdlc_fixture_good.md and notes.md/mdlc_fixture_inner.md); \
-         the notes.md directory must not be counted \
+         (mdlc_fixture_good.md and mdlc_fixture_notes.md/mdlc_fixture_inner.md); \
+         the mdlc_fixture_notes.md directory must not be counted \
          (BC-2.01.005 postcondition 1)"
     );
 }
