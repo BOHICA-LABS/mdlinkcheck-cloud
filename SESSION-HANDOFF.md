@@ -3866,7 +3866,7 @@ PRD **v1.15** | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC
 
 ---
 
-## §RESUME SNAPSHOT D-252
+## §RESUME SNAPSHOT D-252 [SUPERSEDED by D-256 — retained for audit]
 
 *Written: 2026-08-10 — session-closing wrap (two further adversarial rounds + fix rounds; HEAD 7bea0b2; Step 4.5 NOT CONVERGED at passes_clean = 0 after 9 passes). Supersedes D-251.*
 
@@ -3968,3 +3968,123 @@ PRD **v1.15** | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC
 ### WORKTREE INVENTORY
 
 `.factory/` — ACTIVE, `factory-artifacts` at the wrap commit, keep. `.worktrees/S-1.01/` — ACTIVE, `feature/S-1.01-workspace-scaffold-and-core-discovery` @ `7bea0b2`, tree CLEAN, PUSHED — **keep** (wave-1 delivery continues in it). Exactly THREE worktrees: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `develop`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/S-1.01` on the feature branch.
+
+---
+
+## §RESUME SNAPSHOT D-256
+
+*Written: 2026-08-11 — session-closing wrap (six fix commits + final nine-finding fix; HEAD `f24ad3e`; all required CI checks GREEN; story MERGEABLE-BY-CI for the first time; confirming round PENDING). Supersedes D-252.*
+
+> **DEVIATION FROM STANDARD WRAP:** `STATE.md` was NOT bumped this session. The standard wrap procedure advances `version:`, `current_step`, and the Session Resume Checkpoint in STATE.md; that step is SKIPPED because STATE.md is off limits under the operator's deferral ruling (D-243 classifier block; CI-063 forbids rewording to evade the classifier). The full wrap lives here in `SESSION-HANDOFF.md §RESUME SNAPSHOT D-256`. `cycles/phase-1d/decisions-pending-state-insert.md` remains AUTHORITATIVE for all pending STATE.md records.
+
+### RESUME IN ONE BREATH
+
+Story S-1.01 is implemented, green, and for the first time MERGEABLE-BY-CI. Feature branch `feature/S-1.01-workspace-scaffold-and-core-discovery` at HEAD `f24ad3e`, PUSHED, `== origin`, tree CLEAN. 42 tests pass under both runners. CI at `f24ad3e`: all four branch-protection-required checks GREEN (`Format check`, `Clippy (deny warnings)`, `Test (macos-latest)`, `Build release (macos-latest)`), plus `MSRV check (1.88)` GREEN and the new `Purity check (ADR-001)` GREEN; only `Spec lint` is red, which is the known D-246 advisory (39 SCENARIO-MISMATCH BY DESIGN, not a required check). The review perimeter has been FROZEN by operator ruling to six lenses. The CONFIRMING ROUND has NOT been run — that is the immediate pickup. Steps 5 and 6 remain NOT STARTED. D-001..D-256.
+
+### HEADS
+
+| Branch / worktree | HEAD | State |
+|---|---|---|
+| `develop` | `f81f412` | local == `origin/develop`; working tree CLEAN; PUSHED (unchanged) |
+| `factory-artifacts` (`.factory/`) | wrap commit — run `git -C .factory log -1 --format='%h'` for exact SHA (per TD-VSDD-053) | CLEAN apart from live `logs/*.jsonl` + `sidecar-learning.md` + `regression-state.json` hook telemetry (dirty, excluded from commit); PUSHED |
+| `.worktrees/S-1.01/` | `f24ad3e` | branch `feature/S-1.01-workspace-scaffold-and-core-discovery`; tree CLEAN; PUSHED, tracking `origin/feature/S-1.01-workspace-scaffold-and-core-discovery` |
+| Open PRs | none | `gh pr list` empty — no PR ever opened for S-1.01 |
+
+20 commits total on `feature/S-1.01-workspace-scaffold-and-core-discovery`. Factory-artifacts updated by this wrap commit.
+
+### DELIVERY LEDGER — 20 commits in order
+
+Commits 1–14 as in D-252 (`ba83b1b`..`7bea0b2`). Six further commits this session (`7bea0b2..f24ad3e`, per orchestrator; +550/−132 across 12 files in the first five):
+
+| # | SHA | Description |
+|---|-----|-------------|
+| 15 | `67a90b1` | fix(tests): argv-aware `harness=false` `fn main()`; `mdlc_fixture_notes.md` rename; `.trailing.` dot-dir regression lock |
+| 16 | `e69276c` | fix(config): `[profile.release]` per ADR-002; `just kani` grep path; `--locked` on CI gates; `deny.toml` schema; `license` + `rust-version` fields |
+| 17 | `bbb79e6` | fix(config): `deny.toml` 0.17.0 compat; `license = "MIT OR Apache-2.0"` |
+| 18 | `ceb30ab` | fix(config): MSRV→1.88 + `MSRV check (1.88)` CI job; cargo-deny pin 0.17.0→0.19.0 |
+| 19 | `7f2d38e` | docs(types): disclose 8-vs-7 type count and absent `Link` |
+| 20 | `70f1f19` | fix: duplicate MSRV CI job; erasable dot-dir guard; fail-open test parser; stale defect-tense comments |
+| 21 | `f24ad3e` | fix: close nine adversary findings inside the frozen perimeter |
+
+### RED GATE
+
+PASSED and recorded (unchanged from D-252). `red_ratio` 1.0, 15 red / 31 total / 16 GREEN-BY-DESIGN exempt. Verified by orchestrator direct execution.
+
+### THE BLOCKING DISCOVERY — WHY THIS SESSION RE-OPENED STEP 4.5
+
+The branch was inherited at `7bea0b2` believed ready for Step 5/6. It was in fact UN-MERGEABLE: commit `7a681ea` (the prior session's C-E2 "test-integrity hardening", which converted `global_gitignore_test.rs` to `harness = false`) broke the branch-protection-REQUIRED `Test (macos-latest)` check. The hand-written `fn main()` ignored argv, so `cargo nextest` could not enumerate it and aborted with exit 104. Real CI evidence: run 31457365634 @ `f773598` = SUCCESS; run 31459686128 @ `7bea0b2` = FAILURE. The prior session verified with `cargo test` (exit 0) only and never ran `cargo nextest`. Adversary passes 10 and 12 independently found it; the orchestrator confirmed in real CI logs and fixed it at `67a90b1`. Proven non-vacuous: the `git_global(false)` mutant yields nextest exit 100 with FAIL attributed to that specific test.
+
+### FOURTH PRODUCTION DEFECT FOUND AND FIXED — P14-02 / P15-01 (HIGH)
+
+`build_walk` is `pub` and returns a `WalkBuilder`; in `ignore` 0.4.33, `filter_entry` stores a SINGLE predicate (`walk.rs:1043-1045`: "Calling this subsequent times overrides previous filter predicates"). So ONE caller line erased the BC-2.01.004-invariant-1 dot-directory guard. Orchestrator proved by probe: `build_walk(r).filter_entry(|_| true)` leaked `.trailing./t.md` — precisely the trailing-dot class that `hidden(true)` provably cannot catch (`ignore-0.4.33/src/pathutil.rs:156/158`), making `filter_entry` that class's sole defence. Foreseeable trigger: S-1.02 must implement `--ignore <glob>` per BC-2.11.001, and the idiomatic implementation is exactly `filter_entry(glob_predicate)`. Also noted: the ORIGINAL F-A1 prescription (recorded at `scanner_discovery_tests.rs:1277-1280`) specified a post-filter INSIDE `collect_md_files`; what landed was a predicate on the returned builder, which is the overridable location. FIXED at `70f1f19` by restoring the prescribed post-filter as a structural backstop, keeping `filter_entry` for subtree pruning. VERIFIED: with `filter_entry` neutralized to `|_| true`, `collect_md_files` still returns only `visible.md`. Total production defects for the story: F-B2, F-A1, F-P2-01, P14-02.
+
+### ADVERSARIAL STATUS — PERIMETER FROZEN, CONFIRMING ROUND PENDING
+
+Fifteen passes, 5 rounds, `passes_clean = 0`. Rounds 4 (passes 10–12) and 5 (passes 13–15) each returned 3/3 MATERIAL_FINDINGS. Root cause adjudicated: BC-5.39.001's 3-consecutive-clean criterion presumes a FIXED perimeter; the orchestrator was lens-diversifying, so each round opened new surface and found real defects there — a MOVING perimeter. OPERATOR RULING D-254 (option (a)): FREEZE the lens set at the six families already exercised (L1 spec-compliance; L2 code-correctness; L3 test-integrity; L4 hostile-filesystem/platform semantics; L5 public-API contract/downstream consumability; L6 build-dependency-CI configuration integrity incl. fix-integrity regression and semantic claim-truth). Run ONE confirming round against that fixed perimeter. New-lens findings route to S-1.02 input or register entries and are NOT S-1.01 blockers. Findings MATERIAL on the FROZEN perimeter ARE blockers — fix and re-run; that is not perimeter expansion. Full definition in `cycles/v1.0.0-greenfield/S-1.01/adversary-convergence-state.json` under `frozen_perimeter`.
+
+**IMPORTANT DISPATCH CONSTRAINT.** The `vsdd-factory:adversary` agent type has tools `Read`/`Grep`/`Glob` ONLY — it has NO Bash and CANNOT run commands. All six passes this session disclosed this honestly rather than fabricating execution evidence. Do NOT ask adversaries to verify empirically; every empirical confirmation must be done by the orchestrator. Budget for that.
+
+### OPERATOR RULINGS THIS SESSION
+
+- **D-252a** (carried from D-252): dot-FILE exclusion DEFER + DISCLOSE. `scanner.rs` now correctly DISCLOSES rather than overclaims it as of `f24ad3e`.
+- **D-253**: MSRV raised from 1.85 to 1.88. `cargo +1.85 check` exits 101; `cargo +1.88 check --all-targets --locked` exits 0. Frozen spec files untouched; applied in config only.
+- **D-254**: Review perimeter frozen to six lenses (L1–L6). See adversarial status above.
+- **D-255**: Disclosure bundle (BI-065..BI-068) — see Human Decision Items below.
+
+### CI FACTS LEARNED THIS SESSION
+
+All gates now pass `--locked`, including hardening siblings (`cargo deny --locked check`, `cargo mutants --cargo-arg=--locked --test-tool nextest`, `cargo kani --locked`). The four required CI job guards are now FAIL-CLOSED (previously they would report SUCCESS having run nothing if the root `Cargo.toml` were absent). New `Purity check (ADR-001)` job scans `mdlinkcheck-core` for forbidden I/O/RNG imports with a runtime-computed count — orchestrator-verified to DISCRIMINATE (planting `use std::fs;` → exit 1; clean → exit 0). `cargo-deny` pin is 0.19.0 because 0.17.0 cannot parse the current RustSec advisory DB (CVSS 4.0, `RUSTSEC-2026-0073`). `just hardening` no longer prints a static all-passed string; it now distinguishes EXECUTED from NO-OP (there is no `fuzz/` dir and zero Kani harnesses). CI tests `macos-latest` ONLY (D-043).
+
+### PROCESS LESSONS THIS SESSION (L-83..L-85)
+
+- **L-83**: Verify with the tool the GATE runs, not the one installed locally. This root cause recurred THREE times in one session (`cargo test` vs `cargo nextest`).
+- **L-84**: Verification must be as rigorous as the claim and can fail in the EXONERATING direction. An orchestrator probe appeared to refute a real finding because a glob mis-resolved the test binary path; re-probing confirmed the finding.
+- **L-85**: Never trust a stale agent-completion notification before dispatching a successor onto the same files. Two agents editing `ci.yml` concurrently produced two jobs sharing check-run name `MSRV check (1.88)`; branch protection keys on NAME, and the orchestrator's own check MISSED it by grepping a job-id string instead of asserting name uniqueness. An adversary caught it.
+
+### MSRV RESOLUTION (D-253 / D-205 must-fix)
+
+Frozen corpus self-contradicts: the story mandates `ignore` 0.4.33 and `globset` 0.4.20, both of which declare `rust-version = 1.88`, alongside an MSRV line of 1.85. `cargo +1.85 check` → exit 101; `cargo +1.88 check --all-targets --locked` → exit 0. Operator ruled RAISE to 1.88; downgrading was REJECTED because the F-A1/F-P2-01 correctness arguments are grounded in `ignore` 0.4.33 behavior. Applied in config only; frozen spec files untouched; disclosed.
+
+### HUMAN DECISION ITEMS FOR WAVE-1 GATE PACKAGE (BI-065..BI-068 / D-255)
+
+- **Dot-FILE exclusion** (D-252a carry): `scanner.rs` now DISCLOSES rather than overclaims. Requires operator acknowledgement in PR body.
+- **LICENSE file creation + license choice** (BI-065): `Cargo.toml` fields now say `MIT OR Apache-2.0`, no LICENSE file is git-tracked. S-1.01 does not own creating them.
+- **`Cargo.lock` drift from MANDATED versions** (BI-066): `proptest` locked 1.11.0 vs mandated 1.6.x (`"1.6"` is a caret req that cannot pin 1.6.x; five minor versions ahead); `clap` 4.6.6 vs 4.6.5; `unicode-normalization` 0.1.25 vs 0.1.24. Adding `--locked` made this lockfile the ENFORCED gate input.
+- **`Link` type corpus contradiction** (BI-067): `module-decomposition.md:60` (declared `inputs:` entry of S-1.01), `module-criticality.md:69`, and `entities.md` all name `Link`; only `api-surface.md` omits it. Implementation followed `api-surface.md` and discloses 8-vs-7 type count. Precedence unadjudicated.
+- **Hardlink/inode aliasing intent** (BI-068): one inode via two hardlinked paths yields TWO entries in `collect_md_files`; BC-2.01.001 postcondition 2 says "not scanned more than once". Intent unadjudicated.
+- **Holdout coverage VACUOUSLY SATISFIED** (carried condition C2): disclosed, not a failure.
+- **CI tests `macos-latest` ONLY** (D-043): no Linux coverage.
+- **AC-006/AC-010** claiming anchor-table coverage that does not exist in S-1.01.
+- **MSRV-1.88 divergence** from frozen spec's 1.85 (D-253 applied; disclosed).
+- **Frozen-perimeter definition itself**: operator-ruled, non-standard convergence path.
+
+### DEFERRED TO S-1.02 (unchanged from D-252)
+
+File symlinks excluded though BC-2.01.004 postcondition 3 / BC-2.01.006 postcondition 1 require inclusion; default-CWD rooting absent (CLI is S-1.02); dedup unverifiable against aliasing without path arguments (BC-2.01.007/BC-2.01.008 anchored to S-1.02); walker errors swallowed via `result.ok()?`.
+
+### RESUME NEXT-ACTION, in order
+
+1. **CONFIRMING ROUND**: 3 adversary passes against HEAD `f24ad3e`, scoped STRICTLY to the six frozen lenses (L1–L6), with the full accumulated do-not-report list injected. Converge = 3 clean. If MATERIAL on the frozen perimeter, fix and re-run. Adversaries have Read/Grep/Glob ONLY — all empirical verification by orchestrator.
+2. **Step 5**: per-AC demo evidence into `docs/demo-evidence/S-1.01/`. MUST be library/test-execution based — `main()` is `todo!()` and the binary panics if run. All 13 AC-named tests exist and each passes individually with `--exact` (orchestrator-verified). POLICY 10 requires story-scoped output.
+3. **Step 6**: pr-manager full 9-step lifecycle, then PACKAGE the exact `gh` commands and STOP. PR creation, verdict posts, and THE MERGE are HUMAN-executed (gate-#28 v3, D-120). `gh pr review` is structurally impossible (BI-039/D-021/D-105) so verdicts go via `gh pr comment`. Carry all disclosures into the PR body.
+4. **Wave-1 gate** = DEV-11 Run A ENDPOINT package for the operator stop-vs-continue re-ask.
+
+### STANDING RULINGS UNCHANGED
+
+Closed-world D-244; `.factory/specs/` FROZEN, zero modifications this session; no mid-run hook/process edits (D-158/D-182/D-231); L-82 null-disposition in every fix dispatch; D-193/L-81 verify every agent report by direct execution; L-78 outcome-with-evidence-first; merges and verdict posts HUMAN-executed via operator-packaged commands (gate-#28 v3, D-120); `gh pr review` structurally impossible (BI-039/D-021/D-105). **BI-062 was NOT triggered this session** — no hook demanded a merge — but the standing refusal holds and every fix agent recorded it.
+
+### SPEC-LINT AND VERIFICATION STATUS
+
+8 of 9 checkers PASS (unchanged — `.factory/specs/` frozen, ZERO modifications this session). `check-ec-injectivity.py` RED at exactly 39 SCENARIO-MISMATCH BY DESIGN per D-246. Spec-lint REQUIRED flip deferred, job ADVISORY.
+
+### SPEC SNAPSHOT
+
+PRD **v1.15** | 66 BCs | 26 VPs | 13 DIs | 8 ADRs | 19 policies | EC registry EC-001..EC-214 | holdout pool 12 reserved / 6 authored-and-active (HS-001, HS-004..HS-008; HS-002/HS-003 retired) | HS-INDEX v1.4 | 134 spec files.
+
+### DECISION DELTA THIS SESSION
+
+**D-253** = MSRV raised to 1.88 (config only; spec frozen). **D-254** = review perimeter frozen to six lenses; confirming round PENDING. **D-255** = disclosure bundle (BI-065..BI-068). **D-256** = this wrap. New blocking/decision-pending rows BI-065..BI-068. New lessons L-83..L-85. Feature branch at `f24ad3e`, pushed, tree CLEAN. No PR, no merge.
+
+### WORKTREE INVENTORY
+
+`.factory/` — ACTIVE, `factory-artifacts` at the wrap commit, keep. `.worktrees/S-1.01/` — ACTIVE, `feature/S-1.01-workspace-scaffold-and-core-discovery` @ `f24ad3e`, tree CLEAN, PUSHED — **keep** (confirming round + Steps 5/6 continue in it). Exactly THREE worktrees: `/Users/jmagady/Dev/mdlinkcheck-cloud` on `develop`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.factory` on `factory-artifacts`; `/Users/jmagady/Dev/mdlinkcheck-cloud/.worktrees/S-1.01` on the feature branch.

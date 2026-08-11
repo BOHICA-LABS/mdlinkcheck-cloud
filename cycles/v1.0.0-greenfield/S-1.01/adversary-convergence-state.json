@@ -8,7 +8,7 @@
   "converged": false,
   "required_clean_passes": 3,
   "blocking_gate": "BC-5.39.001",
-  "head_sha": "70f1f19",
+  "head_sha": "f24ad3e",
   "tests_total": 42,
   "clippy_deny_warnings_exit": 0,
   "production_defects_found_and_fixed": [
@@ -33,7 +33,7 @@
     "status": "FROZEN",
     "frozen_at_passes": 15,
     "confirming_round_status": "PENDING",
-    "confirming_round_target_head": "70f1f19",
+    "confirming_round_target_head": "f24ad3e",
     "root_cause_of_non_convergence": "BC-5.39.001 '3 consecutive clean passes' presumes a FIXED review perimeter. The orchestrator was lens-diversifying each round, examining previously-unexamined surface and finding real defects there — the criterion was applied to a MOVING perimeter; by construction there is always another lens.",
     "operator_ruling_rationale": "Applies standing residual-risk posture (gate #53/#57, workable-not-perfect, deal-breakers only) at story scale. The residual class is documentation-accuracy, which is DISCLOSED not hidden.",
     "lenses": [
@@ -77,7 +77,7 @@
     "new_lens_routing": "Findings from any lens NOT in L1-L6 route to S-1.02 input or register entries and are NOT S-1.01 blockers. Findings MATERIAL on the frozen perimeter (L1-L6) are still blockers.",
     "decision_ref": "D-254"
   },
-  "note": "Fifteen adversary passes run across 5 rounds (passes 1-9 from prior sessions; passes 10-15 this session). All five rounds returned MATERIAL_FINDINGS; passes_clean = 0 of 3 required. ROOT CAUSE OF NON-CONVERGENCE adjudicated: BC-5.39.001 '3 consecutive clean passes' criterion was applied to a MOVING perimeter (lens-diversification each round). OPERATOR RULING (D-254): freeze lens set at six families already exercised (L1-L6); run ONE confirming round against the fixed perimeter. Production defects found and fixed: F-B2, F-A1, F-P2-01, P14-02/P15-01. Confirming round (passes 16-18 on frozen perimeter) PENDING against HEAD 70f1f19.",
+  "note": "Fifteen adversary passes run across 5 rounds (passes 1-9 from prior sessions; passes 10-15 this session). All five rounds returned MATERIAL_FINDINGS; passes_clean = 0 of 3 required. ROOT CAUSE OF NON-CONVERGENCE adjudicated: BC-5.39.001 '3 consecutive clean passes' criterion was applied to a MOVING perimeter (lens-diversification each round). OPERATOR RULING (D-254): freeze lens set at six families already exercised (L1-L6); run ONE confirming round against the fixed perimeter. Production defects found and fixed: F-B2, F-A1, F-P2-01, P14-02/P15-01. Nine further findings closed at f24ad3e after perimeter freeze (passes 16-18 targeted); all required CI checks now GREEN. Confirming round (passes 16-18 on frozen perimeter) PENDING against HEAD f24ad3e.",
   "findings": [
     {
       "pass": 1,
