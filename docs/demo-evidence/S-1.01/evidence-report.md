@@ -143,19 +143,27 @@ record.
   because the anchor-table infrastructure does not yet exist (see partial-coverage
   disclosure above, BI-106).
 - All four branch-protection-required CI checks are **green** at `9a9b46c`.
+  `git diff --name-only 9a9b46c HEAD -- ':(exclude)docs'` returns nothing —
+  the delta from that commit to the current HEAD is documentation-only, so the
+  attestation carries to the HEAD of this branch.
 - The story is **NOT CONVERGED**. Four confirming rounds have run (adversary
   passes 16–18, 19–21, 22–24, 25–27) and every one returned `MATERIAL_FINDINGS`;
   `passes_clean` is **0 of 3** required under BC-5.39.001. Round 4 (passes 25–27)
   audited HEAD `b42285a` and found a leading-`::`-plus-rename escape from the
-  ADR-001 purity gate (BI-096) — the first functionally exploitable defect since
-  the `parents` finding — subsequently fixed at `9a9b46c` and confirmed closed for
-  all five forbidden ADR-001 categories. Under operator ruling D-263, what remains
-  is ONE confirming review scoped to the changed surface; once that passes, convergence
-  may be recorded as ACHIEVED-WITH-DISCLOSED-RESIDUALS. This evidence package does
-  not assert convergence.
+  ADR-001 purity gate (BI-096), subsequently fixed at `9a9b46c` and confirmed
+  closed for all five forbidden ADR-001 categories. Under operator ruling D-263,
+  what remains is ONE confirming review scoped to the changed surface; once that
+  passes, convergence may be recorded as ACHIEVED-WITH-DISCLOSED-RESIDUALS. This
+  evidence package does not assert convergence.
 - L1–L5 (spec-compliance, code-correctness, test-integrity, hostile-filesystem,
-  public-API) were independently reported clean through round 3 (passes 22–24).
-  Every round-2 and round-3 material finding was L6 gate-configuration or
-  documentation class. Round 4 found one non-L6 finding (BI-096, purity gate
-  escape) against HEAD `b42285a`; that defect is fixed and confirmed closed at the
-  current HEAD `9a9b46c`.
+  public-API) in the production Rust code were independently reported clean by
+  **nine consecutive passes (19–27)**, round 4 included; `crates/` is
+  byte-unchanged across round 4. Every round-2 and round-3 material finding was
+  L6 gate-configuration or documentation class. Round 4's findings were also all
+  on the L6/gate/evidence surface, but one of them (BI-096) was **functional
+  rather than documentation-class** — a leading-`::`-plus-rename escape from the
+  ADR-001 purity gate, undisclosed and exploitable past every required gate
+  (`cargo fmt`, `cargo clippy`, 44/44 tests, and the purity gate itself all passed
+  with real `std::fs` I/O planted inside the pure core). Rounds 2 and 3 produced
+  only documentation-accuracy residuals; round 4 did not. BI-096 is fixed and
+  confirmed closed at the current HEAD.
