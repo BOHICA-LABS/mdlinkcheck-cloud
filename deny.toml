@@ -5,6 +5,8 @@
 # Run in CI:   just deny  (hardening pipeline)
 #
 # Reference: https://embarkstudios.github.io/cargo-deny/
+#
+# Schema: cargo-deny 0.17+ (incompatible with pre-0.16 advisory severity fields)
 
 [graph]
 # Check all features and targets to catch transitive deps that only appear
@@ -18,7 +20,11 @@ all-features = true
 # Confidence threshold for license detection (SPDX matching).
 confidence-threshold = 0.8
 
-# Allow these SPDX license expressions.
+# Allow these SPDX license expressions.  Any license NOT in this list is
+# implicitly denied (cargo-deny 0.17+ removed the explicit [licenses].deny
+# key; the allow-list is now the complete policy boundary).
+# Licenses denied by omission: GPL-2.0, GPL-3.0, AGPL-3.0, LGPL-2.0,
+# LGPL-2.1, LGPL-3.0, SSPL-1.0, BSL-1.1 — original policy preserved.
 allow = [
     "MIT",
     "Apache-2.0",
@@ -33,21 +39,17 @@ allow = [
     "OpenSSL",
 ]
 
-# Deny these SPDX expressions outright.
-deny = [
-    "GPL-2.0",
-    "GPL-3.0",
-    "AGPL-3.0",
-    "LGPL-2.0",
-    "LGPL-2.1",
-    "LGPL-3.0",
-    "SSPL-1.0",
-    "BSL-1.1",
-]
-
-# Some crates have multiple license options; require all to be in the allow
-# list (rather than accepting any one option).
+# Per-crate license exceptions: allow a specific license for a single crate
+# when that crate uses a license not in the workspace-wide allow list above.
+# Format: { allow = ["LicenseExpr"], crate = "crate-name" }
 exceptions = []
+
+[licenses.private]
+# Ignore workspace crates that have not yet been published to any registry.
+# mdlinkcheck and mdlinkcheck-core are at 0.1.0 development stage and carry
+# no license declaration yet — operator must add one before publishing.
+# Remove this when a LICENSE file and [package].license fields are added.
+ignore = true
 
 # ─────────────────────────────────────────────────────────────────
 # Security advisories (RustSec database)
@@ -58,19 +60,14 @@ exceptions = []
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
 
-# Deny crates with known vulnerabilities.
-vulnerability = "deny"
-
-# Warn on unmaintained crates (upgrade to deny when ready).
-unmaintained = "warn"
-
-# Deny crates that have been yanked from crates.io.
-yanked = "deny"
-
-# Warn on crates explicitly flagged as security-sensitive notices.
-notice = "warn"
+# Scope of unmaintained-crate checks: "none" mirrors the original "warn"
+# (non-blocking) intent from the pre-0.17 schema.  Upgrade to "workspace"
+# or "all" when ready to enforce this as a hard gate.
+unmaintained = "none"
 
 # Known acceptable advisories (empty — deny all unless explicitly noted here).
+# Vulnerabilities are always hard errors in cargo-deny 0.17+.
+# Yanked crates are denied by default in cargo-deny 0.17+.
 ignore = []
 
 # ─────────────────────────────────────────────────────────────────

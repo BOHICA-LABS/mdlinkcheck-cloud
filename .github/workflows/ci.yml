@@ -105,7 +105,7 @@ jobs:
 
       - name: Clippy
         if: steps.guard.outputs.skip != 'true'
-        run: cargo clippy --all-targets --all-features -- -D warnings
+        run: cargo clippy --locked --all-targets --all-features -- -D warnings
 
   # ─────────────────────────────────────────────────────────────────
   # Job 3: Tests — macOS-only per D-043
@@ -151,7 +151,7 @@ jobs:
 
       - name: Run tests
         if: steps.guard.outputs.skip != 'true'
-        run: cargo nextest run --all-targets
+        run: cargo nextest run --locked --all-targets
 
   # ─────────────────────────────────────────────────────────────────
   # Job 4: Release build — macOS-only per D-043
@@ -189,7 +189,7 @@ jobs:
 
       - name: Build
         if: steps.guard.outputs.skip != 'true'
-        run: cargo build --release
+        run: cargo build --locked --release
 
   # ─────────────────────────────────────────────────────────────────
   # Job 5: Spec lint — validate spec artifact integrity (no Cargo needed)

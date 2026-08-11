@@ -43,7 +43,7 @@ fmt-check:
 # lint — clippy with deny-warnings (matches CI lint job)
 # ─────────────────────────────────────────────────────────────────
 lint:
-    cargo clippy --all-targets --all-features -- -D warnings
+    cargo clippy --locked --all-targets --all-features -- -D warnings
 
 # ─────────────────────────────────────────────────────────────────
 # test — run full test suite with nextest (matches CI test job)
@@ -53,7 +53,7 @@ lint:
 # Linux (case-sensitive).  Run on Windows via WSL or native.
 # ─────────────────────────────────────────────────────────────────
 test:
-    cargo nextest run --all-targets
+    cargo nextest run --locked --all-targets
 
 # ─────────────────────────────────────────────────────────────────
 # build — debug build
@@ -65,7 +65,7 @@ build:
 # build-release — release build (matches CI build-release job)
 # ─────────────────────────────────────────────────────────────────
 build-release:
-    cargo build --release
+    cargo build --locked --release
 
 # ─────────────────────────────────────────────────────────────────
 # ci — full pipeline, matching CI job order
@@ -122,10 +122,13 @@ fuzz-smoke:
 kani:
     #!/usr/bin/env bash
     set -euo pipefail
-    if ! grep -rq '#\[kani::proof\]' src/ 2>/dev/null; then
+    harness_count=$(grep -rl '#\[kani::proof\]' . --include='*.rs' 2>/dev/null || true)
+    harness_count=$(echo "${harness_count}" | grep -c . || true)
+    if [ "${harness_count}" -eq 0 ]; then
         echo "No Kani proof harnesses found — nothing to do."
         exit 0
     fi
+    echo "Found ${harness_count} file(s) containing Kani proof harnesses — running cargo kani."
     cargo kani
 
 # ─────────────────────────────────────────────────────────────────

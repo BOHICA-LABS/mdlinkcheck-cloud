@@ -4,3 +4,8 @@ resolver = "2"
 
 [workspace.metadata]
 msrv = "1.85"
+
+[profile.release]
+lto = "thin"
+opt-level = 3
+codegen-units = 1

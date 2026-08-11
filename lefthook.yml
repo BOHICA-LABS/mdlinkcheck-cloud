@@ -29,7 +29,7 @@ pre-commit:
 
     clippy:
       name: Clippy (deny warnings)
-      run: cargo clippy --all-targets --all-features -- -D warnings
+      run: cargo clippy --locked --all-targets --all-features -- -D warnings
       stage_fixed: false
 
 # ─────────────────────────────────────────────────────────────────
@@ -43,4 +43,4 @@ pre-push:
   commands:
     test:
       name: Test suite (nextest)
-      run: cargo nextest run --all-targets
+      run: cargo nextest run --locked --all-targets
