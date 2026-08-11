@@ -7,7 +7,7 @@ phase: 2
 step: C
 generated: 2026-08-10
 total_stories: 24
-total_edges: 34
+total_edges: 37
 acyclicity: CONFIRMED
 bidirectional_consistency: CONFIRMED
 ---
@@ -76,14 +76,18 @@ edges are marked (✦); the one missing within-epic edge is marked (within).
 | 32 | S-7.04 | S-7.03 | within E-7 | main.rs dispatches to reporter::format_json() |
 | 33 | S-7.04 | S-3.04 | ✦ E-7→E-3 | anchor_resolver must be implemented for app::run() to perform anchor checking; S-7.04 integration tests execute the full pipeline |
 | 34 | S-7.04 | S-4.03 | ✦ E-7→E-4 | path_resolver must be implemented for app::run() to perform file-link resolution; S-7.04 integration tests execute the full pipeline |
+| 35 | S-7.02 | S-1.02 | ✦ E-7→E-1 | S-7.02 MODIFIES cli.rs (adds ColorMode resolution logic); cli.rs is CREATED in S-1.02 — same-wave collision fix (gate #59 item 4): S-7.02 must run after S-1.02 |
+| 36 | S-6.02 | S-3.02 | ✦ E-6→E-3 | S-6.02 MODIFIES app.rs (passes config_error to verdict::exit_code); app.rs is CREATED in S-3.02 — modify-before-create fix (gate #59 item 3): S-6.02 must run after S-3.02 |
+| 37 | S-2.03 | S-3.02 | ✦ E-2→E-3 | S-2.03 MODIFIES anchor_table.rs (adds structural test for code-context exclusion); anchor_table.rs is CREATED in S-3.02 — dual-create fix (gate #59 item 6): S-2.03 must run after S-3.02 so it modifies, not re-creates |
 
-Cross-epic edges: 17  Within-epic edges: 17  Total: 34
+Cross-epic edges: 20  Within-epic edges: 17  Total: 37
 
 ---
 
 ## Acyclicity Proof
 
-Verified by Kahn's algorithm (`/tmp/topo_verify.py`, run 2026-08-10).
+Original 34-edge graph verified by Kahn's algorithm (`/tmp/topo_verify.py`, run 2026-08-10).
+Re-verified after gate #59 repair (`/tmp/topo_verify_37.py`, run 2026-08-10) with 3 new edges.
 Script output (verbatim):
 
 ```
@@ -91,40 +95,45 @@ Script output (verbatim):
 TOPOLOGICAL SORT VERIFICATION
 ============================================================
 Nodes: 24
-Edges: 34
+Edges: 37
 
 ACYCLICITY: CONFIRMED — no cycles detected
 
 Topological order:
-   1. S-1.01
-   2. S-1.02
-   3. S-1.03
-   4. S-3.01
-   5. S-3.03
-   6. S-5.02
-   7. S-6.01
-   8. S-7.02
-   9. S-7.01
-  10. S-1.04
-  11. S-2.01
-  12. S-6.02
-  13. S-7.03
-  14. S-2.02
-  15. S-2.03
-  16. S-3.02
-  17. S-4.02
-  18. S-5.01
-  19. S-3.04
-  20. S-4.01
-  21. S-5.03
-  22. S-4.03
-  23. S-5.04
-  24. S-7.04
+    1. S-1.01
+    2. S-1.02
+    3. S-1.03
+    4. S-3.01
+    5. S-3.03
+    6. S-5.02
+    7. S-6.01
+    8. S-7.01
+    9. S-7.02
+   10. S-1.04
+   11. S-2.01
+   12. S-7.03
+   13. S-2.02
+   14. S-3.02
+   15. S-4.02
+   16. S-5.01
+   17. S-2.03
+   18. S-3.04
+   19. S-4.01
+   20. S-6.02
+   21. S-5.03
+   22. S-4.03
+   23. S-5.04
+   24. S-7.04
 
 ============================================================
 BIDIRECTIONAL CONSISTENCY CHECK
 ============================================================
-BIDIRECTIONAL CONSISTENCY: CONFIRMED — 34 edges, 0 violations
+BIDIRECTIONAL CONSISTENCY: CONFIRMED — 37 edges, 0 violations
+
+============================================================
+WAVE ORDERING CHECK
+============================================================
+WAVE ORDERING: CONFIRMED — all 37 edges satisfy wave[src] > wave[dst]
 ```
 
 ---
@@ -137,10 +146,10 @@ are DERIVED, not assigned — the Step-D wave scheduler owns wave assignment.
 | Layer | Stories |
 |-------|---------|
 | 0 | S-1.01 |
-| 1 | S-1.02, S-1.03, S-3.01, S-3.03, S-5.02, S-6.01, S-7.02 |
-| 2 | S-1.04, S-2.01, S-6.02, S-7.01, S-7.03 |
-| 3 | S-2.02, S-2.03, S-3.02, S-4.02, S-5.01 |
-| 4 | S-3.04, S-4.01, S-5.03 |
+| 1 | S-1.02, S-1.03, S-3.01, S-3.03, S-5.02, S-6.01 |
+| 2 | S-1.04, S-2.01, S-7.01, S-7.02 |
+| 3 | S-2.02, S-3.02, S-4.02, S-5.01, S-7.03 |
+| 4 | S-2.03, S-3.04, S-4.01, S-5.03, S-6.02 |
 | 5 | S-4.03, S-5.04 |
 | 6 | S-7.04 |
 
@@ -153,7 +162,8 @@ This is the only story with an empty `depends_on`. It establishes the Cargo work
 `Cargo.toml`, `rust-toolchain.toml`, `lib.rs`, and the initial `types.rs` scaffold that
 every other story in the product depends on, directly or transitively.
 
-**Leaves (nothing blocks on them):** S-1.04, S-2.02, S-2.03, S-5.04, S-6.02, S-7.04
+**Leaves (nothing blocks on them):** S-1.04, S-2.02, S-2.03, S-5.04, S-6.02, S-7.04  
+_(These remain unchanged after gate #59 repairs. S-2.03 and S-6.02 gained new prerequisites but still block nothing.)_
 
 The product is complete when all six leaves are green:
 - S-1.04: scanner complete (UTF-8 errors + explicit file args)
@@ -181,29 +191,23 @@ Dependency graph already guarantees ordering: S-4.03 depends on both S-4.01 and 
 
 ---
 
-## S-2.03 Stub-Dependency Decision
+## S-2.03 Stub-Dependency Decision (gate #59 updated)
 
-**Decision: stub-only relationship — no blocking edge between S-2.03 and S-3.02.**
+**Decision revised (gate #59 item 6): blocking edge S-2.03 → S-3.02 ADDED.**
 
-Reasoning:
+Original reasoning (now superseded): S-2.03 was to create the anchor_table.rs stub
+itself, and S-3.02 would create the full implementation — both in layer 3. If run
+concurrently, S-3.02 would overwrite the stub. This was classified as an acceptable
+race (no edge needed) under the original "stub-only" reasoning.
 
-S-2.03 (BC-2.04.003 AC-010) writes a unit test that calls `anchor_table::build`
-directly to verify a structural guarantee: fenced code-block events produce zero
-`Tag::Heading` events in the pulldown-cmark parse stream.  The test needs
-`anchor_table::build` to exist as a compilable symbol — a `todo!()` stub body is
-sufficient to reach Red Gate (the test compiles, then panics with todo!(), satisfying
-the ≥0.5 density gate).
+**Gate #59 correction:** The "create stub" and "create full" in the same wave
+constitutes a dual-create same-wave collision (item 6 defect class). The correct
+fix is to designate S-3.02 as the sole creator of `anchor_table.rs`, and make
+S-2.03 a modifier that runs after S-3.02. Edge 37 (S-2.03 → S-3.02) is added.
 
-S-2.03 creates that stub itself (File Structure: "create stub (if not yet present)"),
-so it does not need S-3.02 to have run first.  Conversely, S-3.02 creates
-`anchor_table.rs` from scratch in its own Task 1 ("Create anchor_table.rs with todo!()
-stubs"), so S-3.02 does not depend on S-2.03's stub either.
-
-Once S-3.02 implements `anchor_table::build` correctly, S-2.03's AC-010 test passes
-as a welcome side-effect.  No ordering edge is needed: S-2.03 and S-3.02 can be in
-the same wave (layer 3 and layer 3 respectively, both after S-2.01 and S-3.01 /
-S-1.01 respectively).  If they run concurrently, the implementer for S-3.02 will
-overwrite the stub with the real implementation; S-2.03's test then passes.
+S-2.03 now runs in layer 4 (wave 5), after S-3.02 (layer 3, wave 4) creates the
+full anchor_table.rs implementation. S-2.03 modifies it by adding code-context
+exclusion unit tests. This also eliminates the concurrent-write race risk.
 
 ---
 
@@ -211,15 +215,16 @@ overwrite the stub with the real implementation; S-2.03's test then passes.
 
 ### AMB-001: fragment.rs dual creation (S-3.03 and S-4.02)
 
-Both S-3.03 and S-4.02 list `fragment.rs | create` in their File Structure tables.
-A file can only be created once.
+Both S-3.03 and S-4.02 originally listed `fragment.rs | create` in their File
+Structure tables. A file can only be created once.
 
 Resolution chosen: S-3.03 is the primary creator (E-3, anchor checking context).
-S-4.02 EXTENDS S-3.03's fragment.rs by adding the VP-004 Kani harness and P5/P6
-integration tests.  This is captured as edge 15 (S-4.02 → S-3.03).
+S-4.02 EXTENDS S-3.03's fragment.rs by adding the VP-004 Kani harness.
+This is captured as edge 15 (S-4.02 → S-3.03).
 
-The "create" annotation in S-4.02's File Structure is a spec inconsistency; it should
-read "modify."  This is noted but not corrected (`.factory/specs/` is read-only).
+**Gate #59 correction applied:** S-4.02's File Structure table has been updated to
+`fragment.rs | modify` (was `create`). The spec inconsistency is now resolved in
+the story file itself. Edge 15 rationale stands unchanged.
 
 ### AMB-002: url_classifier.rs ordering (S-2.01, S-4.02, S-5.01)
 
@@ -260,8 +265,11 @@ S-7.01 provides the full implementation with Kani proofs.
 
 This is an intentional decomposition: S-1.02's verdict is "good enough" for early
 integration; S-7.01 hardens it.  Edge 27 (S-7.01 → S-1.02) captures this.
-The "create" annotation in S-7.01's story should read "modify"; not corrected
-per read-only constraint on specs/.
+
+**Gate #59 correction applied:** S-7.01's File Structure table has been updated to
+`verdict.rs | modify` and `verdict_tests.rs | modify` (both were `create`). The
+spec inconsistencies are now resolved in the story file itself. Edge 27 rationale
+stands unchanged. `verdict_tests.rs` dual-create (item 8) also corrected here.
 
 ---
 
@@ -286,7 +294,15 @@ Full per-BC AC traceability is embedded in each individual story file.
 
 | Gap ID | Type | Source | Description | Justification | Resolution |
 |--------|------|--------|-------------|---------------|------------|
-| GAP-DEP-001 | spec inconsistency | S-4.02 File Structure | fragment.rs annotated "create" but S-3.03 creates it first; S-4.02 should say "modify" | Spec files are read-only and frozen; the correct dependency edge (S-4.02 → S-3.03) is added to the graph | Accept as-is; implementer must read S-3.03 before implementing S-4.02 |
-| GAP-DEP-002 | spec inconsistency | S-7.01 File Structure | verdict.rs annotated "create" but S-1.02 creates the stub; S-7.01 should say "modify" | Same constraint | Accept as-is; implementer reads S-1.02 before S-7.01 |
+| GAP-DEP-001 | spec inconsistency | S-4.02 File Structure | fragment.rs annotated "create" but S-3.03 creates it first; S-4.02 should say "modify" | Gate #59 authorized story-file repair (AMB-001 adjudication) | CLOSED by gate #59: S-4.02 File Structure updated to `fragment.rs \| modify` |
+| GAP-DEP-002 | spec inconsistency | S-7.01 File Structure | verdict.rs and verdict_tests.rs annotated "create" but S-1.02 creates both; S-7.01 should say "modify" | Gate #59 authorized story-file repair (AMB-004 adjudication, item 8) | CLOSED by gate #59: S-7.01 File Structure updated to `verdict.rs \| modify` and `verdict_tests.rs \| modify` |
 | GAP-DEP-003 | missing within-epic edge | S-6.02 Step-B decomp | S-6.02 had depends_on:[] but both S-6.01 and S-6.02 write filter.rs; parallel dispatch would cause overwrite conflict | Added edge 26 (S-6.02 → S-6.01) in Step C as a correctness fix | Edge added; gap closed |
 | GAP-DEP-004 | scope ambiguity | S-5.01 allow_match | S-5.01 adds allow_match to filter.rs; S-6.02 also owns allow_match (BC-2.11.002); implementations may overlap | Wave layer guarantees S-6.02 completes before S-5.03 consumes allow_match; implementer for S-5.01 should write a minimal pass-through that S-6.02 then replaces | Document in implementer dispatch; no graph change needed |
+| GAP-DEP-005 | modify-before-create | S-4.02 vs S-3.04 (item 1) | anchor_resolver.rs: S-4.02 (wave 4) declared modify; S-3.04 (wave 5) is the actual creator — ordering violation | Gate #59 operator ruling: move VP-004 P6 fragment-decode integration test to S-3.04; S-4.02 drops anchor_resolver.rs modify entirely | CLOSED by gate #59: S-4.02 File Structure row for anchor_resolver.rs removed; S-3.04 owns the test via existing AC-006 |
+| GAP-DEP-006 | modify-before-create | S-4.02 vs S-4.03 (item 2) | path_resolver.rs: S-4.02 (wave 4) declared modify; S-4.03 (wave 6) is the actual creator — ordering violation | Gate #59 operator ruling: move VP-004 P5 path-decode integration test to S-4.03 as AC-024 | CLOSED by gate #59: S-4.02 File Structure row for path_resolver.rs removed; S-4.03 gains AC-024 and BC-2.07.004 |
+| GAP-DEP-007 | modify-before-create | S-6.02 vs S-3.02 (item 3) | app.rs: S-6.02 (wave 3) declared modify; S-3.02 (wave 4) is the actual creator — ordering violation | Add dependency edge S-6.02 → S-3.02; recompute wave | CLOSED by gate #59: edge 36 added; S-6.02 moved wave 3→5; S-1.02 blocks updated |
+| GAP-DEP-008 | same-wave modify+create | S-7.02 vs S-1.02 (item 4) | cli.rs: S-7.02 (wave 2) declared modify; S-1.02 (wave 2) creates it — same-wave collision | Add dependency edge S-7.02 → S-1.02; recompute wave | CLOSED by gate #59: edge 35 added; S-7.02 moved wave 2→3; S-1.02 blocks updated; S-7.03 cascades wave 3→4 |
+| GAP-DEP-009 | modify-without-creator | S-2.02 (item 5) | integration_tests.rs: S-2.02 declared modify but no story creates it — orphaned modify | S-2.02 is earliest story needing the file; it becomes the creator | CLOSED by gate #59: S-2.02 File Structure updated from `modify (or create)` to `create` |
+| GAP-DEP-010 | dual-create | S-2.03 + S-3.02 (item 6) | anchor_table.rs: both S-2.03 (wave 4) and S-3.02 (wave 4) declared create in same wave — conflict | S-3.02 is the real creator (builds the three-phase pipeline); add edge S-2.03 → S-3.02 | CLOSED by gate #59: edge 37 added; S-2.03 moved wave 4→5; S-2.03 now declares modify |
+| GAP-DEP-011 | dual-create | S-2.01 + S-5.01 (item 7) | url_classifier.rs: S-2.01 (wave 3) and S-5.01 (wave 4) both declared create — but waves already ordered | S-2.01 is the definitive creator; S-5.01 extends it in a later wave | CLOSED by gate #59: S-2.01 File Structure clarified to `create`; S-5.01 updated to `modify` with note |
+| GAP-DEP-012 | dual-create | S-1.02 + S-7.01 (item 8) | verdict_tests.rs: S-1.02 (wave 2) and S-7.01 (wave 3) both declared create — but waves already ordered | S-1.02 is the creator; S-7.01 adds Kani proofs; handled together with GAP-DEP-002 (AMB-004) | CLOSED by gate #59: S-7.01 File Structure updated to `verdict_tests.rs \| modify` (combined with GAP-DEP-002 fix) |
