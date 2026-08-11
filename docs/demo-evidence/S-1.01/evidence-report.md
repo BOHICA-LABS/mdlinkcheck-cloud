@@ -143,12 +143,19 @@ record.
   because the anchor-table infrastructure does not yet exist (see partial-coverage
   disclosure above, BI-106).
 - All four branch-protection-required CI checks are **green** at `9a9b46c`.
-- The story is **NOT CONVERGED**. Three confirming rounds have run (adversary
-  passes 16–18, 19–21, 22–24) and every one returned `MATERIAL_FINDINGS`;
-  `passes_clean` is **0 of 3** required under BC-5.39.001. A fourth confirming
-  round is required. This evidence package does not assert convergence.
+- The story is **NOT CONVERGED**. Four confirming rounds have run (adversary
+  passes 16–18, 19–21, 22–24, 25–27) and every one returned `MATERIAL_FINDINGS`;
+  `passes_clean` is **0 of 3** required under BC-5.39.001. Round 4 (passes 25–27)
+  audited HEAD `b42285a` and found a leading-`::`-plus-rename escape from the
+  ADR-001 purity gate (BI-096) — the first functionally exploitable defect since
+  the `parents` finding — subsequently fixed at `9a9b46c` and confirmed closed for
+  all five forbidden ADR-001 categories. Under operator ruling D-263, what remains
+  is ONE confirming review scoped to the changed surface; once that passes, convergence
+  may be recorded as ACHIEVED-WITH-DISCLOSED-RESIDUALS. This evidence package does
+  not assert convergence.
 - L1–L5 (spec-compliance, code-correctness, test-integrity, hostile-filesystem,
-  public-API) have been independently reported clean by six consecutive passes.
+  public-API) were independently reported clean through round 3 (passes 22–24).
   Every round-2 and round-3 material finding was L6 gate-configuration or
-  documentation class, and every material one was a residual of the immediately
-  preceding fix wave rather than a defect in this story's source or tests.
+  documentation class. Round 4 found one non-L6 finding (BI-096, purity gate
+  escape) against HEAD `b42285a`; that defect is fixed and confirmed closed at the
+  current HEAD `9a9b46c`.
