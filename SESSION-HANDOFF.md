@@ -4048,10 +4048,12 @@ Frozen corpus self-contradicts: the story mandates `ignore` 0.4.33 and `globset`
 ### HUMAN DECISION ITEMS FOR WAVE-1 GATE PACKAGE (BI-065..BI-068 / D-255)
 
 - **Dot-FILE exclusion** (D-252a carry): `scanner.rs` now DISCLOSES rather than overclaims. Requires operator acknowledgement in PR body.
-- **LICENSE file creation + license choice** (BI-065): `Cargo.toml` fields now say `MIT OR Apache-2.0`, no LICENSE file is git-tracked. S-1.01 does not own creating them.
-- **`Cargo.lock` drift from MANDATED versions** (BI-066): `proptest` locked 1.11.0 vs mandated 1.6.x (`"1.6"` is a caret req that cannot pin 1.6.x; five minor versions ahead); `clap` 4.6.6 vs 4.6.5; `unicode-normalization` 0.1.25 vs 0.1.24. Adding `--locked` made this lockfile the ENFORCED gate input.
-- **`Link` type corpus contradiction** (BI-067): `module-decomposition.md:60` (declared `inputs:` entry of S-1.01), `module-criticality.md:69`, and `entities.md` all name `Link`; only `api-surface.md` omits it. Implementation followed `api-surface.md` and discloses 8-vs-7 type count. Precedence unadjudicated.
+- **LICENSE file creation + license choice** (BI-067): `Cargo.toml` fields now say `MIT OR Apache-2.0`, no LICENSE file is git-tracked. S-1.01 does not own creating them.
+- **`Cargo.lock` drift from MANDATED versions** (BI-065): `proptest` locked 1.11.0 vs mandated 1.6.x (`"1.6"` is a caret req that cannot pin 1.6.x; five minor versions ahead); `clap` 4.6.6 vs 4.6.5; `unicode-normalization` 0.1.25 vs 0.1.24. Adding `--locked` made this lockfile the ENFORCED gate input.
+- **`Link` type corpus contradiction** (BI-066): `module-decomposition.md:60` (declared `inputs:` entry of S-1.01), `module-criticality.md:69`, and `entities.md` all name `Link`; only `api-surface.md` omits it. Implementation followed `api-surface.md` and discloses 8-vs-7 type count. Precedence unadjudicated.
 - **Hardlink/inode aliasing intent** (BI-068): one inode via two hardlinked paths yields TWO entries in `collect_md_files`; BC-2.01.001 postcondition 2 says "not scanned more than once". Intent unadjudicated.
+- **`proptest` locked 1.11.0 vs mandated 1.6.x** — RULED KEEP (D-257); caret requirement cannot pin; requires operator acknowledgement in the PR body. `clap` and `unicode-normalization` parity treatment still to be confirmed.
+- **`Link` corpus precedence** — RULED not-S-1.01 (D-258); corpus resolution needs a human decision on precedence between `api-surface.md` and the three artifacts naming `Link`.
 - **Holdout coverage VACUOUSLY SATISFIED** (carried condition C2): disclosed, not a failure.
 - **CI tests `macos-latest` ONLY** (D-043): no Linux coverage.
 - **AC-006/AC-010** claiming anchor-table coverage that does not exist in S-1.01.
