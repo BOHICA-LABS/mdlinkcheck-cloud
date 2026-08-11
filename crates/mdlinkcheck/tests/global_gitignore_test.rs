@@ -1,30 +1,26 @@
 //! Integration test for BC-2.01.003 postcondition 3: global gitignore respected.
 //!
-//! This test lives in its own file so that it compiles to a SEPARATE test binary.
-//! That isolation is the soundness basis for the one `std::env::set_var` call below.
+//! This test uses `harness = false` (see `[[test]]` stanza in Cargo.toml) so that
+//! it compiles to a binary with an explicit `fn main()` entry point.  That makes
+//! the `unsafe std::env::set_var` call below genuinely sound: `fn main()` runs on
+//! the main thread before any other thread is spawned, so no concurrent environment
+//! reads are possible.
 //!
-//! # Threading model and SAFETY basis
+//! # Why `harness = false`
 //!
-//! Rust's libtest spawns one **main thread** that drives the test harness and one
-//! **worker thread per test function**.  With exactly one `#[test]` in this binary,
-//! the two threads are:
-//!   1. The main thread — blocked in `join()` waiting for the worker to complete.
-//!   2. The worker thread (this thread) — executing the test.
+//! The prior approach used a `static INVOCATION_COUNT` guard and relied on libtest's
+//! observed `join()` behaviour to argue that the main thread was blocked.  That
+//! argument was fragile under `cargo nextest`, which executes each test in its own
+//! process — so a future second `#[test]` in the file would always see a zero counter
+//! and the assertion would never fire.  `harness = false` makes the single-entry
+//! guarantee structural: there is only one `fn main()`, so adding a second test
+//! function is structurally impossible without refactoring the entry point.
 //!
-//! While the main thread is blocked in `join()` it cannot concurrently read the
-//! process environment.  Therefore `set_var` in the worker thread races with no
-//! other thread.  This reasoning relies on libtest's observed `join()` behaviour,
-//! which is not formally documented but is stable in practice.
+//! # SAFETY basis for `set_var`
 //!
-//! # STRUCTURAL INVARIANT
-//!
-//! **This binary must contain exactly one `#[test]` function.**
-//! Adding a second `#[test]` would create two concurrent worker threads, both of
-//! which could read the environment simultaneously with our `set_var` — a data race.
-//! A runtime assertion at the top of the test function (`INVOCATION_COUNT`) fires
-//! on the second invocation, making the invariant violation visible in sequential
-//! runs.  Do NOT add more tests here; create a new integration-test file instead,
-//! or convert this file to `harness = false` with an explicit `fn main()`.
+//! With `harness = false` and an explicit `fn main()`, `set_var` is called on the
+//! main thread before any other thread is created.  There are no concurrent reads of
+//! the process environment.
 //!
 //! Traceability:
 //!   BC-2.01.003 postcondition 3 — global gitignore respected when available
@@ -62,15 +58,6 @@ fn git_init(dir: &Path, hermetic_config: &Path) {
     assert!(status.success(), "git init failed in {:?}", dir);
 }
 
-// ─── Structural guard ─────────────────────────────────────────────────────────
-//
-// Incremented at the entry of every test function in this binary.
-// If a second `#[test]` is ever added, this counter exceeds 1 in sequential runs
-// (the second test sees `prev == 1` and fails with an explanatory message).
-// For the concurrent case, the data race on the environment would manifest
-// in CI failures — this counter is an additional early-warning signal.
-static INVOCATION_COUNT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
-
 /// RAII guard: saves an env variable's current value on construction and
 /// restores it (or removes it if it was absent) when dropped.
 ///
@@ -78,8 +65,9 @@ static INVOCATION_COUNT: std::sync::atomic::AtomicU32 = std::sync::atomic::Atomi
 /// that the prior state is always restored — even when the test panics.
 ///
 /// SAFETY invariant: callers must ensure no other thread reads the environment
-/// concurrently.  This file's single test is the only test in its binary, so
-/// no concurrent libtest threads exist.
+/// concurrently.  Because this binary uses `harness = false` with an explicit
+/// `fn main()`, `set_var` is called before any other thread is spawned,
+/// so no concurrent environment reads are possible.
 struct EnvRestoreGuard {
     key: &'static str,
     original: Option<std::ffi::OsString>,
@@ -88,20 +76,12 @@ struct EnvRestoreGuard {
 impl EnvRestoreGuard {
     fn set(key: &'static str, new_val: impl AsRef<std::ffi::OsStr>) -> Self {
         let original = std::env::var_os(key);
-        // SAFETY: This binary contains exactly one `#[test]` function (see the
-        // module-level STRUCTURAL INVARIANT comment).  Rust's libtest spawns one
-        // main thread (blocked in `join()` for the duration of the test) and one
-        // worker thread per test function.  With only one test, the worker thread
-        // (this thread) is the only thread that is not blocked.  The main thread
-        // cannot concurrently read the environment while it is waiting in `join()`.
-        // Therefore no data race on the process environment is possible.
-        //
-        // The assumption "main thread is blocked in join()" is libtest's observed
-        // behaviour, not a formal guarantee.  To make the invariant harder to
-        // violate accidentally, `test_BC_2_01_003_post3_global_gitignore_respected_when_available`
-        // increments `INVOCATION_COUNT` on entry; if a second test were somehow
-        // added and called this function, `INVOCATION_COUNT` would exceed 1 in a
-        // sequential run, triggering an assertion failure.
+        // SAFETY: This binary uses `harness = false` (see Cargo.toml [[test]] stanza).
+        // `fn main()` is the sole entry point and runs on the main thread before any
+        // other thread is created.  Therefore no concurrent environment reads are
+        // possible when `set_var` is called.  The `harness = false` convention makes
+        // adding a second test structurally impossible without refactoring `fn main()`,
+        // ensuring this invariant cannot be accidentally violated.
         unsafe { std::env::set_var(key, new_val) };
         EnvRestoreGuard { key, original }
     }
@@ -140,35 +120,22 @@ impl Drop for EnvRestoreGuard {
 //   set — killing the mutant via the negative assertion below.
 //
 // NESTED-.GITIGNORE SUB-CASE (BC-2.01.003 postcondition 2):
-//   A `.gitignore` inside `subdir/` excludes `subdir/nested-excluded.md` but
-//   not files outside that subdirectory.  This is cheap to add in the same
-//   git-init'd fixture and closes the postcondition 2 coverage gap.
+//   A `.gitignore` inside `mdlc_fixture_subdir/` excludes
+//   `mdlc_fixture_subdir/nested-excluded.md` but not files outside that
+//   subdirectory.  This is cheap to add in the same git-init'd fixture and
+//   closes the postcondition 2 coverage gap.
 //
 // Process-environment policy: `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_NOSYSTEM` are
 //   set in the process environment so that `collect_md_files` (which runs in-process
 //   and reads the env to locate the global gitignore) uses our hermetic config.
-//   This is sound here because this binary contains only this one test — see the
-//   `EnvRestoreGuard::set` SAFETY comment above.  `EnvRestoreGuard` restores the
-//   original values on drop (including panics).
+//   This is sound here because this binary runs under `harness = false` with
+//   `fn main()` as the sole entry point — see SAFETY comment on `EnvRestoreGuard`.
+//   `EnvRestoreGuard` restores the original values on drop (including panics).
 //
 // Traceability: BC-2.01.003 postcondition 3 (global gitignore respected)
 //              BC-2.01.003 postcondition 2 (nested .gitignore respected)
 
-#[test]
 fn test_BC_2_01_003_post3_global_gitignore_respected_when_available() {
-    // ── Structural guard (see INVOCATION_COUNT comment above) ────────────────
-    // Fires if a second test function in this binary calls set_var concurrently
-    // or sequentially, violating the single-test-binary invariant.
-    let prev = INVOCATION_COUNT.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-    assert_eq!(
-        prev, 0,
-        "STRUCTURAL INVARIANT VIOLATED: global_gitignore_test.rs must contain exactly \
-         one #[test] function.  A second test has been invoked (invocation index {}). \
-         This binary's soundness depends on single-threaded environment mutation. \
-         Move additional tests to a new file or convert to harness = false.",
-        prev
-    );
-
     let dir = TempDir::new().expect("tempdir");
     let root = dir.path();
 
@@ -208,16 +175,18 @@ fn test_BC_2_01_003_post3_global_gitignore_respected_when_available() {
     create_file(root, "normal.md");
 
     // ── Nested-.gitignore sub-case (BC-2.01.003 postcondition 2) ─────────────
-    // A .gitignore inside subdir/ excludes subdir/nested-excluded.md but must
-    // NOT affect files outside that subdirectory.
-    fs::create_dir_all(root.join("subdir")).expect("create subdir");
+    // A .gitignore inside mdlc_fixture_subdir/ excludes
+    // mdlc_fixture_subdir/nested-excluded.md but must NOT affect files outside
+    // that subdirectory.  Directory name is mdlc_fixture_-prefixed for
+    // hermeticity (N-2 fix: ancestor ignore files cannot match the dir).
+    fs::create_dir_all(root.join("mdlc_fixture_subdir")).expect("create mdlc_fixture_subdir");
     fs::write(
-        root.join("subdir").join(".gitignore"),
+        root.join("mdlc_fixture_subdir").join(".gitignore"),
         "nested-excluded.md\n",
     )
-    .expect("write subdir/.gitignore");
-    create_file(root, "subdir/nested-excluded.md"); // must be excluded
-    create_file(root, "subdir/nested-included.md"); // must be included
+    .expect("write mdlc_fixture_subdir/.gitignore");
+    create_file(root, "mdlc_fixture_subdir/nested-excluded.md"); // must be excluded
+    create_file(root, "mdlc_fixture_subdir/nested-included.md"); // must be included
 
     let result: Vec<PathBuf> = scanner::collect_md_files(root);
 
@@ -228,8 +197,8 @@ fn test_BC_2_01_003_post3_global_gitignore_respected_when_available() {
          (positive gate, BC-2.01.003 postcondition 3)"
     );
     assert!(
-        result.contains(&root.join("subdir/nested-included.md")),
-        "subdir/nested-included.md must be in the scan set \
+        result.contains(&root.join("mdlc_fixture_subdir/nested-included.md")),
+        "mdlc_fixture_subdir/nested-included.md must be in the scan set \
          (nested-.gitignore positive gate, BC-2.01.003 postcondition 2)"
     );
 
@@ -247,8 +216,14 @@ fn test_BC_2_01_003_post3_global_gitignore_respected_when_available() {
 
     // ── Negative assertion — nested .gitignore (BC-2.01.003 postcondition 2) ──
     assert!(
-        !result.contains(&root.join("subdir/nested-excluded.md")),
-        "subdir/nested-excluded.md must be excluded by subdir/.gitignore \
+        !result.contains(&root.join("mdlc_fixture_subdir/nested-excluded.md")),
+        "mdlc_fixture_subdir/nested-excluded.md must be excluded by \
+         mdlc_fixture_subdir/.gitignore \
          (BC-2.01.003 postcondition 2 — nested .gitignore files are respected)"
     );
+}
+
+fn main() {
+    test_BC_2_01_003_post3_global_gitignore_respected_when_available();
+    println!("test_BC_2_01_003_post3_global_gitignore_respected_when_available ... ok");
 }

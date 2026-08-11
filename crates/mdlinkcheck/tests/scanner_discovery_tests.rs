@@ -26,11 +26,11 @@
 //! environment.  The `git init` subprocess is kept hermetic through per-command
 //! env on the `Command` object — that is safe because it is not process-env
 //! mutation.  For `collect_md_files` (which runs in-process),
-//! fixture file names use a distinctive `mdlc_fixture_` prefix so that no plausible
-//! host-global gitignore pattern can accidentally exclude them.  Count assertions,
-//! where present, are scoped exclusively to `mdlc_fixture_`-prefixed fixture files
-//! so that ambient host ignores cannot skew them; purely negative or structural
-//! assertions use `contains`/`!contains` style.  The one test that genuinely needs
+//! fixture file names AND fixture directory names use a distinctive `mdlc_fixture_`
+//! prefix so that no plausible host-global gitignore pattern can accidentally exclude
+//! them.  Count assertions are whole-set `result.len()` checks; hermeticity is
+//! maintained through the `mdlc_fixture_` prefix on both files and directories.
+//! Purely negative or structural assertions use `contains`/`!contains` style.  The one test that genuinely needs
 //! a controlled global gitignore (`test_BC_2_01_003_post3_global_gitignore_respected_when_available`)
 //! lives in its own integration-test file (`global_gitignore_test.rs`) which
 //! compiles to a separate binary with no concurrent libtest threads.
@@ -91,8 +91,11 @@ fn test_BC_2_01_001_default_cwd_scan_includes_all_md_files() {
     let root = dir.path();
 
     create_file(root, "mdlc_fixture_README.md");
-    create_file(root, "docs/mdlc_fixture_guide.md");
-    create_file(root, "docs/api/mdlc_fixture_reference.md");
+    create_file(root, "mdlc_fixture_docs/mdlc_fixture_guide.md");
+    create_file(
+        root,
+        "mdlc_fixture_docs/mdlc_fixture_api/mdlc_fixture_reference.md",
+    );
     create_file(root, "not_a_md.txt");
     create_file(root, "image.png");
 
@@ -106,12 +109,13 @@ fn test_BC_2_01_001_default_cwd_scan_includes_all_md_files() {
         "mdlc_fixture_README.md must be in the scan set"
     );
     assert!(
-        result_set.contains(&root.join("docs/mdlc_fixture_guide.md")),
-        "docs/mdlc_fixture_guide.md must be in the scan set"
+        result_set.contains(&root.join("mdlc_fixture_docs/mdlc_fixture_guide.md")),
+        "mdlc_fixture_docs/mdlc_fixture_guide.md must be in the scan set"
     );
     assert!(
-        result_set.contains(&root.join("docs/api/mdlc_fixture_reference.md")),
-        "docs/api/mdlc_fixture_reference.md must be in the scan set"
+        result_set
+            .contains(&root.join("mdlc_fixture_docs/mdlc_fixture_api/mdlc_fixture_reference.md")),
+        "mdlc_fixture_docs/mdlc_fixture_api/mdlc_fixture_reference.md must be in the scan set"
     );
     assert_eq!(
         result_set.len(),
@@ -129,8 +133,11 @@ fn test_BC_2_01_001_no_duplicate_in_scan_set() {
     let root = dir.path();
 
     create_file(root, "mdlc_fixture_a.md");
-    create_file(root, "sub/mdlc_fixture_b.md");
-    create_file(root, "sub/nested/mdlc_fixture_c.md");
+    create_file(root, "mdlc_fixture_sub/mdlc_fixture_b.md");
+    create_file(
+        root,
+        "mdlc_fixture_sub/mdlc_fixture_nested/mdlc_fixture_c.md",
+    );
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     let result = scanner::collect_md_files(root);
@@ -148,12 +155,12 @@ fn test_BC_2_01_001_no_duplicate_in_scan_set() {
         "mdlc_fixture_a.md must appear in the scan set"
     );
     assert!(
-        unique.contains(&root.join("sub/mdlc_fixture_b.md")),
-        "sub/mdlc_fixture_b.md must appear in the scan set"
+        unique.contains(&root.join("mdlc_fixture_sub/mdlc_fixture_b.md")),
+        "mdlc_fixture_sub/mdlc_fixture_b.md must appear in the scan set"
     );
     assert!(
-        unique.contains(&root.join("sub/nested/mdlc_fixture_c.md")),
-        "sub/nested/mdlc_fixture_c.md must appear in the scan set"
+        unique.contains(&root.join("mdlc_fixture_sub/mdlc_fixture_nested/mdlc_fixture_c.md")),
+        "mdlc_fixture_sub/mdlc_fixture_nested/mdlc_fixture_c.md must appear in the scan set"
     );
 }
 
@@ -167,13 +174,27 @@ fn test_BC_2_01_001_scan_terminates_for_finite_tree() {
     let root = dir.path();
 
     create_file(root, "mdlc_fixture_a.md");
-    create_file(root, "b/mdlc_fixture_c.md");
-    create_file(root, "b/d/mdlc_fixture_e.md");
+    create_file(root, "mdlc_fixture_b/mdlc_fixture_c.md");
+    create_file(root, "mdlc_fixture_b/mdlc_fixture_d/mdlc_fixture_e.md");
 
     // ── Red Gate: panics at todo!() ───────────────────────────────────────────
     // After implementation: must return without looping.
     let result = scanner::collect_md_files(root);
 
+    // Identity assertions prevent three unrelated paths from satisfying len==3
+    // (F-P3-04 identity gate — AC-003).
+    assert!(
+        result.contains(&root.join("mdlc_fixture_a.md")),
+        "mdlc_fixture_a.md must be in the scan set (AC-003 identity gate)"
+    );
+    assert!(
+        result.contains(&root.join("mdlc_fixture_b/mdlc_fixture_c.md")),
+        "mdlc_fixture_b/mdlc_fixture_c.md must be in the scan set (AC-003 identity gate)"
+    );
+    assert!(
+        result.contains(&root.join("mdlc_fixture_b/mdlc_fixture_d/mdlc_fixture_e.md")),
+        "mdlc_fixture_b/mdlc_fixture_d/mdlc_fixture_e.md must be in the scan set (AC-003 identity gate)"
+    );
     assert_eq!(result.len(), 3, "all three .md files must be discovered");
 }
 
@@ -405,12 +426,13 @@ fn test_BC_2_01_004_directory_symlinks_not_followed() {
     let dir = TempDir::new().expect("tempdir");
     let root = dir.path();
 
-    // Create a directory with real .md content
-    let dir_a = root.join("dir_a");
-    fs::create_dir_all(&dir_a).expect("create dir_a");
-    create_file(root, "dir_a/real.md");
+    // Create a directory with real .md content.
+    // Name is mdlc_fixture_-prefixed for hermeticity (N-2 fix).
+    let dir_a = root.join("mdlc_fixture_dir_a");
+    fs::create_dir_all(&dir_a).expect("create mdlc_fixture_dir_a");
+    create_file(root, "mdlc_fixture_dir_a/real.md");
 
-    // Create a directory-symlink cycle: dir_a/cycle_link -> dir_a
+    // Create a directory-symlink cycle: mdlc_fixture_dir_a/cycle_link -> mdlc_fixture_dir_a
     // This replicates EC-008: `a/b -> a`.
     std::os::unix::fs::symlink(&dir_a, dir_a.join("cycle_link"))
         .expect("create directory symlink cycle");
@@ -428,10 +450,10 @@ fn test_BC_2_01_004_directory_symlinks_not_followed() {
             .any(|p| p.to_string_lossy().contains("cycle_link")),
         "directory symlinks must not be traversed; cycle_link must not appear in scan set"
     );
-    // dir_a/real.md is a real file (not behind a symlink) and must appear
+    // mdlc_fixture_dir_a/real.md is a real file (not behind a symlink) and must appear
     assert!(
-        result.contains(&root.join("dir_a/real.md")),
-        "dir_a/real.md must be discovered (it is a real file, not behind a dir symlink)"
+        result.contains(&root.join("mdlc_fixture_dir_a/real.md")),
+        "mdlc_fixture_dir_a/real.md must be discovered (it is a real file, not behind a dir symlink)"
     );
 }
 
@@ -466,8 +488,10 @@ fn test_BC_2_01_004_ec009_directory_symlink_to_outside_not_followed() {
     let root = root_dir.path();
 
     // Create a non-dot, non-cyclic directory symlink inside the scan root:
-    //   <root>/docs  ->  <external>   (analogous to EC-009: docs -> ../shared-docs)
-    std::os::unix::fs::symlink(external, root.join("docs"))
+    //   <root>/mdlc_fixture_docs  ->  <external>
+    // Name is mdlc_fixture_-prefixed for hermeticity (N-2 fix); analogous to
+    // EC-009: docs -> ../shared-docs.
+    std::os::unix::fs::symlink(external, root.join("mdlc_fixture_docs"))
         .expect("create non-cyclic out-of-root directory symlink (EC-009)");
 
     // A real in-root .md file: prevents vacuous pass on an empty result.
@@ -484,15 +508,15 @@ fn test_BC_2_01_004_ec009_directory_symlink_to_outside_not_followed() {
          implementation (EC-009 vacuous-pass prevention)"
     );
 
-    // Negative assertion 1: no discovered path traverses the docs symlink.
-    // Under follow_links(false) the docs entry is seen as a symlink and skipped.
-    // Under follow_links(true) the walk descends into docs/ and yields paths
-    // containing a "docs" path component — this is the mutation-kill signal.
+    // Negative assertion 1: no discovered path traverses the mdlc_fixture_docs symlink.
+    // Under follow_links(false) the symlink entry is seen and skipped.
+    // Under follow_links(true) the walk descends and yields paths containing an
+    // "mdlc_fixture_docs" path component — this is the mutation-kill signal.
     assert!(
         !result
             .iter()
-            .any(|p| p.components().any(|c| c.as_os_str() == "docs")),
-        "no path with a 'docs' component must appear — the docs directory symlink \
+            .any(|p| p.components().any(|c| c.as_os_str() == "mdlc_fixture_docs")),
+        "no path with a 'mdlc_fixture_docs' component must appear — the directory symlink \
          must not be traversed \
          (AC-009 / BC-2.01.004 postcondition 2 / DI-009 / EC-009, \
          mutation-discriminating case for follow_links(false))"
@@ -513,7 +537,7 @@ fn test_BC_2_01_004_ec009_directory_symlink_to_outside_not_followed() {
         result.len(),
         1,
         "only mdlc_fixture_README.md should be in the scan set; \
-         external.md behind the docs symlink must be excluded (EC-009)"
+         external.md behind the mdlc_fixture_docs symlink must be excluded (EC-009)"
     );
 }
 
@@ -808,11 +832,12 @@ proptest! {
         let dir = TempDir::new().expect("tempdir VP-017");
         let root = dir.path();
 
-        // Build a layered tree of .md files at the generated depth
+        // Build a layered tree of .md files at the generated depth.
+        // Directory names are mdlc_fixture_-prefixed for hermeticity (N-2 fix).
         for i in 0..file_count {
-            let mut rel = format!("file_{}.md", i);
+            let mut rel = format!("mdlc_fixture_file_{}.md", i);
             for d in 0..depth {
-                rel = format!("dir_{}_{}/{}", d, i, rel);
+                rel = format!("mdlc_fixture_dir_{}_{}/{}", d, i, rel);
             }
             create_file(root, &rel);
         }
@@ -829,18 +854,22 @@ proptest! {
         // a non-cyclic symlink yields paths under follow_links(true) but must
         // not yield any path under follow_links(false).
         if include_symlink_cycle {
-            // EC-008: self-referential cycle
-            let cycle_dir = root.join("cycle_root");
-            let _ = fs::create_dir_all(&cycle_dir);
+            // EC-008: self-referential cycle.
+            // Directory name is mdlc_fixture_-prefixed for hermeticity (N-2 fix).
+            let cycle_dir = root.join("mdlc_fixture_cycle_root");
+            fs::create_dir_all(&cycle_dir)
+                .expect("create mdlc_fixture_cycle_root (VP-017 EC-008 fixture)");
             #[cfg(unix)]
-            let _ = std::os::unix::fs::symlink(&cycle_dir, cycle_dir.join("self_link"));
+            std::os::unix::fs::symlink(&cycle_dir, cycle_dir.join("self_link"))
+                .expect("create self-referential symlink (VP-017 EC-008 fixture)");
 
             // EC-009: non-cyclic out-of-root directory symlink
             #[cfg(unix)]
             {
                 let outside = TempDir::new().expect("tempdir VP-017 outside");
                 create_file(outside.path(), "outside.md");
-                let _ = std::os::unix::fs::symlink(outside.path(), root.join("outlink"));
+                std::os::unix::fs::symlink(outside.path(), root.join("outlink"))
+                    .expect("create out-of-root directory symlink (VP-017 EC-009 fixture)");
                 _keep_alive.push(outside); // keep alive until after the scan
             }
         }
@@ -1263,4 +1292,131 @@ fn test_BC_2_01_004_inv1_dot_dir_skip_not_defeatable_by_ignore_whitelist() {
          Got scan set: {:?}",
         result
     );
+}
+
+// ─── TEST 1 (INTENTIONALLY RED — F-P2-01 defect exposure) ────────────────────
+//
+// BC-2.01.004 postcondition 1 / invariant 1 / BC-2.01.001 invariant 1:
+//   "ALL dot-directories are unconditionally excluded. No flag overrides this."
+//
+// Confirmed defect F-P2-01 (found independently by two separate reviewers):
+//   The `filter_entry` dot-directory guard in scanner.rs is UTF-8-only:
+//     `e.file_name().to_str().is_some_and(|n| n.starts_with('.'))`
+//   For a directory whose name is not valid UTF-8, `to_str()` returns `None`,
+//   so `is_some_and` evaluates to `false`, `is_dot_dir` is `false`, and the
+//   directory is ACCEPTED.  The guard fails OPEN on exactly the input class it
+//   was added to protect.
+//
+//   The `ignore` crate itself does this correctly byte-wise (pathutil.rs):
+//     `name.as_encoded_bytes().starts_with(b".")`
+//
+// FIXTURE DESIGN (two-path, platform-adaptive):
+//
+//   Linux path (ext4/xfs/btrfs accept arbitrary byte sequences in filenames):
+//   - Creates a dot-prefixed directory with INVALID UTF-8 name b".caf\xe9".
+//   - Places an .md file inside it (must NOT be discovered).
+//   - A .gitignore with ".*\n!.*\n" defeats hidden(true), leaving filter_entry
+//     as the SOLE defense.  require_git(false) honours .gitignore without git init.
+//   - Asserts the file inside does NOT appear in the scan set.
+//     FAILS on current scanner.rs: filter_entry admits the non-UTF-8 dot-dir.
+//
+//   macOS path (APFS/HFS+ enforces UTF-8; mkdir returns EILSEQ for non-UTF-8 bytes;
+//   the end-to-end path is not reachable on this OS):
+//   - Falls back to asserting the guard logic directly:
+//     `to_str().is_some_and(|n| n.starts_with('.'))` returns false for b".caf\xe9"
+//     because to_str() returns None for non-UTF-8.
+//   - Asserts the result is true — FAILS: the current guard returns false (F-P2-01).
+//   NOTE: The macOS fallback assertion is permanently red until scanner.rs is fixed
+//   AND this test is updated (or gated to #[cfg(target_os = "linux")]) to use the
+//   corrected guard logic.
+//
+// Fix (another agent's responsibility): use byte-wise comparison in scanner.rs:
+//   `e.file_name().as_encoded_bytes().starts_with(b".")`
+//
+// Traceability: BC-2.01.004 postcondition 1, invariant 1 / BC-2.01.001 invariant 1
+//               / F-P2-01
+
+#[cfg(unix)]
+#[test]
+fn test_BC_2_01_004_inv1_dot_dir_skip_handles_non_utf8_dir_name() {
+    use std::ffi::OsStr;
+    use std::os::unix::ffi::OsStrExt;
+
+    let dir = TempDir::new().expect("tempdir");
+    let root = dir.path();
+
+    // Dot-prefixed directory with a non-UTF-8 name.
+    // 0xe9 alone is an invalid UTF-8 lead byte (starts a 3-byte sequence with no
+    // continuation bytes), so to_str() returns None for this OsStr.
+    let non_utf8_name: &OsStr = OsStr::from_bytes(b".caf\xe9");
+    let dot_dir = root.join(non_utf8_name);
+
+    // Defeat hidden(true) via gitignore whitelist, leaving filter_entry as sole
+    // defense.  ".*" excludes all dot-prefixed entries; "!.*" negates and
+    // re-enables them.  require_git(false) in build_walk honours .gitignore
+    // without a git init.
+    fs::write(root.join(".gitignore"), ".*\n!.*\n")
+        .expect("write .gitignore that defeats hidden(true)");
+
+    // Normal .md file — positive gate (F-04 vacuous-pass prevention).
+    create_file(root, "mdlc_fixture_README.md");
+
+    // Attempt to create the non-UTF-8 directory.
+    // Linux: succeeds (ext4/xfs accept arbitrary byte sequences).
+    // macOS (APFS/HFS+): fails with EILSEQ — the OS enforces valid UTF-8 for
+    //   all VFS operations.  The end-to-end path is unavailable on macOS.
+    match fs::create_dir_all(&dot_dir) {
+        Ok(()) => {
+            // ── Linux path: full end-to-end test ─────────────────────────────
+            fs::write(dot_dir.join("secret.md"), "# secret\n")
+                .expect("write secret.md inside non-UTF-8 dot-dir");
+
+            let result = scanner::collect_md_files(root);
+
+            // Positive gate (F-04).
+            assert!(
+                result.contains(&root.join("mdlc_fixture_README.md")),
+                "mdlc_fixture_README.md must be in the scan set (F-04 positive gate)"
+            );
+
+            // BC-2.01.004 postcondition 1 / invariant 1 — FAILS on current impl.
+            // filter_entry: to_str() returns None → is_some_and returns false →
+            // is_dot_dir = false → dir traversed → secret.md appears (F-P2-01).
+            assert!(
+                !result.iter().any(|p| p.starts_with(&dot_dir)),
+                "no file under the non-UTF-8 dot-directory {:?} must appear in the \
+                 scan set (BC-2.01.004 postcondition 1 / invariant 1 / F-P2-01): \
+                 filter_entry uses to_str().is_some_and() which returns false for \
+                 non-UTF-8 names — fix: use as_encoded_bytes().starts_with(b\".\"). \
+                 Got scan set: {:?}",
+                dot_dir,
+                result
+            );
+        }
+        Err(_) => {
+            // ── macOS path: direct guard assertion ────────────────────────────
+            // macOS cannot create non-UTF-8 dirs; test the guard logic directly.
+            // BC-2.01.004 invariant 1 requires ANY dot-prefixed name — including
+            // non-UTF-8 names — to be recognised as a dot-directory.
+            //
+            // Replicate the current (buggy) guard from scanner.rs:
+            let current_guard_result = non_utf8_name.to_str().is_some_and(|n| n.starts_with('.'));
+
+            // THIS ASSERTION FAILS (defect F-P2-01):
+            // current_guard_result is false because to_str() returns None for
+            // b".caf\xe9".  The guard fails OPEN for non-UTF-8 dot-dir names.
+            // Fix: use `as_encoded_bytes().starts_with(b".")` in scanner.rs.
+            // NOTE: this fallback is permanently red until scanner.rs is fixed
+            // AND this branch is updated to use the corrected guard (or the test
+            // is changed to #[cfg(target_os = "linux")] after the fix).
+            assert!(
+                current_guard_result,
+                "F-P2-01: filter_entry guard `to_str().is_some_and(|n| n.starts_with('.'))`\
+                 returns {current_guard_result} for non-UTF-8 dot name {non_utf8_name:?}. \
+                 Expected true — dot-dirs must be rejected regardless of name encoding. \
+                 macOS APFS cannot create non-UTF-8 dirs; guard logic asserted directly. \
+                 Fix in scanner.rs: use `as_encoded_bytes().starts_with(b\".\")`."
+            );
+        }
+    }
 }
